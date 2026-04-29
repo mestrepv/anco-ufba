@@ -12,7 +12,8 @@ import logging
 from django.core.mail import send_mail
 
 from .aprovacao import avaliar_apos_revisao
-from .models import Analise, Revisao
+from .models import Analise, Artigo, Revisao
+from .services import aplicar_resultado_no_artigo, validar_link
 from .sorteio import (
     executar_sorteio,
     re_sortear_revisao_expirada,
@@ -75,6 +76,35 @@ def task_verificar_prazos() -> dict:
         else:
             re_sorteadas += 1
     return {"ok": True, "re_sorteadas": re_sorteadas, "sem_substituto": sem_substituto}
+
+
+def task_verificar_links(limite: int = 0) -> dict:
+    """
+    Cron semanal: faz HEAD em todos os link_acesso de Artigos cujas
+    analises estao publicadas/legado. Atualiza link_status e
+    link_ultima_verificacao. `limite` (0=todos) restringe para teste.
+    """
+    qs = (
+        Artigo.objects.filter(
+            analises__status__in=(Analise.Status.PUBLICADA, Analise.Status.LEGADO),
+        )
+        .exclude(link_acesso="")
+        .distinct()
+    )
+    if limite:
+        qs = qs[:limite]
+
+    contagem = {"ok": 0, "quebrado": 0, "redireciona": 0, "pulados": 0, "total": 0}
+    for artigo in qs.iterator(chunk_size=200):
+        contagem["total"] += 1
+        try:
+            resultado = validar_link(artigo.link_acesso)
+            aplicar_resultado_no_artigo(artigo, resultado)
+            contagem[resultado.status] = contagem.get(resultado.status, 0) + 1
+        except Exception:  # noqa: BLE001
+            logger.exception("Falha ao verificar link de Artigo %s", artigo.pk)
+            contagem["pulados"] += 1
+    return {"ok": True, **contagem}
 
 
 # ----------------------------------------------------------------------
