@@ -6,7 +6,7 @@
 >
 > Cada fase concluída tem relatório detalhado em [`relatorios/`](relatorios/).
 
-**Status atual**: Fase 3 concluída — aguardando aprovação para iniciar a Fase 4.
+**Status atual**: Fase 4 concluída — aguardando aprovação para iniciar a Fase 5.
 
 | # | Fase | Estimativa | Status | Relatório |
 |---|------|-----------|--------|-----------|
@@ -14,7 +14,7 @@
 | 1 | Núcleo de dados e admin | 2-3 dias | ✅ concluída | [fase-1.md](relatorios/fase-1.md) |
 | 2 | Autenticação e cadastro | 1-2 dias | ✅ concluída | [fase-2.md](relatorios/fase-2.md) |
 | 3 | Criação e edição de análises | 3-4 dias | ✅ concluída | [fase-3.md](relatorios/fase-3.md) |
-| 4 | Revisão por pares | 3-4 dias | ⬜ pendente | — |
+| 4 | Revisão por pares | 3-4 dias | ✅ concluída | [fase-4.md](relatorios/fase-4.md) |
 | 5 | Acervo público | 3-4 dias | ⬜ pendente | — |
 | 6 | API, métricas e saúde de links | 2-3 dias | ⬜ pendente | — |
 | 7 | Polimento e produção | 2 dias | ⬜ pendente | — |
@@ -70,18 +70,21 @@ Concluída em 2026-04-29. Relatório: [fase-3.md](relatorios/fase-3.md).
 - [x] Tailwind + HTMX + Alpine.js (via CDN nesta fase)
 - [x] **Aceite**: criar análise completa do zero, com e sem resenha
 
-## Fase 4 — Revisão por pares ⬜
+## Fase 4 — Revisão por pares ✅
 
-- [ ] Sorteio automático: 2 estruturais + 2 cegos (se há resenha)
-- [ ] Worker `django-q2` (entra no compose nesta fase)
-- [ ] Tela "Minhas revisões pendentes"
-- [ ] Mascaramento de autoria nas revisões cegas (incluindo histórico)
-- [ ] Formulário de revisão com comentários ancorados por campo
-- [ ] Lógica de transição de status (todas as combinações)
-- [ ] Re-sorteio por prazo expirado (cron diário)
-- [ ] Exclusão do autor e dos autores de outras análises do mesmo artigo
-- [ ] Fila de espera quando faltam revisores
-- [ ] **Aceite**: análise com resenha passa por 4 revisões com autoria
+Concluída em 2026-04-29. Relatório: [fase-4.md](relatorios/fase-4.md).
+
+- [x] Sorteio automático: 2 estruturais + 2 cegos (se há resenha)
+- [x] Worker `django-q2` (entra no compose; profile `worker` opcional em dev)
+- [x] Tela "Minhas revisões pendentes"
+- [x] Mascaramento de autoria nas revisões cegas (testado: nem
+  `nome_exibicao` nem `username` vazam)
+- [x] Formulário de revisão com comentários ancorados por 8 campos
+- [x] Lógica de transição de status (todas as combinações)
+- [x] Re-sorteio por prazo expirado (`task_verificar_prazos`)
+- [x] Exclusão do autor e dos autores de outras análises do mesmo artigo
+- [x] Fila de espera quando faltam revisores (sem persistir parciais)
+- [x] **Aceite**: análise com resenha passa por 4 revisões com autoria
   oculta nas cegas e é publicada automaticamente
 
 ## Fase 5 — Acervo público ⬜
