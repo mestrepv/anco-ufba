@@ -1,9 +1,11 @@
 """Admin do app acervo."""
 
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.utils import timezone
 from simple_history.admin import SimpleHistoryAdmin
 
 from .models import Analise, Artigo, ComentarioRevisao, Revisao, SnapshotLink
+from .services import aplicar_resultado_no_artigo, capturar_snapshot_wayback, validar_link
 
 
 class SnapshotLinkInline(admin.TabularInline):
@@ -36,6 +38,11 @@ class ArtigoAdmin(admin.ModelAdmin):
     readonly_fields = ("criado_em", "atualizado_em", "link_ultima_verificacao")
     inlines = [SnapshotLinkInline]
     list_per_page = 50
+    actions = (
+        "verificar_link_selecionados",
+        "promover_snapshot_wayback",
+        "marcar_como_indisponivel",
+    )
 
     @admin.display(description="Título", ordering="titulo")
     def titulo_curto(self, obj: Artigo) -> str:
@@ -48,6 +55,83 @@ class ArtigoAdmin(admin.ModelAdmin):
     @admin.display(boolean=True, description="Tem link?")
     def tem_link(self, obj: Artigo) -> bool:
         return obj.tem_link
+
+    @admin.action(description="Re-verificar link (HEAD) dos selecionados")
+    def verificar_link_selecionados(self, request, queryset):
+        ok = quebrado = 0
+        for artigo in queryset:
+            if not artigo.link_acesso:
+                continue
+            resultado = validar_link(artigo.link_acesso)
+            aplicar_resultado_no_artigo(artigo, resultado)
+            if resultado.status == "ok":
+                ok += 1
+            elif resultado.status == "quebrado":
+                quebrado += 1
+        self.message_user(
+            request,
+            f"Verificados {queryset.count()} artigos: {ok} ok, {quebrado} quebrados.",
+            level=messages.INFO,
+        )
+
+    @admin.action(description="Promover snapshot Wayback como link primário")
+    def promover_snapshot_wayback(self, request, queryset):
+        promovidos = sem_snapshot = 0
+        for artigo in queryset:
+            snap = artigo.snapshots.order_by("-capturado_em").first()
+            if snap is None:
+                # tenta capturar agora
+                snap = capturar_snapshot_wayback(artigo, artigo.link_acesso)
+            if snap is None:
+                sem_snapshot += 1
+                continue
+            artigo.link_acesso = snap.url_wayback
+            artigo.link_status = Artigo.LinkStatus.OK
+            artigo.link_ultima_verificacao = timezone.now()
+            artigo.save(
+                update_fields=["link_acesso", "link_status", "link_ultima_verificacao"],
+            )
+            promovidos += 1
+        self.message_user(
+            request,
+            f"{promovidos} promovido(s); {sem_snapshot} sem snapshot disponível.",
+            level=messages.INFO,
+        )
+
+    @admin.action(description="Marcar como indisponível permanentemente (link_status=quebrado)")
+    def marcar_como_indisponivel(self, request, queryset):
+        atualizados = queryset.update(
+            link_status=Artigo.LinkStatus.QUEBRADO,
+            link_ultima_verificacao=timezone.now(),
+        )
+        self.message_user(
+            request,
+            f"{atualizados} artigo(s) marcado(s) como indisponíveis.",
+            level=messages.WARNING,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Proxy "Links Quebrados" — changelist ja filtrada para a curadoria
+# ---------------------------------------------------------------------------
+
+
+class LinkQuebrado(Artigo):
+    """Proxy de Artigo: atalho no admin so com link_status='quebrado'."""
+
+    class Meta:
+        proxy = True
+        verbose_name = "link quebrado"
+        verbose_name_plural = "links quebrados"
+
+
+@admin.register(LinkQuebrado)
+class LinkQuebradoAdmin(ArtigoAdmin):
+    """Mesma admin de Artigo, mas filtrada por link_status='quebrado'."""
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(link_status=Artigo.LinkStatus.QUEBRADO)
 
 
 class ComentarioRevisaoInline(admin.TabularInline):
