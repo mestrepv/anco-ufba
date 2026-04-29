@@ -6,7 +6,7 @@
 >
 > Cada fase concluída tem relatório detalhado em [`relatorios/`](relatorios/).
 
-**Status atual**: Fase 5 concluída — aguardando aprovação para iniciar a Fase 6.
+**Status atual**: Fase 6 concluída — aguardando aprovação para iniciar a Fase 7.
 
 | # | Fase | Estimativa | Status | Relatório |
 |---|------|-----------|--------|-----------|
@@ -16,7 +16,7 @@
 | 3 | Criação e edição de análises | 3-4 dias | ✅ concluída | [fase-3.md](relatorios/fase-3.md) |
 | 4 | Revisão por pares | 3-4 dias | ✅ concluída | [fase-4.md](relatorios/fase-4.md) |
 | 5 | Acervo público | 3-4 dias | ✅ concluída | [fase-5.md](relatorios/fase-5.md) |
-| 6 | API, métricas e saúde de links | 2-3 dias | ⬜ pendente | — |
+| 6 | Saúde de links, dashboard e JSON-LD (v2.2) | 1-2 dias | ✅ concluída | [fase-6.md](relatorios/fase-6.md) |
 | 7 | Polimento e produção | 2 dias | ⬜ pendente | — |
 | 8 | Busca semântica | 3-4 dias | ⬜ pendente | — |
 
@@ -102,16 +102,24 @@ Concluída em 2026-04-29. Relatório: [fase-5.md](relatorios/fase-5.md).
 - [x] **URLs estáveis e citáveis desde o dia 1** (DOI-slug determinístico)
 - [x] **Aceite**: navegar, buscar e citar análises sem login
 
-## Fase 6 — API, métricas e saúde de links ⬜
+## Fase 6 — Saúde de links, dashboard e JSON-LD ✅
 
-- [ ] API REST somente-leitura (`/api/v1/`) via DRF
-- [ ] Documentação Swagger via `drf-spectacular` (`/api/docs`)
-- [ ] Filtros equivalentes às facetas
-- [ ] Tarefa periódica (semanal) de verificação de links (HEAD)
-- [ ] Tela curador "Links quebrados" com promoção do snapshot Wayback
-- [ ] Dashboard administrativo (status, fila de revisão, cobertura,
-  links quebrados)
-- [ ] Validação anti-SSRF na verificação de links
+Concluída em 2026-04-29 (escopo reescopado na **spec v2.2**: API REST
+e Swagger adiados para v2 — ver §14). Relatório: [fase-6.md](relatorios/fase-6.md).
+
+- [x] Tarefa periódica (semanal) de verificação de links via
+  `task_verificar_links`
+- [x] Setup de schedules django-q2 (`manage.py setup_q_schedules`)
+- [x] Changelist "Links quebrados" no admin (proxy `LinkQuebrado`)
+- [x] Actions em lote: re-verificar link, promover snapshot Wayback,
+  marcar indisponível
+- [x] Widgets de dashboard no admin home (4 cards: análises por status,
+  revisões pendentes/atrasadas, links quebrados, solicitações pendentes)
+- [x] JSON-LD (schema.org/ScholarlyArticle + Review) embutido nas
+  páginas públicas — Scholar/Zotero/agregadores consomem direto do HTML
+- [x] Validação anti-SSRF na verificação de links (já implementada na
+  Fase 3)
+- [⏸️] API REST + Swagger — adiados para v2 (spec §14)
 
 ## Fase 7 — Polimento e produção ⬜
 
