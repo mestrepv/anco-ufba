@@ -16,6 +16,7 @@ dependencies = [
     "gunicorn>=22.0",
     "django-simple-history>=3.7",
     "django-allauth[socialaccount]>=65.0",
+    "requests>=2.32",
 ]
 
 [project.optional-dependencies]
@@ -26,6 +27,7 @@ dev = [
     "pytest-factoryboy>=2.7",
     "factory-boy>=3.3",
     "ruff>=0.5",
+    "responses>=0.25",
 ]
 
 [build-system]
