@@ -1,0 +1,14 @@
+{% extends "_base.html" %}
+
+{% block title %}Solicitar promoção a analista — AnCo{% endblock %}
+
+{% block content %}
+<h1>Solicitação de promoção a analista</h1>
+<p>Você está cadastrado como <strong>leitor</strong>. Para criar análises e atuar como revisor, preencha o formulário abaixo. Sua solicitação será avaliada pela curadoria.</p>
+
+<form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <p><button type="submit">Enviar solicitação</button></p>
+</form>
+{% endblock %}

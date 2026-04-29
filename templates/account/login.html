@@ -1,0 +1,16 @@
+{% extends "_base.html" %}
+{% load socialaccount %}
+
+{% block title %}Entrar — AnCo{% endblock %}
+
+{% block content %}
+<h1>Entrar na AnCo</h1>
+<p>Use sua conta institucional do Google para acessar a plataforma.</p>
+
+<p>
+    <a class="btn" href="{% provider_login_url 'google' process='login' %}">Entrar com Google</a>
+</p>
+
+<h2>Por que conta institucional?</h2>
+<p>O acervo é mantido por uma comunidade acadêmica. Aceitamos apenas e-mails de instituições cadastradas (universidades, institutos federais, centros de pesquisa). Se sua instituição não estiver na lista, entre em contato com a curadoria.</p>
+{% endblock %}

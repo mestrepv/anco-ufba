@@ -1,0 +1,58 @@
+{% load static %}<!doctype html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}AnCo — Análise Cognitiva{% endblock %}</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; color: #222; }
+        header, footer { border-bottom: 1px solid #ddd; padding-bottom: .75rem; margin-bottom: 1.5rem; }
+        footer { border-bottom: none; border-top: 1px solid #ddd; margin-top: 2rem; padding-top: .75rem; font-size: .85em; color: #666; }
+        a { color: #144d77; }
+        nav a { margin-right: 1rem; }
+        h1 { font-size: 1.6rem; }
+        h2 { font-size: 1.2rem; margin-top: 1.5rem; }
+        .messages { padding: 0; list-style: none; }
+        .messages li { padding: .6rem .8rem; border-radius: 4px; margin-bottom: .4rem; }
+        .messages li.success { background: #e6f4ea; }
+        .messages li.error { background: #fce8e6; }
+        .messages li.info { background: #e8f0fe; }
+        .messages li.warning { background: #fff8e1; }
+        form p { margin: .8rem 0; }
+        form label { display: block; font-weight: 600; margin-bottom: .15rem; }
+        form input[type="text"], form input[type="email"], form textarea {
+            width: 100%; padding: .4rem .5rem; border: 1px solid #aaa; border-radius: 4px; font: inherit;
+        }
+        button, .btn { background: #144d77; color: white; border: none; padding: .55rem 1rem; border-radius: 4px; font: inherit; cursor: pointer; text-decoration: none; display: inline-block; }
+        button:hover, .btn:hover { background: #0f3b5c; }
+        .alert { padding: .8rem 1rem; border-radius: 4px; background: #fce8e6; color: #b7232b; margin: 1rem 0; }
+    </style>
+</head>
+<body>
+<header>
+    <nav>
+        <a href="{% url 'home' %}"><strong>AnCo</strong></a>
+        {% if user.is_authenticated %}
+            <span>· Olá, {{ user.nome_exibicao|default:user.email }} ({{ user.get_papel_display }})</span>
+            <form method="post" action="{% url 'account_logout' %}" style="display:inline">{% csrf_token %}<button type="submit" style="background:none;color:#144d77;padding:0;text-decoration:underline">sair</button></form>
+        {% else %}
+            <a href="{% url 'account_login' %}">Entrar</a>
+        {% endif %}
+    </nav>
+</header>
+
+{% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+        <li class="{{ message.tags }}">{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<main>{% block content %}{% endblock %}</main>
+
+<footer>
+    <p>Plataforma AnCo — em desenvolvimento (fase 2/7).</p>
+</footer>
+</body>
+</html>

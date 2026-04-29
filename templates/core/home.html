@@ -1,0 +1,27 @@
+{% extends "_base.html" %}
+
+{% block title %}AnCo — Análise Cognitiva{% endblock %}
+
+{% block content %}
+<h1>Plataforma AnCo</h1>
+<p>Acervo colaborativo de análises de literatura científica sobre <strong>Análise Cognitiva</strong>.</p>
+
+{% if user.is_authenticated %}
+    {% if user.eh_analista %}
+        <p>Você é {{ user.get_papel_display|lower }}. Em breve você poderá criar análises pelo formulário multipasso (Fase 3).</p>
+        <p><a class="btn" href="/admin/">Abrir admin</a></p>
+    {% else %}
+        <p>Sua conta está ativa como <strong>leitor</strong>.</p>
+        <p>
+            <a class="btn" href="{% url 'solicitar_promocao' %}">Solicitar promoção a analista</a>
+        </p>
+    {% endif %}
+{% else %}
+    <h2>Como participar</h2>
+    <p>Acesse com sua conta institucional do Google. Apenas e-mails de domínios acadêmicos cadastrados são aceitos.</p>
+    <p><a class="btn" href="{% url 'account_login' %}">Entrar com conta institucional</a></p>
+{% endif %}
+
+<h2>Acervo público</h2>
+<p>O acervo público estará disponível na Fase 5. Por enquanto, as análises legadas estão sendo curadas.</p>
+{% endblock %}
