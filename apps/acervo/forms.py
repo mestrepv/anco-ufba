@@ -167,3 +167,45 @@ class AnaliseResenhaForm(_AnaliseFormBase):
 class AnaliseCompletaForm(_AnaliseFormBase):
     class Meta(_AnaliseFormBase.Meta):
         fields = TODOS_OS_CAMPOS
+
+
+# ---------------------------------------------------------------------------
+# Forms da revisao (Fase 4)
+# ---------------------------------------------------------------------------
+
+
+class RevisaoForm(forms.ModelForm):
+    """Form do parecer e comentario geral. Campos ancorados sao gerenciados separadamente."""
+
+    class Meta:
+        from .models import Revisao
+
+        model = Revisao
+        fields = ("parecer", "comentario_geral")
+        widgets = {
+            "comentario_geral": forms.Textarea(attrs={"rows": 6}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["parecer"].required = True
+        for _name, field in self.fields.items():
+            css = _CSS_TEXTAREA if isinstance(field.widget, forms.Textarea) else _CSS_INPUT
+            _classe_widget(field, css)
+
+
+class ComentarioCampoForm(forms.Form):
+    """Comentario ancorado a um campo especifico da analise."""
+
+    campo = forms.CharField(max_length=50, widget=forms.HiddenInput)
+    texto = forms.CharField(
+        max_length=2000,
+        required=False,
+        widget=forms.Textarea(
+            attrs={"rows": 2, "placeholder": "Comentário sobre este campo (opcional)"}
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _classe_widget(self.fields["texto"], _CSS_TEXTAREA)

@@ -1,0 +1,55 @@
+{% extends "_base.html" %}
+
+{% block title %}Minhas revisões — AnCo{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold text-slate-900 mb-4">Minhas revisões</h1>
+
+<section class="mb-8">
+    <h2 class="text-lg font-medium mb-3">Pendentes ({{ pendentes|length }})</h2>
+    {% if not pendentes %}
+        <p class="text-slate-500 text-sm">Nenhuma revisão pendente.</p>
+    {% else %}
+    <ul class="space-y-2">
+        {% for r in pendentes %}
+        <li class="bg-white rounded-md border border-slate-200 px-4 py-3 flex items-start justify-between gap-3">
+            <div class="flex-1 min-w-0">
+                <div class="font-medium text-slate-900 truncate">{{ r.analise.artigo.titulo|truncatechars:90 }}</div>
+                <div class="text-xs text-slate-500 mt-0.5">
+                    {{ r.get_tipo_display }}
+                    <span class="text-slate-400">·</span>
+                    Prazo: <strong>{{ r.prazo_em|date:"d/m/Y" }}</strong>
+                    {% if r.tipo == "cega" %}
+                    <span class="text-slate-400">·</span>
+                    <span class="px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 text-[11px]">autoria oculta</span>
+                    {% endif %}
+                </div>
+            </div>
+            <a href="{% url 'revisar' r.pk %}" class="whitespace-nowrap text-sm text-anco hover:text-anco-dark font-medium">Revisar →</a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</section>
+
+<section>
+    <h2 class="text-lg font-medium mb-3">Concluídas (últimas 20)</h2>
+    {% if not concluidas %}
+        <p class="text-slate-500 text-sm">Você ainda não concluiu nenhuma revisão.</p>
+    {% else %}
+    <ul class="space-y-1 text-sm">
+        {% for r in concluidas %}
+        <li class="text-slate-600 px-4 py-2 bg-slate-50 rounded">
+            {{ r.analise.artigo.titulo|truncatechars:80 }}
+            <span class="text-slate-400">·</span>
+            {{ r.get_tipo_display }}
+            <span class="text-slate-400">·</span>
+            <strong>{{ r.get_parecer_display|default:"—" }}</strong>
+            <span class="text-slate-400">·</span>
+            {{ r.concluido_em|date:"d/m/Y" }}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</section>
+{% endblock %}

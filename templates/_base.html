@@ -36,6 +36,7 @@
             {% if user.is_authenticated %}
                 {% if user.eh_analista %}
                     <a href="{% url 'minhas_analises' %}" class="text-slate-600 hover:text-anco">Minhas análises</a>
+                    <a href="{% url 'minhas_revisoes' %}" class="text-slate-600 hover:text-anco">Minhas revisões</a>
                     <a href="{% url 'buscar_artigo' %}" class="text-slate-600 hover:text-anco">Nova análise</a>
                 {% endif %}
                 {% if user.is_staff %}
