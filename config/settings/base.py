@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "apps.core",
     "apps.vocabulario",
     "apps.acervo",
+    "apps.publico",
 ]
 
 # django-q2 — broker Redis em prod, sync em dev/test (override em dev.py)
