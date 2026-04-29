@@ -1,0 +1,63 @@
+{% extends "_base.html" %}
+
+{% block title %}Minhas análises — AnCo{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-semibold text-slate-900">Minhas análises</h1>
+    <a href="{% url 'buscar_artigo' %}"
+       class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-anco hover:bg-anco-dark text-white text-sm font-medium">
+        + Nova análise
+    </a>
+</div>
+
+{% if not analises %}
+<div class="rounded-md border border-dashed border-slate-300 p-8 text-center text-slate-500">
+    <p>Você ainda não criou nenhuma análise.</p>
+    <p class="mt-2">Clique em <strong>Nova análise</strong> para começar.</p>
+</div>
+{% else %}
+<div class="overflow-hidden bg-white rounded-md shadow-sm border border-slate-200">
+    <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50 text-slate-600">
+            <tr>
+                <th class="px-4 py-2 text-left">Artigo</th>
+                <th class="px-4 py-2 text-left">Status</th>
+                <th class="px-4 py-2 text-left">Resenha?</th>
+                <th class="px-4 py-2 text-left">Atualizada</th>
+                <th class="px-4 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+            {% for a in analises %}
+            <tr>
+                <td class="px-4 py-2">
+                    <div class="font-medium text-slate-900">{{ a.artigo.titulo|truncatechars:80 }}</div>
+                    <div class="text-xs text-slate-500">{{ a.artigo.ano|default:"s.d." }} · {{ a.artigo.titulo_periodico|truncatechars:60 }}</div>
+                </td>
+                <td class="px-4 py-2">
+                    <span class="inline-block px-2 py-0.5 rounded-full text-xs
+                        {% if a.status == 'rascunho' %}bg-slate-100 text-slate-700
+                        {% elif a.status == 'submetida' %}bg-amber-100 text-amber-800
+                        {% elif a.status == 'em_revisao' %}bg-sky-100 text-sky-800
+                        {% elif a.status == 'publicada' %}bg-emerald-100 text-emerald-800
+                        {% else %}bg-slate-100 text-slate-700{% endif %}">
+                        {{ a.get_status_display }}
+                    </span>
+                </td>
+                <td class="px-4 py-2">{% if a.tem_resenha %}<span class="text-violet-700 font-medium">✓</span>{% else %}—{% endif %}</td>
+                <td class="px-4 py-2 text-slate-600">{{ a.criado_em|date:"d/m/Y" }}</td>
+                <td class="px-4 py-2 text-right">
+                    {% if a.status == 'rascunho' %}
+                        <a href="{% url 'editar_analise' a.pk %}" class="text-anco hover:text-anco-dark">Editar →</a>
+                    {% else %}
+                        <span class="text-slate-400">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

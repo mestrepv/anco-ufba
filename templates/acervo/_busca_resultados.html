@@ -1,0 +1,33 @@
+{% if not consulta %}
+<p class="text-slate-500 text-sm">Digite um termo acima para buscar.</p>
+{% elif tem_resultados %}
+<p class="text-sm text-slate-500 mb-3">{{ resultados|length }} resultado(s) para <em>{{ consulta }}</em>.</p>
+<ul class="space-y-2 mb-6">
+    {% for a in resultados %}
+    <li class="bg-white rounded-md border border-slate-200 px-4 py-3 flex items-start justify-between gap-4">
+        <div class="flex-1 min-w-0">
+            <div class="font-medium text-slate-900 truncate">{{ a.titulo|truncatechars:100 }}</div>
+            <div class="text-xs text-slate-500">
+                {{ a.ano|default:"s.d." }} · {{ a.titulo_periodico|truncatechars:60 }} · DOI: {{ a.doi|truncatechars:40 }}
+                {% if a.eh_legado %}· <span class="text-amber-700">legado</span>{% endif %}
+            </div>
+        </div>
+        <form method="post" action="{% url 'iniciar_analise' a.pk %}">{% csrf_token %}
+            <button type="submit" class="text-sm whitespace-nowrap text-anco hover:text-anco-dark font-medium">Analisar →</button>
+        </form>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-slate-500 text-sm mb-4">Nenhum artigo encontrado para <em>{{ consulta }}</em>.</p>
+{% endif %}
+
+{% if consulta %}
+<div class="rounded-md border border-dashed border-slate-300 p-6 text-center bg-slate-50">
+    <p class="text-slate-700 mb-3">O artigo que procura não está no acervo?</p>
+    <a href="{% url 'cadastrar_artigo' %}?doi={{ consulta|urlencode }}"
+       class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-anco hover:bg-anco-dark text-white text-sm font-medium">
+        Cadastrar novo artigo
+    </a>
+</div>
+{% endif %}

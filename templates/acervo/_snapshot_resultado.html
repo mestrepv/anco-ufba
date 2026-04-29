@@ -1,0 +1,10 @@
+{% if snapshot %}
+<div class="rounded-md bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-900">
+    Snapshot capturado em
+    <a href="{{ snapshot.url_wayback }}" target="_blank" class="underline">{{ snapshot.url_wayback|truncatechars:80 }}</a>.
+</div>
+{% else %}
+<div class="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
+    Não foi possível capturar o snapshot agora. Tente novamente em alguns instantes.
+</div>
+{% endif %}

@@ -1,0 +1,39 @@
+{% extends "_base.html" %}
+
+{% block title %}Submeter análise — AnCo{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold text-slate-900 mb-2">Submeter análise para revisão</h1>
+<p class="text-slate-600 mb-6">
+    <strong>{{ analise.artigo.titulo|truncatechars:120 }}</strong>
+</p>
+
+<div class="bg-white rounded-md border border-slate-200 p-6 space-y-4 max-w-2xl">
+    <div class="text-sm text-slate-700">
+        Ao submeter, sua análise sai de <em>rascunho</em> e entra na fila para
+        sorteio de revisores estruturais (2 revisores; +14 dias de prazo).
+    </div>
+
+    {% if analise.tem_resenha %}
+    <div class="bg-violet-50 border border-violet-200 rounded p-3 text-sm text-violet-900">
+        <strong>Resenha crítica detectada.</strong> Sua análise também passará por
+        <strong>revisão cega</strong> adicional (2 revisores cegos; +21 dias).
+        Sua autoria será mascarada para esses revisores.
+    </div>
+    {% endif %}
+
+    <p class="text-sm text-slate-600">
+        Depois de submeter, você não poderá editar até receber o parecer.
+        Em caso de "ajustes", a análise volta para rascunho com os comentários
+        dos revisores.
+    </p>
+
+    <form method="post" class="flex items-center justify-between pt-4 border-t border-slate-100">
+        {% csrf_token %}
+        <a href="{% url 'editar_analise' analise.pk %}" class="text-sm text-slate-600 hover:text-anco">← Continuar editando</a>
+        <button type="submit" class="px-4 py-2 rounded-md bg-anco hover:bg-anco-dark text-white text-sm font-medium">
+            Confirmar submissão
+        </button>
+    </form>
+</div>
+{% endblock %}

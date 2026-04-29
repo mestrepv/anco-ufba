@@ -1,0 +1,16 @@
+{% extends "_base.html" %}
+
+{% block title %}Buscar artigo — AnCo{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold text-slate-900 mb-4">Buscar artigo</h1>
+<p class="text-slate-600 mb-6">Procure pelo DOI ou por trecho do título / autor. Se o artigo ainda não está no acervo, você pode cadastrá-lo.</p>
+
+<form method="get" hx-get="{% url 'buscar_artigo' %}" hx-target="#resultados" hx-trigger="submit, keyup changed delay:400ms from:input[name=q]" hx-push-url="true" class="mb-6">
+    {{ form.q }}
+</form>
+
+<div id="resultados">
+    {% include "acervo/_busca_resultados.html" %}
+</div>
+{% endblock %}
