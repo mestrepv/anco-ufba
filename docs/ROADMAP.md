@@ -6,7 +6,7 @@
 >
 > Cada fase concluída tem relatório detalhado em [`relatorios/`](relatorios/).
 
-**Status atual**: Fase 4 concluída — aguardando aprovação para iniciar a Fase 5.
+**Status atual**: Fase 5 concluída — aguardando aprovação para iniciar a Fase 6.
 
 | # | Fase | Estimativa | Status | Relatório |
 |---|------|-----------|--------|-----------|
@@ -15,7 +15,7 @@
 | 2 | Autenticação e cadastro | 1-2 dias | ✅ concluída | [fase-2.md](relatorios/fase-2.md) |
 | 3 | Criação e edição de análises | 3-4 dias | ✅ concluída | [fase-3.md](relatorios/fase-3.md) |
 | 4 | Revisão por pares | 3-4 dias | ✅ concluída | [fase-4.md](relatorios/fase-4.md) |
-| 5 | Acervo público | 3-4 dias | ⬜ pendente | — |
+| 5 | Acervo público | 3-4 dias | ✅ concluída | [fase-5.md](relatorios/fase-5.md) |
 | 6 | API, métricas e saúde de links | 2-3 dias | ⬜ pendente | — |
 | 7 | Polimento e produção | 2 dias | ⬜ pendente | — |
 | 8 | Busca semântica | 3-4 dias | ⬜ pendente | — |
@@ -87,19 +87,20 @@ Concluída em 2026-04-29. Relatório: [fase-4.md](relatorios/fase-4.md).
 - [x] **Aceite**: análise com resenha passa por 4 revisões com autoria
   oculta nas cegas e é publicada automaticamente
 
-## Fase 5 — Acervo público ⬜
+## Fase 5 — Acervo público ✅
 
-- [ ] Listagem `/acervo/` com paginação (20/página)
-- [ ] Busca facetada (Postgres FTS + facetas dinâmicas)
-- [ ] Página do artigo (`/artigo/<doi-slug>/`)
-- [ ] Página da análise (`/analise/<id>/`)
-- [ ] Selo de destaque para resenhas críticas peer-reviewed
-- [ ] Histórico de versões consultável (diff)
-- [ ] Geração de citação ABNT/APA
-- [ ] Selo CC-BY-NC visível no rodapé das análises
-- [ ] **URLs estáveis e citáveis desde o dia 1** (bloqueia mudanças
-  retroativas)
-- [ ] **Aceite**: navegar, buscar e citar análises sem login
+Concluída em 2026-04-29. Relatório: [fase-5.md](relatorios/fase-5.md).
+
+- [x] Listagem `/acervo/` com paginação (20/página)
+- [x] Busca facetada (Postgres FTS com `unaccent` + 6 facetas)
+- [x] Página do artigo (`/artigo/<doi-slug>/`)
+- [x] Página da análise (`/analise/<id>/`)
+- [x] Selo de destaque para resenhas críticas peer-reviewed
+- [x] Histórico de versões consultável (lista; diff fica via admin)
+- [x] Geração de citação ABNT e APA (inline na análise)
+- [x] Selo CC-BY-NC visível no rodapé da análise
+- [x] **URLs estáveis e citáveis desde o dia 1** (DOI-slug determinístico)
+- [x] **Aceite**: navegar, buscar e citar análises sem login
 
 ## Fase 6 — API, métricas e saúde de links ⬜
 
