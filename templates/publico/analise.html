@@ -2,6 +2,10 @@
 
 {% block title %}Análise — {{ analise.artigo.titulo|truncatechars:60 }} — AnCo{% endblock %}
 
+{% block extra_head %}
+<script type="application/ld+json">{{ jsonld|safe }}</script>
+{% endblock %}
+
 {% block content %}
 <nav class="text-xs text-slate-500 mb-4"><a href="{% url 'acervo_publico' %}" class="hover:text-anco">← Acervo</a></nav>
 

@@ -21,6 +21,7 @@ from django.shortcuts import get_object_or_404, render
 
 from apps.acervo.models import Analise, Artigo, Revisao
 
+from .schema import jsonld, schema_analise, schema_artigo
 from .services import (
     doi_to_slug,
     gerar_citacao_abnt,
@@ -166,6 +167,7 @@ def pagina_artigo_view(request: HttpRequest, doi_slug: str) -> HttpResponse:
             "artigo": artigo,
             "analises": analises_publicas,
             "snapshot_recente": snapshots[0] if snapshots else None,
+            "jsonld": jsonld(schema_artigo(artigo)),
         },
     )
 
@@ -242,6 +244,7 @@ def pagina_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
             "citacao_apa": gerar_citacao_apa(analise),
             "doi_slug": doi_to_slug(analise.artigo.doi),
             "campos_textuais": campos_textuais,
+            "jsonld": jsonld(schema_analise(analise)),
         },
     )
 
