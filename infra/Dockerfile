@@ -15,7 +15,11 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY pyproject.toml ./
-RUN pip install --upgrade pip \
+
+# Cria stub do pacote `config` para o setuptools achar durante a instalacao
+# editavel; o codigo real entra via COPY abaixo (e via bind-mount em dev).
+RUN mkdir -p config && touch config/__init__.py \
+    && pip install --upgrade pip \
     && pip install -e .[dev]
 
 COPY . .

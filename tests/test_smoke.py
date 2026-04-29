@@ -15,6 +15,7 @@ def test_django_check_passa() -> None:
     assert "no issues" in out.getvalue().lower()
 
 
+@pytest.mark.django_db
 def test_banco_de_dados_responde() -> None:
     """Conexao com Postgres do compose esta funcional."""
     with connection.cursor() as cursor:
