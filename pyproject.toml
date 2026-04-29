@@ -1,0 +1,88 @@
+[project]
+name = "anco-plataforma"
+version = "0.1.0"
+description = "Plataforma colaborativa de pesquisa para catalogar e analisar literatura cientifica sobre Analise Cognitiva (AnCo)."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "AGPL-3.0-or-later" }
+authors = [
+    { name = "Paulo Vicente", email = "paulovicente.ifba@gmail.com" },
+]
+
+dependencies = [
+    "django>=5.0,<5.2",
+    "django-environ>=0.11",
+    "psycopg[binary]>=3.1",
+    "gunicorn>=22.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+    "pytest-cov>=5.0",
+    "pytest-factoryboy>=2.7",
+    "factory-boy>=3.3",
+    "ruff>=0.5",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["config"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [
+    "migrations",
+    "staticfiles",
+    ".venv",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+]
+ignore = [
+    "E501",  # line-too-long (handled by formatter)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/settings/*.py" = ["F405", "F403"]
+"tests/**/*.py" = ["S101"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.dev"
+python_files = ["test_*.py"]
+addopts = "--reuse-db --strict-markers"
+testpaths = ["tests", "apps"]
+
+[tool.coverage.run]
+source = ["apps", "config"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "config/wsgi.py",
+    "config/asgi.py",
+    "manage.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
