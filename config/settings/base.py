@@ -33,14 +33,26 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
     "django.contrib.postgres",
     "simple_history",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
     "apps.core",
     "apps.vocabulario",
     "apps.acervo",
 ]
 
+SITE_ID = 1
+
 AUTH_USER_MODEL = "core.User"
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -51,6 +63,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -110,3 +123,60 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 BASE_URL = env("BASE_URL", default="http://localhost:8000")
+
+# ----------------------------------------------------------------------
+# Autenticacao (Fase 2)
+# ----------------------------------------------------------------------
+
+LOGIN_URL = "/accounts/login/"
+# Apos OAuth, vai direto para a view de solicitacao; ela redireciona conforme
+# o estado do usuario (leitor sem solicitacao -> form; leitor com solicitacao
+# -> status; analista/curador -> home).
+LOGIN_REDIRECT_URL = "/cadastro/promocao/"
+LOGOUT_REDIRECT_URL = "/"
+
+# Lista de dominios institucionais aceitos. Sufixos comecando com "."
+# casam o dominio e qualquer subdominio (`.edu.br` casa `usp.br`,
+# `ufba.br`, mas tambem `lab.usp.br`). Strings sem ponto inicial casam
+# exatamente.
+ALLOWED_INSTITUTIONAL_DOMAINS = env.list(
+    "ALLOWED_INSTITUTIONAL_DOMAINS",
+    default=[
+        ".edu",
+        ".edu.br",
+        ".ac.uk",
+        "ufba.br",
+        "ifba.edu.br",
+        "uneb.br",
+        "usp.br",
+        "unicamp.br",
+        "ufmg.br",
+        "ufrj.br",
+        "ufpe.br",
+        "fiocruz.br",
+        "senaicimatec.com.br",
+    ],
+)
+
+# allauth — perfil minimo para auth via Google. Demais defaults bastam.
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*"]
+ACCOUNT_EMAIL_VERIFICATION = "none"  # OAuth do Google ja verifica e-mail
+ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"
+ACCOUNT_LOGOUT_ON_GET = False
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
+        "OAUTH_PKCE_ENABLED": True,
+        "APP": {
+            "client_id": env("GOOGLE_OAUTH_CLIENT_ID", default=""),
+            "secret": env("GOOGLE_OAUTH_CLIENT_SECRET", default=""),
+            "key": "",
+        },
+    }
+}
+
+SOCIALACCOUNT_ADAPTER = "apps.core.adapters.AnCoSocialAccountAdapter"
+ACCOUNT_ADAPTER = "apps.core.adapters.AnCoAccountAdapter"
