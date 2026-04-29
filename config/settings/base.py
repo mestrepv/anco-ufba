@@ -201,3 +201,11 @@ SOCIALACCOUNT_PROVIDERS = {
 
 SOCIALACCOUNT_ADAPTER = "apps.core.adapters.AnCoSocialAccountAdapter"
 ACCOUNT_ADAPTER = "apps.core.adapters.AnCoAccountAdapter"
+
+# Rate limits do allauth (Fase 7). Override em dev pra nao atrapalhar.
+ACCOUNT_RATE_LIMITS = {
+    "login_failed": "5/5m",  # 5 tentativas falhas a cada 5 minutos por IP
+    "login": "30/5m",
+    "signup": "3/h",
+    "send_email": "5/h",
+}
