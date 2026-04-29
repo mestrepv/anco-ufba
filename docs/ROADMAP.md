@@ -18,7 +18,7 @@
 | 5 | Acervo público | 3-4 dias | ⬜ pendente | — |
 | 6 | API, métricas e saúde de links | 2-3 dias | ⬜ pendente | — |
 | 7 | Polimento e produção | 2 dias | ⬜ pendente | — |
-| 8 | Busca semântica (adendo v2.1) | 3-4 dias | 📝 proposta | — |
+| 8 | Busca semântica | 3-4 dias | ⬜ pendente | — |
 
 ---
 
@@ -121,19 +121,14 @@ Concluída em 2026-04-29. Relatório: [fase-2.md](relatorios/fase-2.md).
 - [ ] Deploy em produção
 - [ ] Plano de redirecionamento permanente do domínio temporário
 
-## Fase 8 — Busca semântica 📝 proposta
+## Fase 8 — Busca semântica ⬜
 
-> **Adendo v2.1**, ainda não incorporado à especificação canônica.
-> Documento de origem: [`docs/fase8_adendo.md`](fase8_adendo.md).
->
 > Pré-requisito explícito: plataforma em produção (Fase 7 concluída) com
 > acervo legado importado e algumas análises feitas no fluxo novo.
 >
-> **Pendência**: a integração à `ESPECIFICACAO.md` (e, portanto, a
-> oficialização do escopo desta fase) requer aprovação explícita do usuário,
-> conforme [`CLAUDE.md` §10](../CLAUDE.md).
-
-Critérios de aceite (extraídos do adendo §6):
+> Especificação canônica em [`ESPECIFICACAO.md` §10 Fase 8](ESPECIFICACAO.md).
+> Adendo de origem (v2.1) preservado em [`fase8_adendo.md`](fase8_adendo.md)
+> como artefato histórico.
 
 - [ ] Container `embeddings` no compose (modelo local, sem API externa)
 - [ ] Extensão `pgvector` habilitada no Postgres

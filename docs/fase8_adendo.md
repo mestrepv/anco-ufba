@@ -1,8 +1,16 @@
 # Adendo à Especificação AnCo — Fase 8: Busca Semântica
 
-> Este adendo deve ser incorporado à `ESPECIFICACAO_ANCO_v2.md` como
-> nova fase do roadmap (§10) e como ajustes nas seções §3 (Stack),
-> §4 (Modelagem) e §6 (Acervo público).
+> ✅ **Integrado à `ESPECIFICACAO.md` v2.1 em 2026-04-29**.
+>
+> Este adendo foi incorporado à especificação canônica:
+> - §3 (Stack) — embeddings + pgvector + container `embeddings`
+> - §4 (Modelagem) — campos `embedding*` em Artigo e Análise
+> - §6 (Acervo) — toggle textual/semântico + comportamento da busca semântica
+> - §10 (Roadmap) — Fase 8 com 5 sub-fases
+> - Histórico de versões — entrada v2.1
+>
+> **Mantido aqui como artefato histórico** — fonte original da decisão.
+> Para escopo vigente, consultar [`ESPECIFICACAO.md`](ESPECIFICACAO.md).
 >
 > **Versão**: v2.1 — adiciona busca semântica como camada complementar à
 > busca textual existente.

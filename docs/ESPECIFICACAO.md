@@ -1,4 +1,4 @@
-# Plataforma AnCo — Especificação Técnica (v2)
+# Plataforma AnCo — Especificação Técnica (v2.1)
 
 > Documento de contrato técnico para implementação assistida por Claude Code.
 >
@@ -6,6 +6,10 @@
 > resenha crítica como conteúdo autoral peer-reviewed em modalidade cega,
 > licenciamento CC-BY-NC, verificação automática de links e estratégia
 > de portabilidade entre hospedagens.
+>
+> **Versão 2.1** — adiciona busca semântica como camada complementar
+> opcional (Fase 8): modelo de embeddings local (`bge-m3`), `pgvector`
+> como armazenamento e toggle explícito textual/semântico no acervo.
 
 ---
 
@@ -65,15 +69,20 @@ estratégia de divulgação.
 
 ### 3.1. Componentes
 - **Backend**: Python 3.12 + Django 5.x + Django REST Framework
-- **Banco**: PostgreSQL 16
+- **Banco**: PostgreSQL 16 + extensão `pgvector` (Fase 8)
 - **Frontend**: Templates Django + HTMX + Alpine.js + Tailwind CSS
-- **Busca**: PostgreSQL full-text search com `unaccent`
+- **Busca textual**: PostgreSQL full-text search com `unaccent`
+- **Busca semântica** (Fase 8): modelo de embeddings local
+  (`BAAI/bge-m3` ou `intfloat/multilingual-e5-large`) servido em
+  container próprio via `text-embeddings-inference`. Sem dependência de API
+  externa — mantém portabilidade e zero custo recorrente.
 - **Auth**: `django-allauth` com Google OAuth
 - **Histórico de versões**: `django-simple-history`
 - **Tarefas assíncronas**: `django-q2`
 - **Reverse proxy + HTTPS**: Caddy 2 (Let's Encrypt automático)
 - **Containerização**: Docker Compose
 - **Backup**: `pg_dump` diário + sincronia para storage S3-compatible
+  (cobre os embeddings, já que ficam na própria base)
 
 ### 3.2. Por que Django
 - Admin nativo resolve gestão de curadoria sem código de UI custom.
@@ -84,16 +93,22 @@ estratégia de divulgação.
 ```
 services:
   web         → Django (gunicorn)
-  db          → PostgreSQL 16
+  db          → PostgreSQL 16 + pgvector (Fase 8)
   cache       → Redis (sessões, cache, fila de tasks)
   worker      → django-q2 worker
   caddy       → Reverse proxy + HTTPS
+  embeddings  → modelo de embeddings (Fase 8, CPU ou GPU se disponível)
+                expõe HTTP interno para o web
 volumes:
   pgdata, caddy_data, caddy_config
 networks:
-  internal (web ↔ db ↔ cache ↔ worker)
+  internal (web ↔ db ↔ cache ↔ worker ↔ embeddings)
   external (caddy ↔ web)
 ```
+
+> **Nota Fase 8**: o serviço `embeddings` requer ~3-4 GB de RAM para o modelo
+> em CPU. Se a VPS atual não comportar, considerar upgrade ou modelo menor
+> (`bge-small`, ~400 MB).
 
 > **Nota sobre volume `media`**: ausente intencionalmente. A plataforma
 > não recebe upload de arquivos. Único conteúdo binário possível são
@@ -108,6 +123,9 @@ networks:
 - `BACKUP_S3_*` (bucket, chaves, endpoint)
 - `BASE_URL` (para links em e-mails)
 - `WAYBACK_API_ENABLED` (bool, default true)
+- `EMBEDDINGS_URL` (Fase 8, default `http://embeddings:8080`)
+- `EMBEDDINGS_MODEL` (Fase 8, default `BAAI/bge-m3`)
+- `EMBEDDINGS_DIMENSION` (Fase 8, default `1024`)
 
 ---
 
@@ -177,6 +195,11 @@ class Artigo(models.Model):
                   ('redireciona','Redireciona')])
     link_ultima_verificacao = DateTimeField(null=True)
 
+    # Embedding semântico (Fase 8) — pgvector
+    embedding = VectorField(dimensions=1024, null=True, blank=True,
+        help_text="Embedding de titulo+resumo+palavras_chaves")
+    embedding_atualizado_em = DateTimeField(null=True)
+
     criado_em = DateTimeField(auto_now_add=True)
 
 class SnapshotLink(models.Model):
@@ -238,6 +261,15 @@ class Analise(models.Model):
     criado_em = DateTimeField(auto_now_add=True)
     submetida_em = DateTimeField(null=True)
     publicada_em = DateTimeField(null=True)
+
+    # Embeddings semânticos (Fase 8) — vetores próprios para análise
+    # estrutural e para a resenha crítica (quando presente).
+    embedding = VectorField(dimensions=1024, null=True, blank=True,
+        help_text="Embedding de objeto+objetivo+foco+metodologia+"
+                  "resultados+aspectos_relevantes+definicao_extraida+referenciais")
+    embedding_resenha = VectorField(dimensions=1024, null=True, blank=True,
+        help_text="Embedding da resenha crítica, com peso destacado na busca")
+    embedding_atualizado_em = DateTimeField(null=True)
 
     history = HistoricalRecords()
 
@@ -318,6 +350,11 @@ class SolicitacaoCadastro(models.Model):
 - **Vocabulários controlados** evitam o "Empirismo" vs "empirismo" vs
   "Empírica" da base atual.
 - **`HistoricalRecords`**: toda mudança em Análise gera versão consultável.
+- **Embeddings semânticos (Fase 8)**: armazenados em colunas `vector(N)`
+  com `pgvector`, indexados via HNSW (`vector_cosine_ops`). Gerados por
+  signal `post_save` via task `django-q2`; falha do serviço de embeddings
+  marca para retry sem bloquear publicação. Comando
+  `manage.py reindexar_embeddings` regera após mudança de modelo.
 
 ---
 
@@ -418,7 +455,12 @@ são re-sorteadas.
 ### 6.2. Busca facetada (estilo Tainacan)
 - Caixa de busca textual (full-text em título, resumo, aspectos,
   definição, **resenha crítica**).
-- Facetas laterais com contagem:
+- **Toggle explícito de modo** (Fase 8): radio button no topo do
+  formulário oferece "Textual" (FTS, default) ou "Por significado"
+  (busca semântica via embeddings). Modo preservado em URL como
+  `?modo=textual|semantico`. Sem busca híbrida silenciosa — usuário
+  sempre sabe o que está usando.
+- Facetas laterais com contagem (aplicadas em qualquer modo):
   - Ano de publicação (slider)
   - Base de consulta
   - Área
@@ -432,6 +474,20 @@ são re-sorteadas.
   - Status do link (OK / Quebrado)
   - Analista
 - URL refletindo facetas (compartilhável e citável).
+
+### 6.2.1. Comportamento da busca semântica (Fase 8)
+1. Sistema gera embedding da query (chamada ao serviço de embeddings).
+2. Executa três queries SQL paralelas (Artigos, Análises, Resenhas)
+   com `ORDER BY embedding <=> query_embedding LIMIT N`.
+3. Combina resultados com normalização de scores.
+4. Aplica facetas selecionadas como filtros sobre o conjunto.
+5. Renderiza com **cards distintos por tipo**: *Artigo*, *Análise*,
+   *Resenha Crítica*.
+6. Cada resultado exibe **pontuação de similaridade (0-100%)**, evitando
+   o "achismo" sobre por que apareceu.
+7. Limite de 50 resultados (ranking decai rapidamente além disso); em
+   vez de paginação tradicional, aviso "Mostrando os 50 mais relevantes
+   — refine para resultados mais específicos".
 
 ### 6.3. Página do artigo (`/artigo/<id>`)
 - Metadados bibliográficos completos.
@@ -628,7 +684,63 @@ oferece infraestrutura própria.
 - Páginas estáticas (Sobre, Equipe, Termos de Uso, Política de Privacidade).
 - Deploy em produção.
 
-**Total estimado**: ~3 a 4 semanas com revisão humana entre fases.
+### Fase 8 — Busca semântica (3-4 dias)
+
+> **Pré-requisito**: plataforma em produção (Fase 7 concluída) com
+> acervo legado importado e algumas análises feitas no fluxo novo.
+
+**Subfase 8.1 — Infraestrutura de embeddings (1 dia)**
+- Container `embeddings` no `docker-compose.yml` (`text-embeddings-inference`
+  ou `sentence-transformers` em FastAPI mínimo).
+- Health check do serviço.
+- Wrapper Python (`apps/busca_semantica/embeddings.py`) com retry,
+  timeout e cache.
+
+**Subfase 8.2 — Modelo de dados (0,5 dia)**
+- Habilitar extensão `pgvector`.
+- Adicionar campos `embedding*` aos modelos.
+- Migration com índices HNSW (`vector_cosine_ops`).
+
+**Subfase 8.3 — Geração de embeddings (1 dia)**
+- Signal `post_save` em Artigo e Análise dispara task de embedding.
+- Comando `manage.py reindexar_embeddings [--apenas-faltantes | --tudo]`
+  para popular acervo existente (incluindo os 1.443 legado).
+- Tratamento de falhas: marca registros sem embedding, retry programado.
+
+**Subfase 8.4 — Interface de busca (1 dia)**
+- Toggle de modo em `/acervo` (textual / por significado).
+- View de busca semântica.
+- Cards diferenciados por tipo (Artigo / Análise / Resenha).
+- Indicador de similaridade (0-100%).
+- Persistência do modo em URL (`?modo=textual|semantico`).
+
+**Subfase 8.5 — Avaliação qualitativa (0,5 dia)**
+- Documento `docs/busca_semantica/avaliacao.md` com:
+  - 10 queries representativas executadas em ambos os modos.
+  - Comparação dos top-5 resultados.
+  - Análise qualitativa: quando semântica ganha, quando textual ganha.
+
+**Aceite global da Fase 8**:
+- Busca semântica funcionando ponta-a-ponta.
+- Todos os 1.443 registros legado + análises novas com embeddings.
+- Documento de avaliação produzido.
+- Sem regressão na busca textual.
+
+**Justificativa**: a busca semântica é a única aplicação de IA adotada.
+Demais possibilidades (pré-preenchimento de análises, detecção
+automática de pertinência, sugestão de revisores, geração assistida
+de resenhas) foram **deliberadamente rejeitadas** por incompatibilidade
+com os princípios de autoria e revisão por pares da plataforma. Busca
+semântica é recurso de **acesso à informação**, não de **produção de
+análise**.
+
+**Fora de escopo da Fase 8** (avaliar para v3):
+- "Artigos relacionados" na página de cada Artigo.
+- Busca multilíngue exposta na interface (o `bge-m3` suporta nativamente).
+- Re-ranking com cross-encoder.
+- Análise de divergências entre análises do mesmo artigo via similaridade.
+
+**Total estimado**: ~3 a 4 semanas para as Fases 0-7 + 3-4 dias para a Fase 8 (opcional).
 
 ---
 
@@ -710,6 +822,12 @@ Documentar em `RESTORE.md`. Testar em staging trimestralmente.
 - **v2** — Sem upload de arquivos; resenha crítica peer-reviewed cega
   como conteúdo autoral original; licença CC-BY-NC; verificação
   automática de links + Wayback Machine; seção dedicada de portabilidade.
+- **v2.1** — Adiciona Fase 8 (Busca Semântica) como camada complementar
+  opcional. Modelo de embeddings local (`bge-m3` ou equivalente),
+  `pgvector` como armazenamento, toggle explícito textual/semântico,
+  escopo de indexação cobrindo Artigos, Análises e Resenhas Críticas.
+  Adendo de origem em `docs/fase8_adendo.md` (mantido como artefato
+  histórico).
 
 ---
 
