@@ -1,4 +1,5 @@
 {% extends "_base.html" %}
+{% load static %}
 
 {% block title %}Planilha do acervo — AnCo{% endblock %}
 
@@ -11,6 +12,7 @@
   .tab-container { overflow-x: auto; }
 </style>
 <script src="https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js" defer></script>
+<script src="{% static 'js/planilha-init.js' %}" defer></script>
 {% endblock %}
 
 {% block content %}
@@ -29,57 +31,4 @@
 </div>
 
 {{ linhas|json_script:"dados-planilha" }}
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  var dados = JSON.parse(document.getElementById("dados-planilha").textContent);
-
-  function tituloCelula(cell) {
-    var row = cell.getRow().getData();
-    var titulo = (cell.getValue() || "").replace(/</g, "&lt;");
-    return '<a href="' + row.url + '" class="text-anco hover:underline">' + titulo + '</a>';
-  }
-
-  function linkExterno(cell) {
-    var v = cell.getValue();
-    if (!v) return "";
-    var safe = v.replace(/"/g, "&quot;");
-    return '<a href="' + safe + '" target="_blank" rel="noopener" class="text-slate-600 hover:text-anco underline">acesso</a>';
-  }
-
-  function simNao(cell) {
-    return cell.getValue() ? "Sim" : "—";
-  }
-
-  new Tabulator("#planilha", {
-    data: dados,
-    layout: "fitDataStretch",
-    height: "75vh",
-    pagination: true,
-    paginationSize: 100,
-    paginationSizeSelector: [50, 100, 250, 500],
-    placeholder: "Sem análises para exibir.",
-    movableColumns: true,
-    columns: [
-      { title: "Ano", field: "ano", width: 80, headerFilter: "input", sorter: "number" },
-      { title: "Título", field: "titulo", widthGrow: 4, minWidth: 320, headerFilter: "input", formatter: tituloCelula },
-      { title: "Autores", field: "autores", widthGrow: 2, minWidth: 200, headerFilter: "input" },
-      { title: "Periódico", field: "periodico", widthGrow: 2, minWidth: 200, headerFilter: "input" },
-      { title: "Base", field: "base", width: 130, headerFilter: "input" },
-      { title: "Epistemologia", field: "epistemologia", widthGrow: 2, minWidth: 180, headerFilter: "input" },
-      { title: "Teoria", field: "teoria", widthGrow: 2, minWidth: 180, headerFilter: "input" },
-      { title: "Resenha", field: "tem_resenha", width: 100, headerFilter: "tickCross", headerFilterParams: { tristate: true }, formatter: simNao, hozAlign: "center" },
-      { title: "Acesso aberto", field: "acesso_aberto", width: 130, headerFilter: "tickCross", headerFilterParams: { tristate: true }, formatter: simNao, hozAlign: "center" },
-      { title: "Status", field: "status", width: 130, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
-      { title: "Analista", field: "analista", widthGrow: 1, minWidth: 160, headerFilter: "input" },
-      { title: "Publicada em", field: "publicada_em", width: 130, headerFilter: "input", sorter: "date", sorterParams: { format: "yyyy-MM-dd" } },
-      { title: "DOI", field: "doi", widthGrow: 1, minWidth: 180, headerFilter: "input" },
-      { title: "Link", field: "link_artigo", width: 80, formatter: linkExterno, headerSort: false },
-    ],
-    initialSort: [
-      { column: "publicada_em", dir: "desc" },
-    ],
-  });
-});
-</script>
 {% endblock %}
