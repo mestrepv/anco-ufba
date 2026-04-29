@@ -64,7 +64,10 @@
 
 <section>
     <header class="flex items-center justify-between flex-wrap gap-3 mb-4">
-        <h1 class="text-2xl font-semibold text-slate-900">Acervo público</h1>
+        <div class="flex items-baseline gap-3">
+            <h1 class="text-2xl font-semibold text-slate-900">Acervo público</h1>
+            <a href="{% url 'acervo_planilha' %}" class="text-sm text-anco hover:text-anco-dark underline">ver planilha completa</a>
+        </div>
         <form method="get" class="flex items-center gap-2 flex-1 max-w-md">
             {% for k, vals in facetas_aplicadas.items %}{% for v in vals %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}{% endfor %}
             <input type="search" name="q" value="{{ consulta }}"

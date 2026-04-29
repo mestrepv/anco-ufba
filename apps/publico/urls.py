@@ -11,6 +11,7 @@ from . import views
 # URLs publicas que podem ser montadas em /acervo/.
 urlpatterns_acervo = [
     path("", views.listagem_view, name="acervo_publico"),
+    path("planilha/", views.planilha_view, name="acervo_planilha"),
 ]
 
 # URLs root (citacoes estaveis).

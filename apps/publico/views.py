@@ -18,6 +18,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q, QuerySet
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django_ratelimit.decorators import ratelimit
 
 from apps.acervo.models import Analise, Artigo, Revisao
@@ -143,6 +144,54 @@ def listagem_view(request: HttpRequest) -> HttpResponse:
             "facetas": facetas,
             "querystring": querystring,
             "facetas_aplicadas": {k: request.GET.getlist(k) for k in _FACETAS},
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Planilha completa (`/acervo/planilha/`) — visao tabular com filtros por coluna
+# ---------------------------------------------------------------------------
+
+
+def _linha_planilha(a: Analise) -> dict:
+    """Serializa uma Analise publica em uma linha JSON-friendly da grade."""
+    artigo = a.artigo
+    epistemologia = "; ".join(t.nome for t in a.epistemologia.all())
+    teoria = "; ".join(t.nome for t in a.teoria.all())
+    return {
+        "id": a.pk,
+        "url": reverse("pagina_analise", args=[a.pk]),
+        "ano": artigo.ano,
+        "titulo": artigo.titulo,
+        "periodico": artigo.titulo_periodico or "",
+        "autores": artigo.autores or "",
+        "base": (artigo.base_consulta.nome if artigo.base_consulta else ""),
+        "doi": artigo.doi if not artigo.doi.startswith("legacy:") else "",
+        "link_artigo": artigo.link_acesso or artigo.link_acesso_alternativo or "",
+        "epistemologia": epistemologia,
+        "teoria": teoria,
+        "analista": (a.analista.nome_exibicao or a.analista.username),
+        "tem_resenha": bool(a.tem_resenha),
+        "acesso_aberto": bool(artigo.acesso_aberto),
+        "status": a.get_status_display(),
+        "publicada_em": (a.publicada_em or a.criado_em).date().isoformat(),
+    }
+
+
+def planilha_view(request: HttpRequest) -> HttpResponse:
+    qs = (
+        Analise.objects.filter(status__in=STATUS_PUBLICOS)
+        .select_related("artigo", "artigo__base_consulta", "analista")
+        .prefetch_related("epistemologia", "teoria")
+        .order_by("-publicada_em", "-criado_em")
+    )
+    linhas = [_linha_planilha(a) for a in qs]
+    return render(
+        request,
+        "publico/planilha.html",
+        {
+            "linhas": linhas,
+            "total": len(linhas),
         },
     )
 
@@ -314,6 +363,7 @@ def sitemap_view(request: HttpRequest) -> HttpResponse:
     urls: list[tuple[str, str | None]] = [
         (f"{base}/", None),
         (f"{base}/acervo/", None),
+        (f"{base}/acervo/planilha/", None),
         (f"{base}/sobre/", None),
         (f"{base}/equipe/", None),
         (f"{base}/termos/", None),

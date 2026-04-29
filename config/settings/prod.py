@@ -54,8 +54,8 @@ CONTENT_SECURITY_POLICY = {
             "https://cdn.tailwindcss.com",
             "https://unpkg.com",
         ),
-        # Tailwind injeta <style> inline no runtime
-        "style-src": ("'self'", "'unsafe-inline'"),
+        # Tailwind injeta <style> inline no runtime; Tabulator carrega CSS de unpkg
+        "style-src": ("'self'", "'unsafe-inline'", "https://unpkg.com"),
         "img-src": ("'self'", "data:", "https:"),
         "font-src": ("'self'", "data:"),
         "connect-src": ("'self'",),
