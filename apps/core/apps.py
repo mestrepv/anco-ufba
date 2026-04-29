@@ -9,3 +9,8 @@ class CoreConfig(AppConfig):
 
     def ready(self) -> None:
         from . import signals  # noqa: F401  — registra receivers
+
+        # Dashboard do admin home (Fase 6)
+        from .admin_dashboard import instalar_dashboard
+
+        instalar_dashboard()

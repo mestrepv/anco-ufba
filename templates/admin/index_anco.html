@@ -1,0 +1,56 @@
+{% extends "admin/index.html" %}
+{% load i18n %}
+
+{% block content %}
+{% if dashboard %}
+<div style="background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:16px; margin-bottom:18px">
+    <h2 style="margin-top:0; font-size:1.1rem; color:#0f172a">Painel de curadoria</h2>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px">
+
+        <div style="padding:10px 12px; background:#f8fafc; border-radius:6px">
+            <div style="font-size:.7rem; color:#64748b; text-transform:uppercase">Análises</div>
+            <ul style="margin:.3rem 0 0 0; padding:0; list-style:none; font-size:.85rem">
+                {% for status, count in dashboard.analises_por_status.items %}
+                <li><strong>{{ count }}</strong> {{ status }}</li>
+                {% empty %}
+                <li>—</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div style="padding:10px 12px; background:#f8fafc; border-radius:6px">
+            <div style="font-size:.7rem; color:#64748b; text-transform:uppercase">Revisões</div>
+            <p style="margin:.3rem 0 0 0; font-size:.85rem">
+                <strong>{{ dashboard.revisoes_pendentes }}</strong> pendentes<br>
+                <span style="color:{% if dashboard.revisoes_atrasadas %}#b91c1c{% else %}#475569{% endif %}">
+                    <strong>{{ dashboard.revisoes_atrasadas }}</strong> atrasadas
+                </span>
+            </p>
+        </div>
+
+        <div style="padding:10px 12px; background:#f8fafc; border-radius:6px">
+            <div style="font-size:.7rem; color:#64748b; text-transform:uppercase">Links quebrados</div>
+            <p style="margin:.3rem 0 0 0; font-size:1.5rem; font-weight:600; color:{% if dashboard.links_quebrados %}#b91c1c{% else %}#475569{% endif %}">
+                {{ dashboard.links_quebrados }}
+                {% if dashboard.links_quebrados %}
+                <a href="{% url 'admin:acervo_linkquebrado_changelist' %}" style="font-size:.8rem; font-weight:normal; display:block">ver lista →</a>
+                {% endif %}
+            </p>
+        </div>
+
+        <div style="padding:10px 12px; background:#f8fafc; border-radius:6px">
+            <div style="font-size:.7rem; color:#64748b; text-transform:uppercase">Solicitações</div>
+            <p style="margin:.3rem 0 0 0; font-size:1.5rem; font-weight:600; color:{% if dashboard.solicitacoes_pendentes %}#b45309{% else %}#475569{% endif %}">
+                {{ dashboard.solicitacoes_pendentes }}
+                {% if dashboard.solicitacoes_pendentes %}
+                <a href="{% url 'admin:core_solicitacaocadastro_changelist' %}?status__exact=pendente" style="font-size:.8rem; font-weight:normal; display:block">ver pendentes →</a>
+                {% endif %}
+            </p>
+        </div>
+
+    </div>
+</div>
+{% endif %}
+
+{{ block.super }}
+{% endblock %}
