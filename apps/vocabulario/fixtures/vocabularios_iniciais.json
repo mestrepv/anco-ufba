@@ -1,0 +1,254 @@
+[
+  {
+    "model": "vocabulario.vocabulario",
+    "pk": 1,
+    "fields": {
+      "codigo": "base",
+      "nome": "Base de consulta",
+      "descricao": "Bases bibliograficas de origem dos artigos catalogados (Web of Science, Scopus, etc.).",
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.vocabulario",
+    "pk": 2,
+    "fields": {
+      "codigo": "epistemologia",
+      "nome": "Epistemologia",
+      "descricao": "Posicao epistemologica adotada pelo artigo analisado.",
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.vocabulario",
+    "pk": 3,
+    "fields": {
+      "codigo": "teoria",
+      "nome": "Teoria",
+      "descricao": "Quadro teorico mobilizado pelo artigo analisado.",
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.vocabulario",
+    "pk": 4,
+    "fields": {
+      "codigo": "area",
+      "nome": "Área de conhecimento",
+      "descricao": "Area de conhecimento do artigo (educacao, neurociencia, sociologia, etc.).",
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 1,
+    "fields": {
+      "vocabulario": 1,
+      "nome": "Web of Science",
+      "ativo": true,
+      "sinonimos": [
+        "WOS",
+        "Web of Knowledge"
+      ],
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 2,
+    "fields": {
+      "vocabulario": 1,
+      "nome": "Scopus",
+      "ativo": true,
+      "sinonimos": [
+        "SCOPUS",
+        "scopus"
+      ],
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 3,
+    "fields": {
+      "vocabulario": 1,
+      "nome": "Science Direct",
+      "ativo": true,
+      "sinonimos": [
+        "ScienceDirect",
+        "SCience Direct",
+        "Elsevier",
+        "ELSEVIER"
+      ],
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 4,
+    "fields": {
+      "vocabulario": 1,
+      "nome": "Redalyc",
+      "ativo": true,
+      "sinonimos": [
+        "REDALYC",
+        "redalyc"
+      ],
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 5,
+    "fields": {
+      "vocabulario": 1,
+      "nome": "Sage",
+      "ativo": true,
+      "sinonimos": [
+        "SAGE",
+        "sage",
+        "Sage Journals"
+      ],
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 6,
+    "fields": {
+      "vocabulario": 1,
+      "nome": "Repositório UFBA",
+      "ativo": true,
+      "sinonimos": [
+        "RI UFBA",
+        "Repositorio UFBA",
+        "REPOSITORIO UFBA"
+      ],
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 7,
+    "fields": {
+      "vocabulario": 1,
+      "nome": "PubMed",
+      "ativo": true,
+      "sinonimos": [
+        "pubmed",
+        "PUBMED"
+      ],
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 100,
+    "fields": {
+      "vocabulario": 2,
+      "nome": "Empirismo",
+      "ativo": true,
+      "sinonimos": [
+        "empirismo",
+        "Empirista",
+        "empirista",
+        "Empírica",
+        "empírica",
+        "empiricist",
+        "empírico"
+      ],
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 101,
+    "fields": {
+      "vocabulario": 2,
+      "nome": "Construtivismo",
+      "ativo": true,
+      "sinonimos": [
+        "construtivismo",
+        "Construtivista",
+        "construtivista"
+      ],
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 102,
+    "fields": {
+      "vocabulario": 2,
+      "nome": "Socioconstrutivismo",
+      "ativo": true,
+      "sinonimos": [
+        "socioconstrutivismo",
+        "Socioconstrutivista",
+        "socioconstrutivista"
+      ],
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 103,
+    "fields": {
+      "vocabulario": 2,
+      "nome": "Neuroconstrutivismo",
+      "ativo": true,
+      "sinonimos": [
+        "neuroconstrutivismo",
+        "Neuroconstrutivista",
+        "neuroconstrutivista"
+      ],
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 200,
+    "fields": {
+      "vocabulario": 3,
+      "nome": "Cognição",
+      "ativo": true,
+      "sinonimos": [
+        "cognição",
+        "Cognicao",
+        "cognicao",
+        "Cognition"
+      ],
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 201,
+    "fields": {
+      "vocabulario": 3,
+      "nome": "Neurociência cognitiva",
+      "ativo": true,
+      "sinonimos": [
+        "neurociencia cognitiva",
+        "Neurociência Cognitiva",
+        "Cognitive Neuroscience"
+      ],
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 202,
+    "fields": {
+      "vocabulario": 3,
+      "nome": "Psicologia cognitiva",
+      "ativo": true,
+      "sinonimos": [
+        "psicologia cognitiva",
+        "Psicologia Cognitiva",
+        "Cognitive Psychology"
+      ],
+      "criado_em": "2026-04-29T12:00:00Z"
+    }
+  }
+]
