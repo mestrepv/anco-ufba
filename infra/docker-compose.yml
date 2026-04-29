@@ -46,6 +46,26 @@ services:
     networks:
       - internal
 
+  worker:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    restart: unless-stopped
+    command: python manage.py qcluster
+    env_file:
+      - ../.env
+    volumes:
+      - ..:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    networks:
+      - internal
+    profiles:
+      - worker  # opcional em dev (tasks rodam sync); ligar com --profile worker
+
 volumes:
   pgdata:
 

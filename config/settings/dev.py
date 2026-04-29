@@ -15,3 +15,6 @@ SECRET_KEY = env(
     "DJANGO_SECRET_KEY",
     default="dev-secret-key-not-for-production-use-only",
 )
+
+# Em dev e teste, executa tasks no proprio processo (sem worker).
+Q_CLUSTER = {**Q_CLUSTER, "sync": True}  # noqa: F405

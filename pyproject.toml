@@ -17,6 +17,8 @@ dependencies = [
     "django-simple-history>=3.7",
     "django-allauth[socialaccount]>=65.0",
     "requests>=2.32",
+    "django-q2>=1.7",
+    "redis>=5.0",
 ]
 
 [project.optional-dependencies]

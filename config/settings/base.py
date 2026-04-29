@@ -40,10 +40,30 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
+    "django_q",
     "apps.core",
     "apps.vocabulario",
     "apps.acervo",
 ]
+
+# django-q2 — broker Redis em prod, sync em dev/test (override em dev.py)
+Q_CLUSTER = {
+    "name": "anco",
+    "workers": 2,
+    "recycle": 500,
+    "timeout": 60,
+    "retry": 90,
+    "compress": True,
+    "save_limit": 250,
+    "queue_limit": 500,
+    "cpu_affinity": 1,
+    "label": "AnCo Tasks",
+    "redis": {
+        "host": env("REDIS_HOST", default="cache"),
+        "port": env.int("REDIS_PORT", default=6379),
+        "db": env.int("REDIS_Q_DB", default=1),
+    },
+}
 
 SITE_ID = 1
 
