@@ -32,10 +32,21 @@ services:
       context: ..
       dockerfile: infra/Dockerfile
     restart: unless-stopped
+    # Em dev (DJANGO_SETTINGS_MODULE=config.settings.dev), usar runserver:
+    #   command: python manage.py runserver 0.0.0.0:8000
+    # Em prod (settings.prod), gunicorn:
+    command: >
+      gunicorn config.wsgi:application
+      --bind 0.0.0.0:8000
+      --workers 3
+      --timeout 60
+      --access-logfile -
+      --error-logfile -
     env_file:
       - ../.env
     ports:
-      - "8000:8000"
+      # Bind apenas no loopback do host: nginx faz reverse proxy
+      - "127.0.0.1:8000:8000"
     volumes:
       - ..:/app
     depends_on:

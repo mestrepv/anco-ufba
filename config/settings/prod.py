@@ -39,23 +39,32 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # ---------------------------------------------------------------------------
-# CSP (django-csp)
+# CSP (django-csp >= 4.0)
 # ---------------------------------------------------------------------------
 
 MIDDLEWARE = [*MIDDLEWARE, "csp.middleware.CSPMiddleware"]
 
 # Tailwind/HTMX/Alpine via CDN sao necessarios (Fase 3 escolheu CDN
 # para o MVP). Em uma versao futura, bundlar localmente reduz o CSP.
-CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = ("'self'", "https://cdn.tailwindcss.com", "https://unpkg.com")
-CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")  # Tailwind injeta inline
-CSP_IMG_SRC = ("'self'", "data:", "https:")
-CSP_FONT_SRC = ("'self'", "data:")
-CSP_CONNECT_SRC = ("'self'",)
-CSP_FRAME_ANCESTORS = ("'none'",)
-CSP_BASE_URI = ("'self'",)
-CSP_FORM_ACTION = ("'self'",)
-CSP_OBJECT_SRC = ("'none'",)
+CONTENT_SECURITY_POLICY = {
+    "DIRECTIVES": {
+        "default-src": ("'self'",),
+        "script-src": (
+            "'self'",
+            "https://cdn.tailwindcss.com",
+            "https://unpkg.com",
+        ),
+        # Tailwind injeta <style> inline no runtime
+        "style-src": ("'self'", "'unsafe-inline'"),
+        "img-src": ("'self'", "data:", "https:"),
+        "font-src": ("'self'", "data:"),
+        "connect-src": ("'self'",),
+        "frame-ancestors": ("'none'",),
+        "base-uri": ("'self'",),
+        "form-action": ("'self'",),
+        "object-src": ("'none'",),
+    },
+}
 
 # ---------------------------------------------------------------------------
 # E-mail SMTP
