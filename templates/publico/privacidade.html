@@ -1,0 +1,51 @@
+{% extends "_base.html" %}
+
+{% block title %}Política de privacidade — AnCo{% endblock %}
+
+{% block content %}
+<article class="prose prose-slate max-w-2xl">
+<h1 class="text-2xl font-semibold text-slate-900 mb-4">Política de privacidade</h1>
+
+<p class="text-xs text-slate-500 mb-6">Versão preliminar — em revisão. Atualizada em 29/04/2026.</p>
+
+<h2 class="text-lg font-semibold mt-4 mb-2">1. Quais dados coletamos</h2>
+<p class="text-slate-700 mb-2">Ao se cadastrar via OAuth Google institucional, recebemos:</p>
+<ul class="list-disc ml-6 text-slate-700 space-y-1 mb-3">
+    <li>seu e-mail institucional;</li>
+    <li>seu nome (conforme cadastrado no Google);</li>
+    <li>seu identificador Google (para reautenticação).</li>
+</ul>
+<p class="text-slate-700 mb-2">Você fornece adicionalmente:</p>
+<ul class="list-disc ml-6 text-slate-700 space-y-1">
+    <li>nome de exibição, vínculo institucional, grupo de pesquisa, ORCID (opcional);</li>
+    <li>justificativa de cadastro;</li>
+    <li>conteúdo das análises e revisões que produzir.</li>
+</ul>
+
+<h2 class="text-lg font-semibold mt-6 mb-2">2. Para que usamos</h2>
+<ul class="list-disc ml-6 text-slate-700 space-y-1 mb-3">
+    <li>autenticação e identificação na plataforma;</li>
+    <li>publicação das análises com atribuição autoral correta;</li>
+    <li>sorteio de revisores (pareando por exclusões: autor, mesmas análises);</li>
+    <li>notificações por e-mail relacionadas a cadastro, revisão e publicação.</li>
+</ul>
+
+<h2 class="text-lg font-semibold mt-6 mb-2">3. Cookies</h2>
+<p class="text-slate-700 mb-3">Usamos apenas cookies funcionais (sessão de login, CSRF). Não usamos cookies de tracking, analytics ou publicidade.</p>
+
+<h2 class="text-lg font-semibold mt-6 mb-2">4. Compartilhamento</h2>
+<p class="text-slate-700 mb-3">Seus dados <strong>não são compartilhados</strong> com terceiros. Conteúdo público (análises publicadas) é, por definição, visível publicamente — incluindo seu nome de exibição como autor (exceto em revisões cegas, onde a autoria é mascarada).</p>
+
+<h2 class="text-lg font-semibold mt-6 mb-2">5. Retenção</h2>
+<p class="text-slate-700 mb-3">Dados de conta são mantidos enquanto a conta estiver ativa. Análises publicadas têm URL permanente para preservar citações; mesmo após desativação da conta, o conteúdo permanece com atribuição autoral. Para apagar análises publicadas, contate a curadoria — a remoção requer justificativa (ética, legal).</p>
+
+<h2 class="text-lg font-semibold mt-6 mb-2">6. Seus direitos (LGPD)</h2>
+<p class="text-slate-700 mb-3">Você pode solicitar acesso, correção ou exclusão dos seus dados pessoais escrevendo para <strong>curadoria@anco.local</strong>. Solicitações são respondidas em até 15 dias.</p>
+
+<h2 class="text-lg font-semibold mt-6 mb-2">7. Segurança</h2>
+<p class="text-slate-700 mb-3">A plataforma usa HTTPS, autenticação OAuth, hashes seguros de senhas (quando aplicável), backup periódico e monitoramento. Mas nenhum sistema é 100% seguro — em caso de incidente, comunicaremos os afetados.</p>
+
+<h2 class="text-lg font-semibold mt-6 mb-2">8. Contato</h2>
+<p class="text-slate-700">Dúvidas: <strong>curadoria@anco.local</strong>.</p>
+</article>
+{% endblock %}

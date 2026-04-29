@@ -18,6 +18,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q, QuerySet
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
+from django_ratelimit.decorators import ratelimit
 
 from apps.acervo.models import Analise, Artigo, Revisao
 
@@ -90,6 +91,7 @@ def _calcular_facetas(qs_base: QuerySet) -> dict[str, list[tuple[str, int]]]:
     return facetas
 
 
+@ratelimit(key="ip", rate="60/m", method=["GET"], block=False)
 def listagem_view(request: HttpRequest) -> HttpResponse:
     qs = Analise.objects.filter(status__in=STATUS_PUBLICOS).select_related(
         "artigo", "artigo__base_consulta", "analista"
@@ -264,3 +266,84 @@ def historico_analise_view(request: HttpRequest, analise_id: int) -> HttpRespons
             "versoes": versoes,
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Paginas institucionais (Fase 7)
+# ---------------------------------------------------------------------------
+
+
+def pagina_sobre_view(request: HttpRequest) -> HttpResponse:
+    return render(request, "publico/sobre.html")
+
+
+def pagina_equipe_view(request: HttpRequest) -> HttpResponse:
+    return render(request, "publico/equipe.html")
+
+
+def pagina_termos_view(request: HttpRequest) -> HttpResponse:
+    return render(request, "publico/termos.html")
+
+
+def pagina_privacidade_view(request: HttpRequest) -> HttpResponse:
+    return render(request, "publico/privacidade.html")
+
+
+# ---------------------------------------------------------------------------
+# SEO: robots.txt e sitemap.xml
+# ---------------------------------------------------------------------------
+
+
+def robots_txt_view(request: HttpRequest) -> HttpResponse:
+    base = request.build_absolute_uri("/").rstrip("/")
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /admin/\n"
+        "Disallow: /accounts/\n"
+        "Disallow: /cadastro/\n"
+        "Disallow: /acervo-analista/\n"
+        f"Sitemap: {base}/sitemap.xml\n"
+    )
+    return HttpResponse(body, content_type="text/plain; charset=utf-8")
+
+
+def sitemap_view(request: HttpRequest) -> HttpResponse:
+    """Sitemap XML simples — lista todas as paginas publicas indexaveis."""
+    base = request.build_absolute_uri("/").rstrip("/")
+    urls: list[tuple[str, str | None]] = [
+        (f"{base}/", None),
+        (f"{base}/acervo/", None),
+        (f"{base}/sobre/", None),
+        (f"{base}/equipe/", None),
+        (f"{base}/termos/", None),
+        (f"{base}/privacidade/", None),
+    ]
+    # Analises publicadas/legado
+    for analise in Analise.objects.filter(status__in=STATUS_PUBLICOS).only(
+        "pk", "publicada_em", "criado_em"
+    ):
+        url = f"{base}/analise/{analise.pk}/"
+        lastmod = (analise.publicada_em or analise.criado_em).date().isoformat()
+        urls.append((url, lastmod))
+    # Artigos com analises publicas
+    for artigo in (
+        Artigo.objects.filter(
+            analises__status__in=STATUS_PUBLICOS,
+        )
+        .only("pk", "doi", "atualizado_em")
+        .distinct()
+    ):
+        slug = doi_to_slug(artigo.doi)
+        urls.append((f"{base}/artigo/{slug}/", artigo.atualizado_em.date().isoformat()))
+
+    body = ['<?xml version="1.0" encoding="UTF-8"?>']
+    body.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+    for url, lastmod in urls:
+        body.append("<url>")
+        body.append(f"<loc>{url}</loc>")
+        if lastmod:
+            body.append(f"<lastmod>{lastmod}</lastmod>")
+        body.append("</url>")
+    body.append("</urlset>")
+    return HttpResponse("\n".join(body), content_type="application/xml; charset=utf-8")
