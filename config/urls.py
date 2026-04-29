@@ -18,4 +18,5 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
     path("cadastro/promocao/", solicitar_promocao_view, name="solicitar_promocao"),
     path("cadastro/promocao/status/", promocao_status_view, name="promocao_status"),
+    path("acervo/", include("apps.acervo.urls")),
 ]
