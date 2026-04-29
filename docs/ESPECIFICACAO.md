@@ -1,4 +1,4 @@
-# Plataforma AnCo — Especificação Técnica (v2.1)
+# Plataforma AnCo — Especificação Técnica (v2.2)
 
 > Documento de contrato técnico para implementação assistida por Claude Code.
 >
@@ -10,6 +10,13 @@
 > **Versão 2.1** — adiciona busca semântica como camada complementar
 > opcional (Fase 8): modelo de embeddings local (`bge-m3`), `pgvector`
 > como armazenamento e toggle explícito textual/semântico no acervo.
+>
+> **Versão 2.2** — reescopagem da Fase 6: API REST genérica + Swagger
+> adiados para v2 (sem cliente identificado justifica o custo). Em
+> seu lugar, a fase entrega verificação periódica de links, changelist
+> de links quebrados no admin, widgets de dashboard no admin home e
+> JSON-LD (schema.org/ScholarlyArticle) embutido nas páginas — torna o
+> acervo machine-readable sem novos endpoints.
 
 ---
 
@@ -508,11 +515,20 @@ são re-sorteadas.
   incluindo DOI da plataforma se atribuído.
 - **Aviso de licença CC-BY-NC** no rodapé da análise.
 
-### 6.5. API REST (`/api/v1/`)
-- Endpoints somente-leitura para artigos e análises publicadas.
-- Filtros equivalentes às facetas.
-- Formato JSON, paginado.
-- Documentação automática via `drf-spectacular` (Swagger em `/api/docs`).
+### 6.5. Acesso machine-readable (sem API REST dedicada)
+
+A v1 não exporá uma API REST genérica (decisão da v2.2). Em vez disso,
+adota duas vias mais leves:
+
+- **JSON-LD embutido** (`<script type="application/ld+json">`) nas
+  páginas de Artigo e Análise, com vocabulário `schema.org/ScholarlyArticle`.
+  Indexável por Google Scholar, Zotero e agregadores acadêmicos.
+- **Export individual** (BibTeX/RIS) — fica como melhoria pequena de
+  v2 quando houver demanda concreta.
+
+Uma API REST dedicada (`/api/v1/`) com `drf-spectacular` (Swagger)
+permanece como item de v2, a ser implementada quando aparecer cliente
+real (mobile, agregador, dashboard externo). Justificativa em §14.
 
 ---
 
@@ -669,13 +685,30 @@ oferece infraestrutura própria.
 - Selo CC-BY-NC visível.
 - **Aceite**: navegar, buscar e citar análises sem login.
 
-### Fase 6 — API, métricas e saúde de links (2-3 dias)
-- API REST somente-leitura.
-- Documentação Swagger.
-- Tarefa periódica de verificação de links.
-- Tela curador "Links quebrados".
-- Dashboard administrativo (status, fila de revisão, cobertura
-  de revalidação, links quebrados).
+### Fase 6 — Saúde de links, dashboard e acesso machine-readable (1-2 dias)
+
+**Reescopada na v2.2.** Foco em valor concreto sem custo de manter
+uma API REST sem cliente.
+
+- **Tarefa periódica de verificação de links** (cron semanal via
+  `django-q2 Schedule`): itera artigos publicados e legados, faz HEAD
+  via `apps.acervo.services.validar_link` (já existente da Fase 3),
+  atualiza `link_status` e `link_ultima_verificacao`.
+- **Changelist "Links quebrados"** no admin: filtro pré-aplicado por
+  `link_status='quebrado'` + actions em lote (atualizar link manual,
+  promover snapshot Wayback como link primário, marcar
+  "indisponível permanentemente").
+- **Widgets de dashboard no admin home**: totais por status de
+  análise, quantidade de revisões pendentes/atrasadas, quantos
+  artigos com link quebrado, quantas solicitações de cadastro
+  pendentes. Reaproveita o admin do Django (sem tela custom).
+- **JSON-LD nas páginas públicas** (`schema.org/ScholarlyArticle`):
+  metadados estruturados embutidos em `/artigo/<slug>/` e
+  `/analise/<id>/` para Scholar/Zotero/agregadores consumirem
+  diretamente o HTML.
+
+Adiados para v2 (ver §14): API REST dedicada e Swagger
+(`drf-spectacular`).
 
 ### Fase 7 — Polimento e produção (2 dias)
 - Backup automatizado (pg_dump → S3-compatible).
@@ -801,6 +834,12 @@ Documentar em `RESTORE.md`. Testar em staging trimestralmente.
 - **Hospedagem de arquivos de qualquer natureza além de avatares
   opcionais** (decisão estrutural).
 - DOI próprio para análises (avaliar com PPGDC para v2).
+- **API REST dedicada (`/api/v1/`) e Swagger via `drf-spectacular`** —
+  adiada na v2.2. Justificativa: sem cliente identificado (sem mobile,
+  sem dashboard externo, sem integração planejada), o custo de manter
+  uma API genérica supera o benefício. O acervo continua machine-readable
+  via JSON-LD embutido nas páginas (§6.5). Implementar quando surgir
+  cliente real.
 
 ---
 
@@ -828,6 +867,14 @@ Documentar em `RESTORE.md`. Testar em staging trimestralmente.
   escopo de indexação cobrindo Artigos, Análises e Resenhas Críticas.
   Adendo de origem em `docs/fase8_adendo.md` (mantido como artefato
   histórico).
+- **v2.2** — Reescopagem da Fase 6. API REST dedicada (`/api/v1/`) e
+  Swagger (`drf-spectacular`) movidos para v2 (§14): sem cliente real
+  identificado, custo de manutenção não se justifica. Em seu lugar, a
+  Fase 6 agora entrega: verificação periódica de links via cron,
+  changelist "Links quebrados" no admin com actions em lote, widgets
+  de dashboard no admin home e JSON-LD (schema.org/ScholarlyArticle)
+  embutido nas páginas públicas — torna o acervo machine-readable sem
+  novos endpoints.
 
 ---
 
