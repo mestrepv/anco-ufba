@@ -6,7 +6,9 @@
 >
 > Cada fase concluída tem relatório detalhado em [`relatorios/`](relatorios/).
 
-**Status atual**: Fase 6 concluída — aguardando aprovação para iniciar a Fase 7.
+**Status atual**: 🎉 **Fases 0-7 concluídas!** Plataforma pronta para
+deploy em produção. Fase 8 (busca semântica, opcional) permanece como
+adendo da v2.1.
 
 | # | Fase | Estimativa | Status | Relatório |
 |---|------|-----------|--------|-----------|
@@ -17,8 +19,8 @@
 | 4 | Revisão por pares | 3-4 dias | ✅ concluída | [fase-4.md](relatorios/fase-4.md) |
 | 5 | Acervo público | 3-4 dias | ✅ concluída | [fase-5.md](relatorios/fase-5.md) |
 | 6 | Saúde de links, dashboard e JSON-LD (v2.2) | 1-2 dias | ✅ concluída | [fase-6.md](relatorios/fase-6.md) |
-| 7 | Polimento e produção | 2 dias | ⬜ pendente | — |
-| 8 | Busca semântica | 3-4 dias | ⬜ pendente | — |
+| 7 | Polimento e produção | 2 dias | ✅ concluída | [fase-7.md](relatorios/fase-7.md) |
+| 8 | Busca semântica | 3-4 dias | ⬜ pendente (opcional v2.1) | — |
 
 ---
 
@@ -121,19 +123,24 @@ e Swagger adiados para v2 — ver §14). Relatório: [fase-6.md](relatorios/fase
   Fase 3)
 - [⏸️] API REST + Swagger — adiados para v2 (spec §14)
 
-## Fase 7 — Polimento e produção ⬜
+## Fase 7 — Polimento e produção ✅
 
-- [ ] Caddy 2 no compose com Let's Encrypt automático
-- [ ] Backup `pg_dump` diário + sincronia S3-compatible
-- [ ] `RESTORE.md` documentando teste de restore (trimestral em staging)
-- [ ] Logs estruturados
-- [ ] Monitoring (Sentry self-hosted ou GlitchTip)
-- [ ] Páginas estáticas: Sobre, Equipe, Termos de Uso, Política de
-  Privacidade
-- [ ] Rate limiting em busca e API (`django-ratelimit`)
-- [ ] CSP restritiva
-- [ ] Deploy em produção
-- [ ] Plano de redirecionamento permanente do domínio temporário
+Concluída em 2026-04-29. Relatório: [fase-7.md](relatorios/fase-7.md).
+
+- [x] Caddy 2 no compose com Let's Encrypt automático (profile `prod`)
+- [x] Backup `pg_dump` diário (`manage.py backup_db` + `infra/backup/run.sh`)
+- [x] [`RESTORE.md`](RESTORE.md) com procedimento e teste trimestral
+- [x] Logs JSON estruturados em prod (sem dependência externa)
+- [x] Sentry SDK integrado (DSN opcional)
+- [x] Páginas estáticas: Sobre, Equipe, Termos, Privacidade
+- [x] Rate limiting (allauth `ACCOUNT_RATE_LIMITS` + `django-ratelimit`
+  na busca pública)
+- [x] CSP restritiva via `django-csp` em prod
+- [x] [`DEPLOY.md`](DEPLOY.md) com procedimento completo
+- [x] Plano de redirecionamento permanente (DEPLOY.md §7)
+- [⏳] **Deploy em produção real**: documentado e pronto, depende de
+  recursos externos (DNS, OAuth credentials, S3) — fora do escopo do
+  agente
 
 ## Fase 8 — Busca semântica ⬜
 
