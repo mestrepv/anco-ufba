@@ -6,14 +6,14 @@
 >
 > Cada fase concluída tem relatório detalhado em [`relatorios/`](relatorios/).
 
-**Status atual**: Fase 2 concluída — aguardando aprovação para iniciar a Fase 3.
+**Status atual**: Fase 3 concluída — aguardando aprovação para iniciar a Fase 4.
 
 | # | Fase | Estimativa | Status | Relatório |
 |---|------|-----------|--------|-----------|
 | 0 | Fundação | 1 dia | ✅ concluída | [fase-0.md](relatorios/fase-0.md) |
 | 1 | Núcleo de dados e admin | 2-3 dias | ✅ concluída | [fase-1.md](relatorios/fase-1.md) |
 | 2 | Autenticação e cadastro | 1-2 dias | ✅ concluída | [fase-2.md](relatorios/fase-2.md) |
-| 3 | Criação e edição de análises | 3-4 dias | ⬜ pendente | — |
+| 3 | Criação e edição de análises | 3-4 dias | ✅ concluída | [fase-3.md](relatorios/fase-3.md) |
 | 4 | Revisão por pares | 3-4 dias | ⬜ pendente | — |
 | 5 | Acervo público | 3-4 dias | ⬜ pendente | — |
 | 6 | API, métricas e saúde de links | 2-3 dias | ⬜ pendente | — |
@@ -56,17 +56,19 @@ Concluída em 2026-04-29. Relatório: [fase-2.md](relatorios/fase-2.md).
 - [x] **Aceite**: leitor solicita promoção, curador aprova pelo admin,
   papel do user muda para `analista` (validado em testes e shell manual)
 
-## Fase 3 — Criação e edição de análises ⬜
+## Fase 3 — Criação e edição de análises ✅
 
-- [ ] Busca/criação de Artigo com validação de link (HEAD request)
-- [ ] Integração Wayback Machine (botão "Capturar snapshot")
-- [ ] Formulário multipasso com HTMX (Identificação + Presença +
+Concluída em 2026-04-29. Relatório: [fase-3.md](relatorios/fase-3.md).
+
+- [x] Busca/criação de Artigo com validação de link (HEAD request)
+- [x] Integração Wayback Machine (botão "Capturar snapshot")
+- [x] Formulário multipasso com HTMX (Identificação + Presença +
   Estrutura + Resenha)
-- [ ] Quarto passo opcional: Resenha Crítica
-- [ ] Auto-save a cada 30s
-- [ ] Submissão para revisão (`status: rascunho → submetida`)
-- [ ] Tailwind + Alpine.js entram nesta fase
-- [ ] **Aceite**: criar análise completa do zero, com e sem resenha
+- [x] Quarto passo opcional: Resenha Crítica
+- [x] Auto-save a cada 30s (Alpine.js + endpoint JSON)
+- [x] Submissão para revisão (`status: rascunho → submetida`)
+- [x] Tailwind + HTMX + Alpine.js (via CDN nesta fase)
+- [x] **Aceite**: criar análise completa do zero, com e sem resenha
 
 ## Fase 4 — Revisão por pares ⬜
 
