@@ -66,8 +66,31 @@ services:
     profiles:
       - worker  # opcional em dev (tasks rodam sync); ligar com --profile worker
 
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      ANCO_DOMAIN: ${ANCO_DOMAIN:-anco.paulovicente.pro.br}
+      ANCO_ADMIN_EMAIL: ${ANCO_ADMIN_EMAIL:-paulovicente.ifba@gmail.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../staticfiles:/srv/static:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+    networks:
+      - internal
+    profiles:
+      - prod  # so sobe em producao (`--profile prod`); dev usa :8000 direto
+
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
 
 networks:
   internal:

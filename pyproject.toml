@@ -19,6 +19,9 @@ dependencies = [
     "requests>=2.32",
     "django-q2>=1.7",
     "redis>=5.0",
+    "sentry-sdk[django]>=2.18",
+    "django-csp>=3.8",
+    "django-ratelimit>=4.1",
 ]
 
 [project.optional-dependencies]

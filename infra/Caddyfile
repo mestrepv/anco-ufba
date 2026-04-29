@@ -1,0 +1,48 @@
+# Caddyfile da plataforma AnCo (producao)
+#
+# Variaveis substituidas pelo Docker Compose:
+#   {$ANCO_DOMAIN}      — dominio publico (ex: anco.paulovicente.pro.br)
+#   {$ANCO_ADMIN_EMAIL} — e-mail para Let's Encrypt
+#
+# Em desenvolvimento, o Caddy e' opt-in via profile (nao roda por
+# default). Em producao, e' o reverse proxy e termina TLS.
+
+{
+    email {$ANCO_ADMIN_EMAIL}
+    # Para staging/dev sem dominio publico, descomentar a linha abaixo
+    # local_certs
+}
+
+{$ANCO_DOMAIN} {
+    # Headers de seguranca complementares aos `SECURE_*` settings do Django
+    header {
+        # HSTS já vem do SECURE_HSTS_SECONDS no Django
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "same-origin"
+        # Remove o header Server que vaza versao
+        -Server
+    }
+
+    encode gzip zstd
+
+    # Static files servidos diretamente pelo Caddy (mais rapido que
+    # via gunicorn). O Django coleta com `collectstatic`.
+    handle /static/* {
+        root * /srv
+        file_server
+    }
+
+    # Tudo mais vai ao gunicorn
+    reverse_proxy web:8000 {
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-For {remote_host}
+        header_up Host {host}
+    }
+
+    log {
+        output stdout
+        format json
+    }
+}
