@@ -67,18 +67,9 @@ Lista completa em [`CLAUDE.md` §11](CLAUDE.md).
 
 ## Roadmap
 
-Implementação faseada (8 fases, ~3-4 semanas) — ver [§10 da especificação](docs/ESPECIFICACAO.md).
-
-| Fase | Escopo | Status |
-|------|--------|--------|
-| 0 | Fundação (Django + Compose + CI) | em curso |
-| 1 | Núcleo de dados, admin, migração do legado | — |
-| 2 | Autenticação Google + cadastro institucional | — |
-| 3 | Criação de análises (multipasso + auto-save) | — |
-| 4 | Revisão por pares (double + cega para resenhas) | — |
-| 5 | Acervo público (busca facetada, citação) | — |
-| 6 | API REST, métricas, saúde de links | — |
-| 7 | Backup, monitoring, deploy em produção | — |
+Implementação faseada em 8 fases (~3-4 semanas). Status vivo, checklist
+e pendências em [`docs/ROADMAP.md`](docs/ROADMAP.md). Escopo canônico
+em [§10 da especificação](docs/ESPECIFICACAO.md).
 
 ## Licença
 
