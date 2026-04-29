@@ -1,0 +1,77 @@
+{% extends "_base.html" %}
+
+{% block title %}{{ artigo.titulo|truncatechars:80 }} — AnCo{% endblock %}
+
+{% block content %}
+<nav class="text-xs text-slate-500 mb-4"><a href="{% url 'acervo_publico' %}" class="hover:text-anco">← Acervo</a></nav>
+
+<header class="mb-6">
+    <h1 class="text-2xl font-semibold text-slate-900">{{ artigo.titulo }}</h1>
+    {% if artigo.autores %}<p class="text-slate-700 mt-2">{{ artigo.autores }}</p>{% endif %}
+    <p class="text-sm text-slate-500 mt-1">
+        {{ artigo.titulo_periodico|default:"" }}
+        {% if artigo.ano %} ({{ artigo.ano }}){% endif %}
+        {% if artigo.volume %} · v. {{ artigo.volume }}{% endif %}
+        {% if artigo.numero %} · n. {{ artigo.numero }}{% endif %}
+        {% if artigo.pagina_inicial %} · p. {{ artigo.pagina_inicial }}{% if artigo.pagina_final %}–{{ artigo.pagina_final }}{% endif %}{% endif %}
+    </p>
+    <p class="text-xs text-slate-400 mt-1 font-mono">{{ artigo.doi }}</p>
+</header>
+
+{% if artigo.resumo %}
+<section class="bg-white rounded-md border border-slate-200 p-4 mb-6">
+    <h2 class="text-sm font-semibold text-slate-700 uppercase mb-2">Resumo</h2>
+    <p class="text-sm text-slate-700 whitespace-pre-line">{{ artigo.resumo }}</p>
+</section>
+{% endif %}
+
+<section class="mb-6">
+    <h2 class="text-sm font-semibold text-slate-700 uppercase mb-2">Acessar a obra</h2>
+    {% if artigo.link_status == "quebrado" %}
+    <div class="text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded p-3 mb-2">
+        ⚠️ Link de acesso reportado como quebrado em {{ artigo.link_ultima_verificacao|date:"d/m/Y" }}.
+        {% if snapshot_recente %}Use o snapshot do Wayback Machine como alternativa.{% endif %}
+    </div>
+    {% endif %}
+    <div class="flex flex-wrap items-center gap-2">
+        {% if artigo.link_acesso %}
+        <a href="{{ artigo.link_acesso }}" target="_blank"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-anco hover:bg-anco-dark text-white text-sm">
+           Acessar obra ↗
+        </a>
+        {% endif %}
+        {% if artigo.link_acesso_alternativo %}
+        <a href="{{ artigo.link_acesso_alternativo }}" target="_blank" class="text-sm text-anco hover:text-anco-dark underline">link alternativo ↗</a>
+        {% endif %}
+        {% if snapshot_recente %}
+        <a href="{{ snapshot_recente.url_wayback }}" target="_blank" class="text-sm text-anco hover:text-anco-dark underline">snapshot Wayback ↗</a>
+        {% endif %}
+        {% if artigo.acesso_aberto %}<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs">Acesso aberto</span>{% endif %}
+        {% if artigo.artigo_pago %}<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs">Pago</span>{% endif %}
+    </div>
+</section>
+
+<section>
+    <h2 class="text-lg font-semibold text-slate-900 mb-3">Análises ({{ analises|length }})</h2>
+    {% if not analises %}
+    <p class="text-slate-500 italic">Ainda não há análises publicadas para este artigo.</p>
+    {% else %}
+    <ul class="space-y-3">
+        {% for a in analises %}
+        <li class="bg-white rounded-md border border-slate-200 p-4 flex items-start justify-between gap-4">
+            <div class="flex-1 min-w-0">
+                <a href="{% url 'pagina_analise' a.pk %}" class="font-medium text-anco hover:text-anco-dark">
+                    Análise por {{ a.analista.nome_exibicao|default:a.analista.username }}
+                </a>
+                <div class="text-xs text-slate-500 mt-0.5">
+                    {{ a.publicada_em|date:"d/m/Y"|default:"sem data" }}
+                    {% if a.tem_resenha %}<span class="text-slate-400">·</span> <span class="text-violet-700 font-medium">com resenha crítica</span>{% endif %}
+                </div>
+            </div>
+            <span class="text-xs text-slate-400">{% if a.status == "legado" %}legado{% else %}publicada{% endif %}</span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</section>
+{% endblock %}

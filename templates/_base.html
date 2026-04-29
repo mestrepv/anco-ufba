@@ -33,6 +33,7 @@
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
         <a href="{% url 'home' %}" class="text-anco font-bold text-lg">AnCo</a>
         <nav class="flex items-center gap-4 text-sm flex-1 flex-wrap">
+            <a href="{% url 'acervo_publico' %}" class="text-slate-600 hover:text-anco">Acervo público</a>
             {% if user.is_authenticated %}
                 {% if user.eh_analista %}
                     <a href="{% url 'minhas_analises' %}" class="text-slate-600 hover:text-anco">Minhas análises</a>

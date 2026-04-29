@@ -1,0 +1,34 @@
+{% extends "_base.html" %}
+
+{% block title %}Histórico — {{ analise.artigo.titulo|truncatechars:60 }} — AnCo{% endblock %}
+
+{% block content %}
+<nav class="text-xs text-slate-500 mb-4"><a href="{% url 'pagina_analise' analise.pk %}" class="hover:text-anco">← Voltar à análise</a></nav>
+
+<h1 class="text-2xl font-semibold text-slate-900 mb-2">Histórico de versões</h1>
+<p class="text-sm text-slate-600 mb-6">{{ analise.artigo.titulo|truncatechars:120 }}</p>
+
+{% if not versoes %}
+<p class="text-slate-500 italic">Sem versões registradas.</p>
+{% else %}
+<ul class="space-y-2">
+    {% for v in versoes %}
+    <li class="bg-white rounded-md border border-slate-200 p-3 text-sm">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+                <span class="font-medium text-slate-700">{{ v.history_date|date:"d/m/Y H:i" }}</span>
+                {% if v.history_user %}<span class="text-slate-400">·</span> <span class="text-slate-500">{{ v.history_user.nome_exibicao|default:v.history_user.username }}</span>{% endif %}
+            </div>
+            <div class="text-xs text-slate-500">
+                {% if v.history_type == "+" %}criada
+                {% elif v.history_type == "~" %}atualizada
+                {% elif v.history_type == "-" %}removida{% endif %}
+                <span class="text-slate-400">·</span>
+                status: {{ v.get_status_display }}
+            </div>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}
