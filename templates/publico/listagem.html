@@ -332,7 +332,7 @@
         <div style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
           <button type="submit" class="btn btn-secondary btn-sm" style="width:100%; text-align:center;">Aplicar filtros</button>
           {% if n_filtros_ativos %}
-          <a href="{% url 'acervo_publico' %}{% if consulta %}?q={{ consulta }}{% endif %}" style="
+          <a href="{% url 'acervo_publico' %}?{% if consulta %}q={{ consulta }}&{% endif %}modo={{ modo }}" style="
             display: block;
             text-align: center;
             font-family: var(--font-sans);
@@ -565,4 +565,7 @@
 </form>
 </section>
 
+{% block extra_scripts %}
+<script src="{% static 'js/acervo-filtros.js' %}" defer></script>
+{% endblock %}
 {% endblock %}
