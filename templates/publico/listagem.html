@@ -252,8 +252,8 @@
         border-bottom: 1px solid var(--color-rule-strong);
       ">Filtros</p>
 
-      {# Mobile: collapsible drawer; Desktop: always open via CSS display:contents #}
-      <details class="filtros-mobile-drawer" style="margin-bottom:16px;">
+      {# Mobile: collapsible (open por padrão); Desktop: summary oculto via CSS #}
+      <details class="filtros-mobile-drawer" open style="margin-bottom:16px;">
         <summary class="filtros-summary" style="margin-bottom:12px;">
           Filtros
           {% if n_filtros_ativos %}<span style="
