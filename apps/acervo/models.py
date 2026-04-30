@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from pgvector.django import VectorField
 from simple_history.models import HistoricalRecords
 
 from apps.vocabulario.models import TermoVocabulario
@@ -92,6 +93,15 @@ class Artigo(models.Model):
 
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
+
+    # Embedding semântico (Fase 8) — pgvector
+    embedding = VectorField(
+        dimensions=384,
+        null=True,
+        blank=True,
+        help_text="Embedding de titulo+resumo+palavras_chaves (Fase 8).",
+    )
+    embedding_atualizado_em = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "artigo"
@@ -215,7 +225,23 @@ class Analise(models.Model):
     submetida_em = models.DateTimeField(null=True, blank=True)
     publicada_em = models.DateTimeField(null=True, blank=True)
 
-    history = HistoricalRecords()
+    # Embeddings semânticos (Fase 8) — pgvector
+    embedding = VectorField(
+        dimensions=384,
+        null=True,
+        blank=True,
+        help_text="Embedding dos campos estruturais da análise (Fase 8).",
+    )
+    embedding_resenha = VectorField(
+        dimensions=384,
+        null=True,
+        blank=True,
+        help_text="Embedding da resenha crítica, quando presente (Fase 8).",
+    )
+    embedding_atualizado_em = models.DateTimeField(null=True, blank=True)
+
+    # Embeddings excluídos do histórico: são dados derivados, não autoria.
+    history = HistoricalRecords(excluded_fields=["embedding", "embedding_resenha", "embedding_atualizado_em"])
 
     class Meta:
         verbose_name = "análise"

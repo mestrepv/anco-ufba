@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "apps.vocabulario",
     "apps.acervo",
     "apps.publico",
+    "apps.busca_semantica",
 ]
 
 # django-q2 — broker Redis em prod, sync em dev/test (override em dev.py)
@@ -145,6 +146,10 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 BASE_URL = env("BASE_URL", default="http://localhost:8000")
+
+# Serviço de embeddings (Fase 8)
+EMBEDDINGS_URL = env("EMBEDDINGS_URL", default="http://embeddings:8080")
+EMBEDDINGS_TIMEOUT = env.int("EMBEDDINGS_TIMEOUT", default=30)
 
 # ----------------------------------------------------------------------
 # Autenticacao (Fase 2)

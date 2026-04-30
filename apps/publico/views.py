@@ -10,12 +10,28 @@ Views publicas do acervo (Fase 5).
 
 from __future__ import annotations
 
+import datetime
 from collections import Counter
+
+_MESES_PT = {
+    1: "jan.", 2: "fev.", 3: "mar.", 4: "abr.",
+    5: "mai.", 6: "jun.", 7: "jul.", 8: "ago.",
+    9: "set.", 10: "out.", 11: "nov.", 12: "dez.",
+}
+
+
+def _fmt_data(d: datetime.date | datetime.datetime | None) -> str:
+    if d is None:
+        return ""
+    if isinstance(d, datetime.datetime):
+        d = d.date()
+    return f"{d.day} {_MESES_PT[d.month]} {d.year}"
 from string import ascii_uppercase
 
+from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.core.paginator import Paginator
-from django.db.models import Q, QuerySet
+from django.db.models import Max, Min, Q, QuerySet
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -31,8 +47,60 @@ from .services import (
     slug_to_doi,
 )
 
+User = get_user_model()
+
 # Status que aparecem no acervo publico
 STATUS_PUBLICOS = (Analise.Status.PUBLICADA, Analise.Status.LEGADO)
+
+
+# ---------------------------------------------------------------------------
+# Vitrine (`/`)
+# ---------------------------------------------------------------------------
+
+
+def vitrine_view(request: HttpRequest) -> HttpResponse:
+    analises_count = Analise.objects.filter(status__in=STATUS_PUBLICOS).count()
+    pesquisadores_count = (
+        User.objects.filter(analises__status__in=STATUS_PUBLICOS).distinct().count()
+    )
+    bases_count = (
+        Artigo.objects.filter(
+            analises__status__in=STATUS_PUBLICOS,
+            base_consulta__isnull=False,
+        )
+        .values("base_consulta")
+        .distinct()
+        .count()
+    )
+    ano_agg = Artigo.objects.filter(
+        analises__status__in=STATUS_PUBLICOS,
+        ano__isnull=False,
+    ).aggregate(min_ano=Min("ano"), max_ano=Max("ano"))
+    recentes_qs = (
+        Analise.objects.filter(status__in=STATUS_PUBLICOS)
+        .select_related("artigo", "analista")
+        .order_by("-publicada_em", "-criado_em")[:5]
+    )
+    recentes = [
+        {
+            "analise": a,
+            "data_fmt": _fmt_data(a.publicada_em or a.criado_em),
+        }
+        for a in recentes_qs
+    ]
+    return render(
+        request,
+        "vitrine.html",
+        {
+            "analises_count": analises_count,
+            "pesquisadores_count": pesquisadores_count,
+            "bases_count": bases_count,
+            "min_ano": ano_agg["min_ano"],
+            "max_ano": ano_agg["max_ano"],
+            "recentes": recentes,
+            "hoje_fmt": _fmt_data(datetime.date.today()),
+        },
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -92,58 +160,113 @@ def _calcular_facetas(qs_base: QuerySet) -> dict[str, list[tuple[str, int]]]:
     return facetas
 
 
+def _busca_semantica(consulta: str, qs_base: QuerySet) -> list[dict]:
+    """
+    Busca por similaridade de vetores. Retorna lista de dicts com
+    analise + score (0-100) ordenada por similaridade decrescente.
+    Máximo 50 resultados conforme spec §6.2.1.
+    """
+    from pgvector.django import CosineDistance
+
+    from apps.busca_semantica.embeddings import embed_query
+
+    vec = embed_query(consulta)
+    if vec is None:
+        return []
+
+    resultados = (
+        qs_base.exclude(embedding__isnull=True)
+        .annotate(distancia=CosineDistance("embedding", vec))
+        .order_by("distancia")[:50]
+    )
+
+    return [
+        {
+            "analise": r,
+            "score": round((1 - float(r.distancia)) * 100),
+        }
+        for r in resultados
+    ]
+
+
 @ratelimit(key="ip", rate="60/m", method=["GET"], block=False)
 def listagem_view(request: HttpRequest) -> HttpResponse:
-    qs = Analise.objects.filter(status__in=STATUS_PUBLICOS).select_related(
+    qs_base = Analise.objects.filter(status__in=STATUS_PUBLICOS).select_related(
         "artigo", "artigo__base_consulta", "analista"
     )
 
-    # Busca textual (FTS com unaccent — fallback para icontains se vazio)
     consulta = (request.GET.get("q") or "").strip()
-    if consulta:
-        vector = SearchVector(
-            "artigo__titulo",
-            "artigo__resumo",
-            "objeto",
-            "objetivo",
-            "aspectos_relevantes",
-            "definicao_extraida",
-            "resenha_critica",
-            config="portuguese",
-        )
-        query = SearchQuery(consulta, config="portuguese")
-        qs = (
-            qs.annotate(rank=SearchRank(vector, query))
-            .filter(Q(rank__gt=0) | Q(artigo__doi__iexact=consulta))
-            .order_by("-rank", "-criado_em")
-        )
-    else:
-        qs = qs.order_by("-criado_em")
+    modo = request.GET.get("modo", "textual")
+    if modo not in ("textual", "semantico"):
+        modo = "textual"
 
-    # Aplica facetas
-    qs = _aplicar_facetas(qs, request.GET)
+    # Aplica facetas antes de qualquer busca
+    qs_filtrado = _aplicar_facetas(qs_base, request.GET)
 
-    # Facetas (calculadas sobre conjunto base ja filtrado)
-    facetas = _calcular_facetas(qs)
+    resultados_semanticos: list[dict] = []
+    servico_indisponivel = False
+    pagina = None
 
-    # Paginacao
-    paginator = Paginator(qs, 20)
-    pagina = paginator.get_page(request.GET.get("page") or 1)
+    if modo == "semantico" and consulta:
+        from apps.busca_semantica.embeddings import service_available
 
-    # URL preservando facetas atuais (para troca de pagina)
+        if service_available():
+            resultados_semanticos = _busca_semantica(consulta, qs_filtrado)
+        else:
+            servico_indisponivel = True
+            modo = "textual"  # degradação graciosa: cai para textual
+
+    if modo == "textual":
+        qs = qs_filtrado
+        if consulta:
+            vector = SearchVector(
+                "artigo__titulo",
+                "artigo__resumo",
+                "objeto",
+                "objetivo",
+                "aspectos_relevantes",
+                "definicao_extraida",
+                "resenha_critica",
+                config="portuguese",
+            )
+            query = SearchQuery(consulta, config="portuguese")
+            qs = (
+                qs.annotate(rank=SearchRank(vector, query))
+                .filter(Q(rank__gt=0) | Q(artigo__doi__iexact=consulta))
+                .order_by("-rank", "-criado_em")
+            )
+        else:
+            qs = qs.order_by("-criado_em")
+
+        paginator = Paginator(qs, 20)
+        pagina = paginator.get_page(request.GET.get("page") or 1)
+
+    # Facetas calculadas sobre o conjunto base filtrado (sem busca textual aplicada)
+    facetas = _calcular_facetas(qs_filtrado)
+
     qs_dict = request.GET.copy()
     qs_dict.pop("page", None)
     querystring = qs_dict.urlencode()
+
+    facetas_aplicadas = {k: request.GET.getlist(k) for k in _FACETAS}
+    n_filtros_ativos = sum(len(v) for v in facetas_aplicadas.values())
+    ordenar_label = "relevância" if consulta else "mais recentes"
 
     return render(
         request,
         "publico/listagem.html",
         {
             "consulta": consulta,
+            "modo": modo,
             "pagina": pagina,
+            "resultados_semanticos": resultados_semanticos,
+            "servico_indisponivel": servico_indisponivel,
             "facetas": facetas,
             "querystring": querystring,
-            "facetas_aplicadas": {k: request.GET.getlist(k) for k in _FACETAS},
+            "facetas_aplicadas": facetas_aplicadas,
+            "n_filtros_ativos": n_filtros_ativos,
+            "ordenar_label": ordenar_label,
+            "active_nav": "acervo",
         },
     )
 
@@ -285,6 +408,8 @@ def pagina_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
 
     campos_textuais = [(label, getattr(analise, attr) or "") for label, attr in _CAMPOS_TEXTUAIS]
 
+    link_obra = analise.artigo.link_acesso or analise.artigo.link_acesso_alternativo or ""
+
     return render(
         request,
         "publico/analise.html",
@@ -295,6 +420,9 @@ def pagina_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
             "citacao_apa": gerar_citacao_apa(analise),
             "doi_slug": doi_to_slug(analise.artigo.doi),
             "campos_textuais": campos_textuais,
+            "link_obra": link_obra,
+            "publicada_fmt": _fmt_data(analise.publicada_em or analise.criado_em),
+            "active_nav": "acervo",
             "jsonld": jsonld(schema_analise(analise)),
         },
     )
@@ -327,7 +455,7 @@ def pagina_sobre_view(request: HttpRequest) -> HttpResponse:
 
 
 def pagina_equipe_view(request: HttpRequest) -> HttpResponse:
-    return render(request, "publico/equipe.html")
+    return render(request, "publico/equipe.html", {"active_nav": "equipe"})
 
 
 def pagina_termos_view(request: HttpRequest) -> HttpResponse:

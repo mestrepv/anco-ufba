@@ -18,3 +18,16 @@ SECRET_KEY = env(
 
 # Em dev e teste, executa tasks no proprio processo (sem worker).
 Q_CLUSTER = {**Q_CLUSTER, "sync": True}  # noqa: F405
+
+# Em testes, sem retry para o serviço de embeddings (evita lentidão).
+EMBEDDINGS_MAX_RETRIES = 1
+
+# Quando rodando atras do Caddy (HTTPS proxy), manter URLs absolutas corretas.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Sem cache algum em dev — qualquer mudança reflete imediatamente.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+    }
+}

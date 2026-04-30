@@ -22,6 +22,7 @@ dependencies = [
     "sentry-sdk[django]>=2.18",
     "django-csp>=3.8",
     "django-ratelimit>=4.1",
+    "pgvector>=0.3",
 ]
 
 [project.optional-dependencies]
@@ -33,6 +34,7 @@ dev = [
     "factory-boy>=3.3",
     "ruff>=0.5",
     "responses>=0.25",
+    "pytailwindcss>=0.2,<0.3",
 ]
 
 [build-system]

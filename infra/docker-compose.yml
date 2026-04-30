@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-anco}
@@ -46,7 +46,7 @@ services:
       - ../.env
     ports:
       # Bind apenas no loopback do host: nginx faz reverse proxy
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:9090:8000"
     volumes:
       - ..:/app
     depends_on:
@@ -77,6 +77,26 @@ services:
     profiles:
       - worker  # opcional em dev (tasks rodam sync); ligar com --profile worker
 
+  embeddings:
+    build:
+      context: ./embeddings
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL:-paraphrase-multilingual-MiniLM-L12-v2}
+    volumes:
+      - model_cache:/model_cache
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - internal
+    profiles:
+      - embeddings  # sobe com --profile embeddings (ou prod quando configurado)
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -102,6 +122,7 @@ volumes:
   pgdata:
   caddy_data:
   caddy_config:
+  model_cache:
 
 networks:
   internal:

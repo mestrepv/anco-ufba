@@ -1,127 +1,568 @@
-{% extends "_base.html" %}
+{% extends "_base_publico.html" %}
+{% load static %}
 
 {% block title %}Acervo público — AnCo{% endblock %}
+{% block meta_description %}{{ pagina.paginator.count }} análises de literatura científica sobre Análise Cognitiva, catalogadas e revisadas por pares por pesquisadores do PPGDC.{% endblock %}
+{% block og_description %}{{ pagina.paginator.count }} análises de literatura científica sobre Análise Cognitiva, catalogadas e revisadas por pares.{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── Filtros ──────────────────────────────── */
+  .filtros-summary {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 10px 14px;
+    background: var(--color-paper);
+    border: 1px solid var(--color-rule-strong);
+    border-radius: 2px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--color-ink);
+    user-select: none;
+    width: fit-content;
+  }
+  .filtros-summary::-webkit-details-marker { display: none; }
+
+  .filter-group-header {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 13px 0;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-ink-2);
+    border-bottom: 1px solid var(--color-rule);
+    user-select: none;
+  }
+  .filter-group-header::-webkit-details-marker { display: none; }
+  details.filter-group[open] .filter-group-header { border-bottom: none; }
+  .filter-group-body { padding: 4px 0 12px; border-bottom: 1px solid var(--color-rule); }
+
+  .filtro-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--color-ink-2);
+    cursor: pointer;
+  }
+  .filtro-check input[type="checkbox"] {
+    width: 14px; height: 14px;
+    border: 1px solid var(--color-rule-strong);
+    border-radius: 2px;
+    appearance: none; -webkit-appearance: none;
+    background: var(--color-paper);
+    flex: 0 0 auto;
+    cursor: pointer;
+    position: relative;
+  }
+  .filtro-check input[type="checkbox"]:checked {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+  }
+  .filtro-check input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 2px; top: 5px;
+    width: 8px; height: 3px;
+    border-left: 1.5px solid var(--color-paper);
+    border-bottom: 1.5px solid var(--color-paper);
+    transform: rotate(-45deg) translateY(-2px);
+  }
+  .filtro-count { margin-left: auto; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--color-ink-4); }
+
+  /* ── Resultados ───────────────────────────── */
+  .result-title {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 17px;
+    line-height: 1.25;
+    letter-spacing: -0.005em;
+    color: var(--color-ink);
+    text-decoration: none;
+    display: block;
+    text-wrap: pretty;
+  }
+  .result-title:hover { color: var(--color-gold-deep); }
+
+  /* ── Paginação ────────────────────────────── */
+  .page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 32px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    border: 1px solid var(--color-rule-strong);
+    background: transparent;
+    color: var(--color-ink-2);
+    text-decoration: none;
+  }
+  .page-btn-active { background: var(--color-ink); color: var(--color-paper); border-color: var(--color-ink); }
+  .page-btn:hover:not(.page-btn-active) { background: var(--color-paper-2); }
+
+  /* ── Responsivo ───────────────────────────── */
+  @media (min-width: 768px) {
+    /* Search header: 2-col */
+    .search-header-grid { display: grid !important; grid-template-columns: 1fr 1fr; gap: 64px; align-items: end; }
+    .search-box { height: 56px !important; }
+    .search-box input[type="text"] { font-size: 16px !important; }
+    .page-h1 { font-size: 48px !important; }
+
+    /* Body: sidebar + results grid */
+    .acervo-body-grid { display: grid !important; grid-template-columns: 260px 1fr; gap: 56px; }
+
+    /* On desktop: show filter sidebar always, hide mobile summary/toggle */
+    .filtros-aside details.filtros-mobile-drawer { display: contents; } /* transparent wrapper */
+    .filtros-aside details.filtros-mobile-drawer > summary { display: none; }
+    .filtros-aside .filtros-title { display: block !important; }
+
+    /* Result row: 2 cols */
+    .result-row-inner { display: grid !important; grid-template-columns: minmax(0,1fr) 200px; gap: 24px; align-items: start; }
+    .result-meta-desktop { display: flex !important; }
+    .result-meta-mobile { display: none !important; }
+    .result-snippet { display: block !important; }
+
+    /* Header/body padding */
+    .search-header { padding: 48px 56px 32px !important; }
+    .acervo-body { padding: 32px 56px 80px !important; }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="md:grid md:grid-cols-[16rem_1fr] md:gap-8">
 
-<aside class="mb-6 md:mb-0">
-    <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Filtros</h2>
+{# ── Search header ──────────────────────────────────────────────────── #}
+<section class="search-header" style="padding:28px 20px 24px; border-bottom:1px solid var(--color-rule);">
+  <form method="get" action="{% url 'acervo_publico' %}" id="busca-form">
+    {# Preserve active filters when re-searching #}
+    {% for k, vals in facetas_aplicadas.items %}{% for v in vals %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}{% endfor %}
 
-    <form method="get" class="space-y-5">
-        {% if consulta %}<input type="hidden" name="q" value="{{ consulta }}">{% endif %}
-
-        <div>
-            <h3 class="text-xs font-medium text-slate-500 uppercase mb-1">Ano</h3>
-            <select name="ano" class="block w-full rounded-md border-slate-300 text-sm">
-                <option value="">Todos</option>
-                {% for ano in facetas.ano %}
-                    <option value="{{ ano }}" {% if ano|stringformat:"s" in facetas_aplicadas.ano %}selected{% endif %}>
-                        {{ ano }} ({{ facetas.ano_count|default_if_none:""|dictsort:0|join:"" }}{{ facetas.ano_count|stringformat:"s"|slice:"0:0" }}{{ facetas.ano_count|default_if_none:0|dictsortreversed:0|join:"" }})
-                    </option>
-                {% endfor %}
-            </select>
+    <div class="search-header-grid" style="display:block;">
+      <div style="margin-bottom:18px;">
+        <p class="t-eyebrow" style="margin-bottom:12px;">Acervo público · {% if modo == 'semantico' %}{{ resultados_semanticos|length }}{% elif pagina %}{{ pagina.paginator.count }}{% else %}—{% endif %} análises</p>
+        <h1 class="page-h1" style="
+          font-family: var(--font-serif);
+          font-weight: 400;
+          font-size: 32px;
+          line-height: 1.05;
+          letter-spacing: -0.02em;
+          margin: 0;
+          color: var(--color-ink);
+        ">Buscar no acervo</h1>
+      </div>
+      <div>
+        <div class="search-box" style="
+          display: flex;
+          align-items: stretch;
+          border: 1.5px solid var(--color-ink);
+          border-radius: 2px;
+          height: 50px;
+          overflow: hidden;
+          background: var(--color-paper);
+        ">
+          <input type="text" name="q" value="{{ consulta }}"
+            placeholder="Título, autores, conceitos, DOI…"
+            aria-label="Buscar no acervo"
+            style="
+              flex: 1;
+              border: 0;
+              outline: 0;
+              background: transparent;
+              padding: 0 14px;
+              font-family: var(--font-sans);
+              font-size: 15px;
+              color: var(--color-ink);
+            ">
+          <button type="submit" style="
+            padding: 0 18px;
+            background: var(--color-ink);
+            color: var(--color-paper);
+            border: 0;
+            font-family: var(--font-sans);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            white-space: nowrap;
+          ">Buscar</button>
         </div>
 
-        <div>
-            <h3 class="text-xs font-medium text-slate-500 uppercase mb-1">Base de consulta</h3>
-            <select name="base" class="block w-full rounded-md border-slate-300 text-sm">
-                <option value="">Todas</option>
-                {% for base, count in facetas.base %}
-                    <option value="{{ base }}" {% if base in facetas_aplicadas.base %}selected{% endif %}>{{ base }} ({{ count }})</option>
-                {% endfor %}
-            </select>
+        {# Toggle modo de busca #}
+        <div style="margin-top:10px; display:flex; align-items:center; gap:16px; font-family:var(--font-sans); font-size:13px; color:var(--color-ink-3);">
+          <span style="font-weight:600; white-space:nowrap;">Modo:</span>
+          <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+            <input type="radio" name="modo" value="textual" {% if modo == 'textual' %}checked{% endif %} style="accent-color:var(--color-ink);">
+            Textual
+          </label>
+          <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+            <input type="radio" name="modo" value="semantico" {% if modo == 'semantico' %}checked{% endif %} style="accent-color:var(--color-ink);">
+            Por significado
+          </label>
         </div>
 
-        <div>
-            <h3 class="text-xs font-medium text-slate-500 uppercase mb-1">Status</h3>
-            {% for status, count in facetas.status %}
-            <label class="flex items-center gap-2 text-sm py-0.5">
-                <input type="checkbox" name="status" value="{{ status }}" {% if status in facetas_aplicadas.status %}checked{% endif %}>
-                <span class="capitalize">{{ status }}</span>
-                <span class="text-slate-400 text-xs">({{ count }})</span>
-            </label>
-            {% endfor %}
-        </div>
-
-        <div>
-            <label class="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="resenha" value="true" {% if "true" in facetas_aplicadas.resenha %}checked{% endif %}>
-                <span>Tem resenha crítica</span>
-                <span class="text-slate-400 text-xs">({{ facetas.resenha_count }})</span>
-            </label>
-            <label class="flex items-center gap-2 text-sm mt-1">
-                <input type="checkbox" name="acesso_aberto" value="true" {% if "true" in facetas_aplicadas.acesso_aberto %}checked{% endif %}>
-                <span>Acesso aberto</span>
-                <span class="text-slate-400 text-xs">({{ facetas.acesso_aberto_count }})</span>
-            </label>
-        </div>
-
-        <button type="submit" class="w-full px-3 py-2 rounded-md bg-anco hover:bg-anco-dark text-white text-sm">Aplicar filtros</button>
-        <a href="?" class="block text-center text-xs text-slate-500 hover:text-anco">limpar tudo</a>
-    </form>
-</aside>
-
-<section>
-    <header class="flex items-center justify-between flex-wrap gap-3 mb-4">
-        <div class="flex items-baseline gap-3">
-            <h1 class="text-2xl font-semibold text-slate-900">Acervo público</h1>
-            <a href="{% url 'acervo_planilha' %}" class="text-sm text-anco hover:text-anco-dark underline">ver planilha completa</a>
-        </div>
-        <form method="get" class="flex items-center gap-2 flex-1 max-w-md">
-            {% for k, vals in facetas_aplicadas.items %}{% for v in vals %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}{% endfor %}
-            <input type="search" name="q" value="{{ consulta }}"
-                placeholder="Buscar por título, resumo, resenha..."
-                class="flex-1 rounded-md border-slate-300 text-sm">
-            <button type="submit" class="px-4 py-2 rounded-md bg-anco hover:bg-anco-dark text-white text-sm">Buscar</button>
-        </form>
-    </header>
-
-    {% if consulta %}<p class="text-sm text-slate-500 mb-3">{{ pagina.paginator.count }} resultado(s) para <em>"{{ consulta }}"</em>.</p>{% else %}<p class="text-sm text-slate-500 mb-3">{{ pagina.paginator.count }} análise(s) no acervo público.</p>{% endif %}
-
-    {% if not pagina %}
-    <div class="text-slate-500 italic">Nenhuma análise encontrada.</div>
-    {% else %}
-    <ul class="space-y-3">
-        {% for a in pagina %}
-        <li class="bg-white rounded-md border border-slate-200 p-4">
-            <div class="flex items-start justify-between gap-4">
-                <div class="flex-1 min-w-0">
-                    <a href="{% url 'pagina_analise' a.pk %}" class="font-medium text-anco hover:text-anco-dark">{{ a.artigo.titulo|truncatechars:120 }}</a>
-                    <div class="text-xs text-slate-500 mt-1">
-                        {{ a.artigo.ano|default:"s.d." }}
-                        {% if a.artigo.titulo_periodico %}<span class="text-slate-400">·</span> {{ a.artigo.titulo_periodico|truncatechars:60 }}{% endif %}
-                        <span class="text-slate-400">·</span> {{ a.analista.nome_exibicao|default:a.analista.username }}
-                    </div>
-                </div>
-                <div class="flex flex-col items-end gap-1">
-                    {% if a.tem_resenha %}
-                    <span class="px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 text-[11px] font-medium">Resenha crítica</span>
-                    {% endif %}
-                    {% if a.status == "legado" %}
-                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px]">Legado</span>
-                    {% else %}
-                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px]">Publicada</span>
-                    {% endif %}
-                </div>
-            </div>
-        </li>
-        {% endfor %}
-    </ul>
-
-    {% if pagina.has_other_pages %}
-    <nav class="flex items-center justify-between mt-6 text-sm">
-        {% if pagina.has_previous %}
-            <a href="?page={{ pagina.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}" class="text-anco hover:text-anco-dark">← Anterior</a>
-        {% else %}<span></span>{% endif %}
-        <span class="text-slate-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
-        {% if pagina.has_next %}
-            <a href="?page={{ pagina.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}" class="text-anco hover:text-anco-dark">Próxima →</a>
-        {% else %}<span></span>{% endif %}
-    </nav>
-    {% endif %}
-    {% endif %}
+        {% if servico_indisponivel %}
+        <p class="t-meta" style="margin-top:8px; color:#b45309; background:#fffbeb; border:1px solid #fde68a; padding:6px 10px; border-radius:2px;">
+          Busca por significado temporariamente indisponível. Exibindo resultados textuais.
+        </p>
+        {% elif consulta %}
+        <p class="t-meta" style="margin-top:8px; color:var(--color-ink-3);">
+          {% if modo == 'semantico' %}{{ resultados_semanticos|length }}{% else %}{{ pagina.paginator.count }}{% endif %} resultado(s) para <em>"{{ consulta }}"</em>
+          · <a href="{% url 'acervo_publico' %}" style="color:var(--color-gold-deep); text-decoration:none;">limpar busca</a>
+        </p>
+        {% endif %}
+      </div>
+    </div>
+  </form>
 </section>
 
-</div>
+{# ── Body: filtros + resultados ──────────────────────────────────────── #}
+<section class="acervo-body" style="padding:24px 20px 48px;">
+<form method="get" action="{% url 'acervo_publico' %}" id="filtros-form">
+  {% if consulta %}<input type="hidden" name="q" value="{{ consulta }}">{% endif %}
+  <input type="hidden" name="modo" value="{{ modo }}">
+
+  <div class="acervo-body-grid" style="display:block;">
+
+    {# ── Filtros sidebar ──────────────────────────────────────────── #}
+    <aside class="filtros-aside">
+      {# Desktop label (hidden on mobile) #}
+      <p class="filtros-title" style="
+        display: none;
+        font-family: var(--font-sans);
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--color-ink);
+        padding-bottom: 8px;
+        margin-bottom: 0;
+        border-bottom: 1px solid var(--color-rule-strong);
+      ">Filtros</p>
+
+      {# Mobile: collapsible drawer; Desktop: always open via CSS display:contents #}
+      <details class="filtros-mobile-drawer" style="margin-bottom:16px;">
+        <summary class="filtros-summary" style="margin-bottom:12px;">
+          Filtros
+          {% if n_filtros_ativos %}<span style="
+            background: var(--color-ink);
+            color: var(--color-paper);
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 6px;
+            border-radius: 999px;
+          ">{{ n_filtros_ativos }}</span>{% endif %}
+        </summary>
+
+        {# Ano #}
+        <details class="filter-group" open>
+          <summary class="filter-group-header">Ano <span>▾</span></summary>
+          <div class="filter-group-body">
+            {% for ano in facetas.ano %}
+            <label class="filtro-check">
+              <input type="checkbox" name="ano" value="{{ ano }}"
+                {% if ano|stringformat:"s" in facetas_aplicadas.ano %}checked{% endif %}>
+              <span>{{ ano }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </details>
+
+        {# Base bibliográfica #}
+        <details class="filter-group" open>
+          <summary class="filter-group-header">Base bibliográfica <span>▾</span></summary>
+          <div class="filter-group-body">
+            {% for base, count in facetas.base %}
+            <label class="filtro-check">
+              <input type="checkbox" name="base" value="{{ base }}"
+                {% if base in facetas_aplicadas.base %}checked{% endif %}>
+              <span>{{ base }}</span>
+              <span class="filtro-count">{{ count }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </details>
+
+        {# Características #}
+        <details class="filter-group" open>
+          <summary class="filter-group-header">Características <span>▾</span></summary>
+          <div class="filter-group-body">
+            <label class="filtro-check">
+              <input type="checkbox" name="resenha" value="true"
+                {% if "true" in facetas_aplicadas.resenha %}checked{% endif %}>
+              <span>Tem resenha crítica</span>
+              <span class="filtro-count">{{ facetas.resenha_count }}</span>
+            </label>
+            <label class="filtro-check">
+              <input type="checkbox" name="acesso_aberto" value="true"
+                {% if "true" in facetas_aplicadas.acesso_aberto %}checked{% endif %}>
+              <span>Acesso aberto</span>
+              <span class="filtro-count">{{ facetas.acesso_aberto_count }}</span>
+            </label>
+          </div>
+        </details>
+
+        {# Status #}
+        <details class="filter-group">
+          <summary class="filter-group-header">Status <span>▾</span></summary>
+          <div class="filter-group-body">
+            {% for status, count in facetas.status %}
+            <label class="filtro-check">
+              <input type="checkbox" name="status" value="{{ status }}"
+                {% if status in facetas_aplicadas.status %}checked{% endif %}>
+              <span>{{ status|capfirst }}</span>
+              <span class="filtro-count">{{ count }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </details>
+
+        <div style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
+          <button type="submit" class="btn btn-secondary btn-sm" style="width:100%; text-align:center;">Aplicar filtros</button>
+          {% if n_filtros_ativos %}
+          <a href="{% url 'acervo_publico' %}{% if consulta %}?q={{ consulta }}{% endif %}" style="
+            display: block;
+            text-align: center;
+            font-family: var(--font-sans);
+            font-size: 12px;
+            color: var(--color-ink-3);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+          ">limpar filtros</a>
+          {% endif %}
+        </div>
+
+      </details>{# /filtros-mobile-drawer #}
+    </aside>
+
+    {# ── Resultados ───────────────────────────────────────────────── #}
+    <div>
+
+      {# Barra de resultado: filtros ativos + contagem + ordenação #}
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--color-rule-strong);
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 4px;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        color: var(--color-ink-3);
+      ">
+        <div style="flex:1; min-width:0; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          {% if n_filtros_ativos %}
+          <span class="t-meta" style="color:var(--color-ink-3); white-space:nowrap;">filtros ativos:</span>
+          {% for k, vals in facetas_aplicadas.items %}{% for v in vals %}
+          <span class="chip" style="font-size:11px;">{{ v }}</span>
+          {% endfor %}{% endfor %}
+          <a href="{% url 'acervo_publico' %}{% if consulta %}?q={{ consulta }}&modo={{ modo }}{% endif %}" style="
+            font-family: var(--font-sans);
+            font-size: 12px;
+            color: var(--color-ink-3);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            white-space: nowrap;
+          ">limpar</a>
+          {% else %}
+          <span>
+            {% if modo == 'semantico' %}
+              <strong style="color:var(--color-ink);">{{ resultados_semanticos|length }}</strong> resultado(s) mais relevantes
+            {% else %}
+              <strong style="color:var(--color-ink);">{{ pagina.paginator.count }}</strong>
+              {% if consulta %}resultado(s) para <em>"{{ consulta }}"</em>{% else %}análise(s){% endif %}
+            {% endif %}
+          </span>
+          {% endif %}
+        </div>
+        <div style="display:flex; align-items:center; gap:16px; white-space:nowrap;">
+          {% if n_filtros_ativos %}
+            <span><strong style="color:var(--color-ink);">{% if modo == 'semantico' %}{{ resultados_semanticos|length }}{% else %}{{ pagina.paginator.count }}{% endif %}</strong> resultado(s)</span>
+          {% endif %}
+          <span>por <strong style="color:var(--color-ink);">{% if modo == 'semantico' %}significado{% else %}{{ ordenar_label }}{% endif %}</strong></span>
+          <a href="{% url 'acervo_planilha' %}" style="color:var(--color-ink-3); text-decoration:none;" title="Ver planilha completa">↓ planilha</a>
+        </div>
+      </div>
+
+      {# ── Resultados semânticos ────────────────────────────────── #}
+      {% if modo == 'semantico' %}
+        {% if not consulta %}
+        <div style="padding:48px 0; text-align:center; color:var(--color-ink-3); font-family:var(--font-sans);">
+          <p class="t-body">Digite uma busca para encontrar análises por significado.</p>
+        </div>
+        {% elif resultados_semanticos %}
+        <p class="t-meta" style="padding:10px 0 4px; color:var(--color-ink-4); font-family:var(--font-sans); font-size:12px;">
+          Mostrando os {{ resultados_semanticos|length }} resultados mais relevantes por significado.
+          Refine a busca para resultados mais específicos.
+        </p>
+        {% for item in resultados_semanticos %}
+        {% with analise=item.analise score=item.score %}
+        <article style="padding:16px 0 18px; border-bottom:1px solid var(--color-rule);">
+          <div class="result-row-inner" style="display:block;">
+            <div style="min-width:0;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+                {# Selo de similaridade #}
+                <span style="
+                  display:inline-flex; align-items:center;
+                  font-family:var(--font-sans); font-size:10px; font-weight:700;
+                  letter-spacing:0.06em; text-transform:uppercase;
+                  color:{% if score >= 70 %}#15803d{% elif score >= 50 %}#b45309{% else %}var(--color-ink-3){% endif %};
+                  background:{% if score >= 70 %}#f0fdf4{% elif score >= 50 %}#fffbeb{% else %}var(--color-rule){% endif %};
+                  padding:2px 7px; border-radius:2px;
+                ">{{ score }}% relevante</span>
+                {% if analise.tem_resenha %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
+                {% if analise.artigo.acesso_aberto %}{% include "partials/_selo.html" with kind="aberto" %}{% endif %}
+                {% if analise.status == 'legado' %}{% include "partials/_selo.html" with kind="historico" %}{% endif %}
+              </div>
+
+              <h3 style="margin:0;"><a class="result-title" href="{% url 'pagina_analise' analise.pk %}">{{ analise.artigo.titulo }}</a></h3>
+
+              <div style="margin-top:6px; font-family:var(--font-sans); font-size:13px; color:var(--color-ink-3); line-height:1.45;">
+                {{ analise.artigo.autores|truncatechars:70 }}{% if analise.artigo.autores and analise.artigo.titulo_periodico %} · {% endif %}<em>{{ analise.artigo.titulo_periodico|truncatechars:50 }}</em>{% if analise.artigo.ano %}, {{ analise.artigo.ano }}{% endif %}{% if analise.artigo.base_consulta %} · {{ analise.artigo.base_consulta.nome }}{% endif %}
+              </div>
+
+              {% if analise.artigo.resumo %}
+              <p class="result-snippet" style="display:none; margin:8px 0 0; font-family:var(--font-sans); font-size:14px; color:var(--color-ink-2); line-height:1.5; text-wrap:pretty;">{{ analise.artigo.resumo|truncatechars:200 }}</p>
+              {% endif %}
+
+              <div class="result-meta-mobile" style="margin-top:8px; font-family:var(--font-sans); font-size:11px; color:var(--color-ink-4); display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px;">
+                <span>{{ analise.analista.nome_exibicao|default:analise.analista.username }}</span>
+                <span>{% if analise.publicada_em %}{{ analise.publicada_em|date:"d/m/Y" }}{% else %}{{ analise.criado_em|date:"d/m/Y" }}{% endif %}</span>
+              </div>
+            </div>
+
+            <div class="result-meta-desktop" style="display:none; flex-direction:column; align-items:flex-end; gap:6px; font-family:var(--font-sans);">
+              <div class="t-meta" style="text-align:right; color:var(--color-ink-3); line-height:1.5;">
+                analisado por<br>
+                <span style="color:var(--color-ink-2);">{{ analise.analista.nome_exibicao|default:analise.analista.username }}</span>
+              </div>
+              <div class="t-meta" style="color:var(--color-ink-4);">
+                {% if analise.publicada_em %}{{ analise.publicada_em|date:"d/m/Y" }}{% else %}{{ analise.criado_em|date:"d/m/Y" }}{% endif %}
+              </div>
+            </div>
+          </div>
+        </article>
+        {% endwith %}
+        {% endfor %}
+        {% else %}
+        <div style="padding:48px 0; text-align:center; color:var(--color-ink-3); font-family:var(--font-sans);">
+          <p class="t-body">Nenhuma análise encontrada por significado para <em>"{{ consulta }}"</em>.</p>
+          <a href="{% url 'acervo_publico' %}?q={{ consulta }}&modo=textual" style="color:var(--color-gold-deep); text-decoration:none; font-size:14px; display:inline-block; margin-top:8px;">Tentar busca textual →</a>
+        </div>
+        {% endif %}
+
+      {# ── Resultados textuais ──────────────────────────────────── #}
+      {% else %}
+      {% for analise in pagina %}
+      <article style="padding:16px 0 18px; border-bottom:1px solid var(--color-rule);">
+        <div class="result-row-inner" style="display:block;">
+
+          {# Coluna principal #}
+          <div style="min-width:0;">
+            {# Selos #}
+            {% if analise.tem_resenha or analise.artigo.acesso_aberto or analise.artigo.link_status == 'quebrado' or analise.status == 'legado' %}
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px; flex-wrap:wrap;">
+              {% if analise.tem_resenha %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
+              {% if analise.artigo.acesso_aberto %}{% include "partials/_selo.html" with kind="aberto" %}{% endif %}
+              {% if analise.artigo.link_status == 'quebrado' %}{% include "partials/_selo.html" with kind="quebrado" %}{% endif %}
+              {% if analise.status == 'legado' %}{% include "partials/_selo.html" with kind="historico" %}{% endif %}
+            </div>
+            {% endif %}
+
+            <h3 style="margin:0;"><a class="result-title" href="{% url 'pagina_analise' analise.pk %}">{{ analise.artigo.titulo }}</a></h3>
+
+            <div style="margin-top:6px; font-family:var(--font-sans); font-size:13px; color:var(--color-ink-3); line-height:1.45;">
+              {{ analise.artigo.autores|truncatechars:70 }}{% if analise.artigo.autores and analise.artigo.titulo_periodico %} · {% endif %}<em>{{ analise.artigo.titulo_periodico|truncatechars:50 }}</em>{% if analise.artigo.ano %}, {{ analise.artigo.ano }}{% endif %}{% if analise.artigo.base_consulta %} · {{ analise.artigo.base_consulta.nome }}{% endif %}
+            </div>
+
+            {% if analise.artigo.resumo %}
+            <p class="result-snippet" style="display:none; margin:8px 0 0; font-family:var(--font-sans); font-size:14px; color:var(--color-ink-2); line-height:1.5; text-wrap:pretty;">{{ analise.artigo.resumo|truncatechars:200 }}</p>
+            {% endif %}
+
+            {# Mobile: analyst + date on one line #}
+            <div class="result-meta-mobile" style="margin-top:8px; font-family:var(--font-sans); font-size:11px; color:var(--color-ink-4); display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px;">
+              <span>{{ analise.analista.nome_exibicao|default:analise.analista.username }}</span>
+              <span>{% if analise.publicada_em %}{{ analise.publicada_em|date:"d/m/Y" }}{% else %}{{ analise.criado_em|date:"d/m/Y" }}{% endif %}</span>
+            </div>
+          </div>
+
+          {# Desktop: right column with analyst + date #}
+          <div class="result-meta-desktop" style="display:none; flex-direction:column; align-items:flex-end; gap:6px; font-family:var(--font-sans);">
+            <div class="t-meta" style="text-align:right; color:var(--color-ink-3); line-height:1.5;">
+              analisado por<br>
+              <span style="color:var(--color-ink-2);">{{ analise.analista.nome_exibicao|default:analise.analista.username }}</span>
+            </div>
+            <div class="t-meta" style="color:var(--color-ink-4);">
+              {% if analise.publicada_em %}{{ analise.publicada_em|date:"d/m/Y" }}{% else %}{{ analise.criado_em|date:"d/m/Y" }}{% endif %}
+            </div>
+          </div>
+
+        </div>
+      </article>
+      {% empty %}
+      <div style="padding:48px 0; text-align:center; color:var(--color-ink-3); font-family:var(--font-sans);">
+        <p class="t-body">Nenhuma análise encontrada{% if consulta %} para <em>"{{ consulta }}"</em>{% endif %}.</p>
+        {% if consulta or n_filtros_ativos %}
+        <a href="{% url 'acervo_publico' %}" style="color:var(--color-gold-deep); text-decoration:none; font-size:14px; display:inline-block; margin-top:8px;">Limpar busca e ver todas →</a>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      {# ── Paginação ──────────────────────────────────────────── #}
+      {% if pagina.has_other_pages %}
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 28px;
+        padding-top: 16px;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        color: var(--color-ink-3);
+        flex-wrap: wrap;
+        gap: 12px;
+      ">
+        <span>mostrando {{ pagina.start_index }}–{{ pagina.end_index }} de {{ pagina.paginator.count }}</span>
+        <nav aria-label="Paginação" style="display:flex; gap:4px; align-items:center;">
+          {% if pagina.has_previous %}
+          <a href="?page={{ pagina.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}" class="page-btn" aria-label="Página anterior">←</a>
+          {% endif %}
+          {% for p in pagina.paginator.page_range %}
+            {% if p == pagina.number %}
+            <span class="page-btn page-btn-active" aria-current="page">{{ p }}</span>
+            {% elif p == 1 or p == pagina.paginator.num_pages %}
+            <a href="?page={{ p }}{% if querystring %}&{{ querystring }}{% endif %}" class="page-btn">{{ p }}</a>
+            {% elif p >= pagina.number|add:"-2" and p <= pagina.number|add:"2" %}
+            <a href="?page={{ p }}{% if querystring %}&{{ querystring }}{% endif %}" class="page-btn">{{ p }}</a>
+            {% elif p == pagina.number|add:"-3" or p == pagina.number|add:"3" %}
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;color:var(--color-ink-4);">…</span>
+            {% endif %}
+          {% endfor %}
+          {% if pagina.has_next %}
+          <a href="?page={{ pagina.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}" class="page-btn" aria-label="Próxima página">→</a>
+          {% endif %}
+        </nav>
+      </div>
+      {% endif %}
+      {% endif %}{# /modo #}
+
+    </div>{# /results #}
+  </div>{# /body-grid #}
+</form>
+</section>
+
 {% endblock %}
