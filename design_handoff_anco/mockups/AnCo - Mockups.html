@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AnCo · Mockups</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..600&family=Public+Sans:ital,wght@0,300..700;1,400..600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="styles.css" />
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="ui-shared.jsx"></script>
+<script type="text/babel" src="screen-vitrine.jsx"></script>
+<script type="text/babel" src="screen-acervo.jsx"></script>
+<script type="text/babel" src="screen-analise.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "serif": "Newsreader",
+  "sans": "Public Sans",
+  "scale": 1.0,
+  "showBadges": true,
+  "darkPaper": false
+}/*EDITMODE-END*/;
+
+const SERIF_OPTIONS = {
+  'Newsreader':       '"Newsreader", Georgia, serif',
+  'Source Serif 4':   '"Source Serif 4", Georgia, serif',
+  'Lora':             '"Lora", Georgia, serif',
+  'EB Garamond':      '"EB Garamond", Garamond, serif',
+};
+const SANS_OPTIONS = {
+  'Public Sans':      '"Public Sans", system-ui, sans-serif',
+  'IBM Plex Sans':    '"IBM Plex Sans", system-ui, sans-serif',
+  'Geist':            '"Geist", system-ui, sans-serif',
+};
+
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  React.useEffect(() => {
+    // Lazy-load extra fonts when picked
+    const families = [];
+    if (tweaks.serif === 'Source Serif 4') families.push('Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,300..700');
+    if (tweaks.serif === 'Lora') families.push('Lora:ital,wght@0,400..700;1,400..700');
+    if (tweaks.serif === 'EB Garamond') families.push('EB+Garamond:ital,wght@0,400..700;1,400..700');
+    if (tweaks.sans === 'IBM Plex Sans') families.push('IBM+Plex+Sans:ital,wght@0,300..700;1,400..600');
+    if (tweaks.sans === 'Geist') families.push('Geist:wght@300..700');
+    if (families.length === 0) return;
+    const id = 'dyn-fonts';
+    let link = document.getElementById(id);
+    if (!link) {
+      link = document.createElement('link');
+      link.id = id; link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    link.href = `https://fonts.googleapis.com/css2?${families.map(f => `family=${f}`).join('&')}&display=swap`;
+  }, [tweaks.serif, tweaks.sans]);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--serif', SERIF_OPTIONS[tweaks.serif]);
+    root.style.setProperty('--sans', SANS_OPTIONS[tweaks.sans]);
+    if (tweaks.darkPaper) {
+      root.style.setProperty('--paper', '#F2EDE3');
+      root.style.setProperty('--paper-2', '#EAE3D5');
+    } else {
+      root.style.setProperty('--paper', '#FBF9F4');
+      root.style.setProperty('--paper-2', '#F5F1E8');
+    }
+  }, [tweaks.serif, tweaks.sans, tweaks.darkPaper]);
+
+  return (
+    <>
+      <DesignCanvas>
+        <DCSection id="vitrine" title="01 · Vitrine" subtitle="Homepage — primeira impressão e convite ao acervo">
+          <DCArtboard id="v-mobile" label="Mobile · 375 px" width={375} height={2120}>
+            <VitrineMobile />
+          </DCArtboard>
+          <DCArtboard id="v-desktop" label="Desktop · 1280 px" width={1280} height={1900}>
+            <VitrineDesktop />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="acervo" title="02 · Acervo de busca" subtitle="Listagem pública — busca textual ou semântica, filtros editoriais">
+          <DCArtboard id="a-mobile" label="Mobile · 375 px" width={375} height={1700}>
+            <AcervoMobile />
+          </DCArtboard>
+          <DCArtboard id="a-desktop" label="Desktop · 1280 px" width={1280} height={2280}>
+            <AcervoDesktop />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="analise" title="03 · Página de análise" subtitle="Documento citável — a tela mais importante do acervo">
+          <DCArtboard id="an-mobile" label="Mobile · 375 px" width={375} height={3700}>
+            <AnaliseMobile />
+          </DCArtboard>
+          <DCArtboard id="an-desktop" label="Desktop · 1280 px" width={1280} height={3320}>
+            <AnaliseDesktop />
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection label="Tipografia">
+          <TweakSelect label="Serifa (títulos & prosa)"
+            value={tweaks.serif}
+            options={Object.keys(SERIF_OPTIONS)}
+            onChange={v => setTweak('serif', v)} />
+          <TweakSelect label="Sans (UI & metadados)"
+            value={tweaks.sans}
+            options={Object.keys(SANS_OPTIONS)}
+            onChange={v => setTweak('sans', v)} />
+        </TweakSection>
+        <TweakSection label="Paleta">
+          <TweakToggle label="Papel mais quente (creme escurecido)"
+            value={tweaks.darkPaper}
+            onChange={v => setTweak('darkPaper', v)} />
+        </TweakSection>
+        <TweakSection label="Acervo">
+          <TweakToggle label="Mostrar selos de status coloridos"
+            value={tweaks.showBadges}
+            onChange={v => setTweak('showBadges', v)} />
+        </TweakSection>
+      </TweaksPanel>
+    </>
+  );
+}
+
+const { useTweaks, TweaksPanel, TweakSection, TweakSelect, TweakToggle } = window;
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

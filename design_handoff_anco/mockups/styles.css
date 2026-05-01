@@ -1,0 +1,263 @@
+/* AnCo — base design tokens & shared styles */
+
+:root {
+  --serif: "Newsreader", "Source Serif 4", Georgia, serif;
+  --sans: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Warm cream palette */
+  --paper: #FBF9F4;
+  --paper-2: #F5F1E8;
+  --paper-3: #EDE7DA;
+  --rule: #E5DFCF;
+  --rule-strong: #D4CCB8;
+
+  --ink: #1A1816;
+  --ink-2: #3A352E;
+  --ink-3: #6B655B;
+  --ink-4: #948D80;
+
+  /* Accents — semantic only */
+  --gold: #B8862C;          /* primary CTA, links */
+  --gold-deep: #8C6520;
+  --review-bg: #FBF7E8;     /* resenha crítica callout */
+  --review-rule: #E8DCA8;
+  --danger: #A03A2A;        /* link quebrado */
+  --ok: #4A6B3A;            /* acesso aberto */
+  --info: #3A5A7A;          /* selos info */
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "ss02";
+}
+
+/* Type scale */
+.t-display {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 44px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.t-h1 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+.t-h2 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.t-h3 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 1.25;
+}
+.t-prose {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+.t-body {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.t-small {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+.t-meta {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-3);
+}
+.t-eyebrow {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.t-italic { font-style: italic; }
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+a.link {
+  color: var(--gold-deep);
+  text-decoration: underline;
+  text-decoration-thickness: 0.5px;
+  text-underline-offset: 2px;
+}
+a.link:hover {
+  color: var(--ink);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.005em;
+  padding: 12px 18px;
+  min-height: 44px;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--ink);
+  color: var(--paper);
+}
+.btn-primary:hover { background: #000; }
+.btn-secondary {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--ink);
+}
+.btn-secondary:hover { background: var(--ink); color: var(--paper); }
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-2);
+  border-color: var(--rule-strong);
+}
+.btn-ghost:hover { border-color: var(--ink); color: var(--ink); }
+.btn-sm {
+  padding: 8px 12px;
+  min-height: 36px;
+  font-size: 13px;
+}
+
+/* Selos / chips de status */
+.selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 2px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.selo-resenha { color: var(--gold-deep); background: var(--review-bg); border-color: var(--review-rule); }
+.selo-aberto  { color: var(--ok); background: rgba(74,107,58,0.06); border-color: rgba(74,107,58,0.3); }
+.selo-quebrado{ color: var(--danger); background: rgba(160,58,42,0.06); border-color: rgba(160,58,42,0.3); }
+.selo-historico { color: var(--ink-3); background: var(--paper-2); border-color: var(--rule-strong); }
+.selo-multi { color: var(--info); background: rgba(58,90,122,0.06); border-color: rgba(58,90,122,0.3); }
+
+/* Vocabulary chips */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-2);
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.chip-removable {
+  gap: 6px;
+  cursor: default;
+}
+.chip-removable .x {
+  color: var(--ink-3);
+  cursor: pointer;
+  margin-right: -2px;
+  margin-left: 2px;
+}
+
+/* Hairline rule */
+.hr {
+  height: 1px;
+  background: var(--rule);
+  border: 0;
+  width: 100%;
+}
+.hr-strong { background: var(--rule-strong); }
+
+/* Mobile artboard frame */
+.frame-mobile {
+  width: 375px;
+  background: var(--paper);
+  font-family: var(--sans);
+  color: var(--ink);
+  overflow: hidden;
+  position: relative;
+}
+.frame-desktop {
+  width: 1280px;
+  background: var(--paper);
+  font-family: var(--sans);
+  color: var(--ink);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Inline icon helper */
+.icon { display: inline-block; vertical-align: middle; }
+.icon-12 { width: 12px; height: 12px; }
+.icon-14 { width: 14px; height: 14px; }
+.icon-16 { width: 16px; height: 16px; }
+.icon-18 { width: 18px; height: 18px; }
+.icon-20 { width: 20px; height: 20px; }
+
+/* Forms (used in some readonly states) */
+.input {
+  width: 100%;
+  font-family: var(--sans);
+  font-size: 14px;
+  padding: 12px 14px;
+  min-height: 44px;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
+  color: var(--ink);
+  outline: none;
+}
+.input:focus { border-color: var(--ink); }
+
+/* Hide scrollbars on overflow demo regions */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
