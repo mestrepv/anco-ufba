@@ -97,11 +97,6 @@
     {% endif %}
   </div>
 
+  {# Dados serializados — Alpine lê via getElementById no afterSwap #}
   {{ dados|json_script:"lookup-dados" }}
-  <script>
-    (function() {
-      const dados = JSON.parse(document.getElementById('lookup-dados').textContent);
-      window._lookupResult = {encontrado: true, dados: dados};
-    })();
-  </script>
 {% endif %}

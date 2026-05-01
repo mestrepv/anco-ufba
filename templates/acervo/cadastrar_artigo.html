@@ -247,28 +247,36 @@
       lookupOk: false,
       meta: {},
       init() {
-        // Lê window._lookupResult que o partial _preview_metadados emite
+        // Quando HTMX termina o swap do #preview-card, lemos o JSON
+        // emitido pelo partial via {{ dados|json_script:"lookup-dados" }}
+        // — fica no DOM como <script type="application/json"> (dado, não código).
         document.body.addEventListener('htmx:afterSwap', (ev) => {
-          if (ev.detail.target && ev.detail.target.id === 'preview-card') {
-            const r = window._lookupResult || {};
-            if (r.encontrado) {
-              this.meta = r.dados || {};
-              // Adiciona campos derivados
-              this.meta.palavras_chave_str = (this.meta.palavras_chave || []).join('; ');
-              this.meta.area = (this.meta.palavras_chave || [])[0] || '';
-              // Mapeia tipo livre da Crossref pros choices do model
-              const tipoMap = {
-                'Artigo de periódico': 'artigo',
-                'Capítulo de livro': 'capitulo',
-                'Livro': 'livro',
-                'Tese / dissertação': 'dissertacao',
-              };
-              this.meta.tipo_publicacao = tipoMap[this.meta.tipo] || 'artigo';
-              this.lookupOk = true;
-            } else {
-              this.lookupOk = false;
-            }
+          const target = ev.detail && ev.detail.target;
+          if (!target || target.id !== 'preview-card') return;
+
+          const dataEl = document.getElementById('lookup-dados');
+          if (!dataEl) {
+            this.lookupOk = false;
+            this.meta = {};
+            return;
           }
+
+          let dados = {};
+          try { dados = JSON.parse(dataEl.textContent); } catch (e) { dados = {}; }
+
+          this.meta = dados;
+          // Campos derivados consumidos pelo template
+          this.meta.palavras_chave_str = (dados.palavras_chave || []).join('; ');
+          this.meta.area = (dados.palavras_chave || [])[0] || '';
+          // Mapeia tipo legível da Crossref para choices do model
+          const tipoMap = {
+            'Artigo de periódico': 'artigo',
+            'Capítulo de livro': 'capitulo',
+            'Livro': 'livro',
+            'Tese / dissertação': 'dissertacao',
+          };
+          this.meta.tipo_publicacao = tipoMap[dados.tipo] || 'artigo';
+          this.lookupOk = !!dados.titulo;
         });
       }
     };
