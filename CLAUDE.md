@@ -5,6 +5,17 @@ Leia este arquivo no início de cada sessão.
 
 ---
 
+## 0. Ambiente de produção
+
+- **URL pública:** `https://anco.paulovicente.pro.br/`
+- **Stack de infra:** Docker Compose + Caddy 2 (profile `prod`)
+- O Caddy sobe com `docker compose --profile prod up -d` e termina TLS via Let's Encrypt.
+- Estáticos servidos pelo Caddy em `/static/*` a partir de `staticfiles/` (após `collectstatic`).
+- Para validar mudanças de frontend em produção: rebuild da imagem → `collectstatic` → `docker compose --profile prod up -d --build`.
+- Para health check: `curl https://anco.paulovicente.pro.br/healthz` (não usar `localhost:8000`).
+
+---
+
 ## 1. Contexto do projeto
 
 Plataforma colaborativa de pesquisa para catalogar e analisar literatura
