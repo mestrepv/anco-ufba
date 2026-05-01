@@ -9,6 +9,11 @@ urlpatterns = [
     path("buscar/", views.buscar_artigo_view, name="buscar_artigo"),
     path("artigo/novo/", views.cadastrar_artigo_view, name="cadastrar_artigo"),
     path(
+        "artigo/lookup/",
+        views.lookup_identificador_view,
+        name="lookup_identificador",
+    ),
+    path(
         "artigo/<int:artigo_id>/snapshot/",
         views.capturar_snapshot_view,
         name="capturar_snapshot",

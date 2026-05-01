@@ -1,39 +1,63 @@
-{% extends "_base.html" %}
+{% extends "_base_publico.html" %}
 
 {% block title %}Submeter análise — AnCo{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-semibold text-slate-900 mb-2">Submeter análise para revisão</h1>
-<p class="text-slate-600 mb-6">
-    <strong>{{ analise.artigo.titulo|truncatechars:120 }}</strong>
-</p>
+<main style="max-width: 720px; margin: 32px auto 80px; padding: 0 24px;">
 
-<div class="bg-white rounded-md border border-slate-200 p-6 space-y-4 max-w-2xl">
-    <div class="text-sm text-slate-700">
-        Ao submeter, sua análise sai de <em>rascunho</em> e entra na fila para
-        sorteio de revisores estruturais (2 revisores; +14 dias de prazo).
+  <header style="margin-bottom: 24px;">
+    <span class="t-eyebrow" style="color: var(--color-gold);">An·Co · revisão por pares</span>
+    <h1 class="t-h1" style="margin-top: 4px;">Submeter para revisão</h1>
+  </header>
+
+  <div class="meta-card" style="display: grid; gap: 18px;">
+
+    <div>
+      <p class="t-small" style="color: var(--color-ink-3); margin-bottom: 6px;">Análise de</p>
+      <p class="t-h3" style="color: var(--color-ink);">{{ analise.artigo.titulo }}</p>
+      <p class="t-meta" style="color: var(--color-ink-4); margin-top: 4px;">
+        {{ analise.artigo.ano|default:"s.d." }}
+        {% if analise.artigo.titulo_periodico %} · <em>{{ analise.artigo.titulo_periodico|truncatechars:80 }}</em>{% endif %}
+      </p>
     </div>
 
-    {% if analise.tem_resenha %}
-    <div class="bg-violet-50 border border-violet-200 rounded p-3 text-sm text-violet-900">
-        <strong>Resenha crítica detectada.</strong> Sua análise também passará por
-        <strong>revisão cega</strong> adicional (2 revisores cegos; +21 dias).
-        Sua autoria será mascarada para esses revisores.
+    <hr class="hr" style="margin: 0;">
+
+    <div>
+      <p class="t-eyebrow" style="color: var(--color-ink-3); margin-bottom: 12px;">O que vai acontecer</p>
+
+      <ul style="list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);">
+        <li style="display: flex; gap: 10px; align-items: flex-start;">
+          <span style="color: var(--color-gold-deep); font-weight: 600;">→</span>
+          <span>Status muda de <strong>rascunho</strong> para <strong>submetida</strong>; você não poderá editar até receber o parecer.</span>
+        </li>
+        <li style="display: flex; gap: 10px; align-items: flex-start;">
+          <span style="color: var(--color-gold-deep); font-weight: 600;">→</span>
+          <span>Sorteio automático de <strong>2 revisores estruturais</strong> com prazo de <strong>14 dias</strong>.</span>
+        </li>
+        {% if analise.tem_resenha %}
+        <li style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; background: var(--color-review-bg); border: 1px solid var(--color-review-rule); border-radius: 6px;">
+          <span style="color: var(--color-gold-deep); font-weight: 600;">★</span>
+          <span>
+            Como sua análise inclui <strong>resenha crítica</strong>, ela passará também por
+            <strong>revisão cega</strong> adicional (2 revisores, +21 dias). Sua autoria fica
+            mascarada para esses revisores.
+          </span>
+        </li>
+        {% endif %}
+        <li style="display: flex; gap: 10px; align-items: flex-start;">
+          <span style="color: var(--color-ink-4); font-weight: 600;">↻</span>
+          <span>Em caso de "ajustes", a análise volta para rascunho com os comentários dos revisores.</span>
+        </li>
+      </ul>
     </div>
-    {% endif %}
 
-    <p class="text-sm text-slate-600">
-        Depois de submeter, você não poderá editar até receber o parecer.
-        Em caso de "ajustes", a análise volta para rascunho com os comentários
-        dos revisores.
-    </p>
-
-    <form method="post" class="flex items-center justify-between pt-4 border-t border-slate-100">
-        {% csrf_token %}
-        <a href="{% url 'editar_analise' analise.pk %}" class="text-sm text-slate-600 hover:text-anco">← Continuar editando</a>
-        <button type="submit" class="px-4 py-2 rounded-md bg-anco hover:bg-anco-dark text-white text-sm font-medium">
-            Confirmar submissão
-        </button>
+    <form method="post" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; border-top: 1px solid var(--color-paper-3);">
+      {% csrf_token %}
+      <a href="{% url 'editar_analise' analise.pk %}" class="btn btn-ghost btn-sm">← Continuar editando</a>
+      <button type="submit" class="btn btn-primary">Confirmar submissão →</button>
     </form>
-</div>
+  </div>
+
+</main>
 {% endblock %}

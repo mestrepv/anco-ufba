@@ -1,28 +1,208 @@
-{% extends "_base.html" %}
+{% extends "_base_publico.html" %}
 
 {% block title %}Cadastrar artigo — AnCo{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-semibold text-slate-900 mb-2">Cadastrar novo artigo</h1>
-<p class="text-slate-600 mb-6">Preencha os metadados bibliográficos. O <strong>link de acesso</strong> e a <strong>base de consulta</strong> são obrigatórios. Após salvar, você poderá iniciar sua análise.</p>
+<main style="max-width: 880px; margin: 32px auto 80px; padding: 0 24px;">
 
-<form method="post" class="space-y-4 max-w-2xl">{% csrf_token %}
-    {% for field in form %}
-    <div>
-        <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
-            {{ field.label }}{% if field.field.required %} <span class="text-red-600">*</span>{% endif %}
+  <header>
+    <span class="t-eyebrow" style="color: var(--color-gold);">An·Co · área do analista</span>
+    <h1 class="t-h1" style="margin-top: 4px;">Nova análise</h1>
+    <p class="t-prose" style="color: var(--color-ink-2); margin-top: 8px; max-width: 60ch;">
+      Comece pelo identificador do artigo. O sistema busca os metadados
+      automaticamente na Crossref (DOI) ou OpenLibrary (ISBN) e mostra o
+      cartão para você conferir antes de salvar. Quando não houver
+      identificador, é possível avançar digitando os dados manualmente.
+    </p>
+  </header>
+
+  {# ── Passo 1: identificador ─────────────────────────────────────── #}
+  <section style="margin-top: 32px;">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+      <span class="step-indicator">1</span>
+      <h2 class="t-h3">Identifique o artigo</h2>
+    </div>
+
+    {% if lookup_form %}
+    <input type="text"
+           name="id"
+           id="identificador-lookup"
+           class="lookup-input"
+           value="{{ lookup_form.identificador.value|default:'' }}"
+           placeholder="10.xxxx/yyy   ·   978...   ·   https://doi.org/..."
+           autocomplete="off"
+           spellcheck="false"
+           hx-get="{% url 'lookup_identificador' %}"
+           hx-target="#preview-card"
+           hx-swap="innerHTML"
+           hx-trigger="keyup changed delay:700ms, blur"
+           hx-indicator="#lookup-spinner">
+
+    <div style="margin-top: 8px; min-height: 22px; display: flex; align-items: center; gap: 10px; font-family: var(--font-sans); font-size: 13px; color: var(--color-ink-3);">
+      <span id="lookup-spinner" class="htmx-indicator" style="display: none;">
+        <span class="spinner"></span>&nbsp;Consultando…
+      </span>
+      <span class="htmx-indicator-show t-meta">
+        Buscamos automaticamente em <strong>Crossref</strong> (DOI) e
+        <strong>OpenLibrary</strong> (ISBN).
+      </span>
+    </div>
+    {% endif %}
+  </section>
+
+  {# ── Passo 2: cartão de pré-visualização (HTMX) ─────────────────── #}
+  <section style="margin-top: 36px;">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+      <span class="step-indicator">2</span>
+      <h2 class="t-h3">Confira os metadados</h2>
+    </div>
+    <div id="preview-card">
+      <p class="t-small" style="color: var(--color-ink-4); padding: 24px 0;">
+        ↑ Cole um DOI ou ISBN no campo acima para ver o preview.
+      </p>
+    </div>
+  </section>
+
+  {# ── Passo 3: form de metadados editável ────────────────────────── #}
+  <section style="margin-top: 36px;">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+      <span class="step-indicator">3</span>
+      <h2 class="t-h3">Complemente as informações</h2>
+    </div>
+    <p class="t-small" style="color: var(--color-ink-3); margin-bottom: 16px;">
+      Estes campos podem vir pré-preenchidos pelo lookup. Edite se houver
+      discrepância. Link de acesso e base de consulta são obrigatórios.
+    </p>
+
+    <form method="post" id="form-cadastrar-artigo" class="meta-card" style="display: grid; gap: 18px;">{% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="badge badge-err" style="display: block; padding: 12px 14px; border-radius: 6px;">
+        {{ form.non_field_errors|join:" / " }}
+      </div>
+      {% endif %}
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+        <div>
+          <label class="field-label" for="{{ form.doi.id_for_label }}">DOI</label>
+          {{ form.doi }}
+          {% if form.doi.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ form.doi.errors|join:" / " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="field-label" for="{{ form.isbn.id_for_label }}">ISBN</label>
+          {{ form.isbn }}
+          {% if form.isbn.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ form.isbn.errors|join:" / " }}</p>{% endif %}
+        </div>
+      </div>
+
+      <div>
+        <label class="field-label" for="{{ form.tipo_publicacao.id_for_label }}">Tipo de publicação</label>
+        {{ form.tipo_publicacao }}
+      </div>
+
+      <div>
+        <label class="field-label" for="{{ form.titulo.id_for_label }}">Título *</label>
+        {{ form.titulo }}
+        {% if form.titulo.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ form.titulo.errors|join:" / " }}</p>{% endif %}
+      </div>
+
+      <div>
+        <label class="field-label" for="{{ form.titulo_periodico.id_for_label }}">Periódico / Editora</label>
+        {{ form.titulo_periodico }}
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px;">
+        <div>
+          <label class="field-label" for="{{ form.ano.id_for_label }}">Ano *</label>
+          {{ form.ano }}
+          {% if form.ano.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ form.ano.errors|join:" / " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="field-label" for="{{ form.volume.id_for_label }}">Volume</label>
+          {{ form.volume }}
+        </div>
+        <div>
+          <label class="field-label" for="{{ form.numero.id_for_label }}">Número</label>
+          {{ form.numero }}
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+        <div>
+          <label class="field-label" for="{{ form.pagina_inicial.id_for_label }}">Página inicial</label>
+          {{ form.pagina_inicial }}
+        </div>
+        <div>
+          <label class="field-label" for="{{ form.pagina_final.id_for_label }}">Página final</label>
+          {{ form.pagina_final }}
+        </div>
+      </div>
+
+      <div>
+        <label class="field-label" for="{{ form.autores.id_for_label }}">Autores</label>
+        {{ form.autores }}
+      </div>
+
+      <div>
+        <label class="field-label" for="{{ form.area.id_for_label }}">Área</label>
+        {{ form.area }}
+      </div>
+
+      <div>
+        <label class="field-label" for="{{ form.palavras_chaves.id_for_label }}">Palavras-chave</label>
+        {{ form.palavras_chaves }}
+      </div>
+
+      <div>
+        <label class="field-label" for="{{ form.resumo.id_for_label }}">Resumo</label>
+        {{ form.resumo }}
+        <p class="t-meta" style="color: var(--color-ink-4); margin-top: 4px;">
+          Quando o lookup não traz o resumo, cole aqui o resumo do PDF (opcional).
+        </p>
+      </div>
+
+      <div>
+        <label class="field-label" for="{{ form.vinculacao_institucional.id_for_label }}">Vínculo institucional dos autores</label>
+        {{ form.vinculacao_institucional }}
+      </div>
+
+      <div>
+        <label class="field-label" for="{{ form.link_acesso.id_for_label }}">Link de acesso *</label>
+        {{ form.link_acesso }}
+        {% if form.link_acesso.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ form.link_acesso.errors|join:" / " }}</p>{% endif %}
+        <p class="t-meta" style="color: var(--color-ink-4); margin-top: 4px;">
+          Verificamos se o link responde 200 e capturamos snapshot na Wayback Machine.
+        </p>
+      </div>
+
+      <div>
+        <label class="field-label" for="{{ form.link_acesso_alternativo.id_for_label }}">Link alternativo</label>
+        {{ form.link_acesso_alternativo }}
+      </div>
+
+      <div>
+        <label class="field-label" for="{{ form.base_consulta.id_for_label }}">Base de consulta *</label>
+        {{ form.base_consulta }}
+        {% if form.base_consulta.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ form.base_consulta.errors|join:" / " }}</p>{% endif %}
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+        <label style="display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--color-ink-2);">
+          {{ form.acesso_aberto }} Acesso aberto
         </label>
-        {{ field }}
-        {% if field.help_text %}<p class="text-xs text-slate-500 mt-0.5">{{ field.help_text }}</p>{% endif %}
-        {% if field.errors %}<p class="text-xs text-red-600 mt-0.5">{{ field.errors|join:" / " }}</p>{% endif %}
-    </div>
-    {% endfor %}
+        <label style="display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--color-ink-2);">
+          {{ form.artigo_pago }} Artigo pago
+        </label>
+      </div>
+    </form>
+  </section>
 
-    <div class="flex items-center justify-between pt-4">
-        <a href="{% url 'buscar_artigo' %}" class="text-sm text-slate-600 hover:text-anco">← Voltar à busca</a>
-        <button type="submit" class="px-4 py-2 rounded-md bg-anco hover:bg-anco-dark text-white text-sm font-medium">
-            Salvar artigo e iniciar análise
-        </button>
-    </div>
-</form>
+  {# ── Passo 4: ação ─────────────────────────────────────────────── #}
+  <section style="margin-top: 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+    <a href="{% url 'buscar_artigo' %}" class="btn btn-ghost btn-sm">← Voltar à busca</a>
+    <button type="submit" form="form-cadastrar-artigo" class="btn btn-primary">
+      Cadastrar artigo e iniciar análise →
+    </button>
+  </section>
+
+</main>
 {% endblock %}

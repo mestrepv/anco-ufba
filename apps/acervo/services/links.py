@@ -17,7 +17,7 @@ import requests
 from django.conf import settings
 from django.utils import timezone
 
-from .models import Artigo, SnapshotLink
+from apps.acervo.models import Artigo, SnapshotLink
 
 logger = logging.getLogger(__name__)
 

@@ -164,6 +164,30 @@ Concluída em 2026-04-29. Relatório: [fase-7.md](relatorios/fase-7.md).
   representativas comparadas em ambos os modos
 - [ ] Sem regressão na busca textual
 
+## Frente UX Analista + lookup Crossref/ISBN ✅
+
+> Frente fora da numeração de fases. Branch `feat/analista-ux-crossref`,
+> concluída em 2026-05-01. Relatório em
+> [`docs/relatorios/feat-analista-ux-crossref.md`](relatorios/feat-analista-ux-crossref.md).
+
+- [x] Serviço de lookup DOI via Crossref com cache 24h
+- [x] Serviço de lookup ISBN via OpenLibrary com cache 30 dias
+- [x] `Artigo` aceita ausência de DOI (ISBN ou identificador interno
+  determinístico `legacy:HASH`)
+- [x] Forms divididos: `IdentificadorLookupForm` (lookup com detecção
+  de tipo) + `ArtigoMetadadosForm` (campos editáveis)
+- [x] View HTMX `lookup_identificador_view` com preview ao vivo
+- [x] `cadastrar_artigo_view` reescrita para fluxo lookup → preview →
+  POST
+- [x] Design editorial em todas as telas do analista (`_base_publico`,
+  tokens `.lookup-input`, `.field-input`, `.meta-card`, `.step-indicator`,
+  `.badge-*`, `.spinner`)
+- [x] Templates: `cadastrar_artigo`, `editar_analise`, `minhas_analises`,
+  `submeter_analise`, `buscar_artigo` + parciais `_preview_metadados`,
+  `_card_analise`, `_busca_resultados`
+- [x] Cobertura `apps/acervo` em 93%; suite com 355 passed, 1 xfailed,
+  0 failed
+
 ---
 
 ## Pendências acumuladas para o usuário

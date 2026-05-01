@@ -47,14 +47,14 @@ class TestValidarLink:
         r = validar_link("")
         assert r.status == "quebrado"
 
-    @patch("apps.acervo.services._eh_url_publica", return_value=False)
+    @patch("apps.acervo.services.links._eh_url_publica", return_value=False)
     def test_url_privada_eh_quebrada(self, _mock):
         r = validar_link("http://192.168.0.1/x")
         assert r.status == "quebrado"
         assert "privado" in r.mensagem
 
     @responses.activate
-    @patch("apps.acervo.services._eh_url_publica", return_value=True)
+    @patch("apps.acervo.services.links._eh_url_publica", return_value=True)
     def test_200_eh_ok(self, _mock):
         responses.add(responses.HEAD, "https://example.org/x", status=200)
         r = validar_link("https://example.org/x")
@@ -62,7 +62,7 @@ class TestValidarLink:
         assert r.codigo_http == 200
 
     @responses.activate
-    @patch("apps.acervo.services._eh_url_publica", return_value=True)
+    @patch("apps.acervo.services.links._eh_url_publica", return_value=True)
     def test_404_eh_quebrado(self, _mock):
         responses.add(responses.HEAD, "https://example.org/x", status=404)
         r = validar_link("https://example.org/x")
@@ -70,7 +70,7 @@ class TestValidarLink:
         assert r.codigo_http == 404
 
     @responses.activate
-    @patch("apps.acervo.services._eh_url_publica", return_value=True)
+    @patch("apps.acervo.services.links._eh_url_publica", return_value=True)
     def test_redirect_marca_como_redireciona(self, _mock):
         responses.add(
             responses.HEAD,
@@ -85,8 +85,8 @@ class TestValidarLink:
         # exigiria mock de chain. Aqui validamos so que nao quebrou.
         assert r.status in ("ok", "redireciona")
 
-    @patch("apps.acervo.services._eh_url_publica", return_value=True)
-    @patch("apps.acervo.services.requests.head")
+    @patch("apps.acervo.services.links._eh_url_publica", return_value=True)
+    @patch("apps.acervo.services.links.requests.head")
     def test_excecao_de_rede_marca_quebrado(self, mock_head, _mock_priv):
         import requests as requests_lib
 

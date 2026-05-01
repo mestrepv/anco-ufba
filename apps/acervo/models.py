@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime
 
 from django.conf import settings
@@ -17,10 +18,26 @@ def _ano_max() -> int:
     return datetime.now(tz=UTC).year + 1
 
 
+def _gerar_identificador_interno(titulo: str, ano: int | None, periodico: str) -> str:
+    """
+    Gera identificador determinístico no formato `legacy:<hash16>` a partir
+    de título + ano + periódico. Mesma chave para os mesmos campos.
+    """
+    base = f"{(titulo or '').strip().lower()}|{ano or ''}|{(periodico or '').strip().lower()}"
+    digest = hashlib.sha1(base.encode("utf-8")).hexdigest()[:16]
+    return f"legacy:{digest}"
+
+
 class Artigo(models.Model):
     """
     Referencia bibliografica. NAO armazena a obra em si — apenas metadados
     e links de acesso a fontes externas.
+
+    Identificacao: ao menos um entre `doi`, `isbn` ou `identificador_interno`
+    sempre esta preenchido. O `identificador_interno` (formato
+    `legacy:<hash16>`) eh gerado automaticamente no save() quando os outros
+    dois estao vazios, garantindo unicidade ja para o legado e para artigos
+    novos sem identificador externo.
     """
 
     class LinkStatus(models.TextChoices):
@@ -29,11 +46,46 @@ class Artigo(models.Model):
         QUEBRADO = "quebrado", "Quebrado"
         REDIRECIONA = "redireciona", "Redireciona"
 
+    class TipoPublicacao(models.TextChoices):
+        ARTIGO = "artigo", "Artigo de periódico"
+        CAPITULO = "capitulo", "Capítulo de livro"
+        LIVRO = "livro", "Livro"
+        DISSERTACAO = "dissertacao", "Dissertação"
+        TESE = "tese", "Tese"
+        OUTRO = "outro", "Outro"
+
     doi = models.CharField(
         max_length=200,
         unique=True,
+        null=True,
+        blank=True,
         db_index=True,
-        help_text="DOI canonico ou identificador interno deterministico (legacy:HASH).",
+        help_text="DOI canônico (10.xxxx/yyy). Vazio quando a obra é livro ou não tem DOI.",
+    )
+    isbn = models.CharField(
+        max_length=17,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="ISBN-10 ou ISBN-13 (sem hífens). Usado para livros e capítulos.",
+    )
+    identificador_interno = models.CharField(
+        max_length=50,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=(
+            "Fallback determinístico no formato `legacy:<hash16>` "
+            "quando não há DOI nem ISBN. Gerado automaticamente."
+        ),
+    )
+    tipo_publicacao = models.CharField(
+        max_length=20,
+        choices=TipoPublicacao.choices,
+        default=TipoPublicacao.ARTIGO,
+        db_index=True,
     )
     titulo = models.TextField()
     titulo_periodico = models.TextField(blank=True)
@@ -115,6 +167,28 @@ class Artigo(models.Model):
     @property
     def tem_link(self) -> bool:
         return bool(self.link_acesso or self.link_acesso_alternativo)
+
+    @property
+    def identificador_canonico(self) -> str:
+        """Retorna o melhor identificador disponível: DOI > ISBN > interno."""
+        return self.doi or self.isbn or self.identificador_interno or ""
+
+    def save(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
+        """
+        Normaliza identificadores e gera `identificador_interno` quando
+        DOI e ISBN estão vazios. Strings vazias viram NULL para que a
+        constraint UNIQUE não falhe entre múltiplos artigos sem DOI/ISBN.
+        Operação idempotente.
+        """
+        if not self.doi:
+            self.doi = None
+        if not self.isbn:
+            self.isbn = None
+        if not self.doi and not self.isbn and not self.identificador_interno:
+            self.identificador_interno = _gerar_identificador_interno(
+                self.titulo, self.ano, self.titulo_periodico
+            )
+        super().save(*args, **kwargs)
 
 
 class SnapshotLink(models.Model):

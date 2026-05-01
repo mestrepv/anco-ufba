@@ -1,15 +1,20 @@
-"""Forms do app acervo: Artigo e formulario multipasso da Analise."""
+"""Forms do app acervo: Artigo (lookup + metadados) e Analise multipasso."""
 
 from __future__ import annotations
+
+import re
 
 from django import forms
 
 from .models import Analise, Artigo
+from .services.crossref import normalizar_doi
+from .services.isbn import validar_isbn
 
 _CSS_INPUT = (
     "block w-full rounded-md border-slate-300 shadow-sm focus:border-anco focus:ring-anco text-sm"
 )
 _CSS_TEXTAREA = _CSS_INPUT + " min-h-[5rem]"
+_DOI_CANONICO_RE = re.compile(r"^10\.\d{1,9}/\S+$")
 
 
 def _classe_widget(field: forms.Field, css: str = _CSS_INPUT) -> None:
@@ -29,22 +34,71 @@ class BuscaArtigoForm(forms.Form):
             attrs={
                 "placeholder": "10.xxxx/yyy ou trecho do título",
                 "autocomplete": "off",
+                "class": "input",
+            }
+        ),
+    )
+
+
+class IdentificadorLookupForm(forms.Form):
+    """
+    Form do passo 1 do cadastro de Artigo: campo único para o identificador.
+
+    O `clean_identificador` detecta o tipo (doi/isbn/url/desconhecido) e
+    devolve um dicionário `{tipo, valor}` já normalizado.
+    """
+
+    identificador = forms.CharField(
+        max_length=200,
+        required=False,
+        label="DOI, ISBN ou URL do artigo",
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "10.xxxx/yyy   ·   978...   ·   https://...",
+                "autocomplete": "off",
+                "spellcheck": "false",
             }
         ),
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        _classe_widget(self.fields["q"])
+        _classe_widget(self.fields["identificador"])
+
+    def clean_identificador(self) -> dict:
+        valor = (self.cleaned_data.get("identificador") or "").strip()
+        if not valor:
+            return {"tipo": "vazio", "valor": ""}
+
+        doi = normalizar_doi(valor)
+        if _DOI_CANONICO_RE.match(doi):
+            return {"tipo": "doi", "valor": doi}
+
+        isbn = validar_isbn(valor)
+        if isbn:
+            return {"tipo": "isbn", "valor": isbn}
+
+        if valor.lower().startswith(("http://", "https://")):
+            return {"tipo": "url", "valor": valor}
+
+        return {"tipo": "desconhecido", "valor": valor}
 
 
-class ArtigoForm(forms.ModelForm):
-    """Cadastro de novo Artigo a partir do fluxo de criacao de analise."""
+class ArtigoMetadadosForm(forms.ModelForm):
+    """
+    Form de cadastro de Artigo com metadados editáveis.
+
+    DOI e ISBN são opcionais individualmente; o `clean()` exige pelo menos
+    um identificador (DOI, ISBN) OU os campos mínimos para gerar o
+    `identificador_interno` automaticamente (título + ano).
+    """
 
     class Meta:
         model = Artigo
         fields = [
             "doi",
+            "isbn",
+            "tipo_publicacao",
             "titulo",
             "titulo_periodico",
             "ano",
@@ -72,18 +126,61 @@ class ArtigoForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Aplica classes do design system editorial (field-input / field-textarea)
         for _name, field in self.fields.items():
-            css = _CSS_TEXTAREA if isinstance(field.widget, forms.Textarea) else _CSS_INPUT
-            _classe_widget(field, css)
-        # link_acesso e' obrigatorio por spec na criacao via fluxo novo
+            if isinstance(field.widget, forms.CheckboxInput):
+                continue
+            if isinstance(field.widget, forms.Textarea):
+                field.widget.attrs["class"] = "field-textarea"
+            else:
+                field.widget.attrs["class"] = "field-input"
+        # link_acesso continua obrigatório (acervo precisa do link)
         self.fields["link_acesso"].required = True
         self.fields["base_consulta"].required = True
+        # DOI e ISBN ficam opcionais — clean() valida que pelo menos um existe
+        self.fields["doi"].required = False
+        self.fields["isbn"].required = False
+        # tipo_publicacao tem default "artigo" no model; deixa não-obrigatório no form
+        self.fields["tipo_publicacao"].required = False
 
-    def clean_doi(self):
+    def clean_doi(self) -> str:
         doi = (self.cleaned_data.get("doi") or "").strip()
         if not doi:
-            raise forms.ValidationError("DOI obrigatorio.")
-        return doi
+            return ""
+        doi_norm = normalizar_doi(doi)
+        if not _DOI_CANONICO_RE.match(doi_norm):
+            raise forms.ValidationError(
+                "DOI deve seguir o formato 10.xxxx/yyy."
+            )
+        return doi_norm
+
+    def clean_isbn(self) -> str:
+        isbn = (self.cleaned_data.get("isbn") or "").strip()
+        if not isbn:
+            return ""
+        validado = validar_isbn(isbn)
+        if not validado:
+            raise forms.ValidationError(
+                "ISBN inválido — checksum não bate. Verifique se digitou todos os dígitos."
+            )
+        return validado
+
+    def clean(self) -> dict:
+        cleaned = super().clean()
+        doi = cleaned.get("doi") or ""
+        isbn = cleaned.get("isbn") or ""
+        titulo = (cleaned.get("titulo") or "").strip()
+        ano = cleaned.get("ano")
+        if not doi and not isbn and not (titulo and ano):
+            raise forms.ValidationError(
+                "Informe DOI, ISBN, ou no mínimo título e ano para cadastrar o artigo."
+            )
+        return cleaned
+
+
+# Alias temporário para preservar imports antigos (apps/acervo/views.py).
+# Será removido quando o M5 reescrever a view.
+ArtigoForm = ArtigoMetadadosForm
 
 
 # ---------------------------------------------------------------------------
@@ -125,10 +222,12 @@ class _AnaliseFormBase(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for _name, field in self.fields.items():
-            css = _CSS_TEXTAREA if isinstance(field.widget, forms.Textarea) else _CSS_INPUT
             if isinstance(field.widget, (forms.CheckboxInput, forms.SelectMultiple)):
                 continue  # M2M e checkbox tem estilo proprio
-            _classe_widget(field, css)
+            if isinstance(field.widget, forms.Textarea):
+                field.widget.attrs["class"] = "field-textarea"
+            else:
+                field.widget.attrs["class"] = "field-input"
 
 
 class AnalisePresencaForm(_AnaliseFormBase):

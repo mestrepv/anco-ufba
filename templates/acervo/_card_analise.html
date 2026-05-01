@@ -1,0 +1,45 @@
+{% comment %}
+  Card editorial reutilizável para listagens de análises.
+  Uso: {% include "acervo/_card_analise.html" with analise=a %}
+{% endcomment %}
+
+<article style="background: #fff; border: 1px solid var(--color-rule); border-radius: 8px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px;">
+  <header style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+    <div style="flex: 1; min-width: 0;">
+      <h3 style="font-family: var(--font-serif); font-size: 18px; line-height: 1.3; color: var(--color-ink); margin-bottom: 4px;">
+        {% if analise.status == "rascunho" %}
+          <a href="{% url 'editar_analise' analise.pk %}" style="color: inherit;">{{ analise.artigo.titulo|truncatechars:120 }}</a>
+        {% else %}
+          {{ analise.artigo.titulo|truncatechars:120 }}
+        {% endif %}
+      </h3>
+      <p class="t-meta" style="color: var(--color-ink-3);">
+        {{ analise.artigo.ano|default:"s.d." }}
+        {% if analise.artigo.titulo_periodico %} · <em>{{ analise.artigo.titulo_periodico|truncatechars:60 }}</em>{% endif %}
+      </p>
+    </div>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0;">
+      {% if analise.tem_resenha %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
+      {# Chip de status #}
+      <span class="chip" style="
+        {% if analise.status == 'submetida' %}background: #FBEFCF; color: var(--color-gold-deep); border-color: #E8C97A;
+        {% elif analise.status == 'em_revisao' %}background: rgba(58,90,122,0.06); color: var(--color-info); border-color: rgba(58,90,122,0.3);
+        {% elif analise.status == 'aprovada' or analise.status == 'publicada' %}background: rgba(74,107,58,0.08); color: var(--color-ok); border-color: rgba(74,107,58,0.3);
+        {% elif analise.status == 'despublicada' %}background: rgba(160,58,42,0.08); color: var(--color-danger); border-color: rgba(160,58,42,0.3);
+        {% endif %}">
+        {{ analise.get_status_display }}
+      </span>
+    </div>
+  </header>
+
+  <footer style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 8px; border-top: 1px solid var(--color-paper-3);">
+    <span class="t-meta" style="color: var(--color-ink-4);">
+      Atualizada em {{ analise.criado_em|date:"d/m/Y" }}
+    </span>
+    {% if analise.status == "rascunho" %}
+      <a href="{% url 'editar_analise' analise.pk %}" class="btn btn-ghost btn-sm">Continuar →</a>
+    {% elif analise.status == "publicada" %}
+      <a href="{% url 'pagina_analise' analise.pk %}" class="btn btn-ghost btn-sm">Ver no acervo →</a>
+    {% endif %}
+  </footer>
+</article>

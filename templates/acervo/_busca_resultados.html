@@ -1,33 +1,46 @@
 {% if not consulta %}
-<p class="text-slate-500 text-sm">Digite um termo acima para buscar.</p>
+  <p class="t-small" style="color: var(--color-ink-4); padding: 16px 0;">
+    Digite um termo acima para buscar.
+  </p>
 {% elif tem_resultados %}
-<p class="text-sm text-slate-500 mb-3">{{ resultados|length }} resultado(s) para <em>{{ consulta }}</em>.</p>
-<ul class="space-y-2 mb-6">
+  <p class="t-small" style="color: var(--color-ink-3); margin-bottom: 14px;">
+    {{ resultados|length }} resultado{{ resultados|length|pluralize }}
+    para <em>{{ consulta }}</em>.
+  </p>
+
+  <ul style="list-style: none; padding: 0; margin: 0 0 24px; display: grid; gap: 10px;">
     {% for a in resultados %}
-    <li class="bg-white rounded-md border border-slate-200 px-4 py-3 flex items-start justify-between gap-4">
-        <div class="flex-1 min-w-0">
-            <div class="font-medium text-slate-900 truncate">{{ a.titulo|truncatechars:100 }}</div>
-            <div class="text-xs text-slate-500">
-                {{ a.ano|default:"s.d." }} · {{ a.titulo_periodico|truncatechars:60 }} · DOI: {{ a.doi|truncatechars:40 }}
-                {% if a.eh_legado %}· <span class="text-amber-700">legado</span>{% endif %}
-            </div>
+    <li style="background: #fff; border: 1px solid var(--color-rule); border-radius: 8px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-family: var(--font-serif); font-size: 16px; line-height: 1.3; color: var(--color-ink); margin-bottom: 4px;">
+          {{ a.titulo|truncatechars:120 }}
         </div>
-        <form method="post" action="{% url 'iniciar_analise' a.pk %}">{% csrf_token %}
-            <button type="submit" class="text-sm whitespace-nowrap text-anco hover:text-anco-dark font-medium">Analisar →</button>
-        </form>
+        <div class="t-meta" style="color: var(--color-ink-3);">
+          {{ a.ano|default:"s.d." }}
+          {% if a.titulo_periodico %} · <em>{{ a.titulo_periodico|truncatechars:60 }}</em>{% endif %}
+          {% if a.identificador_canonico %} · <span style="font-family: var(--font-mono); font-size: 11px;">{{ a.identificador_canonico|truncatechars:40 }}</span>{% endif %}
+          {% if a.eh_legado %} · <span style="color: var(--color-gold-deep);">legado</span>{% endif %}
+        </div>
+      </div>
+      <form method="post" action="{% url 'iniciar_analise' a.pk %}" style="flex-shrink: 0;">{% csrf_token %}
+        <button type="submit" class="btn btn-secondary btn-sm">Analisar →</button>
+      </form>
     </li>
     {% endfor %}
-</ul>
+  </ul>
 {% else %}
-<p class="text-slate-500 text-sm mb-4">Nenhum artigo encontrado para <em>{{ consulta }}</em>.</p>
+  <p class="t-small" style="color: var(--color-ink-3); margin-bottom: 16px;">
+    Nenhum artigo encontrado para <em>{{ consulta }}</em>.
+  </p>
 {% endif %}
 
 {% if consulta %}
-<div class="rounded-md border border-dashed border-slate-300 p-6 text-center bg-slate-50">
-    <p class="text-slate-700 mb-3">O artigo que procura não está no acervo?</p>
-    <a href="{% url 'cadastrar_artigo' %}?doi={{ consulta|urlencode }}"
-       class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-anco hover:bg-anco-dark text-white text-sm font-medium">
-        Cadastrar novo artigo
-    </a>
+<div class="meta-card" style="text-align: center; border-style: dashed; padding: 32px 24px;">
+  <p class="t-prose" style="color: var(--color-ink-2); margin-bottom: 16px;">
+    O artigo que procura não está no acervo?
+  </p>
+  <a href="{% url 'cadastrar_artigo' %}?doi={{ consulta|urlencode }}" class="btn btn-primary">
+    Cadastrar novo artigo
+  </a>
 </div>
 {% endif %}

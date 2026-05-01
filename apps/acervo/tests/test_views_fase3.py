@@ -115,7 +115,8 @@ class TestCadastrarArtigo:
     def test_get_renderiza_form(self, cliente_analista):
         resp = cliente_analista.get(reverse("cadastrar_artigo"))
         assert resp.status_code == 200
-        assert b"Cadastrar novo artigo" in resp.content
+        # Header editorial M6: "Nova análise"
+        assert "Nova análise".encode() in resp.content
 
     @patch("apps.acervo.views.validar_link")
     def test_post_valido_cria_artigo_e_analise(

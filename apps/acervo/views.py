@@ -14,15 +14,18 @@ from .forms import (
     AnaliseEstruturaForm,
     AnalisePresencaForm,
     AnaliseResenhaForm,
-    ArtigoForm,
+    ArtigoMetadadosForm,
     BuscaArtigoForm,
     ComentarioCampoForm,
+    IdentificadorLookupForm,
     RevisaoForm,
 )
 from .models import Analise, Artigo, ComentarioRevisao, Revisao
 from .services import (
     aplicar_resultado_no_artigo,
     capturar_snapshot_wayback,
+    lookup_doi,
+    lookup_isbn,
     validar_link,
 )
 
@@ -100,20 +103,28 @@ def buscar_artigo_view(request: HttpRequest) -> HttpResponse:
 
 @_exige_analista
 def cadastrar_artigo_view(request: HttpRequest) -> HttpResponse:
-    """Cadastro de Artigo + criacao da Analise vinculada (status=rascunho)."""
+    """
+    Cadastro de Artigo (passo final) + criacao da Analise vinculada.
+
+    GET: renderiza o formulário com IdentificadorLookupForm (passo 1) e
+    ArtigoMetadadosForm (passo 3, pré-preenchido por querystring se vier
+    de um lookup confirmado).
+
+    POST: valida ArtigoMetadadosForm, cria Artigo + Analise (rascunho),
+    valida link em background e redireciona para a edição da análise.
+    """
     if request.method == "POST":
-        form = ArtigoForm(request.POST)
+        form = ArtigoMetadadosForm(request.POST)
         if form.is_valid():
             artigo = form.save(commit=False)
             artigo.eh_legado = False
             artigo.save()
-            # Valida link e aplica resultado em artigo (silencioso em erro)
+            # Valida link e aplica resultado no Artigo (silencioso em erro)
             try:
                 resultado = validar_link(artigo.link_acesso)
                 aplicar_resultado_no_artigo(artigo, resultado)
             except Exception:  # noqa: BLE001
                 pass
-            # Cria Analise vinculada para o analista corrente
             analise, _ = Analise.objects.get_or_create(
                 artigo=artigo,
                 analista=request.user,
@@ -121,10 +132,112 @@ def cadastrar_artigo_view(request: HttpRequest) -> HttpResponse:
             )
             messages.success(request, "Artigo cadastrado e análise iniciada.")
             return redirect("editar_analise", analise_id=analise.pk)
+        lookup_form = IdentificadorLookupForm()
     else:
-        form = ArtigoForm(initial={"doi": request.GET.get("doi", "")})
+        # GET pode trazer dados de um lookup confirmado em campos initial
+        initial: dict[str, object] = {}
+        for chave in (
+            "doi",
+            "isbn",
+            "tipo_publicacao",
+            "titulo",
+            "titulo_periodico",
+            "ano",
+            "volume",
+            "numero",
+            "pagina_inicial",
+            "pagina_final",
+            "autores",
+            "palavras_chaves",
+            "resumo",
+            "link_acesso",
+        ):
+            valor = request.GET.get(chave, "")
+            if valor:
+                initial[chave] = valor
+        form = ArtigoMetadadosForm(initial=initial)
+        lookup_form = IdentificadorLookupForm(
+            initial={"identificador": request.GET.get("doi") or request.GET.get("isbn") or ""}
+        )
 
-    return render(request, "acervo/cadastrar_artigo.html", {"form": form})
+    return render(
+        request,
+        "acervo/cadastrar_artigo.html",
+        {"form": form, "lookup_form": lookup_form},
+    )
+
+
+@_exige_analista
+def lookup_identificador_view(request: HttpRequest) -> HttpResponse:
+    """
+    Endpoint HTMX que consulta Crossref ou OpenLibrary a partir de um DOI
+    ou ISBN e retorna um cartão de pré-visualização dos metadados.
+
+    Querystring:
+    - `id`: o identificador digitado (DOI, ISBN, URL doi.org, etc.)
+    - `tipo` (opcional): "doi" ou "isbn" para forçar a rota — quando ausente,
+      `IdentificadorLookupForm` detecta automaticamente.
+    """
+    form = IdentificadorLookupForm(request.GET or None)
+    contexto: dict[str, object] = {
+        "identificador_raw": (request.GET.get("id") or "").strip(),
+        "encontrado": False,
+        "erro": "",
+        "dados": {},
+        "tipo": "vazio",
+        "ja_no_acervo": False,
+        "analise_existente_id": None,
+    }
+
+    if not contexto["identificador_raw"]:
+        return render(request, "acervo/_preview_metadados.html", contexto)
+
+    # Re-monta o form com o `id` da querystring sob o nome correto
+    form_data = {"identificador": contexto["identificador_raw"]}
+    form = IdentificadorLookupForm(data=form_data)
+    if not form.is_valid():
+        contexto["erro"] = "Identificador inválido."
+        return render(request, "acervo/_preview_metadados.html", contexto)
+
+    classificado = form.cleaned_data["identificador"]
+    contexto["tipo"] = classificado["tipo"]
+
+    tipo_forcado = (request.GET.get("tipo") or "").strip().lower()
+    if tipo_forcado in {"doi", "isbn"}:
+        contexto["tipo"] = tipo_forcado
+
+    if contexto["tipo"] == "doi":
+        resultado = lookup_doi(classificado["valor"] or contexto["identificador_raw"])
+    elif contexto["tipo"] == "isbn":
+        resultado = lookup_isbn(classificado["valor"] or contexto["identificador_raw"])
+    else:
+        contexto["erro"] = (
+            "Não reconheci o formato. Digite um DOI (10.xxxx/yyy) ou ISBN."
+        )
+        return render(request, "acervo/_preview_metadados.html", contexto)
+
+    contexto["encontrado"] = resultado.encontrado
+    contexto["erro"] = resultado.erro
+    contexto["dados"] = resultado.dados
+
+    # Verifica se o artigo já está cadastrado no acervo
+    if resultado.encontrado:
+        valor = classificado["valor"]
+        if contexto["tipo"] == "doi":
+            existente = Artigo.objects.filter(doi=valor).first()
+        else:
+            existente = Artigo.objects.filter(isbn=valor).first()
+        if existente:
+            contexto["ja_no_acervo"] = True
+            analise = (
+                Analise.objects.filter(artigo=existente, analista=request.user)
+                .order_by("-criado_em")
+                .first()
+            )
+            if analise:
+                contexto["analise_existente_id"] = analise.pk
+
+    return render(request, "acervo/_preview_metadados.html", contexto)
 
 
 @_exige_analista
