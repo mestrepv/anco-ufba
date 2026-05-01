@@ -110,7 +110,6 @@ def vitrine_view(request: HttpRequest) -> HttpResponse:
 
 _FACETAS = {
     # codigo (querystring) -> (campo de filtro, lookup, label legivel)
-    "ano": ("artigo__ano", "exact", "Ano"),
     "base": ("artigo__base_consulta__nome", "exact", "Base de consulta"),
     "status": ("status", "exact", "Status"),
     "resenha": ("tem_resenha", "exact", "Tem resenha crítica"),
@@ -132,6 +131,24 @@ def _aplicar_facetas(qs: QuerySet, params) -> QuerySet:
     return qs
 
 
+def _parse_int_param(params, key: str) -> int | None:
+    try:
+        return int(params.get(key))
+    except (TypeError, ValueError):
+        return None
+
+
+def _aplicar_filtro_ano(qs: QuerySet, params) -> QuerySet:
+    """Filtro de range de ano via ano_min / ano_max."""
+    lo = _parse_int_param(params, "ano_min")
+    hi = _parse_int_param(params, "ano_max")
+    if lo is not None:
+        qs = qs.filter(artigo__ano__gte=lo)
+    if hi is not None:
+        qs = qs.filter(artigo__ano__lte=hi)
+    return qs
+
+
 def _calcular_facetas(qs_base: QuerySet) -> dict[str, list[tuple[str, int]]]:
     """
     Conta ocorrencias por valor de cada faceta dentro do conjunto de
@@ -139,16 +156,6 @@ def _calcular_facetas(qs_base: QuerySet) -> dict[str, list[tuple[str, int]]]:
     aceitavel em volume baixo). Devolve dict de listas (valor, count).
     """
     facetas = {}
-    # ano
-    facetas["ano"] = list(
-        qs_base.exclude(artigo__ano__isnull=True)
-        .values_list("artigo__ano", flat=True)
-        .order_by("-artigo__ano")
-        .distinct()[:25]
-    )
-    facetas["ano_count"] = Counter(
-        qs_base.exclude(artigo__ano__isnull=True).values_list("artigo__ano", flat=True)
-    )
     facetas["base"] = Counter(
         qs_base.exclude(artigo__base_consulta__isnull=True).values_list(
             "artigo__base_consulta__nome", flat=True
@@ -200,8 +207,30 @@ def listagem_view(request: HttpRequest) -> HttpResponse:
     if modo not in ("textual", "semantico"):
         modo = "textual"
 
-    # Aplica facetas antes de qualquer busca
+    # Range global de anos (limites do slider) — calcula uma vez sobre o universo público
+    ano_agg = Artigo.objects.filter(
+        analises__status__in=STATUS_PUBLICOS,
+        ano__isnull=False,
+    ).aggregate(min_ano=Min("ano"), max_ano=Max("ano"))
+    ano_min_global = ano_agg["min_ano"]
+    ano_max_global = ano_agg["max_ano"]
+
+    # Aplica facetas (sem ano) e depois o filtro de ano
     qs_filtrado = _aplicar_facetas(qs_base, request.GET)
+    qs_filtrado = _aplicar_filtro_ano(qs_filtrado, request.GET)
+
+    ano_aplicado_min = _parse_int_param(request.GET, "ano_min")
+    ano_aplicado_max = _parse_int_param(request.GET, "ano_max")
+    ano_filtrado = ano_aplicado_min is not None or ano_aplicado_max is not None
+
+    # Atalhos pré-calculados (rótulo + faixa real, ancorado no max do acervo)
+    ano_presets = []
+    if ano_min_global is not None:
+        for n_anos in (5, 10):
+            lo = max(ano_min_global, ano_max_global - n_anos + 1)
+            ano_presets.append(
+                {"label": f"{n_anos} anos", "lo": lo, "hi": ano_max_global}
+            )
 
     resultados_semanticos: list[dict] = []
     servico_indisponivel = False
@@ -230,9 +259,13 @@ def listagem_view(request: HttpRequest) -> HttpResponse:
                 config="portuguese",
             )
             query = SearchQuery(consulta, config="portuguese")
+            # Filtra pelo operador @@ (match booleano), não por rank > 0:
+            # ts_rank pode retornar 1e-20 (não-zero) para não-matches em queries
+            # multi-palavra, fazendo `rank > 0` deixar passar tudo. O annotate
+            # `search=vector` traduz `filter(search=query)` em `vector @@ query`.
             qs = (
-                qs.annotate(rank=SearchRank(vector, query))
-                .filter(Q(rank__gt=0) | Q(artigo__doi__iexact=consulta))
+                qs.annotate(search=vector, rank=SearchRank(vector, query))
+                .filter(Q(search=query) | Q(artigo__doi__iexact=consulta))
                 .order_by("-rank", "-criado_em")
             )
         else:
@@ -249,8 +282,16 @@ def listagem_view(request: HttpRequest) -> HttpResponse:
     querystring = qs_dict.urlencode()
 
     facetas_aplicadas = {k: request.GET.getlist(k) for k in _FACETAS}
-    n_filtros_ativos = sum(len(v) for v in facetas_aplicadas.values())
+    n_filtros_ativos = sum(len(v) for v in facetas_aplicadas.values()) + (
+        1 if ano_filtrado else 0
+    )
     ordenar_label = "relevância" if consulta else "mais recentes"
+
+    # Universo da busca semântica (análises com vetor estrutural).
+    # Calculado só quando o modo está ativo, para evitar query desnecessária.
+    n_analises_semanticas = (
+        qs_base.exclude(embedding__isnull=True).count() if modo == "semantico" else 0
+    )
 
     return render(
         request,
@@ -267,6 +308,13 @@ def listagem_view(request: HttpRequest) -> HttpResponse:
             "n_filtros_ativos": n_filtros_ativos,
             "ordenar_label": ordenar_label,
             "active_nav": "acervo",
+            "ano_min_global": ano_min_global,
+            "ano_max_global": ano_max_global,
+            "ano_aplicado_min": ano_aplicado_min,
+            "ano_aplicado_max": ano_aplicado_max,
+            "ano_presets": ano_presets,
+            "ano_filtrado": ano_filtrado,
+            "n_analises_semanticas": n_analises_semanticas,
         },
     )
 

@@ -1,0 +1,341 @@
+{% extends "_base_publico.html" %}
+{% load static %}
+
+{% block title %}AnCo — Acervo de Análise Cognitiva{% endblock %}
+{% block meta_description %}Acervo colaborativo de {{ analises_count }} análises de literatura científica sobre Análise Cognitiva — produzido por pesquisadores do PPGDC e revisado por pares.{% endblock %}
+{% block og_description %}Acervo colaborativo de {{ analises_count }} análises de literatura científica sobre Análise Cognitiva — produzido por pesquisadores do PPGDC.{% endblock %}
+
+{% block content %}
+
+{# ── Hero ──────────────────────────────────────────────────────────────── #}
+<section style="
+  padding: clamp(32px,7vw,88px) clamp(20px,5vw,56px) clamp(28px,5vw,72px);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+">
+  <style>
+    @media (min-width: 768px) {
+      .vitrine-hero { display: grid !important; grid-template-columns: 1.4fr 1fr; gap: 80px; align-items: end; }
+      .hero-h1 { font-size: 64px !important; }
+      .hero-prose { font-size: 19px !important; }
+      .hero-ctas { flex-direction: row !important; }
+      .hero-note { display: block !important; }
+      .metrics-grid { grid-template-columns: repeat(4, 1fr) !important; }
+      .metric-cell-right { border-right: none !important; }
+      .metric-cell-bottom { border-bottom: none !important; }
+      .metric-val { font-size: 44px !important; }
+      .metrics-head { display: flex !important; align-items: baseline; justify-content: space-between; margin-bottom: 18px; }
+      .metrics-head-date { display: block !important; }
+      .metrics-head-eyebrow { margin-bottom: 0 !important; }
+      .recent-item { grid-template-columns: 120px 1fr 220px !important; }
+      .recent-col-date { display: block !important; }
+      .recent-col-analyst { text-align: right !important; margin-top: 0 !important; }
+      .recent-date-inline { display: none !important; }
+      .recent-h3 { font-size: 20px !important; }
+      .recent-title-link:hover { color: var(--color-gold-deep); }
+      .twoup { display: grid !important; grid-template-columns: 1fr 1fr; gap: 64px; }
+      .section-head { display: flex !important; justify-content: space-between; align-items: baseline; margin-bottom: 28px; }
+      .section-head-action { display: block !important; }
+    }
+  </style>
+
+  <div class="vitrine-hero" style="display:block;">
+    {# Left: editorial prose #}
+    <div>
+      <p class="t-eyebrow" style="margin-bottom:14px;">Acervo digital · Difusão do conhecimento</p>
+      <h1 class="hero-h1" style="
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 36px;
+        line-height: 1.05;
+        letter-spacing: -0.022em;
+        margin: 0;
+        color: var(--color-ink);
+        text-wrap: pretty;
+      ">
+        O que a literatura científica<br>
+        diz sobre <em>Análise Cognitiva</em>,<br>
+        organizado por quem a pratica.
+      </h1>
+      <p class="hero-prose t-prose" style="
+        margin-top: 20px;
+        font-size: 16px;
+        line-height: 1.55;
+      ">
+        AnCo é uma abordagem epistemológica multirreferencial para investigar
+        os processos cognitivos de sujeitos engajados na construção e difusão
+        do conhecimento. Este acervo cataloga, segundo uma grade conceitual
+        comum, a literatura científica que mobiliza ou dialoga com este conceito
+        — produzido colaborativamente por pesquisadores do PPGDC.
+      </p>
+    </div>
+
+    {# Right: CTAs #}
+    <div style="margin-top: 28px;">
+      <div class="hero-ctas" style="display:flex; flex-direction:column; gap:10px; flex-wrap:wrap;">
+        {% include "partials/_btn.html" with label="Explorar o acervo →" variant="primary" href="/acervo/" %}
+        {% include "partials/_btn.html" with label="Entrar para contribuir" variant="secondary" href="/accounts/login/" %}
+      </div>
+      <p class="hero-note t-small" style="display:none; margin-top:18px; max-width:320px;">
+        O acervo é público e citável. A contribuição requer cadastro como
+        pesquisador vinculado a um programa de pós-graduação.
+      </p>
+    </div>
+  </div>
+</section>
+
+{# ── Métricas ──────────────────────────────────────────────────────────── #}
+<section style="padding: 0 clamp(20px,5vw,56px) clamp(32px,5vw,80px);">
+  <div class="metrics-head" style="display:block;">
+    <p class="metrics-head-eyebrow t-eyebrow" style="margin-bottom:12px; color:var(--color-ink-3);">O acervo em números</p>
+    <p class="metrics-head-date t-meta" style="display:none; color:var(--color-ink-4);">
+      atualizado em {{ hoje_fmt }}
+    </p>
+  </div>
+  <div class="metrics-grid" style="
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--color-rule-strong);
+    border-bottom: 1px solid var(--color-rule-strong);
+  ">
+    {# Análises #}
+    <div class="metric-cell" style="
+      padding: 20px 16px;
+      border-right: 1px solid var(--color-rule);
+      border-bottom: 1px solid var(--color-rule);
+    ">
+      <div class="metric-val" style="
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 32px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: var(--color-ink);
+        margin-bottom: 6px;
+      ">{{ analises_count }}</div>
+      <div class="t-meta" style="color:var(--color-ink-3); line-height:1.35; text-wrap:balance;">análises catalogadas</div>
+    </div>
+
+    {# Pesquisadores #}
+    <div class="metric-cell metric-cell-right" style="
+      padding: 20px 16px;
+      border-right: 1px solid var(--color-rule);
+      border-bottom: 1px solid var(--color-rule);
+    ">
+      <div class="metric-val" style="
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 32px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: var(--color-ink);
+        margin-bottom: 6px;
+      ">{{ pesquisadores_count }}</div>
+      <div class="t-meta" style="color:var(--color-ink-3); line-height:1.35; text-wrap:balance;">pesquisadores contribuintes</div>
+    </div>
+
+    {# Bases #}
+    <div class="metric-cell metric-cell-bottom" style="
+      padding: 20px 16px;
+      border-right: 1px solid var(--color-rule);
+    ">
+      <div class="metric-val" style="
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 32px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: var(--color-ink);
+        margin-bottom: 6px;
+      ">{{ bases_count }}</div>
+      <div class="t-meta" style="color:var(--color-ink-3); line-height:1.35; text-wrap:balance;">bases bibliográficas cobertas</div>
+    </div>
+
+    {# Amplitude de anos #}
+    <div class="metric-cell metric-cell-right metric-cell-bottom" style="
+      padding: 20px 16px;
+    ">
+      <div class="metric-val" style="
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 32px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: var(--color-ink);
+        margin-bottom: 6px;
+      ">
+        {% if min_ano and max_ano %}
+          {{ min_ano }}–{{ max_ano|stringformat:"d"|slice:"-2:" }}
+        {% else %}—{% endif %}
+      </div>
+      <div class="t-meta" style="color:var(--color-ink-3); line-height:1.35; text-wrap:balance;">amplitude de anos das obras</div>
+    </div>
+  </div>
+  <p class="t-meta" style="margin-top:10px; color:var(--color-ink-4);">
+    atualizado em {{ hoje_fmt }}
+  </p>
+</section>
+
+{# ── Análises recentes ─────────────────────────────────────────────────── #}
+<section style="
+  padding: clamp(32px,4vw,40px) clamp(20px,5vw,56px) clamp(40px,6vw,80px);
+  border-top: 1px solid var(--color-rule);
+">
+  <div class="section-head" style="display:block; margin-bottom:20px;">
+    <div>
+      <p class="t-eyebrow" style="margin-bottom:4px;">Publicado recentemente</p>
+      <h2 class="t-h2" style="margin: 0 0 4px;">Cinco análises mais recentes</h2>
+      <p class="t-small" style="margin:4px 0 0;">Aprovadas por revisão de pares e integradas ao acervo público.</p>
+    </div>
+    <a class="section-head-action" href="{% url 'acervo_publico' %}" style="
+      display: none;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--color-gold-deep);
+      text-decoration: none;
+      white-space: nowrap;
+    ">Ver as {{ analises_count }} do acervo →</a>
+  </div>
+
+  <div>
+    {% for item in recentes %}
+    {% with a=item.analise %}
+    <article style="
+      padding: clamp(18px,2vw,24px) 0;
+      border-bottom: 1px solid var(--color-rule);
+    ">
+      <div class="recent-item" style="display:grid; grid-template-columns:1fr; gap:12px; align-items:baseline;">
+        {# Data (desktop only, left column) #}
+        <div class="recent-col-date t-meta" style="
+          display: none;
+          font-variant-numeric: tabular-nums;
+          color: var(--color-ink-4);
+          white-space: nowrap;
+        ">{{ item.data_fmt }}</div>
+
+        {# Centro: título + metadados + selos #}
+        <div>
+          <a class="recent-title-link" href="{% url 'pagina_analise' a.pk %}" style="
+            font-family: var(--font-serif);
+            font-weight: 500;
+            font-size: 17px;
+            line-height: 1.25;
+            letter-spacing: -0.005em;
+            color: var(--color-ink);
+            text-decoration: none;
+            display: block;
+            text-wrap: pretty;
+            transition: color 0.15s;
+          ">{{ a.artigo.titulo }}</a>
+          <div style="
+            margin-top: 8px;
+            font-family: var(--font-sans);
+            font-size: 13px;
+            color: var(--color-ink-3);
+            line-height: 1.45;
+          ">
+            {{ a.artigo.autores }}{% if a.artigo.autores and a.artigo.titulo_periodico %} · {% endif %}<em>{{ a.artigo.titulo_periodico }}</em>{% if a.artigo.ano %}, {{ a.artigo.ano }}{% endif %}
+          </div>
+          {# Selos #}
+          {% if a.tem_resenha or a.artigo.acesso_aberto or a.status == 'legado' %}
+          <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+            {% if a.tem_resenha %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
+            {% if a.artigo.acesso_aberto %}{% include "partials/_selo.html" with kind="aberto" %}{% endif %}
+            {% if a.status == 'legado' %}{% include "partials/_selo.html" with kind="historico" %}{% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        {# Direita: analista + data mobile #}
+        <div class="recent-col-analyst" style="
+          font-family: var(--font-sans);
+          font-size: 12px;
+          color: var(--color-ink-3);
+          text-align: left;
+          margin-top: 4px;
+        ">
+          <span class="recent-date-inline" style="color:var(--color-ink-4); margin-right:4px;">{{ item.data_fmt }} ·</span>
+          analisado por <span style="color:var(--color-ink-2);">{{ a.analista.nome_exibicao|default:a.analista.username }}</span>
+        </div>
+      </div>
+    </article>
+    {% endwith %}
+    {% empty %}
+    <p class="t-body" style="color:var(--color-ink-3); padding:24px 0;">Nenhuma análise publicada ainda.</p>
+    {% endfor %}
+  </div>
+
+  <div style="margin-top:20px;">
+    {% include "partials/_btn.html" with label="Ver todas as análises →" variant="ghost" href="/acervo/" %}
+  </div>
+</section>
+
+{# ── Metodologia + Como contribuir ────────────────────────────────────── #}
+<section style="
+  background: var(--color-paper-2);
+  border-top: 1px solid var(--color-rule);
+  border-bottom: 1px solid var(--color-rule);
+  padding: clamp(32px,5vw,64px) clamp(20px,5vw,56px);
+">
+  <div class="twoup" style="display:block;">
+
+    {# Metodologia #}
+    <div style="margin-bottom: clamp(32px,4vw,0px);">
+      <p class="t-eyebrow" style="margin-bottom:14px;">Metodologia</p>
+      <h3 style="
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: clamp(22px,3vw,30px);
+        line-height: 1.15;
+        letter-spacing: -0.015em;
+        margin: 0 0 16px;
+        color: var(--color-ink);
+      ">
+        Cada obra atravessa <em>treze campos</em> da grade AnCo, da pertinência ao contexto de produção.
+      </h3>
+      <p class="t-prose" style="margin:0;">
+        A grade dá comparabilidade ao acervo sem reduzir a singularidade de
+        cada obra. Resenhas críticas autorais são opcionais e atravessam
+        revisão cega adicional por dois pares.
+      </p>
+    </div>
+
+    {# Como contribuir #}
+    <div>
+      <p class="t-eyebrow" style="margin-bottom:14px;">Como contribuir</p>
+      <h3 style="
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: clamp(22px,3vw,30px);
+        line-height: 1.15;
+        letter-spacing: -0.015em;
+        margin: 0 0 16px;
+        color: var(--color-ink);
+      ">
+        Você lê o artigo. <em>Dois pares</em> revisam sua análise. O acervo cresce.
+      </h3>
+      <ol style="margin:0; padding:0; list-style:none; display:grid; gap:10px;">
+        <li style="display:grid; grid-template-columns:24px 1fr; gap:10px; font-family:var(--font-sans); font-size:14px; color:var(--color-ink-2);">
+          <span style="font-family:var(--font-serif); font-style:italic; color:var(--color-ink-4);">1.</span>
+          <span>Identifique o artigo e seus metadados via DOI ou CrossRef.</span>
+        </li>
+        <li style="display:grid; grid-template-columns:24px 1fr; gap:10px; font-family:var(--font-sans); font-size:14px; color:var(--color-ink-2);">
+          <span style="font-family:var(--font-serif); font-style:italic; color:var(--color-ink-4);">2.</span>
+          <span>Preencha a grade estrutural — pertinência, objeto, foco, epistemologia.</span>
+        </li>
+        <li style="display:grid; grid-template-columns:24px 1fr; gap:10px; font-family:var(--font-sans); font-size:14px; color:var(--color-ink-2);">
+          <span style="font-family:var(--font-serif); font-style:italic; color:var(--color-ink-4);">3.</span>
+          <span>Opcionalmente, redija uma resenha crítica autoral.</span>
+        </li>
+        <li style="display:grid; grid-template-columns:24px 1fr; gap:10px; font-family:var(--font-sans); font-size:14px; color:var(--color-ink-2);">
+          <span style="font-family:var(--font-serif); font-style:italic; color:var(--color-ink-4);">4.</span>
+          <span>Submeta. Dois pares revisam estrutura; mais dois revisam a resenha às cegas.</span>
+        </li>
+      </ol>
+    </div>
+
+  </div>
+</section>
+
+{% endblock %}

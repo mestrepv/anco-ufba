@@ -14,11 +14,47 @@ document.addEventListener("DOMContentLoaded", function () {
     "#filtros-form input[type='hidden'][name='modo']"
   );
 
-  if (!radios.length || !hiddenModo) return;
+  if (radios.length && hiddenModo) {
+    radios.forEach(function (radio) {
+      radio.addEventListener("change", function () {
+        hiddenModo.value = this.value;
+      });
+    });
+  }
 
-  radios.forEach(function (radio) {
-    radio.addEventListener("change", function () {
-      hiddenModo.value = this.value;
+  initAnoPresets();
+  initFiltrosFormCleanup();
+});
+
+/**
+ * Atalhos do filtro de ano: clique preenche os inputs De/Até.
+ * Não submete o formulário — usuário confirma com "Aplicar filtros".
+ */
+function initAnoPresets() {
+  const minInput = document.getElementById("ano-min-input");
+  const maxInput = document.getElementById("ano-max-input");
+  if (!minInput || !maxInput) return;
+
+  document.querySelectorAll(".ano-preset").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      minInput.value = btn.dataset.lo || "";
+      maxInput.value = btn.dataset.hi || "";
     });
   });
-});
+}
+
+/**
+ * Antes de submeter os filtros, remove o `name` de inputs vazios para
+ * que não apareçam como `?ano_min=&ano_max=` na URL.
+ */
+function initFiltrosFormCleanup() {
+  const form = document.getElementById("filtros-form");
+  if (!form) return;
+  form.addEventListener("submit", function () {
+    form.querySelectorAll("input[name]").forEach(function (el) {
+      if (el.type === "number" && el.value === "") {
+        el.disabled = true; // disabled fields são omitidos do submit
+      }
+    });
+  });
+}
