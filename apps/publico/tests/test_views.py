@@ -354,13 +354,15 @@ class TestPaginaAnalise:
         )
         resp = client.get(reverse("pagina_analise", args=[analise.pk]))
         assert resp.status_code == 200
-        assert b"peer-reviewed" in resp.content
+        # Selo "Resenha crítica" (substituiu a string "peer-reviewed" do design antigo)
+        assert "Resenha crítica".encode() in resp.content
         assert b"Texto critico autoral substantivo." in resp.content
 
     def test_selo_cc_by_nc_visivel(self, client, analise_publicada):
         resp = client.get(reverse("pagina_analise", args=[analise_publicada.pk]))
         assert resp.status_code == 200
-        assert b"CC-BY-NC" in resp.content
+        # Design editorial usa "CC BY-NC" (com espaço, sem hífen entre CC e BY)
+        assert b"CC BY-NC" in resp.content
         assert b"creativecommons.org" in resp.content
 
     def test_citacao_abnt_e_apa_renderizam(self, client, analise_publicada):

@@ -124,15 +124,22 @@ class TestEmbeddingTasks:
         from apps.busca_semantica.tasks import task_embedding_artigo
 
         a = Artigo.objects.create(doi="10.1234/task-test", titulo="Task test", resumo="texto")
+        # Em dev Q_CLUSTER roda sync=True: o post_save signal já enfileirou e
+        # executou a task com o serviço real. Zeramos o embedding antes de
+        # reexecutar a task com o mock offline.
+        Artigo.objects.filter(pk=a.pk).update(embedding=None)
         with patch("apps.busca_semantica.embeddings._post_with_retry", side_effect=Exception("off")):
             task_embedding_artigo(a.pk)  # não deve lançar exceção
 
         a.refresh_from_db()
-        assert a.embedding is None  # embedding permanece None
+        assert a.embedding is None  # embedding permanece None com serviço offline
 
     def test_task_analise_nao_quebra_quando_servico_offline(self, analise_publicada):
+        from apps.acervo.models import Analise
         from apps.busca_semantica.tasks import task_embedding_analise
 
+        # Mesmo motivo do teste anterior: zerar embedding antes do mock offline.
+        Analise.objects.filter(pk=analise_publicada.pk).update(embedding=None)
         with patch("apps.busca_semantica.embeddings._post_with_retry", side_effect=Exception("off")):
             task_embedding_analise(analise_publicada.pk)
 
