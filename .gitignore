@@ -46,3 +46,6 @@ coverage.xml
 
 # Docker volumes (caso bind-mounts ad-hoc)
 pgdata/
+
+# CSS gerado pelo Tailwind (reconstruído no Docker build e em dev com --watch)
+static/css/output.css
