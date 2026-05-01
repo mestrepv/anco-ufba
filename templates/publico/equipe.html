@@ -1,28 +1,188 @@
-{% extends "_base.html" %}
+{% extends "_base_publico.html" %}
+{% load static %}
 
 {% block title %}Equipe — AnCo{% endblock %}
+{% block meta_description %}Conheça os pesquisadores que integram a equipe do AnCo — acervo colaborativo de análises de literatura científica sobre Análise Cognitiva.{% endblock %}
+{% block og_description %}Pesquisadores do PPGDC que integram a equipe do AnCo — acervo de Análise Cognitiva.{% endblock %}
+
+{% block extra_head %}
+<style>
+  .membro-card {
+    padding: 32px 0;
+    border-bottom: 1px solid var(--color-rule);
+  }
+  .membro-card:last-child { border-bottom: 0; }
+
+  .membro-nome {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 22px;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+    margin: 0 0 4px;
+  }
+
+  .membro-role {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--color-ink-3);
+    margin: 0 0 16px;
+  }
+
+  .membro-bio {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--color-ink-2);
+    text-wrap: pretty;
+    margin: 0;
+  }
+
+  .membro-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .membro-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-gold-deep);
+    text-decoration: underline;
+    text-decoration-thickness: 0.5px;
+    text-underline-offset: 2px;
+  }
+  .membro-link:hover { color: var(--color-ink); }
+
+  @media (min-width: 768px) {
+    .equipe-layout { display: grid; grid-template-columns: 220px 1fr; gap: 80px; align-items: start; }
+    .equipe-sidebar { position: sticky; top: 32px; }
+    .equipe-sidebar-nav { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; }
+    .equipe-sidebar-nav li a {
+      display: block;
+      padding: 10px 0;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--color-ink-3);
+      border-bottom: 1px solid var(--color-rule);
+      text-decoration: none;
+    }
+    .equipe-sidebar-nav li a:hover { color: var(--color-ink); }
+    .equipe-sidebar-nav li:first-child a { border-top: 1px solid var(--color-rule); }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<article class="prose prose-slate max-w-2xl">
-<h1 class="text-2xl font-semibold text-slate-900 mb-4">Equipe e contato</h1>
 
-<p class="text-slate-700 mb-4">A AnCo é mantida por uma comunidade de pesquisadores. A curadoria coordena cadastros, vocabulários controlados e fluxos de revisão por pares.</p>
+{# ── Cabeçalho ──────────────────────────────────────────────────────────── #}
+<div style="padding: clamp(32px,5vw,64px) clamp(20px,5vw,56px) 0; border-bottom: 1px solid var(--color-rule);">
+  <p class="t-eyebrow" style="margin:0 0 12px;">AnCo</p>
+  <h1 class="t-h1" style="margin:0 0 8px;">Equipe de pesquisa</h1>
+  <p class="t-body" style="color:var(--color-ink-3); margin:0 0 32px;">
+    Pesquisadores vinculados ao Doutorado Multi-institucional e Multidisciplinar em Difusão do Conhecimento (DMMDC) que integram o projeto AnCo.
+  </p>
+</div>
 
-<h2 class="text-lg font-semibold mt-6 mb-2">Coordenação</h2>
-<ul class="list-disc ml-6 text-slate-700 space-y-1">
-    <li><strong>Paulo Vicente</strong> — coordenação da plataforma</li>
-</ul>
-<p class="text-slate-500 text-sm mt-2"><em>Esta seção será expandida conforme a equipe crescer. Curadores e analistas ativos aparecem nos metadados de cada análise no acervo.</em></p>
+{# ── Corpo ───────────────────────────────────────────────────────────────── #}
+<div style="padding: clamp(32px,5vw,64px) clamp(20px,5vw,56px);">
+<div class="equipe-layout">
 
-<h2 class="text-lg font-semibold mt-6 mb-2">Contato</h2>
-<p class="text-slate-700">
-Para dúvidas sobre cadastro, vocabulários, conteúdo ou parcerias institucionais:
-<br>
-<strong>curadoria@anco.local</strong>
-</p>
+  {# Sidebar de navegação (desktop) #}
+  <aside class="equipe-sidebar" aria-label="Membros da equipe">
+    <p class="t-eyebrow" style="margin:0 0 4px;">Membros</p>
+    <ul class="equipe-sidebar-nav">
+      <li><a href="#leliana-santos">Leliana Santos de Sousa</a></li>
+      <li><a href="#teresinha-burnham">Teresinha Fróes Burnham</a></li>
+      <li><a href="#eneida-santana">Eneida Santana</a></li>
+      <li><a href="#jose-damiao">José Damião de Melo</a></li>
+      <li><a href="#julia-andrade">Júlia Carvalho Andrade</a></li>
+      <li><a href="#jucara-freire">Juçara Freire dos Santos</a></li>
+      <li><a href="#maria-aurea">Maria Aurea Caldas Souto</a></li>
+    </ul>
+  </aside>
 
-<h2 class="text-lg font-semibold mt-6 mb-2">Domínios institucionais aceitos</h2>
-<p class="text-slate-700 mb-2">A AnCo aceita contas Google de instituições acadêmicas. Se sua instituição ainda não está na lista, escreva para o e-mail acima.</p>
-<p class="text-sm text-slate-600">Padrões aceitos: <code class="bg-slate-100 px-1">.edu</code>, <code class="bg-slate-100 px-1">.edu.br</code>, <code class="bg-slate-100 px-1">.ac.uk</code> e listas explícitas (UFBA, IFBA, USP, UNICAMP, FIOCRUZ, etc.).</p>
-</article>
+  {# Lista de membros #}
+  <div>
+
+    <div class="membro-card" id="leliana-santos">
+      <h2 class="membro-nome">Leliana Santos de Sousa</h2>
+      <p class="membro-role">Professora Adjunto · Universidade do Estado da Bahia (UNEB) · Líder do GEEDR/UNEB/CNPq</p>
+      <p class="membro-bio">
+        Coordenadora das atividades de implantação do Centro de Pesquisa em Educação e Desenvolvimento Regional (CPEDR) da UNEB. Desenvolve estudos nas áreas de saberes e práticas interdisciplinares com ênfase em Educação, Desenvolvimento Regional, Tecnologias, Sustentabilidade, Gestão, Cultura, Memória e Relações Étnico-Raciais. Integra o quadro de docentes do Doutorado Multi-institucional e Multirreferencial em Difusão do Conhecimento (DMMDC) no campo da Análise Cognitiva. Graduada em Licenciatura em Ciências pela UFBA (1982) e em Pedagogia pela Faculdade de Educação da Bahia (1988); Mestre em Educação pela UFBA (1996); Doutora em Ciências da Educação pela Université Vincennes Saint-Denis Paris 8, França (2003).
+      </p>
+    </div>
+
+    <div class="membro-card" id="teresinha-burnham">
+      <h2 class="membro-nome">Teresinha Fróes Burnham</h2>
+      <p class="membro-role">Professora-associada Nível IV · Universidade Federal da Bahia (UFBA) · Fundadora do DMMDC</p>
+      <p class="membro-bio">
+        Fundadora, primeira coordenadora e docente-pesquisadora do Doutorado Multi-institucional e Multidisciplinar em Difusão do Conhecimento (DMMDC). Desenvolve pesquisas nas áreas de Análise Cognitiva, Ciência da Informação e Educação, com ênfase na relação conhecimento e sociedade — principalmente tra(ns)dução do conhecimento, currículo, trabalho, espaços de aprendizagem e gestão do conhecimento. Graduada em História Natural pela Universidade Católica do Salvador (1968); Mestre em Educação pela UFBA (1976); Doutora em Filosofia pela University of Southampton, Inglaterra (1982); Pós-doutora em Sociologia e Política do Currículo pela University of London (1997).
+      </p>
+    </div>
+
+    <div class="membro-card" id="eneida-santana">
+      <h2 class="membro-nome">Eneida Santana</h2>
+      <p class="membro-role">Doutoranda DMMDC (2017) · Bibliotecária · Instituto Federal da Bahia (IFBA) · Coordenadora de Extensão, Camaçari</p>
+      <p class="membro-bio">
+        Pesquisadora de formação docente, tecnologias educacionais e práticas extensionistas. Membra do Grupo de Pesquisa Tecnologia da Informação e Comunicação Aplicadas à Educação e Saúde (TICASE). Possui especialização em Educação a Distância: Tecnologias Educacionais pelo Instituto Federal do Paraná (2016); Mestre em Ciência da Informação pela UFBA (2011); Graduada em Biblioteconomia e Documentação pela UFBA (2008).
+      </p>
+    </div>
+
+    <div class="membro-card" id="jose-damiao">
+      <h2 class="membro-nome">José Damião de Melo</h2>
+      <p class="membro-role">Professor · Instituto Federal de Sergipe (IFS) · Doutorando DMMDC (2017)</p>
+      <p class="membro-bio">
+        Líder do grupo de pesquisas em Educação, Tecnologia e Gestão do Conhecimento. Mestre em Modelagem Computacional de Conhecimento pela Universidade Federal de Alagoas (UFAL, 2012).
+      </p>
+      <div class="membro-links">
+        <a class="membro-link" href="http://www.researcherid.com/rid/A-9122-2010" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:12px;height:12px;" aria-hidden="true"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3"/><path d="M10 1h5v5"/><line x1="15" y1="1" x2="8" y2="8"/></svg>
+          ResearcherID
+        </a>
+        <a class="membro-link" href="https://www.researchgate.net/profile/Damiao_Melo2" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:12px;height:12px;" aria-hidden="true"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3"/><path d="M10 1h5v5"/><line x1="15" y1="1" x2="8" y2="8"/></svg>
+          ResearchGate
+        </a>
+        <a class="membro-link" href="https://www.mendeley.com/profiles/jose-damiao-melo/" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:12px;height:12px;" aria-hidden="true"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3"/><path d="M10 1h5v5"/><line x1="15" y1="1" x2="8" y2="8"/></svg>
+          Mendeley
+        </a>
+      </div>
+    </div>
+
+    <div class="membro-card" id="julia-andrade">
+      <h2 class="membro-nome">Júlia Carvalho Andrade</h2>
+      <p class="membro-role">Professora Assistente · Escola de Nutrição · Universidade Federal da Bahia (UFBA)</p>
+      <p class="membro-bio">
+        Nutricionista, Mestre em Alimentos, Nutrição e Saúde, e especialista em Gestão de Negócios em Alimentos. Atua principalmente nos seguintes temas: abordagem interdisciplinar da alimentação e nutrição, técnicas dietéticas, gastronomia aplicada à nutrição clínica, e prevenção e tratamento das Doenças Crônicas Não Transmissíveis (DCNT).
+      </p>
+    </div>
+
+    <div class="membro-card" id="jucara-freire">
+      <h2 class="membro-nome">Juçara Freire dos Santos</h2>
+      <p class="membro-role">Doutoranda DMMDC · FACED/UFBA · Professora · UNIRB</p>
+      <p class="membro-bio">
+        Mestre em Desenvolvimento e Gestão Social pelo Programa de Desenvolvimento e Gestão Social (PDGS) da Escola de Administração da UFBA. Graduada em Serviço Social pela Universidade Católica do Salvador. Membra do Grupo de Pesquisa Núcleo Interdisciplinar de Estudos e Ações Integradas no Semi Árido (NIEAIS/UFBA). Atua nas áreas de gestão de desenvolvimento socioambiental, planejamento e execução de projetos socioambientais e pesquisa social.
+      </p>
+    </div>
+
+    <div class="membro-card" id="maria-aurea">
+      <h2 class="membro-nome">Maria Aurea Caldas Souto</h2>
+      <p class="membro-role">Professora Assistente · UNCISAL · Doutoranda em Difusão do Conhecimento · UFBA</p>
+      <p class="membro-bio">
+        Diretora do Centro de Educação a Distância da Universidade Estadual de Ciências da Saúde de Alagoas (UNCISAL). Membro fundador da Academia Alagoana de Educação (ACALE). Especialista em Voz pelo Conselho Federal de Fonoaudiologia. Mestre em Educação — linha de pesquisa Tecnologias de Informação e Comunicação na Educação — pela UFAL. Graduada em Fonoaudiologia pela Universidade Estácio de Sá (1978). Atua nas áreas de Fonoaudiologia (voz profissional, cabeça e pescoço) e Tecnologias da Informação e Comunicação na Educação e na Saúde.
+      </p>
+    </div>
+
+  </div>
+
+</div>
+</div>
+
 {% endblock %}

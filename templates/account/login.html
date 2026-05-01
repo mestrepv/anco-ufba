@@ -1,16 +1,41 @@
-{% extends "_base.html" %}
+{% extends "_base_publico.html" %}
 {% load socialaccount %}
 
 {% block title %}Entrar — AnCo{% endblock %}
+{% block meta_description %}Acesse a plataforma AnCo com sua conta institucional do Google.{% endblock %}
 
 {% block content %}
-<h1>Entrar na AnCo</h1>
-<p>Use sua conta institucional do Google para acessar a plataforma.</p>
+<div style="min-height:60vh;display:flex;align-items:center;justify-content:center;padding:clamp(40px,8vw,80px) clamp(20px,5vw,40px);">
+  <div style="width:100%;max-width:400px;">
 
-<p>
-    <a class="btn" href="{% provider_login_url 'google' process='login' %}">Entrar com Google</a>
-</p>
+    <a href="{% url 'home' %}" style="display:inline-block;margin-bottom:32px;text-decoration:none;">
+      {% include "partials/_wordmark.html" with size=20 %}
+    </a>
 
-<h2>Por que conta institucional?</h2>
-<p>O acervo é mantido por uma comunidade acadêmica. Aceitamos apenas e-mails de instituições cadastradas (universidades, institutos federais, centros de pesquisa). Se sua instituição não estiver na lista, entre em contato com a curadoria.</p>
+    <h1 class="t-h2" style="margin:0 0 8px;">Entrar na plataforma</h1>
+    <p class="t-body" style="margin:0 0 32px;color:var(--color-ink-3);">
+      Use sua conta institucional do Google para acessar o acervo.
+    </p>
+
+    <a href="{% provider_login_url 'google' process='login' %}" class="btn btn-primary" style="width:100%;justify-content:center;gap:10px;">
+      <svg viewBox="0 0 18 18" fill="none" style="width:16px;height:16px;flex-shrink:0;" aria-hidden="true">
+        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+        <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+        <path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/>
+        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 6.294C4.672 4.169 6.656 3.58 9 3.58z" fill="#EA4335"/>
+      </svg>
+      Entrar com Google
+    </a>
+
+    <hr class="hr" style="margin:28px 0;">
+
+    <p class="t-small" style="color:var(--color-ink-3);margin:0;">
+      O acervo é mantido por pesquisadores de instituições acadêmicas. Aceitamos
+      contas Google de universidades, institutos federais e centros de pesquisa
+      cadastrados. Se sua instituição não constar na lista,
+      escreva para a curadoria.
+    </p>
+
+  </div>
+</div>
 {% endblock %}

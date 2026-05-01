@@ -1,112 +1,428 @@
-{% extends "_base.html" %}
+{% extends "_base_publico.html" %}
+{% load static %}
 
-{% block title %}Análise — {{ analise.artigo.titulo|truncatechars:60 }} — AnCo{% endblock %}
+{% block title %}{{ analise.artigo.titulo|truncatechars:70 }} — AnCo{% endblock %}
+{% block meta_description %}{{ analise.artigo.titulo|truncatechars:120 }}. Análise por {{ analise.analista.get_full_name|default:analise.analista.email }}, publicada no acervo AnCo.{% endblock %}
+{% block og_description %}{{ analise.artigo.titulo|truncatechars:120 }}. Análise por {{ analise.analista.get_full_name|default:analise.analista.email }}.{% endblock %}
 
 {% block extra_head %}
 <script type="application/ld+json">{{ jsonld|safe }}</script>
+<style>
+  /* ── Resenha crítica ──────────────────────────── */
+  .resenha-text p {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--color-ink-2);
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .resenha-text p + p { margin-top: 20px; }
+  .resenha-text p:first-child::first-letter {
+    font-family: var(--font-serif);
+    font-size: 2.8em;
+    float: left;
+    line-height: 0.82;
+    margin-right: 6px;
+    margin-top: 6px;
+    color: var(--color-ink);
+  }
+
+  /* ── Campo da grade ───────────────────────────── */
+  .field-label {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-ink-3);
+    margin-bottom: 6px;
+  }
+  .field-value {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--color-ink-2);
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .field-block {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  /* ── Citação ──────────────────────────────────── */
+  .citation-text {
+    font-family: var(--font-serif);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--color-ink-2);
+    margin: 0;
+  }
+  .citation-label {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--color-ink-2);
+  }
+  .copy-btn {
+    background: transparent;
+    border: 0;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-ink-3);
+    cursor: pointer;
+    padding: 0;
+  }
+  .copy-btn:hover { color: var(--color-gold-deep); }
+
+  /* ── Links estilizados ────────────────────────── */
+  .link-gold {
+    color: var(--color-gold-deep);
+    text-decoration: none;
+    font-family: var(--font-sans);
+    font-size: 13px;
+  }
+  .link-gold:hover { text-decoration: underline; }
+
+  /* ── Responsivo ───────────────────────────────── */
+  @media (min-width: 768px) {
+    .analise-header-inner { max-width: 900px; margin: 0 auto; padding: 64px 56px 56px; }
+    .breadcrumb-inner { padding: 14px 56px; }
+    .resenha-inner { max-width: 700px; margin: 0 auto; }
+    .resenha-outer { padding: 56px 0; }
+    .resenha-text p { font-size: 19px; }
+    .body-grid { display: grid !important; grid-template-columns: minmax(0, 720px) 280px; gap: 80px; max-width: 1180px; margin: 0 auto; align-items: start; }
+    .sidebar { display: block !important; }
+    .citation-inner { max-width: 720px; }
+    .metadata-inner { max-width: 720px; }
+    .citation-text { font-size: 14px; }
+    .metadata-grid { display: grid !important; grid-template-columns: 1fr 1fr; gap: 64px; }
+    .field-value { font-size: 17px; }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<nav class="text-xs text-slate-500 mb-4"><a href="{% url 'acervo_publico' %}" class="hover:text-anco">← Acervo</a></nav>
 
-<header class="mb-6">
-    <h1 class="text-2xl font-semibold text-slate-900">Análise: {{ analise.artigo.titulo|truncatechars:120 }}</h1>
-    <p class="text-slate-700 mt-2">
-        Por <strong>{{ analise.analista.nome_exibicao|default:analise.analista.username }}</strong>
-        <span class="text-slate-400">·</span>
-        {% if analise.status == "legado" %}<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[11px]">Acervo histórico — pré-validado</span>{% else %}publicada em {{ analise.publicada_em|date:"d/m/Y" }}{% endif %}
-    </p>
-    <p class="text-xs text-slate-500 mt-1">
-        Sobre o artigo: <a href="{% url 'pagina_artigo' doi_slug %}" class="text-anco underline">{{ analise.artigo.titulo|truncatechars:80 }}</a>
-        ({{ analise.artigo.ano|default:"s.d." }}, {{ analise.artigo.titulo_periodico|truncatechars:40 }})
-    </p>
-</header>
+{# ── Breadcrumb ─────────────────────────────────────────────────────── #}
+<div class="breadcrumb-inner" style="
+  padding: 12px 20px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--color-ink-3);
+  border-bottom: 1px solid var(--color-rule);
+">
+  <a href="{% url 'acervo_publico' %}" class="link-gold" style="color:var(--color-ink-3);">Acervo</a>
+  <span style="margin:0 4px;">/</span>
+  <span>análise</span>
+</div>
 
-<!-- Resenha crítica em destaque, se presente -->
-{% if analise.tem_resenha %}
-<section class="bg-violet-50 border-l-4 border-violet-500 rounded-md p-5 mb-6">
-    <div class="flex items-center gap-2 mb-3">
-        <span class="px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 text-xs font-medium">Resenha crítica peer-reviewed</span>
+{# ── Cabeçalho ──────────────────────────────────────────────────────── #}
+<section id="cabecalho">
+  <div class="analise-header-inner" style="padding: 28px 20px 32px;">
+
+    {# Selos #}
+    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px;">
+      {% if analise.tem_resenha %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
+      {% if analise.artigo.acesso_aberto %}{% include "partials/_selo.html" with kind="aberto" %}{% endif %}
+      {% if analise.status == 'legado' %}{% include "partials/_selo.html" with kind="historico" %}{% endif %}
     </div>
-    <div class="text-slate-800 whitespace-pre-line leading-relaxed">{{ analise.resenha_critica }}</div>
+
+    <p class="t-eyebrow" style="margin-bottom:10px; color:var(--color-gold-deep);">Análise de</p>
+
+    <h1 style="
+      font-family: var(--font-serif);
+      font-weight: 400;
+      font-size: clamp(28px,4vw,48px);
+      line-height: 1.1;
+      letter-spacing: -0.018em;
+      margin: 0 0 24px;
+      color: var(--color-ink);
+      text-wrap: pretty;
+    ">{{ analise.artigo.titulo }}</h1>
+
+    <div style="font-family:var(--font-sans); font-size:clamp(14px,1.3vw,15px); color:var(--color-ink-2); line-height:1.55; margin-bottom:8px;">
+      {{ analise.artigo.autores }}
+    </div>
+
+    <div style="font-family:var(--font-sans); font-size:clamp(13px,1.2vw,14px); color:var(--color-ink-3); line-height:1.5;">
+      <em>{{ analise.artigo.titulo_periodico }}</em>{% if analise.artigo.volume %}, v. {{ analise.artigo.volume }}{% endif %}{% if analise.artigo.numero %}, n. {{ analise.artigo.numero }}{% endif %}{% if analise.artigo.pagina_inicial %}, p. {{ analise.artigo.pagina_inicial }}{% if analise.artigo.pagina_final %}–{{ analise.artigo.pagina_final }}{% endif %}{% endif %}{% if analise.artigo.ano %}, {{ analise.artigo.ano }}{% endif %}.
+    </div>
+
+    {% if analise.artigo.doi and not analise.artigo.doi|slice:":7" == "legacy:" %}
+    <div style="margin-top:6px; font-family:var(--font-mono); font-size:12px; color:var(--color-ink-4);">
+      DOI: <a href="https://doi.org/{{ analise.artigo.doi }}" target="_blank" rel="noopener noreferrer" style="color:var(--color-gold-deep); text-decoration:none;">{{ analise.artigo.doi }}</a>
+    </div>
+    {% endif %}
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:clamp(20px,3vw,28px);">
+      {% if link_obra %}
+      <a href="{{ link_obra }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">Acessar obra original ↗</a>
+      {% endif %}
+      <a href="{% url 'pagina_artigo' doi_slug %}" class="btn btn-sm btn-ghost">Página do artigo →</a>
+    </div>
+
+  </div>
+</section>
+
+{# ── Resenha crítica ─────────────────────────────────────────────────── #}
+{% if analise.tem_resenha %}
+<section id="resenha" class="resenha-outer" style="
+  background: var(--color-review-bg);
+  border-top: 1px solid var(--color-review-rule);
+  border-bottom: 1px solid var(--color-review-rule);
+  padding: 32px 20px;
+">
+  <div class="resenha-inner">
+    <p class="t-eyebrow" style="color:var(--color-gold-deep); margin-bottom:8px;">Resenha crítica</p>
+    <p class="t-meta" style="font-style:italic; color:var(--color-ink-3); margin-bottom:24px;">revisão cega por dois pares</p>
+    <div class="resenha-text">{{ analise.resenha_critica|linebreaks }}</div>
+  </div>
 </section>
 {% endif %}
 
-<section class="bg-white rounded-md border border-slate-200 p-5 mb-6 space-y-4">
-    <h2 class="text-lg font-semibold">Análise estrutural</h2>
+{# ── Grade + Sidebar ─────────────────────────────────────────────────── #}
+<div style="padding: clamp(32px,5vw,64px) clamp(20px,5vw,56px) clamp(24px,3vw,32px);">
+  <div class="body-grid" style="display:block;">
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-        <div><dt class="text-slate-500 text-xs uppercase">Pertinência</dt><dd>{% if analise.pertinencia is True %}Sim{% elif analise.pertinencia is False %}Não{% else %}—{% endif %}</dd></div>
-        <div><dt class="text-slate-500 text-xs uppercase">Define o conceito</dt><dd>{% if analise.define_conceito is True %}Sim{% elif analise.define_conceito is False %}Não{% else %}—{% endif %}</dd></div>
-    </div>
+    {# Main: Grade de análise #}
+    <div id="grade">
+      <p class="t-eyebrow" style="margin-bottom:8px;">Grade de análise</p>
+      <h2 style="
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: clamp(22px,3vw,32px);
+        line-height: 1.15;
+        letter-spacing: -0.012em;
+        margin: 0 0 8px;
+        color: var(--color-ink);
+      ">A obra atravessada pela grade AnCo</h2>
+      <p class="t-small" style="margin:0 0 8px;">Treze campos derivados da metodologia do grupo. Campos vazios são ocultos.</p>
 
-    {% for label, valor in campos_textuais %}
-        {% if valor %}
-        <div>
-            <dt class="text-slate-500 text-xs uppercase mb-0.5">{{ label }}</dt>
-            <dd class="text-sm whitespace-pre-line">{{ valor }}</dd>
+      <div style="margin-top:16px;">
+
+        {# 1. Pertinência #}
+        {% if analise.pertinencia is not None %}
+        <div class="field-block">
+          <div class="field-label">Pertinência</div>
+          <p class="field-value">{% if analise.pertinencia %}Sim — pertinente para o campo da Análise Cognitiva.{% else %}Não pertinente para o campo da Análise Cognitiva.{% endif %}</p>
         </div>
         {% endif %}
-    {% endfor %}
 
-    {% with epist=analise.epistemologia.all teorias=analise.teoria.all %}
-    {% if epist %}
-    <div>
-        <dt class="text-slate-500 text-xs uppercase mb-1">Epistemologia</dt>
-        <dd class="flex flex-wrap gap-1">{% for e in epist %}<span class="px-2 py-0.5 rounded bg-slate-100 text-xs">{{ e.nome }}</span>{% endfor %}</dd>
-    </div>
-    {% endif %}
-    {% if teorias %}
-    <div>
-        <dt class="text-slate-500 text-xs uppercase mb-1">Teoria</dt>
-        <dd class="flex flex-wrap gap-1">{% for t in teorias %}<span class="px-2 py-0.5 rounded bg-slate-100 text-xs">{{ t.nome }}</span>{% endfor %}</dd>
-    </div>
-    {% endif %}
-    {% endwith %}
-</section>
+        {# 2. Define o conceito / Definição extraída #}
+        {% if analise.define_conceito is not None %}
+        <div class="field-block">
+          <div class="field-label">Define o conceito</div>
+          <p class="field-value">{% if analise.define_conceito %}Sim{% else %}Não{% endif %}{% if analise.definicao_extraida %}. {{ analise.definicao_extraida }}{% endif %}</p>
+        </div>
+        {% elif analise.definicao_extraida %}
+        <div class="field-block">
+          <div class="field-label">Definição extraída</div>
+          <p class="field-value">{{ analise.definicao_extraida }}</p>
+        </div>
+        {% endif %}
 
-<!-- Revisores -->
-{% if revisoes %}
-<section class="bg-white rounded-md border border-slate-200 p-5 mb-6">
-    <h2 class="text-lg font-semibold mb-3">Revisão por pares</h2>
-    <ul class="space-y-1 text-sm">
-        {% for r in revisoes %}
-        <li class="text-slate-700">
-            <strong>{{ r.identificador }}</strong>
-            <span class="text-slate-400">·</span>
-            {{ r.tipo_label }}
-            <span class="text-slate-400">·</span>
-            parecer: <strong>{{ r.parecer_label }}</strong>
-            {% if r.concluido_em %}<span class="text-slate-400">·</span> <span class="text-slate-500">{{ r.concluido_em|date:"d/m/Y" }}</span>{% endif %}
-        </li>
+        {# 3–6. Campos textuais: Objeto, Objetivo, Foco, Metodologia #}
+        {% for label, valor in campos_textuais %}
+          {% if valor and label != "Aspectos relevantes" and label != "Definição extraída" and label != "Referenciais" and label != "Resultados" and label != "Contexto de produção" and label != "Observações" %}
+          <div class="field-block">
+            <div class="field-label">{{ label }}</div>
+            <p class="field-value">{{ valor }}</p>
+          </div>
+          {% endif %}
         {% endfor %}
-    </ul>
-</section>
-{% endif %}
 
-<!-- Citacao -->
-<section class="bg-white rounded-md border border-slate-200 p-5 mb-6">
-    <h2 class="text-lg font-semibold mb-3">Citar esta análise</h2>
-    <div class="space-y-3 text-sm">
-        <div>
-            <div class="text-xs text-slate-500 uppercase mb-1">ABNT</div>
-            <pre class="bg-slate-50 p-3 rounded whitespace-pre-wrap font-sans">{{ citacao_abnt }}</pre>
+        {# 7. Epistemologia (chips) #}
+        {% with epist=analise.epistemologia.all %}
+        {% if epist %}
+        <div class="field-block">
+          <div class="field-label">Epistemologia</div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
+            {% for e in epist %}{% include "partials/_chip.html" with label=e.nome %}{% endfor %}
+          </div>
         </div>
-        <div>
-            <div class="text-xs text-slate-500 uppercase mb-1">APA</div>
-            <pre class="bg-slate-50 p-3 rounded whitespace-pre-wrap font-sans">{{ citacao_apa }}</pre>
+        {% endif %}
+        {% endwith %}
+
+        {# 8. Teoria de referência (chips) #}
+        {% with teorias=analise.teoria.all %}
+        {% if teorias %}
+        <div class="field-block">
+          <div class="field-label">Teoria de referência</div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
+            {% for t in teorias %}{% include "partials/_chip.html" with label=t.nome %}{% endfor %}
+          </div>
         </div>
+        {% endif %}
+        {% endwith %}
+
+        {# 9–13. Referenciais, Resultados, Aspectos, Contexto, Observações #}
+        {% for label, valor in campos_textuais %}
+          {% if valor and label == "Referenciais" or valor and label == "Resultados" or valor and label == "Aspectos relevantes" or valor and label == "Contexto de produção" or valor and label == "Observações" %}
+          <div class="field-block">
+            <div class="field-label">{{ label }}</div>
+            <p class="field-value">{{ valor }}</p>
+          </div>
+          {% endif %}
+        {% endfor %}
+
+      </div>
+    </div>{# /main #}
+
+    {# Sidebar (desktop only) #}
+    <aside class="sidebar" style="display:none; position:sticky; top:24px;">
+
+      {# Nesta página #}
+      <div style="border:1px solid var(--color-rule); background:var(--color-paper); padding:20px;">
+        <p class="t-eyebrow" style="margin-bottom:12px;">Nesta página</p>
+        <ul style="list-style:none; margin:0; padding:0; display:grid; gap:8px; font-family:var(--font-sans); font-size:13px;">
+          <li><a href="#cabecalho" class="link-gold" style="color:var(--color-ink-2);">Cabeçalho</a></li>
+          {% if analise.tem_resenha %}<li><a href="#resenha" class="link-gold">Resenha crítica</a></li>{% endif %}
+          <li><a href="#grade" class="link-gold" style="color:var(--color-ink-2);">Grade de análise</a></li>
+          <li><a href="#citar" class="link-gold" style="color:var(--color-ink-2);">Como citar</a></li>
+          <li><a href="#autoria" class="link-gold" style="color:var(--color-ink-2);">Autoria & revisão</a></li>
+        </ul>
+      </div>
+
+      {# Análise rápida #}
+      <div style="margin-top:16px; padding:20px; background:var(--color-paper-2); border:1px solid var(--color-rule);">
+        <p class="t-eyebrow" style="margin-bottom:10px;">Análise rápida</p>
+        <dl style="margin:0; display:grid; gap:10px; font-family:var(--font-sans); font-size:12px;">
+          {% if analise.pertinencia is not None %}
+          <div>
+            <dt style="color:var(--color-ink-3);">Pertinência</dt>
+            <dd style="margin:0; color:var(--color-ink); font-weight:500;">{% if analise.pertinencia %}sim{% else %}não{% endif %}</dd>
+          </div>
+          {% endif %}
+          {% if analise.define_conceito is not None %}
+          <div>
+            <dt style="color:var(--color-ink-3);">Define o conceito</dt>
+            <dd style="margin:0; color:var(--color-ink); font-weight:500;">{% if analise.define_conceito %}sim{% else %}não{% endif %}</dd>
+          </div>
+          {% endif %}
+          {% if analise.artigo.base_consulta %}
+          <div>
+            <dt style="color:var(--color-ink-3);">Base bibliográfica</dt>
+            <dd style="margin:0; color:var(--color-ink);">{{ analise.artigo.base_consulta.nome }}</dd>
+          </div>
+          {% endif %}
+          <div>
+            <dt style="color:var(--color-ink-3);">Tem resenha</dt>
+            <dd style="margin:0; color:var(--color-ink); font-weight:500;">{% if analise.tem_resenha %}sim · revisão cega{% else %}não{% endif %}</dd>
+          </div>
+        </dl>
+      </div>
+
+      {# URL estável #}
+      <div style="margin-top:16px; font-family:var(--font-sans); font-size:12px; color:var(--color-ink-3); line-height:1.5;">
+        URL estável<br>
+        <span style="font-family:var(--font-mono); font-size:11px; color:var(--color-ink-2); word-break:break-all;">anco.paulovicente.pro.br/analise/{{ analise.pk }}/</span>
+      </div>
+
+    </aside>{# /sidebar #}
+
+  </div>
+</div>
+
+{# ── Como citar ──────────────────────────────────────────────────────── #}
+<section id="citar" style="padding: 0 clamp(20px,5vw,56px) clamp(24px,3vw,32px);">
+  <div class="citation-inner">
+    <div style="
+      background: var(--color-paper-2);
+      border: 1px solid var(--color-rule);
+      padding: clamp(20px,3vw,32px);
+    ">
+      <p class="t-eyebrow" style="margin-bottom:16px;">Como citar esta análise</p>
+      <div style="display:grid; gap:18px;">
+
+        <div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <span class="citation-label">ABNT</span>
+            <button class="copy-btn" onclick="copiarCitacao(this, 'abnt')">copiar</button>
+          </div>
+          <p class="citation-text" id="citacao-abnt">{{ citacao_abnt }}</p>
+        </div>
+
+        <div style="border-top:1px solid var(--color-rule); padding-top:18px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <span class="citation-label">APA</span>
+            <button class="copy-btn" onclick="copiarCitacao(this, 'apa')">copiar</button>
+          </div>
+          <p class="citation-text" id="citacao-apa">{{ citacao_apa }}</p>
+        </div>
+
+      </div>
     </div>
+  </div>
 </section>
 
-<!-- Historico -->
-<section class="text-sm">
-    <a href="{% url 'historico_analise' analise.pk %}" class="text-anco hover:text-anco-dark underline">Histórico de versões →</a>
+{# ── Autoria & Revisão / Versionamento ───────────────────────────────── #}
+<section id="autoria" style="padding: clamp(24px,3vw,48px) clamp(20px,5vw,56px) clamp(40px,6vw,64px);">
+  <div class="metadata-inner" style="
+    border-top: 1px solid var(--color-rule-strong);
+    padding-top: clamp(32px,4vw,48px);
+  ">
+    <div class="metadata-grid" style="display:block;">
+
+      {# Autoria & revisão #}
+      <div style="margin-bottom:clamp(24px,3vw,0);">
+        <p class="t-eyebrow" style="margin-bottom:14px;">Autoria & revisão</p>
+        <dl style="margin:0; display:grid; gap:14px; font-family:var(--font-sans); font-size:13px;">
+          <div>
+            <dt style="color:var(--color-ink-3); margin-bottom:2px;">Análise estrutural</dt>
+            <dd style="margin:0; color:var(--color-ink);">{{ analise.analista.nome_exibicao|default:analise.analista.username }}</dd>
+          </div>
+          {% for r in revisoes %}
+          <div>
+            <dt style="color:var(--color-ink-3); margin-bottom:2px;">{{ r.tipo_label }}</dt>
+            <dd style="margin:0; color:{% if 'cega' in r.tipo_label|lower %}var(--color-ink-2){% else %}var(--color-ink){% endif %};">
+              {{ r.identificador }}
+              {% if r.parecer_label and r.parecer_label != '—' %}<span style="color:var(--color-ink-4); margin-left:6px;">· {{ r.parecer_label }}</span>{% endif %}
+            </dd>
+          </div>
+          {% endfor %}
+        </dl>
+      </div>
+
+      {# Versionamento & licença #}
+      <div>
+        <p class="t-eyebrow" style="margin-bottom:14px;">Versionamento & licença</p>
+        <dl style="margin:0; display:grid; gap:14px; font-family:var(--font-sans); font-size:13px;">
+          <div>
+            <dt style="color:var(--color-ink-3); margin-bottom:2px;">Publicado no acervo</dt>
+            <dd style="margin:0; color:var(--color-ink);">{{ publicada_fmt }}</dd>
+          </div>
+          <div>
+            <dt style="color:var(--color-ink-3); margin-bottom:2px;">Histórico de versões</dt>
+            <dd style="margin:0; color:var(--color-ink);">
+              <a href="{% url 'historico_analise' analise.pk %}" class="link-gold">ver histórico →</a>
+            </dd>
+          </div>
+          <div>
+            <dt style="color:var(--color-ink-3); margin-bottom:2px;">Licença</dt>
+            <dd style="margin:0; color:var(--color-ink);">
+              <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener noreferrer" class="link-gold">CC BY-NC 4.0</a> — atribuição obrigatória, uso não-comercial.
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+    </div>
+  </div>
 </section>
 
-<!-- Selo CC-BY-NC -->
-<aside class="mt-8 pt-4 border-t border-slate-200 text-xs text-slate-500">
-    Esta análise é licenciada sob <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" class="text-anco underline">Creative Commons Atribuição-NãoComercial 4.0 (CC-BY-NC 4.0)</a>.
-    Reutilização permitida com atribuição. Uso comercial vedado sem autorização.
-</aside>
+<script>
+function copiarCitacao(btn, tipo) {
+  var el = document.getElementById('citacao-' + tipo);
+  if (!el) return;
+  navigator.clipboard.writeText(el.textContent.trim()).then(function() {
+    var orig = btn.textContent;
+    btn.textContent = 'copiado!';
+    setTimeout(function() { btn.textContent = orig; }, 1500);
+  });
+}
+</script>
+
 {% endblock %}
