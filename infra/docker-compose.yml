@@ -87,7 +87,8 @@ services:
     volumes:
       - model_cache:/model_cache
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
+      # python:3.12-slim não tem curl; usa urllib (sempre disponível)
+      test: ["CMD-SHELL", "python -c 'import urllib.request,sys; r=urllib.request.urlopen(\"http://localhost:8080/health\",timeout=3).read(); sys.exit(0 if b\"\\\"ready\\\":true\" in r else 1)'"]
       interval: 30s
       timeout: 10s
       retries: 5

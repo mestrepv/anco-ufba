@@ -31,6 +31,7 @@
     # via gunicorn). O Django coleta com `collectstatic`.
     handle /static/* {
         root * /srv
+        header Cache-Control "no-store"
         file_server
     }
 

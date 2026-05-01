@@ -25,6 +25,9 @@ RUN mkdir -p config && touch config/__init__.py \
 
 COPY . .
 
+# Gera o CSS de produção (baixa o binário do Tailwind na primeira execução)
+RUN python -m pytailwindcss -i static/css/input.css -o static/css/output.css --minify
+
 EXPOSE 8000
 
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
