@@ -1,0 +1,61 @@
+{% load static %}
+{# Uso: {% include "partials/_footer.html" with compact=True %} #}
+{# compact=True reduz a 1 coluna (para páginas internas) #}
+<footer style="border-top:1px solid var(--color-rule);background:var(--color-paper-2);color:var(--color-ink-3);font-family:var(--font-sans);font-size:12px;line-height:1.55;">
+  <div style="padding:{% if compact %}24px 20px{% else %}40px 56px{% endif %};">
+    <div style="display:grid;grid-template-columns:{% if compact %}1fr{% else %}2fr 1fr 1fr 1fr{% endif %};gap:{% if compact %}20px{% else %}48px{% endif %};">
+
+      {# Bloco de marca #}
+      <div>
+        <a href="{% url 'home' %}" style="text-decoration:none;">
+          {% include "partials/_wordmark.html" with size=16 %}
+        </a>
+        <p style="margin:12px 0 0;max-width:360px;color:var(--color-ink-3);">
+          Acervo digital colaborativo de análises de literatura científica
+          sobre Análise Cognitiva. Mantido pelo Programa de Pós-Graduação
+          em Difusão do Conhecimento, UFBA · UNEB · IFBA · SENAI CIMATEC.
+        </p>
+      </div>
+
+      {% if not compact %}
+      {# Coluna Acervo #}
+      <div>
+        <div class="t-eyebrow" style="color:var(--color-ink-2);margin-bottom:10px;">Acervo</div>
+        <ul style="list-style:none;padding:0;margin:0;display:grid;gap:6px;" role="list">
+          <li><a href="{% url 'acervo_publico' %}" style="color:inherit;text-decoration:none;">Buscar</a></li>
+          <li><a href="{% url 'acervo_publico' %}" style="color:inherit;text-decoration:none;">Análises recentes</a></li>
+          <li><a href="{% url 'acervo_publico' %}?resenha=true" style="color:inherit;text-decoration:none;">Resenhas críticas</a></li>
+          <li><a href="{% url 'acervo_planilha' %}" style="color:inherit;text-decoration:none;">Planilha completa</a></li>
+        </ul>
+      </div>
+
+      {# Coluna Plataforma #}
+      <div>
+        <div class="t-eyebrow" style="color:var(--color-ink-2);margin-bottom:10px;">Plataforma</div>
+        <ul style="list-style:none;padding:0;margin:0;display:grid;gap:6px;" role="list">
+          <li><a href="{% url 'pagina_equipe' %}" style="color:inherit;text-decoration:none;">Equipe editorial</a></li>
+          <li><a href="{% url 'account_login' %}" style="color:inherit;text-decoration:none;">Como contribuir</a></li>
+        </ul>
+      </div>
+
+      {# Coluna Institucional #}
+      <div>
+        <div class="t-eyebrow" style="color:var(--color-ink-2);margin-bottom:10px;">Institucional</div>
+        <ul style="list-style:none;padding:0;margin:0;display:grid;gap:6px;" role="list">
+          <li><a href="https://ppgdc.ufba.br/" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:none;">PPGDC</a></li>
+          <li><a href="https://www.ufba.br/" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:none;">UFBA</a></li>
+          <li><a href="{% url 'pagina_termos' %}" style="color:inherit;text-decoration:none;">Termos de uso</a></li>
+          <li><a href="{% url 'pagina_privacidade' %}" style="color:inherit;text-decoration:none;">Privacidade</a></li>
+        </ul>
+      </div>
+      {% endif %}
+
+    </div>
+
+    {# Rodapé do rodapé: copyright + versão #}
+    <div style="margin-top:{% if compact %}20px{% else %}40px{% endif %};padding-top:16px;border-top:1px solid var(--color-rule);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <span>© 2024–2026 PPGDC. Análises licenciadas em <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;text-decoration-thickness:0.5px;">CC BY-NC 4.0</a>.</span>
+      <span>v.2026.04 · acervo em construção</span>
+    </div>
+  </div>
+</footer>

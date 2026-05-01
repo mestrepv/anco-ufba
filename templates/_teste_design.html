@@ -1,0 +1,84 @@
+{% extends "_base_publico.html" %}
+
+{% block title %}Teste de design — AnCo{% endblock %}
+
+{% block content %}
+<div style="max-width:900px;margin:0 auto;padding:40px 24px;display:grid;gap:48px;">
+
+  {# Escala tipográfica #}
+  <section>
+    <p class="t-eyebrow" style="margin-bottom:16px;">Tipografia</p>
+    <h1 class="t-display" style="margin:0 0 8px;">Display — Newsreader 44px</h1>
+    <h2 class="t-h1" style="margin:0 0 8px;">H1 — Newsreader 32px regular</h2>
+    <h3 class="t-h2" style="margin:0 0 8px;">H2 — Newsreader 22px medium</h3>
+    <h4 class="t-h3" style="margin:0 0 16px;">H3 — Newsreader 18px medium</h4>
+    <p class="t-prose" style="max-width:680px;margin:0 0 12px;">
+      Prosa — Newsreader 17px. O que a literatura científica diz sobre
+      <em>Análise Cognitiva</em>, organizado por quem a pratica. Texto de
+      demonstração com acentuação: ação, ênfase, coração, além disso.
+    </p>
+    <p class="t-body" style="margin:0 0 8px;">Body — Public Sans 15px. Metadados e UI em geral.</p>
+    <p class="t-small" style="margin:0 0 8px;">Small — Public Sans 13px. Notas de rodapé, legendas.</p>
+    <p class="t-meta" style="margin:0 0 8px;">Meta — Public Sans 12px. Datas, atribuições.</p>
+    <code style="font-family:var(--font-mono);font-size:12px;color:var(--color-ink-3);">10.1016/j.pub.2025.01.001</code>
+  </section>
+
+  <div class="hr"></div>
+
+  {# Botões #}
+  <section>
+    <p class="t-eyebrow" style="margin-bottom:16px;">Botões</p>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+      {% include "partials/_btn.html" with label="Explorar o acervo →" variant="primary" href="#" %}
+      {% include "partials/_btn.html" with label="Entrar para contribuir" variant="secondary" href="#" %}
+      {% include "partials/_btn.html" with label="Buscar" variant="ghost" href="#" %}
+      {% include "partials/_btn.html" with label="Primário sm" variant="primary" href="#" sm=True %}
+      {% include "partials/_btn.html" with label="Secundário sm" variant="secondary" href="#" sm=True %}
+      {% include "partials/_btn.html" with label="Ghost sm" variant="ghost" href="#" sm=True %}
+    </div>
+  </section>
+
+  <div class="hr"></div>
+
+  {# Selos #}
+  <section>
+    <p class="t-eyebrow" style="margin-bottom:16px;">Selos de status</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+      {% include "partials/_selo.html" with kind="resenha" %}
+      {% include "partials/_selo.html" with kind="aberto" %}
+      {% include "partials/_selo.html" with kind="quebrado" %}
+      {% include "partials/_selo.html" with kind="historico" %}
+      {% include "partials/_selo.html" with kind="multi" %}
+    </div>
+  </section>
+
+  <div class="hr"></div>
+
+  {# Chips #}
+  <section>
+    <p class="t-eyebrow" style="margin-bottom:16px;">Chips de vocabulário</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+      {% include "partials/_chip.html" with label="Empirismo" %}
+      {% include "partials/_chip.html" with label="Fenomenologia" %}
+      {% include "partials/_chip.html" with label="Teoria Fundamentada" removable=True %}
+      {% include "partials/_chip.html" with label="Positivismo" removable=True %}
+    </div>
+  </section>
+
+  <div class="hr"></div>
+
+  {# Paleta de cores #}
+  <section>
+    <p class="t-eyebrow" style="margin-bottom:16px;">Paleta</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      {% for name, color in colors %}
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div style="width:48px;height:48px;background:{{ color }};border:1px solid var(--color-rule);border-radius:2px;"></div>
+        <span class="t-meta" style="white-space:nowrap;">{{ name }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+</div>
+{% endblock %}

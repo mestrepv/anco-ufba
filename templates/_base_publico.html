@@ -1,0 +1,44 @@
+{% load static %}<!doctype html>
+<html lang="pt-BR" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}AnCo — Análise Cognitiva{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Acervo colaborativo de análises de literatura científica sobre Análise Cognitiva — produzido por pesquisadores do PPGDC.{% endblock %}">
+
+  <link rel="canonical" href="{{ request.build_absolute_uri }}">
+
+  <meta property="og:site_name" content="AnCo">
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:title" content="{% block og_title %}{% block _title_inner %}AnCo — Análise Cognitiva{% endblock %}{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Acervo colaborativo de análises de literatura científica sobre Análise Cognitiva.{% endblock %}">
+  <meta property="og:url" content="{{ request.build_absolute_uri }}">
+
+  <link rel="stylesheet" href="{% static 'css/output.css' %}">
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-full bg-paper text-ink antialiased">
+
+  <a href="#main-content" class="skip-link">Ir para o conteúdo principal</a>
+
+  {# ── Nav desktop (md+) ──────────────────────────────────────────────── #}
+  <header class="hidden md:block border-b border-rule bg-paper">
+    {% include "partials/_nav_desktop.html" with active=active_nav %}
+  </header>
+
+  {# ── Nav mobile (< md) ──────────────────────────────────────────────── #}
+  <header class="md:hidden border-b border-rule bg-paper">
+    {% include "partials/_nav_mobile.html" %}
+  </header>
+
+  <main id="main-content" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% include "partials/_footer.html" with compact=footer_compact %}
+
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js" defer></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

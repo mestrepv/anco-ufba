@@ -1,0 +1,18 @@
+{# Uso: {% include "partials/_btn.html" with label="Explorar →" variant="primary" href=url %} #}
+{# variant: primary | secondary | ghost (default: secondary)                                  #}
+{# sm=True reduz o tamanho                                                                    #}
+{# href: URL (usa <a>); sem href usa <button type="button">                                   #}
+{# type: submit (só com button, sem href)                                                     #}
+{% if href %}
+<a href="{{ href }}"
+   class="btn btn-{{ variant|default:'secondary' }}{% if sm %} btn-sm{% endif %}"
+   {% if target %}target="{{ target }}" rel="noopener noreferrer"{% endif %}>{{ label }}</a>
+{% elif type == "submit" %}
+<button type="submit"
+        class="btn btn-{{ variant|default:'secondary' }}{% if sm %} btn-sm{% endif %}"
+        {% if disabled %}disabled{% endif %}>{{ label }}</button>
+{% else %}
+<button type="button"
+        class="btn btn-{{ variant|default:'secondary' }}{% if sm %} btn-sm{% endif %}"
+        {% if disabled %}disabled{% endif %}>{{ label }}</button>
+{% endif %}

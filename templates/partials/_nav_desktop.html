@@ -1,0 +1,41 @@
+{% load static %}
+{# Uso: {% include "partials/_nav_desktop.html" with active="acervo" %} #}
+{# active: acervo | sobre | metodologia | equipe #}
+<nav style="display:flex;align-items:center;justify-content:space-between;padding:20px 56px;" aria-label="Navegação principal">
+
+  <div style="display:flex;align-items:center;gap:48px;">
+    <a href="{% url 'home' %}" aria-label="AnCo — página inicial">
+      {% include "partials/_wordmark.html" with size=22 %}
+    </a>
+
+    <ul style="display:flex;gap:28px;list-style:none;padding:0;margin:0;" role="list">
+      <li>
+        <a href="{% url 'acervo_publico' %}"
+           style="font-family:var(--font-sans);font-size:14px;font-weight:{% if active == 'acervo' %}600{% else %}400{% endif %};color:{% if active == 'acervo' %}var(--color-ink){% else %}var(--color-ink-3){% endif %};border-bottom:1px solid {% if active == 'acervo' %}var(--color-ink){% else %}transparent{% endif %};padding-bottom:4px;text-decoration:none;{% if active == 'acervo' %}pointer-events:none;{% endif %}"
+           {% if active == 'acervo' %}aria-current="page"{% endif %}>Acervo</a>
+      </li>
+      <li>
+        <a href="{% url 'pagina_equipe' %}"
+           style="font-family:var(--font-sans);font-size:14px;font-weight:{% if active == 'equipe' %}600{% else %}400{% endif %};color:{% if active == 'equipe' %}var(--color-ink){% else %}var(--color-ink-3){% endif %};border-bottom:1px solid {% if active == 'equipe' %}var(--color-ink){% else %}transparent{% endif %};padding-bottom:4px;text-decoration:none;{% if active == 'equipe' %}pointer-events:none;{% endif %}"
+           {% if active == 'equipe' %}aria-current="page"{% endif %}>Equipe</a>
+      </li>
+    </ul>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="{% url 'acervo_publico' %}" class="btn btn-sm btn-ghost" aria-label="Ir para busca do acervo">
+      <svg class="icon" style="width:14px;height:14px;" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <circle cx="7" cy="7" r="4.5"/><line x1="10.3" y1="10.3" x2="13.5" y2="13.5" stroke-linecap="round"/>
+      </svg>
+      Buscar
+    </a>
+    {% if user.is_authenticated %}
+      <form method="post" action="{% url 'account_logout' %}" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-secondary">Sair</button>
+      </form>
+    {% else %}
+      <a href="{% url 'account_login' %}" class="btn btn-sm btn-secondary">Entrar</a>
+    {% endif %}
+  </div>
+</nav>

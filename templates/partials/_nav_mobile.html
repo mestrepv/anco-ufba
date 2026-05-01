@@ -1,0 +1,71 @@
+{% load static %}
+{# Uso: {% include "partials/_nav_mobile.html" with show_search=True %} #}
+<nav style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;" aria-label="Navegação principal">
+
+  <a href="{% url 'home' %}" aria-label="AnCo — página inicial">
+    {% include "partials/_wordmark.html" with size=19 %}
+  </a>
+
+  <div style="display:flex;align-items:center;gap:4px;">
+    {% if show_search %}
+    <a href="{% url 'acervo_publico' %}"
+       style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:transparent;border:0;color:var(--color-ink-2);cursor:pointer;text-decoration:none;"
+       aria-label="Buscar no acervo">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px;" aria-hidden="true">
+        <circle cx="7" cy="7" r="4.5"/><line x1="10.3" y1="10.3" x2="13.5" y2="13.5" stroke-linecap="round"/>
+      </svg>
+    </a>
+    {% endif %}
+
+    <button id="nav-mobile-toggle"
+            style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:transparent;border:0;color:var(--color-ink-2);cursor:pointer;"
+            aria-label="Abrir menu"
+            aria-expanded="false"
+            aria-controls="nav-mobile-drawer">
+      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" style="width:18px;height:18px;" aria-hidden="true">
+        <line x1="2" y1="5" x2="16" y2="5" stroke-linecap="round"/>
+        <line x1="2" y1="9" x2="16" y2="9" stroke-linecap="round"/>
+        <line x1="2" y1="13" x2="16" y2="13" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+{# Drawer de navegação mobile #}
+<div id="nav-mobile-drawer"
+     style="display:none;background:var(--color-paper);border-bottom:1px solid var(--color-rule);padding:8px 20px 20px;"
+     aria-label="Menu de navegação">
+  <ul style="list-style:none;padding:0;margin:0;display:grid;gap:0;" role="list">
+    <li><a href="{% url 'acervo_publico' %}" style="display:block;padding:14px 0;font-family:var(--font-sans);font-size:15px;color:var(--color-ink);border-bottom:1px solid var(--color-rule);text-decoration:none;">Acervo</a></li>
+    <li><a href="{% url 'pagina_equipe' %}" style="display:block;padding:14px 0;font-family:var(--font-sans);font-size:15px;color:var(--color-ink);border-bottom:1px solid var(--color-rule);text-decoration:none;">Equipe</a></li>
+  </ul>
+  <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+    {% if user.is_authenticated %}
+      <form method="post" action="{% url 'account_logout' %}">{% csrf_token %}
+        <button type="submit" class="btn btn-secondary" style="width:100%;justify-content:center;">Sair</button>
+      </form>
+    {% else %}
+      <a href="{% url 'account_login' %}" class="btn btn-secondary" style="width:100%;justify-content:center;">Entrar</a>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+(function(){
+  function initNav() {
+    var btn = document.getElementById('nav-mobile-toggle');
+    var drawer = document.getElementById('nav-mobile-drawer');
+    if (!btn || !drawer) return;
+    btn.addEventListener('click', function(){
+      var open = drawer.style.display === 'block';
+      drawer.style.display = open ? 'none' : 'block';
+      btn.setAttribute('aria-expanded', String(!open));
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initNav);
+  } else {
+    initNav();
+  }
+})();
+</script>
