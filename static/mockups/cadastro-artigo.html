@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — Cadastro de artigo via DOI · AnCo</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/static/css/fonts.css">
+<link rel="stylesheet" href="/static/css/output.css">
+<style>
+  /* Pequenos extras só pra este mockup */
+  body { background: var(--color-paper, #FBF9F4); color: var(--color-ink, #1A1816); }
+  .mock-banner {
+    background: #FBF7E8;
+    border-bottom: 1px solid #E8DCA8;
+    color: #6b5e1f;
+    padding: 6px 12px;
+    text-align: center;
+    font-size: 12px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    font-family: "Public Sans", system-ui, sans-serif;
+  }
+  .lookup-input {
+    width: 100%;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 18px;
+    padding: 14px 16px;
+    border: 1.5px solid #D4CCB8;
+    border-radius: 8px;
+    background: #fff;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .lookup-input:focus {
+    outline: none;
+    border-color: #B8862C;
+    box-shadow: 0 0 0 3px rgba(184,134,44,.18);
+  }
+  .meta-card {
+    background: #fff;
+    border: 1px solid #E5DFCF;
+    border-radius: 10px;
+    padding: 28px 32px;
+    box-shadow: 0 1px 2px rgba(26,24,22,.04);
+  }
+  .meta-card h2 {
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 22px;
+    line-height: 1.3;
+    color: #1A1816;
+    margin-bottom: 8px;
+  }
+  .meta-row {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 12px 24px;
+    padding: 10px 0;
+    border-top: 1px solid #F0EAD8;
+    font-size: 14px;
+  }
+  .meta-row:first-of-type { border-top: 0; }
+  .meta-row dt {
+    color: #948D80;
+    font-family: "Public Sans", system-ui, sans-serif;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .meta-row dd { font-family: "Public Sans", system-ui, sans-serif; color: #1A1816; }
+  .meta-row dd .mono { font-family: "JetBrains Mono", monospace; font-size: 13px; color: #3A352E; }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-family: "Public Sans", system-ui, sans-serif;
+    font-weight: 500;
+  }
+  .badge-ok { background: #E8F0DA; color: #4A6B3A; border: 1px solid #C5D8A8; }
+  .badge-warn { background: #FBEFCF; color: #8C6520; border: 1px solid #E8C97A; }
+  .badge-err { background: #F8DEDA; color: #A03A2A; border: 1px solid #E5A89E; }
+  .field-input, .field-textarea {
+    width: 100%;
+    font-family: "Public Sans", system-ui, sans-serif;
+    font-size: 14px;
+    padding: 8px 10px;
+    border: 1px solid #D4CCB8;
+    border-radius: 6px;
+    background: #fff;
+  }
+  .field-input:focus, .field-textarea:focus {
+    outline: none;
+    border-color: #B8862C;
+    box-shadow: 0 0 0 2px rgba(184,134,44,.15);
+  }
+  .field-label {
+    font-family: "Public Sans", system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6B655B;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 4px;
+    display: block;
+  }
+  .step-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    background: #B8862C;
+    color: #fff;
+    font-family: "Public Sans", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid #E5DFCF;
+    border-top-color: #B8862C;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .sample-row { font-family: "JetBrains Mono", monospace; font-size: 12px; }
+  .sample-row a { color: #144d77; text-decoration: underline; cursor: pointer; }
+  .sample-row a:hover { color: #0f3b5c; }
+  details > summary { cursor: pointer; }
+  details > summary::-webkit-details-marker { color: #948D80; }
+</style>
+</head>
+<body>
+
+<div class="mock-banner">
+  Mockup • somente layout • nenhuma persistência • lookup ao vivo na Crossref
+</div>
+
+<header style="max-width: 880px; margin: 32px auto 0; padding: 0 24px;">
+  <span class="t-eyebrow" style="color:#B8862C;">An·Co · área do analista</span>
+  <h1 class="t-h1" style="margin-top: 4px;">Nova análise</h1>
+  <p class="t-prose" style="color:#3A352E; margin-top: 8px; max-width: 60ch;">
+    Comece pelo identificador do artigo. O sistema busca os metadados
+    automaticamente na Crossref e mostra o cartão para você conferir
+    antes de salvar. Caso o artigo não tenha DOI, é possível avançar
+    digitando os dados manualmente.
+  </p>
+</header>
+
+<main x-data="cadastro()" style="max-width: 880px; margin: 32px auto 80px; padding: 0 24px;">
+
+  <!-- PASSO 1: identificador -->
+  <section style="margin-top: 24px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom: 12px;">
+      <span class="step-indicator">1</span>
+      <h2 class="t-h3">Identifique o artigo</h2>
+    </div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom: 14px; font-family: 'Public Sans', system-ui;">
+      <label style="display:inline-flex; align-items:center; gap:6px; font-size:14px;">
+        <input type="radio" name="tipoid" value="doi" x-model="tipoId">
+        <span>Tenho DOI</span>
+      </label>
+      <label style="display:inline-flex; align-items:center; gap:6px; font-size:14px;">
+        <input type="radio" name="tipoid" value="isbn" x-model="tipoId">
+        <span>Tenho ISBN</span>
+      </label>
+      <label style="display:inline-flex; align-items:center; gap:6px; font-size:14px;">
+        <input type="radio" name="tipoid" value="nenhum" x-model="tipoId">
+        <span>Não tenho identificador</span>
+      </label>
+    </div>
+
+    <div x-show="tipoId === 'doi'">
+      <input
+        type="text"
+        class="lookup-input"
+        x-model="identificador"
+        @input.debounce.700ms="buscarDoi()"
+        placeholder="10.xxxx/yyyy   ou   https://doi.org/10.xxxx/yyyy"
+        autocomplete="off"
+        spellcheck="false">
+      <div style="margin-top: 8px; display:flex; align-items:center; gap:10px; min-height: 22px; font-family:'Public Sans', system-ui; font-size:13px; color:#6B655B;">
+        <template x-if="estado === 'idle'">
+          <span>Digite um DOI para buscar metadados na Crossref.</span>
+        </template>
+        <template x-if="estado === 'buscando'">
+          <span><span class="spinner"></span>&nbsp; Consultando Crossref…</span>
+        </template>
+        <template x-if="estado === 'ok'">
+          <span class="badge badge-ok">✓ encontrado</span>
+        </template>
+        <template x-if="estado === 'nao_encontrado'">
+          <span class="badge badge-warn">DOI não encontrado — preencha manualmente abaixo</span>
+        </template>
+        <template x-if="estado === 'erro'">
+          <span class="badge badge-err" x-text="'erro: ' + erro"></span>
+        </template>
+        <template x-if="estado === 'invalido'">
+          <span class="badge badge-warn">formato inválido — esperado <code>10.xxxx/yyy</code></span>
+        </template>
+      </div>
+
+      <div style="margin-top: 12px; font-family:'Public Sans', system-ui; font-size:12px; color:#948D80;">
+        Não tem em mãos? Use uma destas amostras:
+        <span class="sample-row" style="display:inline-flex; gap:14px; margin-left: 8px; flex-wrap:wrap;">
+          <a @click="usarAmostra('10.1016/j.cogsys.2012.05.003')">10.1016/j.cogsys.2012.05.003</a>
+          <a @click="usarAmostra('10.1038/s41586-021-03819-2')">10.1038/s41586-021-03819-2</a>
+          <a @click="usarAmostra('10.22633/rpge.v26i00.16741')">10.22633/rpge.v26i00.16741</a>
+        </span>
+      </div>
+    </div>
+
+    <div x-show="tipoId === 'isbn'" style="font-family:'Public Sans', system-ui; font-size:14px; color:#6B655B; padding:14px; background:#F5F1E8; border-radius:8px;">
+      Lookup por ISBN não está neste mockup — a tela final usaria
+      <code>OpenLibrary</code> ou <code>Google Books</code>. Selecione
+      <strong>Tenho DOI</strong> para ver o fluxo de preview.
+    </div>
+
+    <div x-show="tipoId === 'nenhum'" style="font-family:'Public Sans', system-ui; font-size:14px; color:#6B655B; padding:14px; background:#F5F1E8; border-radius:8px;">
+      Sem identificador, o sistema gera um identificador interno
+      <code>legacy:HASH(título|ano|periódico)</code>. Os campos abaixo
+      precisam ser preenchidos manualmente.
+    </div>
+  </section>
+
+  <!-- PASSO 2: cartão de preview -->
+  <section x-show="estado === 'ok'" x-transition style="margin-top: 36px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom: 12px;">
+      <span class="step-indicator">2</span>
+      <h2 class="t-h3">Confira os metadados</h2>
+    </div>
+
+    <div class="meta-card">
+      <h2 x-text="meta.titulo || '—'"></h2>
+      <p style="font-family:'Public Sans', system-ui; font-size:14px; color:#6B655B; margin-bottom: 16px;"
+         x-text="(meta.autores_str || '—') + ' · ' + (meta.ano || 's.d.')"></p>
+
+      <dl style="margin-top: 8px;">
+        <div class="meta-row">
+          <dt>Periódico</dt>
+          <dd x-text="meta.periodico || '—'"></dd>
+        </div>
+        <div class="meta-row">
+          <dt>Ano</dt>
+          <dd x-text="meta.ano || '—'"></dd>
+        </div>
+        <div class="meta-row">
+          <dt>Volume / Nº</dt>
+          <dd>
+            <span x-text="meta.volume || '—'"></span>
+            <span style="color:#948D80;"> · </span>
+            <span x-text="meta.numero || '—'"></span>
+          </dd>
+        </div>
+        <div class="meta-row">
+          <dt>Páginas</dt>
+          <dd x-text="meta.paginas || '—'"></dd>
+        </div>
+        <div class="meta-row">
+          <dt>DOI</dt>
+          <dd><span class="mono" x-text="meta.doi"></span></dd>
+        </div>
+        <div class="meta-row">
+          <dt>ISSN</dt>
+          <dd><span class="mono" x-text="(meta.issn && meta.issn.length) ? meta.issn.join(', ') : '—'"></span></dd>
+        </div>
+        <div class="meta-row">
+          <dt>Editora</dt>
+          <dd x-text="meta.editora || '—'"></dd>
+        </div>
+        <div class="meta-row">
+          <dt>Tipo</dt>
+          <dd x-text="meta.tipo || '—'"></dd>
+        </div>
+        <div class="meta-row">
+          <dt>Licença</dt>
+          <dd>
+            <template x-if="meta.licenca">
+              <a :href="meta.licenca" target="_blank" rel="noopener" style="color:#144d77;" x-text="meta.licenca"></a>
+            </template>
+            <template x-if="!meta.licenca"><span>—</span></template>
+          </dd>
+        </div>
+        <div class="meta-row">
+          <dt>Resumo</dt>
+          <dd>
+            <details>
+              <summary style="font-family:'Public Sans', system-ui; font-size:13px; color:#6B655B;">
+                <span x-show="meta.resumo">mostrar resumo (<span x-text="meta.resumo ? meta.resumo.length : 0"></span> caracteres)</span>
+                <span x-show="!meta.resumo">não fornecido pela Crossref</span>
+              </summary>
+              <p x-show="meta.resumo" class="t-prose" style="margin-top:8px; font-size:14px; color:#1A1816;"
+                 x-text="meta.resumo"></p>
+            </details>
+          </dd>
+        </div>
+        <div class="meta-row">
+          <dt>Citações</dt>
+          <dd>
+            <span x-text="meta.citacoes_crossref ?? 0"></span>
+            <span style="color:#948D80; font-family:'Public Sans', system-ui; font-size:12px;">
+              referenciado por (Crossref)
+            </span>
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- PASSO 3: campos complementares -->
+  <section x-show="estado === 'ok' || estado === 'nao_encontrado'" x-transition style="margin-top: 36px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom: 12px;">
+      <span class="step-indicator">3</span>
+      <h2 class="t-h3">Complemente as informações</h2>
+    </div>
+    <p class="t-small" style="color:#6B655B; margin-bottom: 16px;">
+      Estes campos não vêm da Crossref e precisam ser preenchidos pelo
+      analista. Os campos acima podem ser editados se houver discrepância.
+    </p>
+
+    <div class="meta-card">
+      <div style="display:grid; grid-template-columns: 1fr; gap: 16px;">
+
+        <div>
+          <label class="field-label" for="link_acesso">Link de acesso (obrigatório)</label>
+          <input id="link_acesso" type="url" class="field-input"
+                 :value="meta.url || ''"
+                 placeholder="https://...">
+          <p class="t-small" style="color:#948D80; margin-top:4px;">
+            Sistema verifica se o link responde 200 e captura snapshot na Wayback Machine.
+          </p>
+        </div>
+
+        <div>
+          <label class="field-label" for="base_consulta">Base de consulta (obrigatório)</label>
+          <select id="base_consulta" class="field-input">
+            <option value="">— escolha —</option>
+            <option>Web of Science</option>
+            <option>Scopus</option>
+            <option>SciELO</option>
+            <option>Redalyc</option>
+            <option>Science Direct</option>
+            <option>Sage</option>
+            <option>Repositório UFBA</option>
+            <option>Outra (especificar nas observações)</option>
+          </select>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <label class="field-label">Acesso aberto</label>
+            <select class="field-input">
+              <option>Não verificado</option>
+              <option>Sim</option>
+              <option>Não</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Artigo pago</label>
+            <select class="field-input">
+              <option>Não verificado</option>
+              <option>Sim</option>
+              <option>Não</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="field-label">Palavras-chave (separadas por <code>;</code>)</label>
+          <textarea class="field-textarea" rows="2"
+                    x-text="meta.palavras_chave_str || ''"
+                    placeholder="análise cognitiva; cognição; ..."></textarea>
+        </div>
+
+        <div>
+          <label class="field-label">Área (vinda do periódico)</label>
+          <input type="text" class="field-input" :value="meta.areas_str || ''" placeholder="Ex: Psicologia">
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- PASSO 4: ação -->
+  <section x-show="estado === 'ok' || estado === 'nao_encontrado'" x-transition
+           style="margin-top: 32px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+    <a href="#" @click.prevent="reset()" class="btn btn-ghost btn-sm">← descartar e começar de novo</a>
+    <button class="btn btn-primary" @click.prevent="alert('Mockup: aqui o sistema criaria o Artigo + Análise (rascunho) e iria para a tela de edição da análise.')">
+      Cadastrar artigo e iniciar análise →
+    </button>
+  </section>
+
+  <!-- Estado vazio -->
+  <section x-show="estado === 'idle' && tipoId === 'doi'" style="margin-top: 36px; padding: 32px; text-align: center; color:#948D80;">
+    <p class="t-small">↑ Cole um DOI no campo acima para ver o preview.</p>
+  </section>
+
+</main>
+
+<footer style="max-width:880px; margin: 0 auto 40px; padding: 0 24px; font-family:'Public Sans', system-ui; font-size:12px; color:#948D80;">
+  Mockup standalone — não conectado ao backend.
+  Lookup feito ao vivo na <a href="https://api.crossref.org/" style="color:#6B655B;" target="_blank" rel="noopener">Crossref REST API</a> a partir do navegador (CORS).
+  Design tokens importados de <code>/static/css/output.css</code>.
+</footer>
+
+<script src="https://unpkg.com/alpinejs@3.14.7/dist/cdn.min.js" defer></script>
+<script>
+function cadastro() {
+  return {
+    tipoId: 'doi',
+    identificador: '',
+    estado: 'idle',         // idle | buscando | ok | nao_encontrado | erro | invalido
+    erro: '',
+    meta: {},
+
+    usarAmostra(doi) {
+      this.identificador = doi;
+      this.buscarDoi();
+    },
+
+    reset() {
+      this.identificador = '';
+      this.estado = 'idle';
+      this.erro = '';
+      this.meta = {};
+    },
+
+    normalizar(raw) {
+      let v = (raw || '').trim();
+      v = v.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '');
+      v = v.replace(/^doi[:\s]+/i, '');
+      return v;
+    },
+
+    async buscarDoi() {
+      const doi = this.normalizar(this.identificador);
+      if (!doi) { this.estado = 'idle'; return; }
+      if (!/^10\.\d{3,9}\/\S+$/.test(doi)) {
+        this.estado = 'invalido';
+        return;
+      }
+      this.estado = 'buscando';
+      this.erro = '';
+      try {
+        const url = 'https://api.crossref.org/works/' + encodeURIComponent(doi)
+                  + '?mailto=paulovicente.ifba@gmail.com';
+        const resp = await fetch(url);
+        if (resp.status === 404) {
+          this.estado = 'nao_encontrado';
+          this.meta = { doi: doi };
+          return;
+        }
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const json = await resp.json();
+        this.meta = this.extrair(json.message, doi);
+        this.estado = 'ok';
+      } catch (e) {
+        this.estado = 'erro';
+        this.erro = e.message || 'falha de rede';
+      }
+    },
+
+    extrair(m, fallbackDoi) {
+      const autores = (m.author || []).map(a => {
+        const nome = [a.given, a.family].filter(Boolean).join(' ');
+        return nome || a.name || '';
+      }).filter(Boolean);
+
+      const dataParts = ((m.published || m['published-print'] || m['published-online'] || {})['date-parts'] || [[]])[0];
+      const ano = dataParts[0] || '';
+
+      const issnTypes = (m['issn-type'] || []).reduce((acc, x) => {
+        acc[x.type] = x.value;
+        return acc;
+      }, {});
+
+      // CrossRef abstract pode vir com tags JATS — limpa.
+      let resumo = m.abstract || '';
+      resumo = resumo.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+      const licenca = ((m.license || [])[0] || {}).URL || '';
+
+      return {
+        doi: m.DOI || fallbackDoi,
+        titulo: (m.title || [''])[0],
+        autores: autores,
+        autores_str: autores.length > 4
+          ? autores.slice(0, 3).join('; ') + '; et al.'
+          : autores.join('; '),
+        periodico: (m['container-title'] || [''])[0],
+        editora: m.publisher || '',
+        tipo: this.tipoLegivel(m.type),
+        ano: ano,
+        volume: m.volume || '',
+        numero: m.issue || '',
+        paginas: m.page || '',
+        issn: m.ISSN || [],
+        issn_print: issnTypes.print || '',
+        issn_electronic: issnTypes.electronic || '',
+        resumo: resumo,
+        palavras_chave: (m.subject || []),
+        palavras_chave_str: (m.subject || []).join('; '),
+        areas_str: (m.subject || []).slice(0, 2).join(', '),
+        url: m.URL || ('https://doi.org/' + (m.DOI || fallbackDoi)),
+        licenca: licenca,
+        citacoes_crossref: m['is-referenced-by-count'] || 0,
+      };
+    },
+
+    tipoLegivel(t) {
+      const mapa = {
+        'journal-article': 'Artigo de periódico',
+        'book-chapter': 'Capítulo de livro',
+        'book': 'Livro',
+        'proceedings-article': 'Artigo de evento',
+        'dissertation': 'Tese / dissertação',
+        'report': 'Relatório',
+      };
+      return mapa[t] || t || '';
+    },
+  };
+}
+</script>
+
+</body>
+</html>
