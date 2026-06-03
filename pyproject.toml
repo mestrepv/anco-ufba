@@ -23,6 +23,7 @@ dependencies = [
     "django-csp>=3.8",
     "django-ratelimit>=4.1",
     "pgvector>=0.3",
+    "django-unfold>=0.40",
 ]
 
 [project.optional-dependencies]

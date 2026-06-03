@@ -1,13 +1,26 @@
 """Admin do app core."""
 
+from allauth.account.admin import EmailAddressAdmin as AllauthEmailAddressAdmin
+from allauth.account.models import EmailAddress
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from unfold.admin import ModelAdmin as UnfoldModelAdmin
 
 from .models import SolicitacaoCadastro, User
 
+# Restaura a ação `delete_selected` no admin de EmailAddress do allauth.
+# O allauth sobrescreve `actions = ['make_verified']`, removendo a delete
+# padrão e impedindo apagar registros pela UI.
+admin.site.unregister(EmailAddress)
+
+
+@admin.register(EmailAddress)
+class EmailAddressAdmin(AllauthEmailAddressAdmin, UnfoldModelAdmin):
+    actions = ["make_verified", "delete_selected"]
+
 
 @admin.register(User)
-class UserAdmin(DjangoUserAdmin):
+class UserAdmin(DjangoUserAdmin, UnfoldModelAdmin):
     list_display = (
         "username",
         "email",
@@ -48,9 +61,9 @@ class UserAdmin(DjangoUserAdmin):
 
 
 @admin.register(SolicitacaoCadastro)
-class SolicitacaoCadastroAdmin(admin.ModelAdmin):
-    list_display = ("usuario", "vinculo", "status", "revisado_por", "revisado_em", "criado_em")
-    list_filter = ("status",)
+class SolicitacaoCadastroAdmin(UnfoldModelAdmin):
+    list_display = ("usuario", "tipo", "vinculo", "status", "revisado_por", "revisado_em", "criado_em")
+    list_filter = ("tipo", "status")
     search_fields = (
         "usuario__username",
         "usuario__email",

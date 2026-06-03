@@ -27,6 +27,10 @@ DEBUG = env("DJANGO_DEBUG")
 ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
 
 INSTALLED_APPS = [
+    # django-unfold — TEM que vir antes de django.contrib.admin
+    "unfold",
+    "unfold.contrib.filters",
+    "unfold.contrib.forms",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -214,4 +218,37 @@ ACCOUNT_RATE_LIMITS = {
     "login": "30/5m",
     "signup": "3/h",
     "send_email": "5/h",
+}
+
+# ---------------------------------------------------------------------------
+# Admin (django-unfold) — paleta dourada da AnCo
+# ---------------------------------------------------------------------------
+UNFOLD = {
+    "SITE_TITLE": "AnCo — Curadoria",
+    "SITE_HEADER": "AnCo",
+    "SITE_SUBHEADER": "Painel de curadoria",
+    "SITE_URL": "/",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "THEME": None,  # None = respeita preferência do sistema; "light" ou "dark" força
+    "COLORS": {
+        # Paleta extraída do design system (var(--color-gold-deep) = #8C6520)
+        "primary": {
+            "50":  "250 247 232",   # review-bg
+            "100": "245 241 232",   # paper-2
+            "200": "232 220 168",   # review-rule
+            "300": "212 204 184",   # rule-strong
+            "400": "184 134 44",    # gold
+            "500": "140 101 32",    # gold-deep (principal)
+            "600": "120 86 24",
+            "700": "96 69 18",
+            "800": "72 52 14",
+            "900": "48 34 9",
+            "950": "26 24 22",      # ink
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+    },
 }

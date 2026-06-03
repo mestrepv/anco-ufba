@@ -3,19 +3,21 @@
 from django.contrib import admin, messages
 from django.utils import timezone
 from simple_history.admin import SimpleHistoryAdmin
+from unfold.admin import ModelAdmin as UnfoldModelAdmin
+from unfold.admin import TabularInline as UnfoldTabularInline
 
 from .models import Analise, Artigo, ComentarioRevisao, Revisao, SnapshotLink
 from .services import aplicar_resultado_no_artigo, capturar_snapshot_wayback, validar_link
 
 
-class SnapshotLinkInline(admin.TabularInline):
+class SnapshotLinkInline(UnfoldTabularInline):
     model = SnapshotLink
     extra = 0
     readonly_fields = ("capturado_em",)
 
 
 @admin.register(Artigo)
-class ArtigoAdmin(admin.ModelAdmin):
+class ArtigoAdmin(UnfoldModelAdmin):
     list_display = (
         "titulo_curto",
         "ano",
@@ -134,14 +136,14 @@ class LinkQuebradoAdmin(ArtigoAdmin):
         return qs.filter(link_status=Artigo.LinkStatus.QUEBRADO)
 
 
-class ComentarioRevisaoInline(admin.TabularInline):
+class ComentarioRevisaoInline(UnfoldTabularInline):
     model = ComentarioRevisao
     extra = 0
     readonly_fields = ("criado_em",)
 
 
 @admin.register(Revisao)
-class RevisaoAdmin(admin.ModelAdmin):
+class RevisaoAdmin(UnfoldModelAdmin):
     list_display = ("id", "analise", "revisor", "tipo", "parecer", "prazo_em", "concluido_em")
     list_filter = ("tipo", "parecer")
     search_fields = ("analise__artigo__titulo", "revisor__username")
@@ -150,7 +152,7 @@ class RevisaoAdmin(admin.ModelAdmin):
     inlines = [ComentarioRevisaoInline]
 
 
-class RevisaoInline(admin.TabularInline):
+class RevisaoInline(UnfoldTabularInline):
     model = Revisao
     extra = 0
     fields = ("revisor", "tipo", "parecer", "prazo_em", "concluido_em")
@@ -160,7 +162,7 @@ class RevisaoInline(admin.TabularInline):
 
 
 @admin.register(Analise)
-class AnaliseAdmin(SimpleHistoryAdmin):
+class AnaliseAdmin(SimpleHistoryAdmin, UnfoldModelAdmin):
     list_display = ("id", "artigo", "analista", "status", "tem_resenha", "criado_em")
     list_filter = ("status", "tem_resenha", "criado_em")
     search_fields = ("artigo__titulo", "analista__username", "objeto", "objetivo")
@@ -217,14 +219,14 @@ class AnaliseAdmin(SimpleHistoryAdmin):
 
 
 @admin.register(SnapshotLink)
-class SnapshotLinkAdmin(admin.ModelAdmin):
+class SnapshotLinkAdmin(UnfoldModelAdmin):
     list_display = ("id", "artigo", "capturado_em")
     search_fields = ("artigo__titulo", "url_original", "url_wayback")
     autocomplete_fields = ("artigo",)
 
 
 @admin.register(ComentarioRevisao)
-class ComentarioRevisaoAdmin(admin.ModelAdmin):
+class ComentarioRevisaoAdmin(UnfoldModelAdmin):
     list_display = ("id", "revisao", "campo", "criado_em")
     search_fields = ("texto", "campo")
     autocomplete_fields = ("revisao",)
