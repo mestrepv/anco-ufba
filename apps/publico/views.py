@@ -60,8 +60,22 @@ STATUS_PUBLICOS = (Analise.Status.PUBLICADA, Analise.Status.LEGADO)
 
 def vitrine_view(request: HttpRequest) -> HttpResponse:
     analises_count = Analise.objects.filter(status__in=STATUS_PUBLICOS).count()
+    # Pesquisadores que de fato publicaram (autores de analise PUBLICADA/LEGADO).
     pesquisadores_count = (
         User.objects.filter(analises__status__in=STATUS_PUBLICOS).distinct().count()
+    )
+    # Analistas cadastrados na equipe — mesma definicao do diretorio /equipe
+    # (pagina_equipe_view): papel analista/curador, ativos, nao-legado e com
+    # perfil minimo preenchido. Cresce a cada cadastro, independente de publicacao.
+    analistas_count = (
+        User.objects.filter(
+            papel__in=[User.Papel.ANALISTA, User.Papel.CURADOR],
+            is_active=True,
+            eh_legado=False,
+        )
+        .exclude(nome_exibicao="")
+        .exclude(vinculo_institucional="")
+        .count()
     )
     bases_count = (
         Artigo.objects.filter(
@@ -93,6 +107,7 @@ def vitrine_view(request: HttpRequest) -> HttpResponse:
         "vitrine.html",
         {
             "analises_count": analises_count,
+            "analistas_count": analistas_count,
             "pesquisadores_count": pesquisadores_count,
             "bases_count": bases_count,
             "min_ano": ano_agg["min_ano"],

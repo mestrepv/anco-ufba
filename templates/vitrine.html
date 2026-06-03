@@ -15,15 +15,25 @@
   gap: 40px;
 ">
   <style>
+    /* Resumo: 5 metricas. Mobile = 2 colunas (3 linhas: 2+2+1). */
+    .metric-cell {
+      padding: 20px 16px;
+      border-right: 1px solid var(--color-rule);
+      border-bottom: 1px solid var(--color-rule);
+    }
+    .metric-cell:nth-child(2n) { border-right: none; }   /* coluna direita */
+    .metric-cell:last-child { border-right: none; border-bottom: none; } /* celula sozinha */
     @media (min-width: 768px) {
       .vitrine-hero { display: grid !important; grid-template-columns: 1.4fr 1fr; gap: 80px; align-items: end; }
       .hero-h1 { font-size: 64px !important; }
       .hero-prose { font-size: 19px !important; }
       .hero-ctas { flex-direction: row !important; }
       .hero-note { display: block !important; }
-      .metrics-grid { grid-template-columns: repeat(4, 1fr) !important; }
-      .metric-cell-right { border-right: none !important; }
-      .metric-cell-bottom { border-bottom: none !important; }
+      /* Desktop: 5 colunas, linha unica — so divisores verticais. */
+      .metrics-grid { grid-template-columns: repeat(5, 1fr) !important; }
+      .metric-cell { border-bottom: none !important; }
+      .metric-cell:nth-child(2n) { border-right: 1px solid var(--color-rule) !important; }
+      .metric-cell:last-child { border-right: none !important; }
       .metric-val { font-size: 44px !important; }
       .metrics-head { display: flex !important; align-items: baseline; justify-content: space-between; margin-bottom: 18px; }
       .metrics-head-date { display: block !important; }
@@ -100,11 +110,7 @@
     border-bottom: 1px solid var(--color-rule-strong);
   ">
     {# Análises #}
-    <div class="metric-cell" style="
-      padding: 20px 16px;
-      border-right: 1px solid var(--color-rule);
-      border-bottom: 1px solid var(--color-rule);
-    ">
+    <div class="metric-cell">
       <div class="metric-val" style="
         font-family: var(--font-serif);
         font-weight: 400;
@@ -117,12 +123,22 @@
       <div class="t-meta" style="color:var(--color-ink-3); line-height:1.35; text-wrap:balance;">análises catalogadas</div>
     </div>
 
-    {# Pesquisadores #}
-    <div class="metric-cell metric-cell-right" style="
-      padding: 20px 16px;
-      border-right: 1px solid var(--color-rule);
-      border-bottom: 1px solid var(--color-rule);
-    ">
+    {# Analistas cadastrados (diretório /equipe) #}
+    <div class="metric-cell">
+      <div class="metric-val" style="
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 32px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: var(--color-ink);
+        margin-bottom: 6px;
+      ">{{ analistas_count }}</div>
+      <div class="t-meta" style="color:var(--color-ink-3); line-height:1.35; text-wrap:balance;">analistas na equipe</div>
+    </div>
+
+    {# Pesquisadores contribuintes (com análise publicada) #}
+    <div class="metric-cell">
       <div class="metric-val" style="
         font-family: var(--font-serif);
         font-weight: 400;
@@ -132,14 +148,11 @@
         color: var(--color-ink);
         margin-bottom: 6px;
       ">{{ pesquisadores_count }}</div>
-      <div class="t-meta" style="color:var(--color-ink-3); line-height:1.35; text-wrap:balance;">pesquisadores contribuintes</div>
+      <div class="t-meta" style="color:var(--color-ink-3); line-height:1.35; text-wrap:balance;">com análise publicada</div>
     </div>
 
     {# Bases #}
-    <div class="metric-cell metric-cell-bottom" style="
-      padding: 20px 16px;
-      border-right: 1px solid var(--color-rule);
-    ">
+    <div class="metric-cell">
       <div class="metric-val" style="
         font-family: var(--font-serif);
         font-weight: 400;
@@ -153,9 +166,7 @@
     </div>
 
     {# Amplitude de anos #}
-    <div class="metric-cell metric-cell-right metric-cell-bottom" style="
-      padding: 20px 16px;
-    ">
+    <div class="metric-cell">
       <div class="metric-val" style="
         font-family: var(--font-serif);
         font-weight: 400;
