@@ -121,6 +121,9 @@ class ArtigoMetadadosForm(forms.ModelForm):
         # link_acesso continua obrigatório (acervo precisa do link)
         self.fields["link_acesso"].required = True
         self.fields["base_consulta"].required = True
+        # Rótulo do dropdown = só o nome da base (sem o prefixo "base:" do
+        # __str__, que existe para o admin distinguir os vocabulários).
+        self.fields["base_consulta"].label_from_instance = lambda termo: termo.nome
         # Área (grande área CNPq/CAPES) é obrigatória no cadastro de artigos.
         self.fields["area"].required = True
         # DOI e ISBN ficam opcionais — clean() valida que pelo menos um existe
