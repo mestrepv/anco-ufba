@@ -181,16 +181,16 @@
       <div>
         {% for r in revisoes_pendentes %}
         <div class="lista-item">
-          <span class="status-chip status-{{ r.tipo }}">{{ r.get_tipo_display }}</span>
+          <span class="status-chip" style="background:var(--color-paper-3);color:var(--color-ink-2);">resenha</span>
           <div>
-            <a href="{% url 'pagina_analise' r.analise.pk %}" class="item-titulo">{{ r.analise.artigo.titulo|truncatechars:100 }}</a>
+            <a href="{% url 'pagina_analise' r.resenha.analise.pk %}" class="item-titulo">{{ r.resenha.analise.artigo.titulo|truncatechars:100 }}</a>
             <div class="item-meta">
               Sorteada em {{ r.sorteado_em|date:"d/m/Y" }} ·
               <span {% if r.prazo_em < agora %}class="prazo-vencido"{% endif %}>prazo: {{ r.prazo_em|date:"d/m/Y" }}</span>
             </div>
           </div>
           <div>
-            <a href="{% url 'pagina_analise' r.analise.pk %}" class="btn btn-sm btn-primary">Revisar →</a>
+            <a href="{% url 'revisar' r.pk %}" class="btn btn-sm btn-primary">Revisar →</a>
           </div>
         </div>
         {% endfor %}
@@ -207,8 +207,8 @@
         <div class="lista-item">
           <span class="status-chip status-{{ r.parecer|default:'legado' }}">{{ r.get_parecer_display|default:"—" }}</span>
           <div>
-            <a href="{% url 'pagina_analise' r.analise.pk %}" class="item-titulo">{{ r.analise.artigo.titulo|truncatechars:100 }}</a>
-            <div class="item-meta">{{ r.get_tipo_display }} · concluída em {{ r.concluido_em|date:"d/m/Y" }}</div>
+            <a href="{% url 'pagina_analise' r.resenha.analise.pk %}" class="item-titulo">{{ r.resenha.analise.artigo.titulo|truncatechars:100 }}</a>
+            <div class="item-meta">resenha · concluída em {{ r.concluido_em|date:"d/m/Y" }}</div>
           </div>
           <div></div>
         </div>

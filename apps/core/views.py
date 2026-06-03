@@ -120,12 +120,12 @@ def painel_view(request: HttpRequest) -> HttpResponse:
 
     revisoes_pendentes = (
         Revisao.objects.filter(revisor=user, concluido_em__isnull=True)
-        .select_related("analise", "analise__artigo")
+        .select_related("resenha__analise__artigo")
         .order_by("prazo_em")
     )
     revisoes_concluidas = (
         Revisao.objects.filter(revisor=user, concluido_em__isnull=False)
-        .select_related("analise", "analise__artigo")
+        .select_related("resenha__analise__artigo")
         .order_by("-concluido_em")[:10]
     )
     solicitacoes = (
