@@ -23,10 +23,14 @@ Leia este arquivo no início de cada sessão.
 - **Resumo da home** (`vitrine_view`): `analistas_count` = analistas
   cadastrados (mesma definição do diretório `/equipe`, cresce a cada cadastro);
   `pesquisadores_count` = autores com análise PUBLICADA/LEGADO. Não confundir.
-- **Conhecido**: o serviço `worker` (django-q2) está com imagem desatualizada
-  (`ModuleNotFoundError: unfold`) — rebuildar com `docker compose build worker`
-  quando o fluxo assíncrono for necessário. Sem impacto enquanto só há acervo
-  legado (nada a publicar de forma assíncrona).
+- **Repositório / sync:** remote `origin` →
+  `https://github.com/mestrepv/anco-ufba.git`, branch padrão `main`. O `gh`
+  está autenticado no root (credential helper configurado), então `git push`
+  funciona direto. Fluxo: commitar na `main` e `git push`.
+- **Worker** (`worker`, django-q2): imagem reconstruída com `django-unfold`;
+  roda saudável. Necessário para o fluxo assíncrono de revisão cega das
+  resenhas (sorteio/avaliação/notificações). Após mudar dependências, rebuildar
+  com `docker compose -f infra/docker-compose.yml build worker && up -d worker`.
 
 ---
 
@@ -34,8 +38,10 @@ Leia este arquivo no início de cada sessão.
 
 Plataforma colaborativa de pesquisa para catalogar e analisar literatura
 científica sobre **Análise Cognitiva (AnCo)**. Substitui um fluxo atual
-baseado em Google Forms + Sheets. Sistema com cadastro institucional,
-revisão por pares (double review) e acervo público citável.
+baseado em Google Forms + Sheets. Cadastro aberto (qualquer conta Google entra
+como leitor; promoção a analista por aprovação da curadoria); **publicação de
+análises por aprovação de curador**; **revisão cega por pares apenas para as
+resenhas críticas**; acervo público citável.
 
 **Documento canônico de especificação**: `docs/ESPECIFICACAO.md`.
 Em caso de conflito entre este `CLAUDE.md` e a especificação, a
@@ -255,16 +261,25 @@ especificação. Antes de importar:
 - Implemente o migrador como **idempotente** (rodar 2x não duplica).
 - Loga tudo que normalizou; não silencie nada.
 
-### 9.2. Fluxo de revisão (Fase 4)
-Lógica de domínio densa. Antes de codar, escreva os testes do fluxo
-completo (TDD aqui faz diferença). Casos a cobrir:
-- Sorteio com revisores suficientes
-- Sorteio com revisores insuficientes (fallback)
-- Re-sorteio por prazo expirado
-- Aprovação por 2 revisores → publicação
-- 1 ajustes + 1 aprovação → volta para rascunho
-- Revisor que é autor da análise é excluído
-- Revisor que tem outra análise do mesmo artigo é excluído
+### 9.2. Fluxo de revisão e curadoria
+
+> **Mudança (2026-06):** o fluxo original (revisão por pares das análises +
+> publicação automática) foi **substituído**. As seções 5.3–5.6 da
+> especificação descrevem o fluxo antigo; ver o **addendum no fim de
+> `docs/ESPECIFICACAO.md`**. Implementação em `apps/acervo/{models,sorteio,
+> aprovacao,signals,tasks,views}.py`.
+
+Fluxo atual:
+- **Análise**: `rascunho → submetida → (curador aprova) publicada`. Sem
+  revisão por pares. Curador (fila `/acervo-analista/curadoria/`) pode aprovar,
+  pedir ajustes (→ rascunho) ou rejeitar.
+- **Resenha** (`Resenha`, OneToOne com `Analise`): `rascunho → submetida →
+  em_revisao → revisada → (curador confirma) publicada`. Só ela passa por
+  **revisão cega por pares**; só aparece no acervo após confirmação. A
+  publicação da análise é independente.
+- `Revisao` aponta para `Resenha` (não mais para `Analise`); toda revisão é
+  cega. Domínio denso — manter os testes (sorteio cego, exclusão de
+  autor/co-autor, fallback de fila, re-sorteio, avaliação, curadoria).
 
 ### 9.3. Acervo público (Fase 5)
 URLs **estáveis e citáveis** desde o dia 1. Mudança de URL depois quebra

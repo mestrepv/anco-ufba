@@ -1,43 +1,89 @@
-{% extends "_base.html" %}
+{% extends "_base_publico.html" %}
 
 {% block title %}Termos de uso — AnCo{% endblock %}
+{% block meta_description %}Termos de uso da plataforma AnCo — acervo colaborativo de análises de literatura científica sobre Análise Cognitiva.{% endblock %}
+
+{% block extra_head %}
+<style>
+  .doc-wrap { padding: clamp(32px,5vw,64px) clamp(20px,5vw,56px); max-width: 760px; }
+  .doc-secao { margin-top: clamp(28px,3.5vw,40px); }
+  .doc-secao h2 {
+    font-family: var(--font-serif); font-weight: 500;
+    font-size: clamp(18px,2.2vw,22px); line-height: 1.2; color: var(--color-ink);
+    margin: 0 0 10px;
+  }
+  .doc-secao p, .doc-secao li {
+    font-family: var(--font-serif); font-size: 16px; line-height: 1.6;
+    color: var(--color-ink-2);
+  }
+  .doc-secao p { margin: 0 0 12px; }
+  .doc-secao ul { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 4px; }
+  .doc-secao strong { color: var(--color-ink); }
+</style>
+{% endblock %}
 
 {% block content %}
-<article class="prose prose-slate max-w-2xl">
-<h1 class="text-2xl font-semibold text-slate-900 mb-4">Termos de uso</h1>
 
-<p class="text-xs text-slate-500 mb-6">Versão preliminar — em revisão. Atualizada em 29/04/2026.</p>
+{# ── Cabeçalho ──────────────────────────────────────────────────────── #}
+<div style="padding: clamp(32px,5vw,64px) clamp(20px,5vw,56px) 0; border-bottom: 1px solid var(--color-rule);">
+  <p class="t-eyebrow" style="margin:0 0 12px;">AnCo</p>
+  <h1 class="t-h1" style="margin:0 0 8px;">Termos de uso</h1>
+  <p class="t-meta" style="color:var(--color-ink-4); margin: 0 0 32px;">
+    Versão preliminar — em revisão. Atualizada em 03/06/2026.
+  </p>
+</div>
 
-<h2 class="text-lg font-semibold mt-4 mb-2">1. Aceitação</h2>
-<p class="text-slate-700 mb-3">Ao se cadastrar e utilizar a AnCo, você concorda com estes Termos. Se discordar, não utilize a plataforma.</p>
+<div class="doc-wrap">
 
-<h2 class="text-lg font-semibold mt-6 mb-2">2. Quem pode usar</h2>
-<p class="text-slate-700 mb-3">A AnCo é destinada a pesquisadores com vínculo institucional acadêmico. Cadastros são feitos via OAuth com domínios institucionais aprovados. A curadoria pode aprovar ou rejeitar promoções e desativar contas em caso de mau uso.</p>
+  <section class="doc-secao" style="margin-top: clamp(20px,2.5vw,28px);">
+    <h2>1. Aceitação</h2>
+    <p>Ao se cadastrar e utilizar a AnCo, você concorda com estes Termos. Se discordar, não utilize a plataforma.</p>
+  </section>
 
-<h2 class="text-lg font-semibold mt-6 mb-2">3. Conteúdo do usuário</h2>
-<p class="text-slate-700 mb-3">Você é responsável pelo conteúdo que submete (análises, resenhas críticas, comentários de revisão). Ao submeter, você declara:</p>
-<ul class="list-disc ml-6 text-slate-700 space-y-1 mb-3">
-    <li>que o conteúdo é de sua autoria;</li>
-    <li>que não viola direitos autorais de terceiros;</li>
-    <li>que aceita licenciar o conteúdo sob <strong>CC-BY-NC 4.0</strong>.</li>
-</ul>
+  <section class="doc-secao">
+    <h2>2. Quem pode usar</h2>
+    <p>O cadastro é aberto: qualquer pessoa pode entrar com uma conta Google, ingressando como <strong>leitor</strong>. Para criar análises é preciso solicitar promoção a <strong>analista</strong> e aguardar aprovação da curadoria. A curadoria pode aprovar ou rejeitar solicitações e desativar contas em caso de mau uso.</p>
+  </section>
 
-<h2 class="text-lg font-semibold mt-6 mb-2">4. Obras analisadas</h2>
-<p class="text-slate-700 mb-3">A AnCo <strong>não hospeda obras de terceiros</strong>. Apenas referencia obras externas via link e metadados bibliográficos. As licenças das obras analisadas são definidas por seus editores originais e não são responsabilidade da AnCo.</p>
+  <section class="doc-secao">
+    <h2>3. Conteúdo do usuário</h2>
+    <p>Você é responsável pelo conteúdo que submete (análises, resenhas críticas, comentários de revisão). Ao submeter, você declara:</p>
+    <ul>
+      <li>que o conteúdo é de sua autoria;</li>
+      <li>que não viola direitos autorais de terceiros;</li>
+      <li>que aceita licenciar o conteúdo sob <strong>CC BY-NC 4.0</strong>.</li>
+    </ul>
+  </section>
 
-<h2 class="text-lg font-semibold mt-6 mb-2">5. Revisão por pares</h2>
-<p class="text-slate-700 mb-3">Análises submetidas passam por revisão por pares (double review estrutural; revisão cega adicional para resenhas críticas). Revisores podem aprovar, solicitar ajustes ou rejeitar. Os pareceres ficam disponíveis ao autor.</p>
+  <section class="doc-secao">
+    <h2>4. Obras analisadas</h2>
+    <p>A AnCo <strong>não hospeda obras de terceiros</strong>. Apenas referencia obras externas via link e metadados bibliográficos. As licenças das obras analisadas são definidas por seus editores originais e não são responsabilidade da AnCo.</p>
+  </section>
 
-<h2 class="text-lg font-semibold mt-6 mb-2">6. Permanência das análises</h2>
-<p class="text-slate-700 mb-3">Análises publicadas são permanentes. Eventuais despublicações por questões éticas ou legais preservam o registro de existência (não removem o ID), garantindo a integridade de citações já feitas.</p>
+  <section class="doc-secao">
+    <h2>5. Curadoria e revisão por pares</h2>
+    <p>Uma análise entra no acervo após <strong>aprovação de um curador</strong>, que pode aprovar, solicitar ajustes ou rejeitar. As <strong>resenhas críticas</strong> passam, à parte, por <strong>revisão cega por pares</strong> e só aparecem no acervo após serem revisadas e confirmadas pela curadoria. Os pareceres ficam disponíveis ao autor.</p>
+  </section>
 
-<h2 class="text-lg font-semibold mt-6 mb-2">7. Limitações</h2>
-<p class="text-slate-700 mb-3">A plataforma é fornecida "como está", sem garantia de disponibilidade ininterrupta. Manutenções podem causar indisponibilidade temporária. Os mantenedores não se responsabilizam por perdas decorrentes de uso indevido ou interrupções.</p>
+  <section class="doc-secao">
+    <h2>6. Permanência das análises</h2>
+    <p>Análises publicadas são permanentes. Eventuais despublicações por questões éticas ou legais preservam o registro de existência (não removem o ID), garantindo a integridade de citações já feitas.</p>
+  </section>
 
-<h2 class="text-lg font-semibold mt-6 mb-2">8. Mudanças nos Termos</h2>
-<p class="text-slate-700 mb-3">Estes Termos podem ser atualizados. Mudanças significativas serão comunicadas por e-mail às contas ativas.</p>
+  <section class="doc-secao">
+    <h2>7. Limitações</h2>
+    <p>A plataforma é fornecida "como está", sem garantia de disponibilidade ininterrupta. Manutenções podem causar indisponibilidade temporária. Os mantenedores não se responsabilizam por perdas decorrentes de uso indevido ou interrupções.</p>
+  </section>
 
-<h2 class="text-lg font-semibold mt-6 mb-2">9. Contato</h2>
-<p class="text-slate-700">Dúvidas sobre estes Termos: <strong>curadoria@anco.local</strong>.</p>
-</article>
+  <section class="doc-secao">
+    <h2>8. Mudanças nos Termos</h2>
+    <p>Estes Termos podem ser atualizados. Mudanças significativas serão comunicadas por e-mail às contas ativas.</p>
+  </section>
+
+  <section class="doc-secao">
+    <h2>9. Contato</h2>
+    <p>Dúvidas sobre estes Termos: <strong>curadoria@anco.local</strong>.</p>
+  </section>
+
+</div>
 {% endblock %}
