@@ -15,10 +15,22 @@
            {% if active == 'acervo' %}aria-current="page"{% endif %}>Acervo</a>
       </li>
       <li>
+        <a href="{% url 'pagina_estatisticas' %}"
+           style="font-family:var(--font-sans);font-size:14px;font-weight:{% if active == 'estatisticas' %}600{% else %}400{% endif %};color:{% if active == 'estatisticas' %}var(--color-ink){% else %}var(--color-ink-3){% endif %};border-bottom:1px solid {% if active == 'estatisticas' %}var(--color-ink){% else %}transparent{% endif %};padding-bottom:4px;text-decoration:none;{% if active == 'estatisticas' %}pointer-events:none;{% endif %}"
+           {% if active == 'estatisticas' %}aria-current="page"{% endif %}>Estatísticas</a>
+      </li>
+      <li>
         <a href="{% url 'pagina_equipe' %}"
            style="font-family:var(--font-sans);font-size:14px;font-weight:{% if active == 'equipe' %}600{% else %}400{% endif %};color:{% if active == 'equipe' %}var(--color-ink){% else %}var(--color-ink-3){% endif %};border-bottom:1px solid {% if active == 'equipe' %}var(--color-ink){% else %}transparent{% endif %};padding-bottom:4px;text-decoration:none;{% if active == 'equipe' %}pointer-events:none;{% endif %}"
            {% if active == 'equipe' %}aria-current="page"{% endif %}>Equipe</a>
       </li>
+      {% if user.eh_curador or user.is_staff %}
+      <li>
+        <a href="{% url 'fila_curadoria' %}"
+           style="font-family:var(--font-sans);font-size:14px;font-weight:{% if active == 'curadoria' %}600{% else %}400{% endif %};color:{% if active == 'curadoria' %}var(--color-ink){% else %}var(--color-gold-deep){% endif %};border-bottom:1px solid {% if active == 'curadoria' %}var(--color-ink){% else %}transparent{% endif %};padding-bottom:4px;text-decoration:none;{% if active == 'curadoria' %}pointer-events:none;{% endif %}"
+           {% if active == 'curadoria' %}aria-current="page"{% endif %}>Curadoria</a>
+      </li>
+      {% endif %}
     </ul>
   </div>
 

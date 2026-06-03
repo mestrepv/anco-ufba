@@ -66,7 +66,8 @@ def task_embedding_analise(analise_id: int) -> None:
     texto_estrutural = _texto_analise(analise)
     textos.append(texto_estrutural if texto_estrutural.strip() else "")
 
-    texto_resenha = analise.resenha_critica or ""
+    resenha = getattr(analise, "resenha", None)
+    texto_resenha = resenha.texto if resenha else ""
     textos.append(texto_resenha)
 
     results = embed_texts([t for t in textos if t])

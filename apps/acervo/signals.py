@@ -1,8 +1,11 @@
 """
-Signals do app acervo (Fase 4).
+Signals do app acervo.
 
-- Analise.post_save: status muda para `submetida` -> dispara sorteio.
-- Revisao.post_save: `concluido_em` foi setado -> dispara avaliacao.
+- Resenha.post_save: status muda para `submetida` -> dispara sorteio cego.
+- Revisao.post_save: `concluido_em` foi setado -> dispara avaliação da resenha.
+
+Análises NÃO disparam sorteio (a revisão por pares vale só para resenhas; a
+publicação da análise é ação explícita de um curador).
 
 Todos os sinais usam `async_task` (django-q2). Em dev/teste com
 `Q_CLUSTER.sync=True`, rodam no mesmo processo. Em prod, no worker.
@@ -16,41 +19,38 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django_q.tasks import async_task
 
-from .models import Analise, Revisao
+from .models import Resenha, Revisao
 
 logger = logging.getLogger(__name__)
 
 
 # ----------------------------------------------------------------------
-# Analise: detecta transicao para `submetida`
+# Resenha: detecta transição para `submetida` -> sorteio cego
 # ----------------------------------------------------------------------
 
 
-@receiver(pre_save, sender=Analise)
-def _capturar_status_analise(sender, instance: Analise, **kwargs):
+@receiver(pre_save, sender=Resenha)
+def _capturar_status_resenha(sender, instance: Resenha, **kwargs):
     if instance.pk:
         try:
-            anterior = Analise.objects.get(pk=instance.pk)
-            instance._status_anterior = anterior.status
-        except Analise.DoesNotExist:
+            instance._status_anterior = Resenha.objects.get(pk=instance.pk).status
+        except Resenha.DoesNotExist:
             instance._status_anterior = None
     else:
         instance._status_anterior = None
 
 
-@receiver(post_save, sender=Analise)
-def _disparar_sorteio_ao_submeter(sender, instance: Analise, created: bool, **kwargs):
-    if created:
-        return
+@receiver(post_save, sender=Resenha)
+def _disparar_sorteio_resenha(sender, instance: Resenha, created: bool, **kwargs):
     anterior = getattr(instance, "_status_anterior", None)
-    if anterior == Analise.Status.SUBMETIDA:
+    if anterior == Resenha.Status.SUBMETIDA:
         return  # idempotente
-    if instance.status == Analise.Status.SUBMETIDA:
-        async_task("apps.acervo.tasks.task_sortear_revisores", instance.pk)
+    if instance.status == Resenha.Status.SUBMETIDA:
+        async_task("apps.acervo.tasks.task_sortear_revisores_cegos", instance.pk)
 
 
 # ----------------------------------------------------------------------
-# Revisao: dispara avaliacao quando concluida
+# Revisao: dispara avaliação da resenha quando concluída
 # ----------------------------------------------------------------------
 
 
@@ -58,8 +58,9 @@ def _disparar_sorteio_ao_submeter(sender, instance: Analise, created: bool, **kw
 def _capturar_concluida_revisao(sender, instance: Revisao, **kwargs):
     if instance.pk:
         try:
-            anterior = Revisao.objects.get(pk=instance.pk)
-            instance._concluido_anterior = anterior.concluido_em
+            instance._concluido_anterior = Revisao.objects.get(
+                pk=instance.pk
+            ).concluido_em
         except Revisao.DoesNotExist:
             instance._concluido_anterior = None
     else:
@@ -70,8 +71,9 @@ def _capturar_concluida_revisao(sender, instance: Revisao, **kwargs):
 def _disparar_avaliacao_ao_concluir(sender, instance: Revisao, created: bool, **kwargs):
     if created:
         return
-    anterior = getattr(instance, "_concluido_anterior", None)
-    if anterior is not None:
-        return  # ja estava concluida
-    if instance.concluido_em is not None:
-        async_task("apps.acervo.tasks.task_avaliar_apos_revisao", instance.analise_id)
+    if getattr(instance, "_concluido_anterior", None) is not None:
+        return  # já estava concluída
+    if instance.concluido_em is not None and instance.resenha_id is not None:
+        async_task(
+            "apps.acervo.tasks.task_avaliar_apos_revisao_cega", instance.resenha_id
+        )

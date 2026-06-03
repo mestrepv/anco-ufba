@@ -244,17 +244,16 @@ class Analise(models.Model):
     o mesmo artigo, mas cada analista tem no maximo uma analise por artigo.
 
     Status `legado` marca registros importados pre-validados.
-    Status `publicada` indica que passou por revisao por pares e esta no acervo.
-    Quando `tem_resenha=True`, a analise contem uma resenha critica autoral
-    que sera submetida a revisao cega adicional.
+    Status `publicada` indica que a curadoria aprovou e a analise esta no acervo.
+    A resenha critica (quando existe) e' uma entidade propria (`Resenha`), com
+    seu proprio ciclo de revisao cega por pares.
     """
 
     class Status(models.TextChoices):
         RASCUNHO = "rascunho", "Rascunho"
-        SUBMETIDA = "submetida", "Submetida para revisão"
-        EM_REVISAO = "em_revisao", "Em revisão"
-        APROVADA = "aprovada", "Aprovada"
+        SUBMETIDA = "submetida", "Submetida para curadoria"
         PUBLICADA = "publicada", "Publicada no acervo"
+        REJEITADA = "rejeitada", "Rejeitada pela curadoria"
         LEGADO = "legado", "Legado pré-validado"
         DESPUBLICADA = "despublicada", "Despublicada"
 
@@ -308,22 +307,24 @@ class Analise(models.Model):
     contexto_producao = models.TextField(blank=True)
     observacoes = models.TextField(blank=True)
 
-    resenha_critica = models.TextField(
-        blank=True,
-        help_text=(
-            "Texto critico autoral. Quando preenchido, dispara revisao cega "
-            "adicional e ganha selo de destaque."
-        ),
-    )
-    tem_resenha = models.BooleanField(
-        default=False,
-        db_index=True,
-        help_text="Cache para filtros — atualizado automaticamente no save().",
-    )
-
     criado_em = models.DateTimeField(auto_now_add=True)
     submetida_em = models.DateTimeField(null=True, blank=True)
     publicada_em = models.DateTimeField(null=True, blank=True)
+
+    # Curadoria: uma entrada so entra no acervo apos aprovacao de um curador.
+    aprovada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="analises_aprovadas",
+        help_text="Curador que aprovou a publicacao desta analise.",
+    )
+    aprovada_em = models.DateTimeField(null=True, blank=True)
+    motivo_curadoria = models.TextField(
+        blank=True,
+        help_text="Justificativa do curador ao pedir ajustes ou rejeitar.",
+    )
 
     # Stamp da ultima edicao feita fora do fluxo normal de rascunho
     # (curador/admin a qualquer tempo, ou autor adicionando resenha pos-publicacao).
@@ -369,10 +370,6 @@ class Analise(models.Model):
     def __str__(self) -> str:
         return f"Análise de {self.artigo_id} por {self.analista_id} ({self.status})"
 
-    def save(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
-        self.tem_resenha = bool((self.resenha_critica or "").strip())
-        super().save(*args, **kwargs)
-
     JANELA_EDICAO_POS_ENVIO = timedelta(hours=1)
 
     @property
@@ -382,8 +379,8 @@ class Analise(models.Model):
         - status = `rascunho` (qualquer momento), OU
         - status = `submetida` e dentro da janela de 1h após o envio.
 
-        Após esse período (ou status `em_revisao`/`aprovada`/`publicada`/
-        `legado`/`despublicada`), a análise fica congelada para a autoria.
+        Após esse período (ou status `publicada`/`rejeitada`/`legado`/
+        `despublicada`), a análise fica congelada para a autoria.
         """
         if self.status == self.Status.RASCUNHO:
             return True
@@ -392,28 +389,98 @@ class Analise(models.Model):
         return False
 
     @property
-    def pode_editar_resenha_pos_publicacao(self) -> bool:
-        """
-        Mesmo apos publicada, a autoria pode adicionar/editar APENAS a resenha
-        critica. Salvar a resenha dispara nova revisao cega (status volta para
-        `submetida`).
-        """
-        return self.status in {
-            self.Status.APROVADA,
-            self.Status.PUBLICADA,
-            self.Status.LEGADO,
-        }
+    def tem_resenha_publica(self) -> bool:
+        """True se há uma resenha crítica publicada (visível no acervo)."""
+        resenha = getattr(self, "resenha", None)
+        return bool(resenha and resenha.status in ("publicada", "legado"))
+
+
+class Resenha(models.Model):
+    """
+    Resenha critica de uma analise — texto opinativo autoral, sujeito a
+    revisao cega por pares.
+
+    Ciclo de vida proprio e independente da publicacao da analise:
+    `rascunho` -> `submetida` -> `em_revisao` -> `revisada` (cegas aprovaram,
+    aguarda curador) -> `publicada` (curador confirmou). So aparece no acervo
+    publico quando `publicada` (ou `legado`).
+    """
+
+    class Status(models.TextChoices):
+        RASCUNHO = "rascunho", "Rascunho"
+        SUBMETIDA = "submetida", "Submetida para revisão cega"
+        EM_REVISAO = "em_revisao", "Em revisão cega"
+        REVISADA = "revisada", "Revisada — aguardando curadoria"
+        PUBLICADA = "publicada", "Publicada"
+        REJEITADA = "rejeitada", "Rejeitada"
+        LEGADO = "legado", "Legado pré-validado"
+
+    PUBLICAS = (Status.PUBLICADA, Status.LEGADO)
+
+    analise = models.OneToOneField(
+        Analise,
+        on_delete=models.CASCADE,
+        related_name="resenha",
+    )
+    texto = models.TextField()
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.RASCUNHO,
+        db_index=True,
+    )
+
+    criado_em = models.DateTimeField(auto_now_add=True)
+    submetida_em = models.DateTimeField(null=True, blank=True)
+    publicada_em = models.DateTimeField(null=True, blank=True)
+
+    # Curadoria confirma a resenha revisada antes de torná-la pública.
+    confirmada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resenhas_confirmadas",
+        help_text="Curador que confirmou a publicacao da resenha revisada.",
+    )
+    confirmada_em = models.DateTimeField(null=True, blank=True)
+
+    editado_em = models.DateTimeField(null=True, blank=True, db_index=True)
+    editado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resenhas_editadas",
+    )
+
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = "resenha crítica"
+        verbose_name_plural = "resenhas críticas"
+        ordering = ["-criado_em"]
+
+    def __str__(self) -> str:
+        return f"Resenha da análise {self.analise_id} ({self.status})"
+
+    @property
+    def autor(self):
+        """Autoria da resenha = autoria da análise."""
+        return self.analise.analista
+
+    @property
+    def esta_publica(self) -> bool:
+        return self.status in self.PUBLICAS
 
 
 class Revisao(models.Model):
     """
-    Parecer de um par sobre uma Analise.
+    Parecer cego de um par sobre uma Resenha crítica.
 
-    Tipo `estrutural`: revisor ve autoria normalmente. Aplicado sempre que
-    uma analise eh submetida.
-
-    Tipo `cega`: autoria mascarada na interface do revisor. Aplicado apenas
-    quando a analise tem resenha critica autoral.
+    Toda revisão é cega: a autoria é mascarada na interface do revisor.
+    A revisão por pares vale só para resenhas (a análise é publicada por
+    aprovação de curador).
     """
 
     class Parecer(models.TextChoices):
@@ -421,25 +488,16 @@ class Revisao(models.Model):
         AJUSTES = "ajustes", "Solicitar ajustes"
         REJEITAR = "rejeitar", "Rejeitar"
 
-    class Tipo(models.TextChoices):
-        ESTRUTURAL = "estrutural", "Revisão estrutural (análise)"
-        CEGA = "cega", "Revisão cega (resenha crítica)"
-
-    analise = models.ForeignKey(
-        Analise,
+    resenha = models.ForeignKey(
+        "Resenha",
         on_delete=models.CASCADE,
         related_name="revisoes",
+        help_text="Resenha crítica sob revisão cega por pares.",
     )
     revisor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="revisoes_feitas",
-    )
-    tipo = models.CharField(
-        max_length=15,
-        choices=Tipo.choices,
-        default=Tipo.ESTRUTURAL,
-        db_index=True,
     )
     parecer = models.CharField(
         max_length=10,
@@ -458,17 +516,17 @@ class Revisao(models.Model):
         ordering = ["-sorteado_em"]
         constraints = [
             models.UniqueConstraint(
-                fields=["analise", "revisor", "tipo"],
-                name="uniq_revisao_por_revisor_tipo",
+                fields=["resenha", "revisor"],
+                name="uniq_revisao_por_revisor_resenha",
             ),
         ]
 
     def __str__(self) -> str:
-        return f"Revisão {self.tipo} de {self.analise_id} por {self.revisor_id}"
+        return f"Revisão cega da resenha {self.resenha_id} por {self.revisor_id}"
 
 
 class ComentarioRevisao(models.Model):
-    """Comentario ancorado a um campo especifico da analise revisada."""
+    """Comentario ancorado a um trecho da resenha revisada."""
 
     revisao = models.ForeignKey(
         Revisao,
@@ -477,7 +535,7 @@ class ComentarioRevisao(models.Model):
     )
     campo = models.CharField(
         max_length=50,
-        help_text="Nome do campo da Analise comentado (ex: 'metodologia', 'resenha_critica').",
+        help_text="Campo comentado (na revisão de resenha, normalmente 'texto').",
     )
     texto = models.TextField()
     criado_em = models.DateTimeField(auto_now_add=True)

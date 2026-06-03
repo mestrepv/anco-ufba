@@ -6,7 +6,7 @@ from simple_history.admin import SimpleHistoryAdmin
 from unfold.admin import ModelAdmin as UnfoldModelAdmin
 from unfold.admin import TabularInline as UnfoldTabularInline
 
-from .models import Analise, Artigo, ComentarioRevisao, Revisao, SnapshotLink
+from .models import Analise, Artigo, ComentarioRevisao, Resenha, Revisao, SnapshotLink
 from .services import aplicar_resultado_no_artigo, capturar_snapshot_wayback, validar_link
 
 
@@ -145,32 +145,46 @@ class ComentarioRevisaoInline(UnfoldTabularInline):
 
 @admin.register(Revisao)
 class RevisaoAdmin(UnfoldModelAdmin):
-    list_display = ("id", "analise", "revisor", "tipo", "parecer", "prazo_em", "concluido_em")
-    list_filter = ("tipo", "parecer")
-    search_fields = ("analise__artigo__titulo", "revisor__username")
-    autocomplete_fields = ("analise", "revisor")
+    list_display = ("id", "resenha", "revisor", "parecer", "prazo_em", "concluido_em")
+    list_filter = ("parecer",)
+    search_fields = ("resenha__analise__artigo__titulo", "revisor__username")
+    autocomplete_fields = ("resenha", "revisor")
     readonly_fields = ("sorteado_em",)
     inlines = [ComentarioRevisaoInline]
 
 
 class RevisaoInline(UnfoldTabularInline):
     model = Revisao
+    fk_name = "resenha"
     extra = 0
-    fields = ("revisor", "tipo", "parecer", "prazo_em", "concluido_em")
+    fields = ("revisor", "parecer", "prazo_em", "concluido_em")
     readonly_fields = ("sorteado_em",)
     show_change_link = True
     autocomplete_fields = ("revisor",)
 
 
+@admin.register(Resenha)
+class ResenhaAdmin(SimpleHistoryAdmin, UnfoldModelAdmin):
+    list_display = ("id", "analise", "status", "criado_em", "publicada_em")
+    list_filter = ("status",)
+    search_fields = ("analise__artigo__titulo", "texto")
+    autocomplete_fields = ("analise",)
+    readonly_fields = (
+        "criado_em", "submetida_em", "publicada_em", "confirmada_por", "confirmada_em",
+    )
+    inlines = [RevisaoInline]
+
+
 @admin.register(Analise)
 class AnaliseAdmin(SimpleHistoryAdmin, UnfoldModelAdmin):
-    list_display = ("id", "artigo", "analista", "status", "tem_resenha", "criado_em")
-    list_filter = ("status", "tem_resenha", "criado_em")
+    list_display = ("id", "artigo", "analista", "status", "criado_em")
+    list_filter = ("status", "criado_em")
     search_fields = ("artigo__titulo", "analista__username", "objeto", "objetivo")
-    autocomplete_fields = ("artigo", "analista")
-    readonly_fields = ("criado_em", "submetida_em", "publicada_em", "tem_resenha")
+    autocomplete_fields = ("artigo", "analista", "aprovada_por")
+    readonly_fields = (
+        "criado_em", "submetida_em", "publicada_em", "aprovada_por", "aprovada_em",
+    )
     filter_horizontal = ("epistemologia", "teoria")
-    inlines = [RevisaoInline]
     list_per_page = 50
 
     fieldsets = (
@@ -214,7 +228,10 @@ class AnaliseAdmin(SimpleHistoryAdmin, UnfoldModelAdmin):
             },
         ),
         ("Contexto e observações", {"fields": ("contexto_producao", "observacoes")}),
-        ("Resenha crítica autoral", {"fields": ("resenha_critica", "tem_resenha")}),
+        (
+            "Curadoria",
+            {"fields": ("aprovada_por", "aprovada_em", "motivo_curadoria")},
+        ),
         ("Datas", {"fields": ("criado_em", "submetida_em", "publicada_em")}),
     )
 

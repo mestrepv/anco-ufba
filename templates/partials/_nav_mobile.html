@@ -37,7 +37,11 @@
      aria-label="Menu de navegação">
   <ul style="list-style:none;padding:0;margin:0;display:grid;gap:0;" role="list">
     <li><a href="{% url 'acervo_publico' %}" style="display:block;padding:14px 0;font-family:var(--font-sans);font-size:15px;color:var(--color-ink);border-bottom:1px solid var(--color-rule);text-decoration:none;">Acervo</a></li>
+    <li><a href="{% url 'pagina_estatisticas' %}" style="display:block;padding:14px 0;font-family:var(--font-sans);font-size:15px;color:var(--color-ink);border-bottom:1px solid var(--color-rule);text-decoration:none;">Estatísticas</a></li>
     <li><a href="{% url 'pagina_equipe' %}" style="display:block;padding:14px 0;font-family:var(--font-sans);font-size:15px;color:var(--color-ink);border-bottom:1px solid var(--color-rule);text-decoration:none;">Equipe</a></li>
+    {% if user.eh_curador or user.is_staff %}
+    <li><a href="{% url 'fila_curadoria' %}" style="display:block;padding:14px 0;font-family:var(--font-sans);font-size:15px;color:var(--color-gold-deep);border-bottom:1px solid var(--color-rule);text-decoration:none;">Curadoria</a></li>
+    {% endif %}
   </ul>
   <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
     {% if user.is_authenticated %}

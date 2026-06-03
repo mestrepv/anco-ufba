@@ -71,9 +71,9 @@
            class="inline-flex items-center px-3 py-1.5 rounded-md bg-anco hover:bg-anco-dark text-white text-sm">
           Continuar minha análise →
         </a>
-        <a href="{% url 'editar_analise' minha_analise.pk %}?passo=resenha"
+        <a href="{% url 'editar_resenha' minha_analise.pk %}"
            class="inline-flex items-center px-3 py-1.5 rounded-md bg-white border border-anco text-anco hover:bg-anco hover:text-white text-sm">
-          {% if minha_analise.tem_resenha %}Editar resenha{% else %}Escrever resenha{% endif %}
+          {% if minha_analise.resenha %}Editar resenha{% else %}Escrever resenha{% endif %}
         </a>
         {% else %}
         <a href="{% url 'pagina_analise' minha_analise.pk %}"
@@ -114,7 +114,7 @@
                 </a>
                 <div class="text-xs text-slate-500 mt-0.5">
                     {{ a.publicada_em|date:"d/m/Y"|default:"sem data" }}
-                    {% if a.tem_resenha %}<span class="text-slate-400">·</span> <span class="text-violet-700 font-medium">com resenha crítica</span>{% endif %}
+                    {% if a.tem_resenha_publica %}<span class="text-slate-400">·</span> <span class="text-violet-700 font-medium">com resenha crítica</span>{% endif %}
                 </div>
             </div>
             <span class="text-xs text-slate-400">{% if a.status == "legado" %}legado{% else %}publicada{% endif %}</span>

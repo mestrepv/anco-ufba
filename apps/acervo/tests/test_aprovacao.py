@@ -1,205 +1,103 @@
-"""Testes do servico de aprovacao e fluxo completo de revisao."""
+"""
+Testes da avaliação dos pareceres da revisão cega de uma Resenha.
+
+- todas aprovar  -> resenha `revisada` (aguarda curador; NÃO publica)
+- alguma ajustes -> resenha volta a `rascunho`
+- alguma rejeitar-> resenha volta a `rascunho`
+- faltam pareceres -> não decide
+"""
+
+from datetime import timedelta
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from apps.acervo.aprovacao import avaliar_apos_revisao
-from apps.acervo.models import Analise, Artigo, Revisao
-from apps.acervo.sorteio import executar_sorteio
+from apps.acervo.aprovacao import avaliar_apos_revisao_cega
+from apps.acervo.models import Analise, Artigo, Resenha, Revisao
 from apps.vocabulario.models import TermoVocabulario, Vocabulario
 
 User = get_user_model()
-
 pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def vocab(db):
+def resenha_em_revisao(db):
     v = Vocabulario.objects.create(codigo="base", nome="Base")
-    return TermoVocabulario.objects.create(vocabulario=v, nome="WoS")
-
-
-@pytest.fixture
-def autor(db):
-    return User.objects.create_user(
-        username="autor",
-        email="autor@u.edu.br",
-        password="x",
+    termo = TermoVocabulario.objects.create(vocabulario=v, nome="WoS")
+    autor = User.objects.create_user(
+        username="autor", email="a@u.edu.br", password="x",
         papel=User.Papel.ANALISTA,
     )
-
-
-@pytest.fixture
-def analista_pool(db):
-    return [
+    artigo = Artigo.objects.create(
+        doi="10.x/t", titulo="T", ano=2020, base_consulta=termo,
+        link_acesso="https://e.org/t",
+    )
+    analise = Analise.objects.create(
+        artigo=artigo, analista=autor, status=Analise.Status.PUBLICADA,
+    )
+    resenha = Resenha.objects.create(
+        analise=analise, texto="R", status=Resenha.Status.EM_REVISAO,
+    )
+    revisores = [
         User.objects.create_user(
-            username=f"a{i}",
-            email=f"a{i}@u.edu.br",
-            password="x",
-            papel=User.Papel.ANALISTA,
+            username=f"r{i}", email=f"r{i}@u.edu.br", password="x",
+            papel=User.Papel.ANALISTA, revisor_aprovado=True,
         )
-        for i in range(6)
+        for i in range(2)
     ]
+    prazo = timezone.now() + timedelta(days=21)
+    revs = [
+        Revisao.objects.create(resenha=resenha, revisor=revisores[i], prazo_em=prazo)
+        for i in range(2)
+    ]
+    return resenha, revs
 
 
-@pytest.fixture
-def artigo(db, vocab):
-    return Artigo.objects.create(
-        doi="10.x/teste",
-        titulo="x",
-        ano=2020,
-        base_consulta=vocab,
-        link_acesso="https://example.org/t",
+def _concluir(rev, parecer):
+    # .update() evita disparar o signal de avaliação automática — aqui testamos
+    # a função avaliar_apos_revisao_cega isoladamente (o disparo via signal é
+    # coberto no fluxo e2e).
+    Revisao.objects.filter(pk=rev.pk).update(
+        parecer=parecer, concluido_em=timezone.now()
     )
 
 
-@pytest.fixture
-def analise_em_revisao(db, artigo, autor, analista_pool):
-    a = Analise.objects.create(
-        artigo=artigo,
-        analista=autor,
-        status=Analise.Status.SUBMETIDA,
-    )
-    executar_sorteio(a)
-    a.refresh_from_db()
-    return a
+def test_todas_aprovar_marca_revisada(resenha_em_revisao):
+    resenha, revs = resenha_em_revisao
+    _concluir(revs[0], Revisao.Parecer.APROVAR)
+    _concluir(revs[1], Revisao.Parecer.APROVAR)
+    resultado = avaliar_apos_revisao_cega(resenha)
+    assert resultado.decidida is True
+    assert resultado.novo_status == Resenha.Status.REVISADA
+    resenha.refresh_from_db()
+    assert resenha.status == Resenha.Status.REVISADA
+    assert resenha.publicada_em is None  # NÃO publica automaticamente
 
 
-def _concluir_revisao(rev: Revisao, parecer: str) -> None:
-    rev.parecer = parecer
-    rev.concluido_em = timezone.now()
-    rev.save()
+def test_um_ajustes_volta_para_rascunho(resenha_em_revisao):
+    resenha, revs = resenha_em_revisao
+    _concluir(revs[0], Revisao.Parecer.APROVAR)
+    _concluir(revs[1], Revisao.Parecer.AJUSTES)
+    resultado = avaliar_apos_revisao_cega(resenha)
+    assert resultado.novo_status == Resenha.Status.RASCUNHO
+    resenha.refresh_from_db()
+    assert resenha.status == Resenha.Status.RASCUNHO
 
 
-# ----------------------------------------------------------------------
-# Cenarios obrigatorios da CLAUDE.md §9.2
-# ----------------------------------------------------------------------
+def test_um_rejeitar_volta_para_rascunho(resenha_em_revisao):
+    resenha, revs = resenha_em_revisao
+    _concluir(revs[0], Revisao.Parecer.REJEITAR)
+    _concluir(revs[1], Revisao.Parecer.APROVAR)
+    resultado = avaliar_apos_revisao_cega(resenha)
+    assert resultado.novo_status == Resenha.Status.RASCUNHO
 
 
-class TestAprovacaoSemResenha:
-    def test_dois_aprovar_publica(self, analise_em_revisao):
-        revs = list(Revisao.objects.filter(analise=analise_em_revisao))
-        assert len(revs) == 2
-
-        # primeira aprovacao — ainda em revisao
-        _concluir_revisao(revs[0], Revisao.Parecer.APROVAR)
-        # signal disparou avaliacao mas falta parecer
-        analise_em_revisao.refresh_from_db()
-        assert analise_em_revisao.status == Analise.Status.EM_REVISAO
-
-        # segunda aprovacao -> publicada
-        _concluir_revisao(revs[1], Revisao.Parecer.APROVAR)
-        analise_em_revisao.refresh_from_db()
-        assert analise_em_revisao.status == Analise.Status.PUBLICADA
-        assert analise_em_revisao.publicada_em is not None
-
-    def test_um_ajustes_volta_para_rascunho(self, analise_em_revisao):
-        revs = list(Revisao.objects.filter(analise=analise_em_revisao))
-        _concluir_revisao(revs[0], Revisao.Parecer.AJUSTES)
-        _concluir_revisao(revs[1], Revisao.Parecer.APROVAR)
-        analise_em_revisao.refresh_from_db()
-        assert analise_em_revisao.status == Analise.Status.RASCUNHO
-
-    def test_um_rejeitar_volta_para_rascunho(self, analise_em_revisao):
-        revs = list(Revisao.objects.filter(analise=analise_em_revisao))
-        _concluir_revisao(revs[0], Revisao.Parecer.REJEITAR)
-        _concluir_revisao(revs[1], Revisao.Parecer.APROVAR)
-        analise_em_revisao.refresh_from_db()
-        assert analise_em_revisao.status == Analise.Status.RASCUNHO
-
-
-class TestAprovacaoComResenha:
-    @pytest.fixture
-    def analise_com_resenha(self, db, artigo, autor, analista_pool):
-        a = Analise.objects.create(
-            artigo=artigo,
-            analista=autor,
-            status=Analise.Status.SUBMETIDA,
-            resenha_critica="Resenha autoral",
-        )
-        executar_sorteio(a)
-        a.refresh_from_db()
-        return a
-
-    def test_quatro_aprovar_publica(self, analise_com_resenha):
-        revs = list(Revisao.objects.filter(analise=analise_com_resenha))
-        assert len(revs) == 4
-
-        # primeiras 3 aprovacoes — ainda em revisao
-        for r in revs[:3]:
-            _concluir_revisao(r, Revisao.Parecer.APROVAR)
-        analise_com_resenha.refresh_from_db()
-        assert analise_com_resenha.status == Analise.Status.EM_REVISAO
-
-        # quarta aprovacao -> publicada
-        _concluir_revisao(revs[3], Revisao.Parecer.APROVAR)
-        analise_com_resenha.refresh_from_db()
-        assert analise_com_resenha.status == Analise.Status.PUBLICADA
-
-    def test_uma_revisao_cega_pede_ajustes_volta_rascunho(self, analise_com_resenha):
-        revs = list(Revisao.objects.filter(analise=analise_com_resenha))
-        # 3 aprovam, a ultima pede ajustes
-        for r in revs[:-1]:
-            _concluir_revisao(r, Revisao.Parecer.APROVAR)
-        _concluir_revisao(revs[-1], Revisao.Parecer.AJUSTES)
-        analise_com_resenha.refresh_from_db()
-        assert analise_com_resenha.status == Analise.Status.RASCUNHO
-
-
-# ----------------------------------------------------------------------
-# Servico avaliar_apos_revisao isolado
-# ----------------------------------------------------------------------
-
-
-class TestAvaliarServiceIsolado:
-    def test_falta_pareceres_nao_decide(self, analise_em_revisao):
-        # Apenas 1 das 2 conclusoes
-        rev = Revisao.objects.filter(analise=analise_em_revisao).first()
-        rev.parecer = Revisao.Parecer.APROVAR
-        rev.concluido_em = timezone.now()
-        rev.save()
-        # outra ainda nao
-        resultado = avaliar_apos_revisao(analise_em_revisao)
-        assert resultado.decidida is False
-        assert "faltam" in resultado.motivo.lower()
-
-    def test_status_diferente_de_em_revisao_nao_avalia(self, analise_em_revisao):
-        analise_em_revisao.status = Analise.Status.RASCUNHO
-        analise_em_revisao.save()
-        resultado = avaliar_apos_revisao(analise_em_revisao)
-        assert resultado.decidida is False
-        assert "nao esta em revisao" in resultado.motivo.lower()
-
-
-# ----------------------------------------------------------------------
-# Fluxo completo — aceite formal da Fase 4
-# ----------------------------------------------------------------------
-
-
-class TestFluxoCompletoComResenha:
-    def test_submissao_dispara_sorteio_e_publica_apos_4_aprovacoes(
-        self, db, artigo, autor, analista_pool
-    ):
-        analise = Analise.objects.create(
-            artigo=artigo,
-            analista=autor,
-            status=Analise.Status.RASCUNHO,
-            resenha_critica="Texto critico autoral substantivo.",
-        )
-        # Simula submissao do analista
-        analise.status = Analise.Status.SUBMETIDA
-        analise.submetida_em = timezone.now()
-        analise.save()
-        # Signal disparou sorteio
-        analise.refresh_from_db()
-        assert analise.status == Analise.Status.EM_REVISAO
-        assert Revisao.objects.filter(analise=analise).count() == 4
-
-        # Todos aprovam
-        for r in Revisao.objects.filter(analise=analise):
-            _concluir_revisao(r, Revisao.Parecer.APROVAR)
-
-        analise.refresh_from_db()
-        assert analise.status == Analise.Status.PUBLICADA
-        assert analise.publicada_em is not None
+def test_faltam_pareceres_nao_decide(resenha_em_revisao):
+    resenha, revs = resenha_em_revisao
+    _concluir(revs[0], Revisao.Parecer.APROVAR)
+    # revs[1] ainda pendente
+    resultado = avaliar_apos_revisao_cega(resenha)
+    assert resultado.decidida is False
+    resenha.refresh_from_db()
+    assert resenha.status == Resenha.Status.EM_REVISAO

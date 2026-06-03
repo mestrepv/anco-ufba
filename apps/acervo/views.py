@@ -13,13 +13,13 @@ from .forms import (
     AnaliseCompletaForm,
     AnaliseEstruturaForm,
     AnalisePresencaForm,
-    AnaliseResenhaForm,
     ArtigoMetadadosForm,
     ComentarioCampoForm,
     IdentificadorLookupForm,
+    ResenhaForm,
     RevisaoForm,
 )
-from .models import Analise, Artigo, ComentarioRevisao, Revisao
+from .models import Analise, Artigo, ComentarioRevisao, Resenha, Revisao
 from .services import (
     aplicar_resultado_no_artigo,
     capturar_snapshot_wayback,
@@ -299,40 +299,10 @@ def _get_analise_do_autor(request: HttpRequest, analise_id: int) -> Analise:
     return analise
 
 
-def _escopo_edicao(request: HttpRequest, analise_id: int) -> tuple[Analise, str]:
-    """
-    Devolve `(analise, escopo)` onde `escopo` e:
-
-    - `"full"`     — pode editar todos os campos (autor em rascunho/janela,
-                     ou curador/admin a qualquer tempo).
-    - `"resenha"`  — pode editar apenas a resenha critica (autor de uma
-                     analise ja publicada/aprovada/legado).
-
-    Levanta `PermissionError` se o usuario nao puder editar nem a resenha.
-    """
-    analise = get_object_or_404(Analise, pk=analise_id)
-    user = request.user
-
-    if _eh_admin(user):
-        return analise, "full"
-
-    if analise.analista_id != user.id:
-        raise PermissionError("Voce nao eh o analista desta analise.")
-
-    if analise.pode_ser_modificada:
-        return analise, "full"
-
-    if analise.pode_editar_resenha_pos_publicacao:
-        return analise, "resenha"
-
-    raise PermissionError("Analise nao pode mais ser editada nesta janela.")
-
-
 PASSOS = [
     ("identificacao", "Identificação"),
     ("presenca", "Presença e pertinência"),
     ("estrutura", "Estrutura do artigo"),
-    ("resenha", "Resenha crítica (opcional)"),
 ]
 
 
@@ -345,13 +315,13 @@ def _stampar_edicao(analise: Analise, user) -> None:
 @_exige_editor
 def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     """
-    Edicao da analise. Escopo varia conforme papel/estado:
+    Edição multipasso da análise (identificação / presença / estrutura).
 
-    - Autor em rascunho/janela: todos os passos.
-    - Autor de analise publicada/aprovada/legado: apenas resenha.
-      Salvar a resenha volta status para `submetida` e dispara revisao cega.
-    - Curador/admin: todos os campos a qualquer tempo. Salvar gravara stamp
-      `editado_em` + `editado_por` (alem do historico via simple-history).
+    - Autor em rascunho/janela de 1h: pode editar.
+    - Curador/admin: pode editar a qualquer tempo (grava stamp `editado_em` +
+      `editado_por`, além do histórico via simple-history).
+
+    A resenha crítica é editada à parte (ver `editar_resenha_view`).
     """
     analise = get_object_or_404(Analise, pk=analise_id)
     user = request.user
@@ -362,70 +332,31 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
             "Apenas o analista autor (ou curador/admin) pode editar."
         )
 
-    if eh_admin:
-        escopo = "full"
-    elif analise.pode_ser_modificada:
-        escopo = "full"
-    elif analise.pode_editar_resenha_pos_publicacao:
-        escopo = "resenha"
-    else:
-        messages.info(
-            request,
-            "Esta análise não pode mais ser editada nesta janela.",
-        )
+    if not (eh_admin or analise.pode_ser_modificada):
+        messages.info(request, "Esta análise não pode mais ser editada nesta janela.")
         return redirect("painel")
 
-    eh_autor_pos_publicacao = (not eh_admin) and escopo == "resenha"
-
-    # Quando escopo eh "resenha", forca o passo. Quando "full", passo livre.
-    if escopo == "resenha":
-        passo = "resenha"
-    else:
-        passo = request.GET.get("passo", "identificacao")
-        if passo not in dict(PASSOS):
-            passo = "identificacao"
+    passo = request.GET.get("passo", "identificacao")
+    if passo not in dict(PASSOS):
+        passo = "identificacao"
 
     form = None
     if passo == "presenca":
         form = AnalisePresencaForm(request.POST or None, instance=analise)
     elif passo == "estrutura":
         form = AnaliseEstruturaForm(request.POST or None, instance=analise)
-    elif passo == "resenha":
-        form = AnaliseResenhaForm(request.POST or None, instance=analise)
 
     if request.method == "POST" and form is not None and form.is_valid():
         instance = form.save(commit=False)
-
         if eh_admin and analise.analista_id != user.id:
-            # Edicao administrativa: stamp obrigatorio.
-            _stampar_edicao(instance, user)
-
-        if eh_autor_pos_publicacao:
-            # Adicionar/editar resenha em analise ja publicada -> revisao cega.
-            _stampar_edicao(instance, user)
-            instance.status = Analise.Status.SUBMETIDA
-            instance.submetida_em = timezone.now()
-            instance.save()
-            # Dispara sorteio so de cegas (estruturais ja foram feitas).
-            from django_q.tasks import async_task
-            async_task(
-                "apps.acervo.tasks.task_sortear_cegos_adicional", instance.pk
-            )
-            messages.success(
-                request,
-                "Resenha salva. A análise voltou para revisão cega antes de "
-                "ser republicada.",
-            )
-            return redirect("pagina_analise", analise_id=analise.pk)
-
+            _stampar_edicao(instance, user)  # edição administrativa: stamp
         instance.save()
         messages.success(request, "Passo salvo.")
 
-        if escopo == "full":
-            ordem = [p for p, _ in PASSOS]
-            idx = ordem.index(passo)
-            proximo = ordem[idx + 1] if idx + 1 < len(ordem) else "resenha"
-            return redirect(f"{request.path}?passo={proximo}")
+        ordem = [p for p, _ in PASSOS]
+        idx = ordem.index(passo)
+        if idx + 1 < len(ordem):
+            return redirect(f"{request.path}?passo={ordem[idx + 1]}")
         return redirect(request.path)
 
     return render(
@@ -436,9 +367,8 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
             "passos": PASSOS,
             "passo_atual": passo,
             "form": form,
-            "escopo": escopo,
+            "resenha": getattr(analise, "resenha", None),
             "eh_admin_edit": eh_admin and analise.analista_id != user.id,
-            "eh_autor_pos_publicacao": eh_autor_pos_publicacao,
         },
     )
 
@@ -447,10 +377,8 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
 @require_POST
 def autosave_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     """
-    Auto-save: aceita POST com qualquer subset dos campos editaveis,
+    Auto-save: aceita POST com qualquer subset dos campos editaveis da análise,
     valida e persiste. Resposta JSON com timestamp do save.
-
-    Respeita o escopo: em escopo "resenha", so persiste `resenha_critica`.
     """
     analise = get_object_or_404(Analise, pk=analise_id)
     user = request.user
@@ -459,22 +387,13 @@ def autosave_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse
     if not eh_admin and analise.analista_id != user.id:
         return HttpResponseForbidden("Voce nao pode salvar esta analise.")
 
-    if eh_admin:
-        escopo = "full"
-    elif analise.pode_ser_modificada:
-        escopo = "full"
-    elif analise.pode_editar_resenha_pos_publicacao:
-        escopo = "resenha"
-    else:
+    if not (eh_admin or analise.pode_ser_modificada):
         return JsonResponse(
             {"ok": False, "error": "Analise nao esta mais em rascunho."},
             status=400,
         )
 
-    if escopo == "resenha":
-        form = AnaliseResenhaForm(request.POST, instance=analise)
-    else:
-        form = AnaliseCompletaForm(request.POST, instance=analise)
+    form = AnaliseCompletaForm(request.POST, instance=analise)
 
     if form.is_valid():
         instance = form.save(commit=False)
@@ -502,14 +421,14 @@ def submeter_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse
         analise.status = Analise.Status.SUBMETIDA
         analise.submetida_em = timezone.now()
         analise.save()
-        if analise.tem_resenha:
-            messages.success(
-                request,
-                "Análise submetida. Como ela inclui resenha crítica, passará "
-                "também por revisão cega adicional.",
-            )
-        else:
-            messages.success(request, "Análise submetida para revisão.")
+        from .tasks import notificar_analise_submetida
+
+        notificar_analise_submetida(analise)
+        messages.success(
+            request,
+            "Análise submetida. Aguardando aprovação da curadoria para entrar "
+            "no acervo.",
+        )
         return redirect("minhas_analises")
 
     return render(request, "acervo/submeter_analise.html", {"analise": analise})
@@ -542,20 +461,82 @@ def excluir_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
 
 
 # ---------------------------------------------------------------------------
-# Revisao por pares (Fase 4)
+# Resenha crítica: edição e submissão à revisão cega
 # ---------------------------------------------------------------------------
 
 
-# Campos da Analise expostos como pontos-de-ancora para comentario
+def _get_resenha_editavel(request: HttpRequest, analise_id: int) -> Resenha:
+    """
+    Resenha (criando se necessário) da análise do autor logado.
+
+    A resenha pode ser editada quando está em rascunho, ou após publicada
+    (edição posterior reabre revisão cega). Levanta PermissionError caso o
+    usuário não seja o autor.
+    """
+    analise = _get_analise_do_autor(request, analise_id)
+    resenha, _ = Resenha.objects.get_or_create(
+        analise=analise, defaults={"texto": ""}
+    )
+    return resenha
+
+
+@_exige_analista
+@require_http_methods(["GET", "POST"])
+def editar_resenha_view(request: HttpRequest, analise_id: int) -> HttpResponse:
+    """Autor edita o texto da resenha crítica (entidade própria)."""
+    try:
+        resenha = _get_resenha_editavel(request, analise_id)
+    except PermissionError:
+        return HttpResponseForbidden("Apenas o autor pode editar a resenha.")
+
+    if resenha.status == Resenha.Status.EM_REVISAO:
+        messages.info(request, "A resenha está em revisão cega e não pode ser editada agora.")
+        return redirect("editar_analise", analise_id=analise_id)
+
+    form = ResenhaForm(request.POST or None, instance=resenha)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Resenha salva.")
+        return redirect("editar_resenha", analise_id=analise_id)
+
+    return render(
+        request,
+        "acervo/editar_resenha.html",
+        {"resenha": resenha, "analise": resenha.analise, "form": form},
+    )
+
+
+@_exige_analista
+@require_POST
+def submeter_resenha_view(request: HttpRequest, analise_id: int) -> HttpResponse:
+    """Submete a resenha para revisão cega (rascunho/revisada -> submetida)."""
+    try:
+        resenha = _get_resenha_editavel(request, analise_id)
+    except PermissionError:
+        return HttpResponseForbidden("Apenas o autor pode submeter a resenha.")
+
+    if not (resenha.texto or "").strip():
+        messages.error(request, "Escreva a resenha antes de submetê-la.")
+        return redirect("editar_resenha", analise_id=analise_id)
+    if resenha.status in (Resenha.Status.SUBMETIDA, Resenha.Status.EM_REVISAO):
+        messages.info(request, "A resenha já está em revisão.")
+        return redirect("editar_resenha", analise_id=analise_id)
+
+    resenha.status = Resenha.Status.SUBMETIDA
+    resenha.submetida_em = timezone.now()
+    resenha.save()  # signal dispara o sorteio cego
+    messages.success(request, "Resenha submetida para revisão cega por pares.")
+    return redirect("minhas_analises")
+
+
+# ---------------------------------------------------------------------------
+# Revisão cega por pares (da resenha)
+# ---------------------------------------------------------------------------
+
+
+# Campos expostos como pontos-de-âncora para comentário (revisão da resenha)
 CAMPOS_ANCORAVEIS = [
-    ("objeto", "Objeto"),
-    ("objetivo", "Objetivo"),
-    ("foco", "Foco"),
-    ("metodologia", "Metodologia"),
-    ("resultados", "Resultados"),
-    ("aspectos_relevantes", "Aspectos relevantes"),
-    ("definicao_extraida", "Definição extraída"),
-    ("resenha_critica", "Resenha crítica"),
+    ("texto", "Resenha crítica"),
 ]
 
 
@@ -564,12 +545,12 @@ def minhas_revisoes_view(request: HttpRequest) -> HttpResponse:
     """Lista as revisoes pendentes (e historico) do usuario logado."""
     pendentes = (
         Revisao.objects.filter(revisor=request.user, concluido_em__isnull=True)
-        .select_related("analise__artigo")
+        .select_related("resenha__analise__artigo")
         .order_by("prazo_em")
     )
     concluidas = (
         Revisao.objects.filter(revisor=request.user, concluido_em__isnull=False)
-        .select_related("analise__artigo")
+        .select_related("resenha__analise__artigo")
         .order_by("-concluido_em")[:20]
     )
     return render(
@@ -583,10 +564,9 @@ def minhas_revisoes_view(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def revisar_view(request: HttpRequest, revisao_id: int) -> HttpResponse:
     """
-    Tela de revisao: form de parecer + comentarios ancorados por campo.
+    Tela de revisão cega de uma resenha crítica: parecer + comentários.
 
-    Quando a revisao eh CEGA, autoria do analista nao aparece em nenhum
-    lugar — nem no contexto do template, nem no historico de versoes.
+    A autoria nunca aparece (revisão sempre cega).
     """
     revisao = get_object_or_404(Revisao, pk=revisao_id)
     if revisao.revisor_id != request.user.id:
@@ -594,9 +574,12 @@ def revisar_view(request: HttpRequest, revisao_id: int) -> HttpResponse:
     if revisao.concluido_em is not None:
         messages.info(request, "Esta revisão já foi concluída.")
         return redirect("minhas_revisoes")
+    if revisao.resenha_id is None:
+        return HttpResponseForbidden("Revisão sem resenha associada.")
 
-    analise = revisao.analise
-    eh_cega = revisao.tipo == Revisao.Tipo.CEGA
+    resenha = revisao.resenha
+    analise = resenha.analise
+    eh_cega = True
 
     if request.method == "POST":
         form = RevisaoForm(request.POST, instance=revisao)
@@ -647,13 +630,13 @@ def revisar_view(request: HttpRequest, revisao_id: int) -> HttpResponse:
             for campo, _ in CAMPOS_ANCORAVEIS
         ]
 
-    # Monta tuplas (codigo, label, valor_atual_da_analise, form_do_comentario)
+    # Monta tuplas (codigo, label, valor_atual_da_resenha, form_do_comentario)
     blocos = [
         (
             codigo,
             label,
-            (getattr(analise, codigo, "") or "").strip()
-            if isinstance(getattr(analise, codigo, ""), str)
+            (getattr(resenha, codigo, "") or "").strip()
+            if isinstance(getattr(resenha, codigo, ""), str)
             else "",
             cf,
         )
@@ -665,9 +648,126 @@ def revisar_view(request: HttpRequest, revisao_id: int) -> HttpResponse:
         "acervo/revisar.html",
         {
             "revisao": revisao,
+            "resenha": resenha,
             "analise": analise,
             "eh_cega": eh_cega,
             "form": form,
             "blocos_comentarios": blocos,
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Curadoria: aprovação de análises e confirmação de resenhas revisadas
+# ---------------------------------------------------------------------------
+
+
+def _exige_curador(view):
+    """Decorator: curador ou staff. Acesso à fila de curadoria."""
+
+    def wrapper(request: HttpRequest, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect("account_login")
+        if not _eh_admin(request.user):
+            return HttpResponseForbidden("Apenas curadores acessam a curadoria.")
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
+@_exige_curador
+def fila_curadoria_view(request: HttpRequest) -> HttpResponse:
+    """Fila: análises submetidas + resenhas revisadas aguardando confirmação."""
+    analises = (
+        Analise.objects.filter(status=Analise.Status.SUBMETIDA)
+        .select_related("artigo", "analista")
+        .order_by("submetida_em", "id")
+    )
+    resenhas = (
+        Resenha.objects.filter(status=Resenha.Status.REVISADA)
+        .select_related("analise__artigo", "analise__analista")
+        .order_by("submetida_em", "id")
+    )
+    return render(
+        request,
+        "acervo/curadoria.html",
+        {"analises": analises, "resenhas": resenhas, "active_nav": "curadoria"},
+    )
+
+
+@_exige_curador
+@require_POST
+def aprovar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
+    from .tasks import notificar_publicacao_analise
+
+    analise = get_object_or_404(Analise, pk=analise_id)
+    if analise.status != Analise.Status.SUBMETIDA:
+        messages.info(request, "Esta análise não está na fila de curadoria.")
+        return redirect("fila_curadoria")
+    agora = timezone.now()
+    analise.status = Analise.Status.PUBLICADA
+    analise.publicada_em = agora
+    analise.aprovada_por = request.user
+    analise.aprovada_em = agora
+    analise.save()
+    notificar_publicacao_analise(analise)
+    messages.success(request, "Análise aprovada e publicada no acervo.")
+    return redirect("fila_curadoria")
+
+
+@_exige_curador
+@require_POST
+def devolver_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
+    """Pedir ajustes (-> rascunho) ou rejeitar (-> rejeitada), conforme `acao`."""
+    from .tasks import notificar_analise_devolvida
+
+    analise = get_object_or_404(Analise, pk=analise_id)
+    if analise.status != Analise.Status.SUBMETIDA:
+        messages.info(request, "Esta análise não está na fila de curadoria.")
+        return redirect("fila_curadoria")
+    motivo = (request.POST.get("motivo") or "").strip()
+    rejeitar = request.POST.get("acao") == "rejeitar"
+    analise.status = (
+        Analise.Status.REJEITADA if rejeitar else Analise.Status.RASCUNHO
+    )
+    analise.motivo_curadoria = motivo
+    analise.save()
+    notificar_analise_devolvida(analise, motivo, rejeitada=rejeitar)
+    messages.success(
+        request,
+        "Análise rejeitada." if rejeitar else "Análise devolvida para ajustes.",
+    )
+    return redirect("fila_curadoria")
+
+
+@_exige_curador
+@require_POST
+def confirmar_resenha_view(request: HttpRequest, resenha_id: int) -> HttpResponse:
+    from .tasks import notificar_resenha_publicada
+
+    resenha = get_object_or_404(Resenha, pk=resenha_id)
+    if resenha.status != Resenha.Status.REVISADA:
+        messages.info(request, "Esta resenha não está aguardando confirmação.")
+        return redirect("fila_curadoria")
+    agora = timezone.now()
+    resenha.status = Resenha.Status.PUBLICADA
+    resenha.publicada_em = agora
+    resenha.confirmada_por = request.user
+    resenha.confirmada_em = agora
+    resenha.save()
+    notificar_resenha_publicada(resenha)
+    messages.success(request, "Resenha confirmada e publicada no acervo.")
+    return redirect("fila_curadoria")
+
+
+@_exige_curador
+@require_POST
+def rejeitar_resenha_view(request: HttpRequest, resenha_id: int) -> HttpResponse:
+    resenha = get_object_or_404(Resenha, pk=resenha_id)
+    if resenha.status != Resenha.Status.REVISADA:
+        messages.info(request, "Esta resenha não está aguardando confirmação.")
+        return redirect("fila_curadoria")
+    resenha.status = Resenha.Status.REJEITADA
+    resenha.save()
+    messages.success(request, "Resenha rejeitada.")
+    return redirect("fila_curadoria")

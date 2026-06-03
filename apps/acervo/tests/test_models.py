@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.utils import timezone as djtz
 
-from apps.acervo.models import Analise, Artigo, Revisao
+from apps.acervo.models import Analise, Artigo, Resenha, Revisao
 from apps.vocabulario.models import TermoVocabulario, Vocabulario
 
 User = get_user_model()
@@ -83,25 +83,14 @@ class TestAnalise:
         # nao levanta
         Analise.objects.create(artigo=artigo, analista=outro_analista)
 
-    def test_tem_resenha_atualiza_no_save_ao_preencher(self, artigo, analista):
+    def test_tem_resenha_publica_so_quando_resenha_publicada(self, artigo, analista):
         a = Analise.objects.create(artigo=artigo, analista=analista)
-        assert a.tem_resenha is False
-        a.resenha_critica = "Texto crítico autoral substantivo."
-        a.save()
-        a.refresh_from_db()
-        assert a.tem_resenha is True
-
-    def test_tem_resenha_volta_falso_ao_apagar_resenha(self, artigo, analista):
-        a = Analise.objects.create(artigo=artigo, analista=analista, resenha_critica="X")
-        assert a.tem_resenha is True
-        a.resenha_critica = ""
-        a.save()
-        a.refresh_from_db()
-        assert a.tem_resenha is False
-
-    def test_tem_resenha_ignora_whitespace_puro(self, artigo, analista):
-        a = Analise.objects.create(artigo=artigo, analista=analista, resenha_critica="   \n  ")
-        assert a.tem_resenha is False
+        assert a.tem_resenha_publica is False
+        r = Resenha.objects.create(analise=a, texto="X", status=Resenha.Status.EM_REVISAO)
+        assert Analise.objects.get(pk=a.pk).tem_resenha_publica is False
+        r.status = Resenha.Status.PUBLICADA
+        r.save()
+        assert Analise.objects.get(pk=a.pk).tem_resenha_publica is True
 
     def test_status_default_e_rascunho(self, artigo, analista):
         a = Analise.objects.create(artigo=artigo, analista=analista)
@@ -118,39 +107,15 @@ class TestAnalise:
 
 
 class TestRevisao:
-    def test_uniq_por_revisor_e_tipo(self, artigo, analista, outro_analista):
+    def test_uniq_por_revisor_e_resenha(self, artigo, analista, outro_analista):
         analise = Analise.objects.create(artigo=artigo, analista=analista)
-        prazo = djtz.now() + timedelta(days=14)
-        Revisao.objects.create(
-            analise=analise,
-            revisor=outro_analista,
-            tipo=Revisao.Tipo.ESTRUTURAL,
-            prazo_em=prazo,
-        )
+        resenha = Resenha.objects.create(analise=analise, texto="R")
+        prazo = djtz.now() + timedelta(days=21)
+        Revisao.objects.create(resenha=resenha, revisor=outro_analista, prazo_em=prazo)
         with pytest.raises(IntegrityError):
             Revisao.objects.create(
-                analise=analise,
-                revisor=outro_analista,
-                tipo=Revisao.Tipo.ESTRUTURAL,
-                prazo_em=prazo,
+                resenha=resenha, revisor=outro_analista, prazo_em=prazo
             )
-
-    def test_mesmo_revisor_pode_estrutural_e_cega(self, artigo, analista, outro_analista):
-        analise = Analise.objects.create(artigo=artigo, analista=analista)
-        prazo = djtz.now() + timedelta(days=14)
-        Revisao.objects.create(
-            analise=analise,
-            revisor=outro_analista,
-            tipo=Revisao.Tipo.ESTRUTURAL,
-            prazo_em=prazo,
-        )
-        # tipo diferente — permitido
-        Revisao.objects.create(
-            analise=analise,
-            revisor=outro_analista,
-            tipo=Revisao.Tipo.CEGA,
-            prazo_em=prazo,
-        )
 
 
 class TestUser:

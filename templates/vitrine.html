@@ -255,9 +255,9 @@
             {{ a.artigo.autores }}{% if a.artigo.autores and a.artigo.titulo_periodico %} · {% endif %}<em>{{ a.artigo.titulo_periodico }}</em>{% if a.artigo.ano %}, {{ a.artigo.ano }}{% endif %}
           </div>
           {# Selos #}
-          {% if a.tem_resenha or a.artigo.acesso_aberto or a.status == 'legado' %}
+          {% if a.tem_resenha_publica or a.artigo.acesso_aberto or a.status == 'legado' %}
           <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
-            {% if a.tem_resenha %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
+            {% if a.tem_resenha_publica %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
             {% if a.artigo.acesso_aberto %}{% include "partials/_selo.html" with kind="aberto" %}{% endif %}
             {% if a.status == 'legado' %}{% include "partials/_selo.html" with kind="historico" %}{% endif %}
           </div>

@@ -166,21 +166,15 @@ class TestFluxoCompletoComDoi:
         )
         assert resp.status_code == 302
 
-        # Passo 5: submeter
+        # Passo 5: submeter para a curadoria (sem revisão por pares da análise)
         resp = cliente.post(reverse("submeter_analise", args=[analise.pk]))
         assert resp.status_code == 302
 
         analise.refresh_from_db()
-        # Em dev Q_CLUSTER sync=True: o signal sorteia revisores na hora e
-        # move o status de submetida → em_revisao automaticamente.
-        assert analise.status in (Analise.Status.SUBMETIDA, Analise.Status.EM_REVISAO)
+        # Análise aguarda aprovação de curador — não há sorteio de revisores.
+        assert analise.status == Analise.Status.SUBMETIDA
         assert analise.submetida_em is not None
-
-        # Signal de sorteio criou revisões estruturais (2 revisores)
-        revisoes_estruturais = Revisao.objects.filter(
-            analise=analise, tipo=Revisao.Tipo.ESTRUTURAL
-        )
-        assert revisoes_estruturais.count() == 2
+        assert Revisao.objects.count() == 0
 
 
 # ---------------------------------------------------------------------------

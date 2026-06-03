@@ -879,3 +879,21 @@ Documentar em `RESTORE.md`. Testar em staging trimestralmente.
 ---
 
 *Documento mantido vivo. Cada versão futura deve atualizar o histórico.*
+---
+
+## Addendum — desvio do fluxo de revisão (2026-06)
+
+As seções 5.3–5.6 descrevem o fluxo **original** de revisão por pares das
+análises (2 revisores estruturais + 2 cegos quando há resenha; publicação
+automática por consenso). Esse fluxo foi **substituído** a pedido do produto:
+
+- **Análises não passam mais por revisão por pares.** Uma entrada entra no
+  acervo somente após **aprovação de um curador** (fila em `/acervo-analista/curadoria/`).
+  Estados da `Analise`: `rascunho → submetida → (curador) publicada`; o curador
+  pode pedir ajustes (`→ rascunho`) ou rejeitar (`→ rejeitada`).
+- **A revisão cega por pares vale só para a resenha crítica**, agora uma
+  entidade própria (`Resenha`, 1:1 com `Analise`). Ciclo: `rascunho → submetida
+  → em_revisao → revisada → (curador confirma) publicada`. A resenha só aparece
+  no acervo após confirmação da curadoria; a publicação da análise é independente.
+
+Detalhes de implementação: `apps/acervo/{models,sorteio,aprovacao,signals,tasks,views}.py`.

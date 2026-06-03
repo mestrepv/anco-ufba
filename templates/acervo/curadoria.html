@@ -1,0 +1,41 @@
+{% extends "_base_publico.html" %}
+
+{% block title %}Curadoria — AnCo{% endblock %}
+
+{% block content %}
+<main style="max-width: 920px; margin: 32px auto 80px; padding: 0 24px;">
+
+  <header style="margin-bottom: 24px;">
+    <span class="t-eyebrow" style="color: var(--color-gold);">An·Co · curadoria</span>
+    <h1 class="t-h1" style="margin-top: 4px;">Fila de curadoria</h1>
+    <p class="t-small" style="color: var(--color-ink-3); margin-top: 6px;">
+      Aprove análises para o acervo e confirme resenhas já revisadas por pares.
+    </p>
+  </header>
+
+  {# ── Análises submetidas ─────────────────────────────────────── #}
+  <section style="margin-bottom: 40px;">
+    <h2 class="t-h2" style="border-bottom: 1px solid var(--color-rule-strong); padding-bottom: 8px; margin-bottom: 16px;">
+      Análises submetidas ({{ analises|length }})
+    </h2>
+    {% for analise in analises %}
+      {% include "acervo/_card_curadoria.html" with tipo="analise" obj=analise %}
+    {% empty %}
+      <p class="t-small" style="color: var(--color-ink-4);">Nenhuma análise aguardando aprovação.</p>
+    {% endfor %}
+  </section>
+
+  {# ── Resenhas revisadas ──────────────────────────────────────── #}
+  <section>
+    <h2 class="t-h2" style="border-bottom: 1px solid var(--color-rule-strong); padding-bottom: 8px; margin-bottom: 16px;">
+      Resenhas revisadas ({{ resenhas|length }})
+    </h2>
+    {% for resenha in resenhas %}
+      {% include "acervo/_card_curadoria.html" with tipo="resenha" obj=resenha %}
+    {% empty %}
+      <p class="t-small" style="color: var(--color-ink-4);">Nenhuma resenha aguardando confirmação.</p>
+    {% endfor %}
+  </section>
+
+</main>
+{% endblock %}

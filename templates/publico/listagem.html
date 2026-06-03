@@ -528,7 +528,7 @@
                   background:{% if score >= 70 %}#f0fdf4{% elif score >= 50 %}#fffbeb{% else %}var(--color-rule){% endif %};
                   padding:2px 7px; border-radius:2px;
                 ">{{ score }}% relevante</span>
-                {% if analise.tem_resenha %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
+                {% if analise.tem_resenha_publica %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
                 {% if analise.artigo.acesso_aberto %}{% include "partials/_selo.html" with kind="aberto" %}{% endif %}
                 {% if analise.status == 'legado' %}{% include "partials/_selo.html" with kind="historico" %}{% endif %}
               </div>
@@ -578,9 +578,9 @@
           {# Coluna principal #}
           <div style="min-width:0;">
             {# Selos #}
-            {% if analise.tem_resenha or analise.artigo.acesso_aberto or analise.artigo.link_status == 'quebrado' or analise.status == 'legado' %}
+            {% if analise.tem_resenha_publica or analise.artigo.acesso_aberto or analise.artigo.link_status == 'quebrado' or analise.status == 'legado' %}
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px; flex-wrap:wrap;">
-              {% if analise.tem_resenha %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
+              {% if analise.tem_resenha_publica %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
               {% if analise.artigo.acesso_aberto %}{% include "partials/_selo.html" with kind="aberto" %}{% endif %}
               {% if analise.artigo.link_status == 'quebrado' %}{% include "partials/_selo.html" with kind="quebrado" %}{% endif %}
               {% if analise.status == 'legado' %}{% include "partials/_selo.html" with kind="historico" %}{% endif %}

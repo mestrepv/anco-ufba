@@ -1,0 +1,57 @@
+{% extends "_base_publico.html" %}
+
+{% block title %}Resenha crítica — AnCo{% endblock %}
+
+{% block content %}
+<main style="max-width: 760px; margin: 32px auto 80px; padding: 0 24px;">
+
+  <header style="margin-bottom: 20px;">
+    <span class="t-eyebrow" style="color: var(--color-gold);">An·Co · resenha crítica</span>
+    <h1 class="t-h1" style="margin-top: 4px; font-size: 24px; line-height: 1.2;">
+      {{ analise.artigo.titulo|truncatechars:140 }}
+    </h1>
+    <p class="t-small" style="color: var(--color-ink-3); margin-top: 6px;">
+      Status da resenha: <strong>{{ resenha.get_status_display }}</strong>
+    </p>
+  </header>
+
+  <div style="margin-bottom: 18px; padding: 12px 16px; background: var(--color-review-bg); border: 1px solid var(--color-review-rule); font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);">
+    A resenha crítica passa por <strong>revisão cega por pares</strong> e só aparece
+    no acervo público após ser revisada e <strong>confirmada pela curadoria</strong>.
+    A publicação da análise é independente disso.
+  </div>
+
+  <form method="post" class="meta-card">
+    {% csrf_token %}
+    <div>
+      <label class="field-label" for="{{ form.texto.id_for_label }}">{{ form.texto.label }}</label>
+      {{ form.texto }}
+      {% if form.texto.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ form.texto.errors|join:" / " }}</p>{% endif %}
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 18px; margin-top: 18px; border-top: 1px solid var(--color-paper-3);">
+      <a href="{% url 'editar_analise' analise.pk %}" class="btn btn-ghost btn-sm">← Voltar à análise</a>
+      <button type="submit" class="btn btn-primary btn-sm">Salvar resenha</button>
+    </div>
+  </form>
+
+  {% if resenha.status == "rascunho" or resenha.status == "publicada" %}
+  <form method="post" action="{% url 'submeter_resenha' analise.pk %}"
+        style="margin-top: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; background: var(--color-paper-2); border: 1px solid var(--color-rule-strong);">
+    {% csrf_token %}
+    <p class="t-small" style="color: var(--color-ink-2); margin: 0;">
+      {% if resenha.status == "publicada" %}
+        Editou a resenha publicada? Reenvie para nova revisão cega (a análise segue publicada).
+      {% else %}
+        Pronta? Envie a resenha para revisão cega por pares.
+      {% endif %}
+    </p>
+    <button type="submit" class="btn btn-primary btn-sm">Submeter à revisão cega →</button>
+  </form>
+  {% elif resenha.status == "em_revisao" %}
+  <p class="t-small" style="margin-top: 20px; color: var(--color-ink-3);">A resenha está em revisão cega. Você será avisado quando houver parecer.</p>
+  {% elif resenha.status == "revisada" %}
+  <p class="t-small" style="margin-top: 20px; color: var(--color-ink-3);">A resenha foi revisada e aguarda confirmação da curadoria.</p>
+  {% endif %}
+
+</main>
+{% endblock %}

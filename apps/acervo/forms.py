@@ -6,7 +6,7 @@ import re
 
 from django import forms
 
-from .models import Analise, Artigo
+from .models import Analise, Artigo, Resenha
 from .services.crossref import normalizar_doi
 from .services.isbn import validar_isbn
 
@@ -194,8 +194,7 @@ CAMPOS_ESTRUTURA = (
     "contexto_producao",
     "observacoes",
 )
-CAMPOS_RESENHA = ("resenha_critica",)
-TODOS_OS_CAMPOS = CAMPOS_PRESENCA + CAMPOS_ESTRUTURA + CAMPOS_RESENHA
+TODOS_OS_CAMPOS = CAMPOS_PRESENCA + CAMPOS_ESTRUTURA
 
 
 class _AnaliseFormBase(forms.ModelForm):
@@ -238,12 +237,19 @@ class AnaliseEstruturaForm(_AnaliseFormBase):
         }
 
 
-class AnaliseResenhaForm(_AnaliseFormBase):
-    class Meta(_AnaliseFormBase.Meta):
-        fields = CAMPOS_RESENHA
-        widgets = {
-            "resenha_critica": forms.Textarea(attrs={"rows": 12}),
-        }
+class ResenhaForm(forms.ModelForm):
+    """Form do texto da resenha crítica (entidade própria)."""
+
+    class Meta:
+        model = Resenha
+        fields = ("texto",)
+        widgets = {"texto": forms.Textarea(attrs={"rows": 12})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["texto"].required = True
+        self.fields["texto"].label = "Resenha crítica"
+        self.fields["texto"].widget.attrs["class"] = "field-textarea"
 
 
 # Form completo (todos os campos editaveis) — usado pelo auto-save POST

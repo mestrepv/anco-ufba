@@ -132,7 +132,7 @@
 
     {# Selos #}
     <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px;">
-      {% if analise.tem_resenha %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
+      {% if analise.tem_resenha_publica %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
       {% if analise.artigo.acesso_aberto %}{% include "partials/_selo.html" with kind="aberto" %}{% endif %}
       {% if analise.status == 'legado' %}{% include "partials/_selo.html" with kind="historico" %}{% endif %}
     </div>
@@ -173,13 +173,13 @@
       {% if doi_slug %}
       <a href="{% url 'pagina_artigo' doi_slug %}" class="btn btn-sm btn-ghost">Página do artigo →</a>
       {% endif %}
-      {% if analise.tem_resenha %}
+      {% if analise.tem_resenha_publica %}
       <a href="#resenha" class="btn btn-sm btn-secondary">Ver resenha ↓</a>
       {% elif outras_com_resenha and doi_slug %}
       <a href="{% url 'pagina_artigo' doi_slug %}" class="btn btn-sm btn-secondary">Ver resenhas deste artigo →</a>
       {% endif %}
-      {% if user.is_authenticated and user.eh_analista %}
-      <a href="{% url 'iniciar_analise' analise.artigo.pk %}?passo=resenha" class="btn btn-sm btn-ghost">Enviar resenha</a>
+      {% if user.is_authenticated and user.id == analise.analista_id %}
+      <a href="{% url 'editar_resenha' analise.pk %}" class="btn btn-sm btn-ghost">Editar resenha crítica</a>
       {% endif %}
     </div>
 
@@ -187,7 +187,7 @@
 </section>
 
 {# ── Resenha crítica ─────────────────────────────────────────────────── #}
-{% if analise.tem_resenha %}
+{% if analise.tem_resenha_publica %}
 <section id="resenha" class="resenha-outer" style="
   background: var(--color-review-bg);
   border-top: 1px solid var(--color-review-rule);
@@ -197,7 +197,7 @@
   <div class="resenha-inner">
     <p class="t-eyebrow" style="color:var(--color-gold-deep); margin-bottom:8px;">Resenha crítica</p>
     <p class="t-meta" style="font-style:italic; color:var(--color-ink-3); margin-bottom:24px;">revisão cega por dois pares</p>
-    <div class="resenha-text">{{ analise.resenha_critica|linebreaks }}</div>
+    <div class="resenha-text">{{ resenha_publica.texto|linebreaks }}</div>
   </div>
 </section>
 {% endif %}
@@ -311,7 +311,7 @@
         <p class="t-eyebrow" style="margin-bottom:12px;">Nesta página</p>
         <ul style="list-style:none; margin:0; padding:0; display:grid; gap:8px; font-family:var(--font-sans); font-size:13px;">
           <li><a href="#cabecalho" class="link-gold" style="color:var(--color-ink-2);">Cabeçalho</a></li>
-          {% if analise.tem_resenha %}<li><a href="#resenha" class="link-gold">Resenha crítica</a></li>{% endif %}
+          {% if analise.tem_resenha_publica %}<li><a href="#resenha" class="link-gold">Resenha crítica</a></li>{% endif %}
           <li><a href="#grade" class="link-gold" style="color:var(--color-ink-2);">Grade de análise</a></li>
           <li><a href="#citar" class="link-gold" style="color:var(--color-ink-2);">Como citar</a></li>
           <li><a href="#autoria" class="link-gold" style="color:var(--color-ink-2);">Autoria & revisão</a></li>
@@ -342,7 +342,7 @@
           {% endif %}
           <div>
             <dt style="color:var(--color-ink-3);">Tem resenha</dt>
-            <dd style="margin:0; color:var(--color-ink); font-weight:500;">{% if analise.tem_resenha %}sim · revisão cega{% else %}não{% endif %}</dd>
+            <dd style="margin:0; color:var(--color-ink); font-weight:500;">{% if analise.tem_resenha_publica %}sim · revisão cega{% else %}não{% endif %}</dd>
           </div>
           {% if analise.editado_em %}
           <div>

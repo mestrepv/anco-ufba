@@ -179,7 +179,6 @@ class TestEditarAnalise:
             },
         )
         assert resp.status_code == 302
-        assert "passo=resenha" in resp["Location"]
         analise_rascunho.refresh_from_db()
         assert analise_rascunho.objeto == "obj"
 
@@ -263,17 +262,12 @@ class TestSubmeter:
         assert analise_rascunho.status == Analise.Status.SUBMETIDA
         assert analise_rascunho.submetida_em is not None
 
-    def test_aviso_de_resenha_quando_aplicavel(self, cliente_analista, analise_rascunho):
-        analise_rascunho.resenha_critica = "Resenha autoral substantiva."
-        analise_rascunho.save()
-        assert analise_rascunho.tem_resenha is True
-
+    def test_submeter_avisa_que_aguarda_curadoria(self, cliente_analista, analise_rascunho):
         url = reverse("submeter_analise", args=[analise_rascunho.pk])
         resp = cliente_analista.post(url, follow=True)
         assert resp.status_code == 200
-        # mensagem deve mencionar "cega"
         msgs = list(resp.context["messages"])
-        assert any("cega" in str(m).lower() for m in msgs)
+        assert any("curadoria" in str(m).lower() for m in msgs)
 
     def test_analise_ja_submetida_redireciona_sem_alterar(self, cliente_analista, analise_rascunho):
         analise_rascunho.status = Analise.Status.SUBMETIDA

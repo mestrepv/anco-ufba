@@ -1,0 +1,54 @@
+{# Card da fila de curadoria. Params: tipo ("analise"|"resenha"), obj #}
+{% if tipo == "analise" %}
+  {% with artigo=obj.artigo %}
+  <article x-data="{ devolver: false }" class="meta-card" style="margin-bottom: 14px;">
+    <h3 class="t-h3" style="font-size: 17px; line-height: 1.3;">{{ artigo.titulo|truncatechars:160 }}</h3>
+    <p class="t-meta" style="color: var(--color-ink-4); margin: 4px 0 12px;">
+      {{ artigo.ano|default:"s.d." }}
+      · análise de {{ obj.analista.nome_exibicao|default:obj.analista.username }}
+      · submetida {{ obj.submetida_em|date:"d/m/Y" }}
+    </p>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+      <a href="{% url 'pagina_analise' obj.pk %}" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">Ver análise ↗</a>
+      <form method="post" action="{% url 'aprovar_analise' obj.pk %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-sm">Aprovar e publicar</button>
+      </form>
+      <button type="button" class="btn btn-ghost btn-sm" @click="devolver = !devolver">Devolver…</button>
+    </div>
+    <form method="post" action="{% url 'devolver_analise' obj.pk %}" x-show="devolver" x-cloak
+          style="margin-top: 12px; display: grid; gap: 8px;">
+      {% csrf_token %}
+      <textarea name="motivo" rows="2" class="field-textarea" placeholder="Justificativa (motivo dos ajustes ou da rejeição)"></textarea>
+      <div style="display: flex; gap: 10px;">
+        <button type="submit" name="acao" value="ajustes" class="btn btn-secondary btn-sm">Pedir ajustes (→ rascunho)</button>
+        <button type="submit" name="acao" value="rejeitar" class="btn btn-ghost btn-sm" style="color: var(--color-danger);">Rejeitar</button>
+      </div>
+    </form>
+  </article>
+  {% endwith %}
+{% else %}
+  {% with analise=obj.analise %}
+  <article class="meta-card" style="margin-bottom: 14px;">
+    <h3 class="t-h3" style="font-size: 17px; line-height: 1.3;">{{ analise.artigo.titulo|truncatechars:160 }}</h3>
+    <p class="t-meta" style="color: var(--color-ink-4); margin: 4px 0 12px;">
+      resenha de {{ analise.analista.nome_exibicao|default:analise.analista.username }}
+      · aprovada na revisão cega
+    </p>
+    <details style="margin-bottom: 12px;">
+      <summary class="t-small" style="cursor: pointer; color: var(--color-ink-3);">mostrar resenha</summary>
+      <div class="t-prose" style="font-size: 14px; white-space: pre-line; margin-top: 8px;">{{ obj.texto }}</div>
+    </details>
+    <div style="display: flex; gap: 10px;">
+      <form method="post" action="{% url 'confirmar_resenha' obj.pk %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-sm">Confirmar e publicar resenha</button>
+      </form>
+      <form method="post" action="{% url 'rejeitar_resenha' obj.pk %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--color-danger);">Rejeitar</button>
+      </form>
+    </div>
+  </article>
+  {% endwith %}
+{% endif %}

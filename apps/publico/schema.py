@@ -78,8 +78,9 @@ def schema_analise(analise) -> dict:
         "license": "https://creativecommons.org/licenses/by-nc/4.0/",
         "publisher": {"@type": "Organization", "name": "AnCo · Plataforma de Análise Cognitiva"},
     }
-    if analise.tem_resenha:
-        data["reviewBody"] = analise.resenha_critica[:5000]
+    resenha = getattr(analise, "resenha", None)
+    if resenha and resenha.status in ("publicada", "legado"):
+        data["reviewBody"] = resenha.texto[:5000]
     return data
 
 

@@ -43,7 +43,40 @@ urlpatterns = [
         views.excluir_analise_view,
         name="excluir_analise",
     ),
-    # Revisao por pares (Fase 4)
+    # Resenha crítica (entidade própria, sujeita a revisão cega)
+    path(
+        "analise/<int:analise_id>/resenha/",
+        views.editar_resenha_view,
+        name="editar_resenha",
+    ),
+    path(
+        "analise/<int:analise_id>/resenha/submeter/",
+        views.submeter_resenha_view,
+        name="submeter_resenha",
+    ),
+    # Revisão cega por pares (da resenha)
     path("revisoes/", views.minhas_revisoes_view, name="minhas_revisoes"),
     path("revisao/<int:revisao_id>/", views.revisar_view, name="revisar"),
+    # Curadoria
+    path("curadoria/", views.fila_curadoria_view, name="fila_curadoria"),
+    path(
+        "curadoria/analise/<int:analise_id>/aprovar/",
+        views.aprovar_analise_view,
+        name="aprovar_analise",
+    ),
+    path(
+        "curadoria/analise/<int:analise_id>/devolver/",
+        views.devolver_analise_view,
+        name="devolver_analise",
+    ),
+    path(
+        "curadoria/resenha/<int:resenha_id>/confirmar/",
+        views.confirmar_resenha_view,
+        name="confirmar_resenha",
+    ),
+    path(
+        "curadoria/resenha/<int:resenha_id>/rejeitar/",
+        views.rejeitar_resenha_view,
+        name="rejeitar_resenha",
+    ),
 ]

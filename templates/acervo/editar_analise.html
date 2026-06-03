@@ -8,9 +8,7 @@
   {# ── Cabeçalho ─────────────────────────────────────────────────── #}
   <header style="margin-bottom: 24px;">
     <span class="t-eyebrow" style="color: var(--color-gold);">An·Co ·
-      {% if escopo == "resenha" %}adicionar resenha à análise publicada
-      {% elif eh_admin_edit %}edição administrativa
-      {% else %}análise em rascunho{% endif %}
+      {% if eh_admin_edit %}edição administrativa{% else %}análise em rascunho{% endif %}
     </span>
     <h1 class="t-h1" style="margin-top: 4px; font-size: 26px; line-height: 1.2;">
       {{ analise.artigo.titulo|truncatechars:140 }}
@@ -25,8 +23,6 @@
       <a href="{{ analise.artigo.link_acesso }}" target="_blank" rel="noopener noreferrer" class="link" style="font-size: 14px;">
         Acessar obra ↗
       </a>
-
-      {# Selo de status do link #}
       {% if analise.artigo.link_status == "ok" %}
         {% include "partials/_selo.html" with kind="aberto" %}
       {% elif analise.artigo.link_status == "quebrado" %}
@@ -34,7 +30,6 @@
       {% elif analise.artigo.link_status == "redireciona" %}
         <span class="selo selo-historico">redireciona</span>
       {% endif %}
-
       <button hx-post="{% url 'capturar_snapshot' analise.artigo.pk %}"
               hx-target="#snapshot-resultado"
               hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -46,14 +41,7 @@
     {% endif %}
   </header>
 
-  {% if escopo == "resenha" %}
-  <div style="margin: 12px 0 24px; padding: 14px 18px; background: var(--color-review-bg); border: 1px solid var(--color-review-rule); font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);">
-    Esta análise <strong>já foi publicada</strong>. Você pode acrescentar ou editar
-    apenas a <strong>resenha crítica</strong>. Os demais campos estão congelados.
-    Ao salvar, a análise volta a <strong>revisão cega</strong> antes de ser
-    republicada.
-  </div>
-  {% elif eh_admin_edit %}
+  {% if eh_admin_edit %}
   <div style="margin: 12px 0 24px; padding: 14px 18px; background: var(--color-paper-2); border: 1px solid var(--color-rule-strong); font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);">
     Edição administrativa: você está editando uma análise de outro analista.
     Esta ação <strong>fica registrada</strong> (data e autor) no acervo público
@@ -62,34 +50,18 @@
   {% endif %}
 
   {# ── Stepper editorial ────────────────────────────────────────── #}
-  {% if escopo != "resenha" %}
   <nav style="display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--color-rule); margin-bottom: 24px;" aria-label="Passos da análise">
     {% for codigo, label in passos %}
     <a href="?passo={{ codigo }}"
-       style="
-         display: inline-flex;
-         align-items: center;
-         gap: 8px;
-         padding: 10px 14px;
-         font-family: var(--font-sans);
-         font-size: 13px;
-         border-bottom: 2px solid transparent;
-         color: var(--color-ink-3);
-         text-decoration: none;
-         {% if codigo == passo_atual %}
-           border-bottom-color: var(--color-gold);
-           color: var(--color-ink);
-           font-weight: 600;
-         {% endif %}
-       ">
-      <span class="step-indicator" style="
-        {% if codigo != passo_atual %}background: var(--color-paper-2); color: var(--color-ink-3);{% endif %}
-      ">{{ forloop.counter }}</span>
+       style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px;
+         font-family: var(--font-sans); font-size: 13px; border-bottom: 2px solid transparent;
+         color: var(--color-ink-3); text-decoration: none;
+         {% if codigo == passo_atual %}border-bottom-color: var(--color-gold); color: var(--color-ink); font-weight: 600;{% endif %}">
+      <span class="step-indicator" style="{% if codigo != passo_atual %}background: var(--color-paper-2); color: var(--color-ink-3);{% endif %}">{{ forloop.counter }}</span>
       <span>{{ label }}</span>
     </a>
     {% endfor %}
   </nav>
-  {% endif %}
 
   {# ── Passo 1: identificação (read-only) ──────────────────────── #}
   {% if passo_atual == "identificacao" %}
@@ -99,7 +71,6 @@
       Confirme os metadados do artigo. Para corrigir, edite no admin (curador)
       ou registre observações nos passos seguintes.
     </p>
-
     <dl style="margin-top: 8px;">
       <div class="meta-row"><dt>Título</dt><dd>{{ analise.artigo.titulo }}</dd></div>
       {% if analise.artigo.titulo_periodico %}
@@ -114,27 +85,13 @@
       {% endif %}
       <div class="meta-row"><dt>Autores</dt><dd>{{ analise.artigo.autores|truncatechars:300|default:"—" }}</dd></div>
       <div class="meta-row"><dt>Base</dt><dd>{{ analise.artigo.base_consulta|default:"—" }}</dd></div>
-      {% if analise.artigo.resumo %}
-      <div class="meta-row">
-        <dt>Resumo</dt>
-        <dd>
-          <details>
-            <summary style="font-family: var(--font-sans); font-size: 13px; color: var(--color-ink-3); cursor: pointer;">
-              mostrar resumo ({{ analise.artigo.resumo|length }} caracteres)
-            </summary>
-            <p class="t-prose" style="font-size: 14px; color: var(--color-ink); margin-top: 8px;">{{ analise.artigo.resumo }}</p>
-          </details>
-        </dd>
-      </div>
-      {% endif %}
     </dl>
-
     <div style="display: flex; justify-content: flex-end; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--color-paper-3);">
       <a href="?passo=presenca" class="btn btn-primary">Avançar →</a>
     </div>
   </section>
 
-  {# ── Passos 2/3/4: form com auto-save ───────────────────────── #}
+  {# ── Passos 2/3: form com auto-save ─────────────────────────── #}
   {% else %}
   <form method="post"
         x-init="
@@ -142,37 +99,20 @@
             const url = '{% url 'autosave_analise' analise.pk %}';
             setInterval(async () => {
                 const fd = new FormData(form);
-                const resp = await fetch(url, {
-                    method: 'POST',
-                    body: fd,
-                    headers: { 'X-CSRFToken': fd.get('csrfmiddlewaretoken') }
-                });
-                if (resp.ok) {
-                    const data = await resp.json();
-                    ultimoSave = data.salvo_em;
-                }
+                const resp = await fetch(url, { method: 'POST', body: fd,
+                    headers: { 'X-CSRFToken': fd.get('csrfmiddlewaretoken') } });
+                if (resp.ok) { const data = await resp.json(); ultimoSave = data.salvo_em; }
             }, 30000);
         "
-        class="meta-card"
-        {% if passo_atual == "resenha" %}style="background: var(--color-review-bg); border-color: var(--color-review-rule);"{% endif %}>
+        class="meta-card">
     {% csrf_token %}
-
     <header style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--color-paper-3); margin-bottom: 18px;">
-      <h2 class="t-h2">
-        {% for codigo, label in passos %}{% if codigo == passo_atual %}{{ label }}{% endif %}{% endfor %}
-      </h2>
+      <h2 class="t-h2">{% for codigo, label in passos %}{% if codigo == passo_atual %}{{ label }}{% endif %}{% endfor %}</h2>
       <span class="t-meta" style="color: var(--color-ink-4); display: flex; align-items: center; gap: 6px;" x-show="ultimoSave" x-cloak>
         <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--color-ok);"></span>
         Auto-salvo às <span x-text="ultimoSave"></span>
       </span>
     </header>
-
-    {% if passo_atual == "resenha" %}
-    <p class="t-small" style="color: var(--color-gold-deep); padding: 10px 14px; background: rgba(184, 134, 44, .1); border-radius: 6px; margin-bottom: 14px;">
-      <strong>Resenha crítica é opcional.</strong> Quando preenchida, sua análise
-      passa por revisão cega adicional e ganha selo de destaque no acervo público.
-    </p>
-    {% endif %}
 
     <div style="display: grid; gap: 16px;">
     {% for field in form %}
@@ -186,26 +126,37 @@
     </div>
 
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 18px; margin-top: 18px; border-top: 1px solid var(--color-paper-3);">
-      {% if escopo == "resenha" %}
-      <a href="{% url 'pagina_analise' analise.pk %}" class="btn btn-ghost btn-sm">← Cancelar</a>
-      <button type="submit" class="btn btn-primary btn-sm">Salvar e reenviar para revisão →</button>
-      {% else %}
       <a href="?passo=identificacao" class="btn btn-ghost btn-sm">← Voltar</a>
-      <div style="display: flex; gap: 12px;">
-        {% if passo_atual == "resenha" and analise.status == "rascunho" %}
-        <a href="{% url 'submeter_analise' analise.pk %}" class="btn btn-secondary btn-sm">Submeter para revisão →</a>
-        {% endif %}
-        <button type="submit" class="btn btn-primary btn-sm">Salvar{% if eh_admin_edit %}{% else %} e avançar{% endif %}</button>
-      </div>
-      {% endif %}
+      <button type="submit" class="btn btn-primary btn-sm">Salvar{% if not eh_admin_edit %} e avançar{% endif %}</button>
     </div>
   </form>
   {% endif %}
 
+  {# ── Resenha crítica + submissão à curadoria ─────────────────── #}
+  <section class="meta-card" style="margin-top: 24px;">
+    <h2 class="t-h2" style="margin-bottom: 6px;">Resenha crítica <span class="t-meta" style="color: var(--color-ink-4);">(opcional)</span></h2>
+    <p class="t-small" style="color: var(--color-ink-3); margin-bottom: 14px;">
+      A resenha crítica é texto opinativo autoral e passa por <strong>revisão cega por pares</strong>.
+      Ela é independente da publicação da análise: só aparece no acervo após ser revisada e confirmada pela curadoria.
+    </p>
+    {% if resenha %}
+      <p class="t-small" style="margin-bottom: 12px;">Status da resenha: <strong>{{ resenha.get_status_display }}</strong></p>
+    {% endif %}
+    <a href="{% url 'editar_resenha' analise.pk %}" class="btn btn-ghost btn-sm">
+      {% if resenha and resenha.texto %}Editar resenha crítica{% else %}Escrever resenha crítica{% endif %}
+    </a>
+  </section>
+
+  {% if analise.status == "rascunho" %}
+  <section style="margin-top: 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; background: var(--color-paper-2); border: 1px solid var(--color-rule-strong);">
+    <p class="t-small" style="color: var(--color-ink-2); margin: 0;">
+      Quando terminar, submeta para a curadoria avaliar e publicar no acervo.
+    </p>
+    <a href="{% url 'submeter_analise' analise.pk %}" class="btn btn-primary btn-sm">Submeter para curadoria →</a>
+  </section>
+  {% endif %}
+
 </main>
 
-<style>
-  /* Suporta x-cloak do Alpine */
-  [x-cloak] { display: none !important; }
-</style>
+<style>[x-cloak] { display: none !important; }</style>
 {% endblock %}

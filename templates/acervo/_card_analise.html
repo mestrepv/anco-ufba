@@ -19,7 +19,7 @@
       </p>
     </div>
     <div style="display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0;">
-      {% if analise.tem_resenha %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
+      {% if analise.tem_resenha_publica %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
       {# Chip de status #}
       <span class="chip" style="
         {% if analise.status == 'submetida' %}background: #FBEFCF; color: var(--color-gold-deep); border-color: #E8C97A;

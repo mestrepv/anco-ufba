@@ -100,10 +100,14 @@ class Command(BaseCommand):
 
         for i in range(0, len(ids), batch):
             lote_ids = ids[i : i + batch]
-            lote = list(Analise.objects.filter(pk__in=lote_ids))
+            lote = list(
+                Analise.objects.filter(pk__in=lote_ids).select_related("resenha")
+            )
 
             textos_estruturais = [_texto_analise(a) for a in lote]
-            textos_resenha = [a.resenha_critica or "" for a in lote]
+            textos_resenha = [
+                (a.resenha.texto if getattr(a, "resenha", None) else "") for a in lote
+            ]
 
             # Envia todos os textos num único lote para o serviço
             todos = textos_estruturais + textos_resenha

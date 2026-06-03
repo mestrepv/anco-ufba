@@ -6,8 +6,8 @@
 <main style="max-width: 720px; margin: 32px auto 80px; padding: 0 24px;">
 
   <header style="margin-bottom: 24px;">
-    <span class="t-eyebrow" style="color: var(--color-gold);">An·Co · revisão por pares</span>
-    <h1 class="t-h1" style="margin-top: 4px;">Submeter para revisão</h1>
+    <span class="t-eyebrow" style="color: var(--color-gold);">An·Co · curadoria</span>
+    <h1 class="t-h1" style="margin-top: 4px;">Submeter para curadoria</h1>
   </header>
 
   <div class="meta-card" style="display: grid; gap: 18px;">
@@ -29,25 +29,19 @@
       <ul style="list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);">
         <li style="display: flex; gap: 10px; align-items: flex-start;">
           <span style="color: var(--color-gold-deep); font-weight: 600;">→</span>
-          <span>Status muda de <strong>rascunho</strong> para <strong>submetida</strong>; você não poderá editar até receber o parecer.</span>
+          <span>Status muda de <strong>rascunho</strong> para <strong>submetida</strong>; a análise entra na <strong>fila da curadoria</strong>.</span>
         </li>
         <li style="display: flex; gap: 10px; align-items: flex-start;">
           <span style="color: var(--color-gold-deep); font-weight: 600;">→</span>
-          <span>Sorteio automático de <strong>2 revisores estruturais</strong> com prazo de <strong>14 dias</strong>.</span>
+          <span>Um <strong>curador</strong> avalia e, ao aprovar, a análise é <strong>publicada no acervo</strong>.</span>
         </li>
-        {% if analise.tem_resenha %}
         <li style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; background: var(--color-review-bg); border: 1px solid var(--color-review-rule); border-radius: 6px;">
           <span style="color: var(--color-gold-deep); font-weight: 600;">★</span>
-          <span>
-            Como sua análise inclui <strong>resenha crítica</strong>, ela passará também por
-            <strong>revisão cega</strong> adicional (2 revisores, +21 dias). Sua autoria fica
-            mascarada para esses revisores.
-          </span>
+          <span>A <strong>resenha crítica</strong> (se houver) é tratada à parte: passa por <strong>revisão cega por pares</strong> e só aparece no acervo após confirmação da curadoria.</span>
         </li>
-        {% endif %}
         <li style="display: flex; gap: 10px; align-items: flex-start;">
           <span style="color: var(--color-ink-4); font-weight: 600;">↻</span>
-          <span>Em caso de "ajustes", a análise volta para rascunho com os comentários dos revisores.</span>
+          <span>Em caso de "ajustes", a análise volta para rascunho com a justificativa da curadoria.</span>
         </li>
       </ul>
     </div>

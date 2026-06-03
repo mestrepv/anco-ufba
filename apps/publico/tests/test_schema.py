@@ -49,13 +49,18 @@ def artigo(db, vocab):
 
 @pytest.fixture
 def analise(db, artigo, autor):
-    return Analise.objects.create(
+    from apps.acervo.models import Resenha
+
+    a = Analise.objects.create(
         artigo=artigo,
         analista=autor,
         status=Analise.Status.PUBLICADA,
         publicada_em=datetime(2024, 5, 10, tzinfo=UTC),
-        resenha_critica="Texto critico autoral.",
     )
+    Resenha.objects.create(
+        analise=a, texto="Texto critico autoral.", status=Resenha.Status.PUBLICADA
+    )
+    return a
 
 
 # ----------------------------------------------------------------------

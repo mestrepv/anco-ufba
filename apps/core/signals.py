@@ -220,17 +220,17 @@ def _reatribuir_trabalho_para_equipe(user) -> dict:
     ).delete()
 
     # Revisões concluídas: move (preserva histórico).
-    # UniqueConstraint(analise, revisor, tipo): se equipe já tem revisão
-    # da mesma análise+tipo, pula a duplicada.
+    # UniqueConstraint(resenha, revisor): se equipe já tem revisão da mesma
+    # resenha, pula a duplicada.
     movidas_rev = 0
     descartadas_rev = 0
     for rev in Revisao.objects.filter(revisor=user):
         if Revisao.objects.filter(
-            analise=rev.analise, revisor=equipe, tipo=rev.tipo
+            resenha=rev.resenha, revisor=equipe
         ).exists():
             logger.warning(
-                "Revisão %s (analise %s) descartada: Equipe AnCo já tem revisão.",
-                rev.pk, rev.analise_id,
+                "Revisão %s (resenha %s) descartada: Equipe AnCo já tem revisão.",
+                rev.pk, rev.resenha_id,
             )
             rev.delete()
             descartadas_rev += 1

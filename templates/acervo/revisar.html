@@ -1,34 +1,28 @@
 {% extends "_base.html" %}
 
-{% block title %}Revisão — AnCo{% endblock %}
+{% block title %}Revisão cega — AnCo{% endblock %}
 
 {% block content %}
 <header class="mb-4">
-    <h1 class="text-2xl font-semibold text-slate-900">Revisão {{ revisao.get_tipo_display|lower }}</h1>
+    <h1 class="text-2xl font-semibold text-slate-900">Revisão cega de resenha crítica</h1>
     <p class="text-slate-600 text-sm mt-1">
         <strong>{{ analise.artigo.titulo|truncatechars:120 }}</strong>
     </p>
-    {% if eh_cega %}
     <div class="mt-3 px-4 py-2 bg-violet-50 border border-violet-200 rounded text-sm text-violet-900">
-        <strong>Revisão cega.</strong> A autoria do analista (e dos demais
-        revisores) está oculta. Avalie a resenha crítica pelo seu mérito
-        autoral, não pela identidade.
+        <strong>Revisão cega.</strong> A autoria (e a dos demais revisores) está
+        oculta. Avalie a resenha crítica pelo seu mérito, não pela identidade.
     </div>
-    {% endif %}
 </header>
 
 <section class="bg-white rounded-md border border-slate-200 p-6 mb-6 space-y-3 text-sm">
-    <h2 class="text-lg font-semibold mb-2">Análise para revisão</h2>
-    <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+    <h2 class="text-lg font-semibold mb-2">Resenha crítica em revisão</h2>
+    <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mb-3">
         <div><dt class="text-slate-500">Artigo</dt><dd class="font-medium">{{ analise.artigo.titulo }}</dd></div>
         <div><dt class="text-slate-500">Periódico</dt><dd>{{ analise.artigo.titulo_periodico|default:"—" }}</dd></div>
         <div><dt class="text-slate-500">Ano</dt><dd>{{ analise.artigo.ano|default:"—" }}</dd></div>
-        {% if not eh_cega %}
-        <div><dt class="text-slate-500">Analista</dt><dd>{{ analise.analista.nome_exibicao|default:analise.analista.username }}</dd></div>
-        {% else %}
-        <div><dt class="text-slate-500">Analista</dt><dd class="italic text-slate-400">(autoria oculta)</dd></div>
-        {% endif %}
+        <div><dt class="text-slate-500">Autoria</dt><dd class="italic text-slate-400">(oculta)</dd></div>
     </dl>
+    <div class="prose prose-sm max-w-none whitespace-pre-line border-t border-slate-100 pt-3">{{ resenha.texto }}</div>
 </section>
 
 <form method="post" class="space-y-4">{% csrf_token %}
@@ -46,8 +40,8 @@
     </section>
 
     <section class="bg-white rounded-md border border-slate-200 p-6 space-y-4">
-        <h2 class="text-lg font-semibold">Comentários ancorados por campo</h2>
-        <p class="text-sm text-slate-600">Adicione observações específicas a cada campo da análise. Campos vazios são ignorados.</p>
+        <h2 class="text-lg font-semibold">Comentários ancorados</h2>
+        <p class="text-sm text-slate-600">Adicione observações específicas. Campos vazios são ignorados.</p>
 
         {% for codigo, label, valor, cf in blocos_comentarios %}
         <div class="border-l-2 border-slate-200 pl-4 py-2">

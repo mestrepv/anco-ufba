@@ -92,7 +92,7 @@ def vitrine_view(request: HttpRequest) -> HttpResponse:
     ).aggregate(min_ano=Min("ano"), max_ano=Max("ano"))
     recentes_qs = (
         Analise.objects.filter(status__in=STATUS_PUBLICOS)
-        .select_related("artigo", "analista")
+        .select_related("artigo", "analista", "resenha")
         .order_by("criado_em", "id")[:5]
     )
     recentes = [
@@ -127,10 +127,13 @@ _FACETAS = {
     # codigo (querystring) -> (campo de filtro, lookup, label legivel)
     "base": ("artigo__base_consulta__nome", "exact", "Base de consulta"),
     "status": ("status", "exact", "Status"),
-    "resenha": ("tem_resenha", "exact", "Tem resenha crítica"),
+    "resenha": ("resenha", "exact", "Tem resenha crítica"),
     "acesso_aberto": ("artigo__acesso_aberto", "exact", "Acesso aberto"),
     "link_status": ("artigo__link_status", "exact", "Status do link"),
 }
+
+# Resenha visível no acervo público = publicada/legado.
+RESENHA_PUBLICA_Q = Q(resenha__status__in=Resenha.PUBLICAS)
 
 
 def _aplicar_facetas(qs: QuerySet, params) -> QuerySet:
@@ -139,8 +142,15 @@ def _aplicar_facetas(qs: QuerySet, params) -> QuerySet:
         valores = [v for v in params.getlist(codigo) if v]
         if not valores:
             continue
-        # converte 'true'/'false' para bool quando o campo for booleano
-        if codigo in ("resenha", "acesso_aberto"):
+        if codigo == "resenha":
+            # "true" => tem resenha pública; só "false" => não tem.
+            quer = [v.lower() in ("true", "1", "sim", "s") for v in valores]
+            if any(quer):
+                qs = qs.filter(RESENHA_PUBLICA_Q)
+            else:
+                qs = qs.exclude(RESENHA_PUBLICA_Q)
+            continue
+        if codigo == "acesso_aberto":
             valores = [v.lower() in ("true", "1", "sim", "s") for v in valores]
         qs = qs.filter(**{f"{campo}__in": valores})
     return qs
@@ -177,7 +187,7 @@ def _calcular_facetas(qs_base: QuerySet) -> dict[str, list[tuple[str, int]]]:
         )
     ).most_common(15)
     facetas["status"] = Counter(qs_base.values_list("status", flat=True)).most_common()
-    facetas["resenha_count"] = qs_base.filter(tem_resenha=True).count()
+    facetas["resenha_count"] = qs_base.filter(RESENHA_PUBLICA_Q).count()
     facetas["acesso_aberto_count"] = qs_base.filter(artigo__acesso_aberto=True).count()
     return facetas
 
@@ -214,7 +224,7 @@ def _busca_semantica(consulta: str, qs_base: QuerySet) -> list[dict]:
 @ratelimit(key="ip", rate="60/m", method=["GET"], block=False)
 def listagem_view(request: HttpRequest) -> HttpResponse:
     qs_base = Analise.objects.filter(status__in=STATUS_PUBLICOS).select_related(
-        "artigo", "artigo__base_consulta", "analista"
+        "artigo", "artigo__base_consulta", "analista", "resenha"
     )
 
     consulta = (request.GET.get("q") or "").strip()
@@ -270,7 +280,6 @@ def listagem_view(request: HttpRequest) -> HttpResponse:
                 "objetivo",
                 "aspectos_relevantes",
                 "definicao_extraida",
-                "resenha_critica",
                 config="portuguese_unaccent",
             )
             query = SearchQuery(consulta, config="portuguese_unaccent")
@@ -357,7 +366,9 @@ def _linha_planilha(a: Analise) -> dict:
         "epistemologia": epistemologia,
         "teoria": teoria,
         "analista": (a.analista.nome_exibicao or a.analista.username),
-        "tem_resenha": bool(a.tem_resenha),
+        "tem_resenha": bool(
+            getattr(a, "resenha", None) and a.resenha.status in Resenha.PUBLICAS
+        ),
         "acesso_aberto": bool(artigo.acesso_aberto),
         "status": a.get_status_display(),
         "publicada_em": (a.publicada_em or a.criado_em).date().isoformat(),
@@ -367,7 +378,7 @@ def _linha_planilha(a: Analise) -> dict:
 def planilha_view(request: HttpRequest) -> HttpResponse:
     qs = (
         Analise.objects.filter(status__in=STATUS_PUBLICOS)
-        .select_related("artigo", "artigo__base_consulta", "analista")
+        .select_related("artigo", "artigo__base_consulta", "analista", "resenha")
         .prefetch_related("epistemologia", "teoria")
         .order_by("-publicada_em", "-criado_em")
     )
@@ -392,7 +403,7 @@ def pagina_artigo_view(request: HttpRequest, doi_slug: str) -> HttpResponse:
     artigo = get_object_or_404(Artigo, doi=doi)
     analises_publicas = (
         Analise.objects.filter(artigo=artigo, status__in=STATUS_PUBLICOS)
-        .select_related("analista")
+        .select_related("analista", "resenha")
         .order_by("-publicada_em", "-criado_em")
     )
     snapshots = artigo.snapshots.order_by("-capturado_em")[:1]
@@ -423,31 +434,22 @@ def pagina_artigo_view(request: HttpRequest, doi_slug: str) -> HttpResponse:
 # ---------------------------------------------------------------------------
 
 
-def _revisoes_para_publico(analise: Analise) -> list[dict]:
+def _revisoes_para_publico(resenha) -> list[dict]:
     """
-    Devolve lista de dicts {tipo, parecer, identificador} para exibir no acervo.
-
-    - Estruturais: nome do revisor visivel.
-    - Cegos: identificados como 'Revisor cego A', 'Revisor cego B', ...
+    Revisões cegas da resenha, identificadas como 'Revisor cego A/B/...'
+    (autoria sempre anonimizada).
     """
+    if resenha is None:
+        return []
     qs = list(
-        Revisao.objects.filter(analise=analise).select_related("revisor").order_by("tipo", "id")
+        Revisao.objects.filter(resenha=resenha, concluido_em__isnull=False).order_by("id")
     )
-    cegas_idx = 0
     resultado = []
-    for r in qs:
-        if r.tipo == Revisao.Tipo.CEGA:
-            identificador = f"Revisor cego {ascii_uppercase[cegas_idx]}"
-            cegas_idx += 1
-        else:
-            identificador = (
-                r.revisor.nome_exibicao or r.revisor.get_full_name() or r.revisor.username
-            )
+    for idx, r in enumerate(qs):
         resultado.append(
             {
-                "tipo_label": r.get_tipo_display(),
+                "identificador": f"Revisor cego {ascii_uppercase[idx]}",
                 "parecer_label": r.get_parecer_display() if r.parecer else "—",
-                "identificador": identificador,
                 "concluido_em": r.concluido_em,
             }
         )
@@ -471,7 +473,7 @@ _CAMPOS_TEXTUAIS = (
 def pagina_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     analise = get_object_or_404(
         Analise.objects.select_related(
-            "artigo", "artigo__base_consulta", "analista"
+            "artigo", "artigo__base_consulta", "analista", "resenha"
         ).prefetch_related("epistemologia", "teoria"),
         pk=analise_id,
     )
@@ -482,13 +484,16 @@ def pagina_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
 
     link_obra = analise.artigo.link_acesso or analise.artigo.link_acesso_alternativo or ""
 
-    # Sinaliza se ha resenha em outras analises publicadas do mesmo artigo
-    # (multiplas resenhas por artigo sao aceitas, uma por analista).
+    # Resenha crítica só aparece quando publicada/legado.
+    resenha = getattr(analise, "resenha", None)
+    resenha_publica = resenha if (resenha and resenha.status in Resenha.PUBLICAS) else None
+
+    # Sinaliza se há resenha pública em outras análises do mesmo artigo.
     outras_com_resenha = (
         Analise.objects.filter(
             artigo=analise.artigo,
             status__in=STATUS_PUBLICOS,
-            tem_resenha=True,
+            resenha__status__in=Resenha.PUBLICAS,
         )
         .exclude(pk=analise.pk)
         .exists()
@@ -499,7 +504,8 @@ def pagina_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
         "publico/analise.html",
         {
             "analise": analise,
-            "revisoes": _revisoes_para_publico(analise),
+            "resenha_publica": resenha_publica,
+            "revisoes": _revisoes_para_publico(resenha_publica),
             "citacao_abnt": gerar_citacao_abnt(analise),
             "citacao_apa": gerar_citacao_apa(analise),
             "doi_slug": doi_to_slug(analise.artigo.doi),

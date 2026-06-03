@@ -184,11 +184,16 @@ class TestListagem:
             base_consulta=vocab,
             link_acesso="https://e.org/b",
         )
-        Analise.objects.create(
+        from apps.acervo.models import Resenha
+
+        analise_com = Analise.objects.create(
             artigo=a2,
             analista=autor,
             status=Analise.Status.PUBLICADA,
-            resenha_critica="Resenha autoral.",
+        )
+        Resenha.objects.create(
+            analise=analise_com, texto="Resenha autoral.",
+            status=Resenha.Status.PUBLICADA,
         )
 
         resp = client.get(reverse("acervo_publico"), {"resenha": "true"})
@@ -290,71 +295,43 @@ class TestPaginaAnalise:
         assert resp.status_code == 404
 
     def test_revisores_cegos_aparecem_anonimos(self, client, artigo_publicado, autor, revisores):
+        from apps.acervo.models import Resenha
+
         analise = Analise.objects.create(
-            artigo=artigo_publicado,
-            analista=autor,
-            status=Analise.Status.PUBLICADA,
-            resenha_critica="X",
+            artigo=artigo_publicado, analista=autor, status=Analise.Status.PUBLICADA,
         )
-        # 2 estruturais + 2 cegas
-        prazo = timezone.now() + timedelta(days=14)
-        Revisao.objects.create(
-            analise=analise,
-            revisor=revisores[0],
-            tipo="estrutural",
-            prazo_em=prazo,
-            parecer="aprovar",
-            concluido_em=timezone.now(),
+        resenha = Resenha.objects.create(
+            analise=analise, texto="X", status=Resenha.Status.PUBLICADA
         )
-        Revisao.objects.create(
-            analise=analise,
-            revisor=revisores[1],
-            tipo="estrutural",
-            prazo_em=prazo,
-            parecer="aprovar",
-            concluido_em=timezone.now(),
-        )
-        Revisao.objects.create(
-            analise=analise,
-            revisor=revisores[2],
-            tipo="cega",
-            prazo_em=prazo,
-            parecer="aprovar",
-            concluido_em=timezone.now(),
-        )
-        Revisao.objects.create(
-            analise=analise,
-            revisor=revisores[3],
-            tipo="cega",
-            prazo_em=prazo,
-            parecer="aprovar",
-            concluido_em=timezone.now(),
-        )
+        prazo = timezone.now() + timedelta(days=21)
+        for i in (0, 1):
+            Revisao.objects.create(
+                resenha=resenha, revisor=revisores[i], prazo_em=prazo,
+                parecer="aprovar", concluido_em=timezone.now(),
+            )
 
         resp = client.get(reverse("pagina_analise", args=[analise.pk]))
         assert resp.status_code == 200
-        # estruturais visiveis
-        assert revisores[0].nome_exibicao.encode() in resp.content
-        assert revisores[1].nome_exibicao.encode() in resp.content
-        # cegos NAO visiveis
-        assert revisores[2].nome_exibicao.encode() not in resp.content
-        assert revisores[3].nome_exibicao.encode() not in resp.content
-        assert revisores[2].username.encode() not in resp.content
-        assert revisores[3].username.encode() not in resp.content
-        # mas tem labels A e B
+        # revisores cegos NÃO são identificados pelo nome
+        assert revisores[0].nome_exibicao.encode() not in resp.content
+        assert revisores[1].nome_exibicao.encode() not in resp.content
+        assert revisores[0].username.encode() not in resp.content
+        # mas têm labels A e B
         assert b"Revisor cego A" in resp.content
         assert b"Revisor cego B" in resp.content
 
     def test_resenha_critica_em_destaque(self, client, artigo_publicado, autor):
+        from apps.acervo.models import Resenha
+
         analise = Analise.objects.create(
-            artigo=artigo_publicado,
-            analista=autor,
-            status=Analise.Status.PUBLICADA,
-            resenha_critica="Texto critico autoral substantivo.",
+            artigo=artigo_publicado, analista=autor, status=Analise.Status.PUBLICADA,
+        )
+        Resenha.objects.create(
+            analise=analise, texto="Texto critico autoral substantivo.",
+            status=Resenha.Status.PUBLICADA,
         )
         resp = client.get(reverse("pagina_analise", args=[analise.pk]))
         assert resp.status_code == 200
-        # Selo "Resenha crítica" (substituiu a string "peer-reviewed" do design antigo)
         assert "Resenha crítica".encode() in resp.content
         assert b"Texto critico autoral substantivo." in resp.content
 
