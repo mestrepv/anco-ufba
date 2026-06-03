@@ -98,6 +98,7 @@ def _payload_minimo(base_consulta_id, **overrides):
         "link_acesso": "https://example.org/artigo",
         "base_consulta": str(base_consulta_id),
         "tipo_publicacao": "artigo",
+        "area": "Ciências Humanas",
     }
     base.update(overrides)
     return base
@@ -110,6 +111,20 @@ class TestArtigoMetadadosForm:
         )
         assert f.is_valid(), f.errors
         assert f.cleaned_data["doi"] == "10.1016/x"
+
+    def test_area_obrigatoria(self, db, base_consulta):
+        f = ArtigoMetadadosForm(
+            data=_payload_minimo(base_consulta.pk, doi="10.1016/x", area="")
+        )
+        assert not f.is_valid()
+        assert "area" in f.errors
+
+    def test_area_so_aceita_grande_area_valida(self, db, base_consulta):
+        f = ArtigoMetadadosForm(
+            data=_payload_minimo(base_consulta.pk, doi="10.1016/x", area="Psicologia")
+        )
+        assert not f.is_valid()
+        assert "area" in f.errors
 
     def test_valido_com_isbn13(self, db, base_consulta):
         f = ArtigoMetadadosForm(

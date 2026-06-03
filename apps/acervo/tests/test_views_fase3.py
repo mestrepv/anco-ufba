@@ -107,7 +107,7 @@ class TestCadastrarArtigo:
                 "numero": "",
                 "pagina_inicial": "",
                 "pagina_final": "",
-                "area": "",
+                "area": "Ciências Humanas",
                 "autores": "Autor X",
                 "vinculacao_institucional": "",
                 "palavras_chaves": "",

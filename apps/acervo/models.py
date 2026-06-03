@@ -65,6 +65,20 @@ class Artigo(models.Model):
         ITALIANO = "it", "Italiano"
         OUTRO = "outro", "Outro"
 
+    class Area(models.TextChoices):
+        # Grandes áreas do conhecimento (CNPq/CAPES, como no Lattes).
+        # O valor é o próprio rótulo para casar com os dados legados existentes.
+        EXATAS_TERRA = "Ciências Exatas e da Terra", "Ciências Exatas e da Terra"
+        BIOLOGICAS = "Ciências Biológicas", "Ciências Biológicas"
+        ENGENHARIAS = "Engenharias", "Engenharias"
+        SAUDE = "Ciências da Saúde", "Ciências da Saúde"
+        AGRARIAS = "Ciências Agrárias", "Ciências Agrárias"
+        SOCIAIS_APLICADAS = "Ciências Sociais Aplicadas", "Ciências Sociais Aplicadas"
+        HUMANAS = "Ciências Humanas", "Ciências Humanas"
+        LINGUISTICA_LETRAS_ARTES = "Linguística, Letras e Artes", "Linguística, Letras e Artes"
+        MULTIDISCIPLINAR = "Multidisciplinar", "Multidisciplinar"
+        OUTROS = "Outros", "Outros"
+
     doi = models.CharField(
         max_length=200,
         unique=True,
@@ -120,7 +134,13 @@ class Artigo(models.Model):
     numero = models.CharField(max_length=50, blank=True)
     pagina_inicial = models.CharField(max_length=20, blank=True)
     pagina_final = models.CharField(max_length=20, blank=True)
-    area = models.CharField(max_length=200, blank=True)
+    area = models.CharField(
+        max_length=200,
+        choices=Area.choices,
+        blank=True,
+        db_index=True,
+        help_text="Grande área do conhecimento (CNPq/CAPES).",
+    )
     autores = models.TextField(blank=True)
     vinculacao_institucional = models.TextField(blank=True)
     palavras_chaves = models.TextField(blank=True)

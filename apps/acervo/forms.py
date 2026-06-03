@@ -121,6 +121,8 @@ class ArtigoMetadadosForm(forms.ModelForm):
         # link_acesso continua obrigatório (acervo precisa do link)
         self.fields["link_acesso"].required = True
         self.fields["base_consulta"].required = True
+        # Área (grande área CNPq/CAPES) é obrigatória no cadastro de artigos.
+        self.fields["area"].required = True
         # DOI e ISBN ficam opcionais — clean() valida que pelo menos um existe
         self.fields["doi"].required = False
         self.fields["isbn"].required = False
