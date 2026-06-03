@@ -47,12 +47,11 @@ class TestHomeView:
 
 class TestLoginView:
     def test_login_renderiza(self, db, client):
-        # allauth account_login route — login local com email + senha
+        # Login é só via Google (cadastro aberto por OAuth).
         resp = client.get("/accounts/login/")
         assert resp.status_code == 200
-        assert b'name="login"' in resp.content
-        assert b'name="password"' in resp.content
-        assert b"Entrar" in resp.content
+        assert b"Entrar com Google" in resp.content
+        assert b"google" in resp.content.lower()
 
 
 class TestSignupBloqueado:

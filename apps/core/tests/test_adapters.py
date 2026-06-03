@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
-from allauth.core.exceptions import ImmediateHttpResponse
 from django.contrib.auth import get_user_model
 from django.test import RequestFactory
 
@@ -23,26 +22,34 @@ def request_obj(factory):
     return factory.get("/")
 
 
-def _sociallogin(email: str):
-    """Cria um objeto similar ao SocialLogin do allauth com um user em memória."""
+def _sociallogin(email: str, is_existing: bool = False):
+    """Objeto similar ao SocialLogin do allauth com user em memória."""
     user = User(email=email, username=email.split("@")[0])
-    return SimpleNamespace(user=user)
+    return SimpleNamespace(user=user, is_existing=is_existing, connect=MagicMock())
 
 
 class TestPreSocialLogin:
-    def test_aceita_dominio_institucional(self, request_obj):
-        adapter = AnCoSocialAccountAdapter()
-        # Nao deve levantar
-        adapter.pre_social_login(request_obj, _sociallogin("user@usp.edu.br"))
+    """Cadastro aberto: não há rejeição por domínio; apenas auto-vínculo por e-mail."""
 
-    def test_recusa_dominio_nao_listado(self, request_obj):
+    def test_sem_user_existente_nao_vincula(self, request_obj, db):
         adapter = AnCoSocialAccountAdapter()
-        with pytest.raises(ImmediateHttpResponse) as exc_info:
-            adapter.pre_social_login(request_obj, _sociallogin("user@gmail.com"))
-        # Resposta tem status 403 e contem o e-mail
-        response = exc_info.value.response
-        assert response.status_code == 403
-        assert b"gmail.com" in response.content
+        sl = _sociallogin("novo@gmail.com")
+        adapter.pre_social_login(request_obj, sl)  # não levanta
+        sl.connect.assert_not_called()
+
+    def test_vincula_a_user_existente_por_email(self, request_obj, db):
+        User.objects.create_user(
+            username="maria", email="maria@usp.edu.br", password="x"
+        )
+        adapter = AnCoSocialAccountAdapter()
+        sl = _sociallogin("maria@usp.edu.br")
+        adapter.pre_social_login(request_obj, sl)
+        sl.connect.assert_called_once()
+
+    def test_social_signup_aberto_a_qualquer_dominio(self, request_obj):
+        adapter = AnCoSocialAccountAdapter()
+        sl = _sociallogin("qualquer@gmail.com")
+        assert adapter.is_open_for_signup(request_obj, sl) is True
 
 
 class TestPopulateUser:
