@@ -12,7 +12,21 @@ Leia este arquivo no início de cada sessão.
 - O Caddy sobe com `docker compose --profile prod up -d` e termina TLS via Let's Encrypt.
 - Estáticos servidos pelo Caddy em `/static/*` a partir de `staticfiles/` (após `collectstatic`).
 - Para validar mudanças de frontend em produção: rebuild da imagem → `collectstatic` → `docker compose --profile prod up -d --build`.
+- **Mudança só de template/view (sem novo estático nem dependência)**: não
+  precisa rebuild. Os fontes são bind-mount no container; basta recarregar os
+  workers do gunicorn para limpar o `cached.Loader` de templates e reimportar
+  o código Python:
+  `docker compose -f infra/docker-compose.yml kill -s HUP web`
+  (recarga graciosa, sem downtime). Use `kill -s HUP` via `docker compose` —
+  o binário `kill` não existe na imagem slim.
 - Para health check: `curl https://anco.paulovicente.pro.br/healthz` (não usar `localhost:8000`).
+- **Resumo da home** (`vitrine_view`): `analistas_count` = analistas
+  cadastrados (mesma definição do diretório `/equipe`, cresce a cada cadastro);
+  `pesquisadores_count` = autores com análise PUBLICADA/LEGADO. Não confundir.
+- **Conhecido**: o serviço `worker` (django-q2) está com imagem desatualizada
+  (`ModuleNotFoundError: unfold`) — rebuildar com `docker compose build worker`
+  quando o fluxo assíncrono for necessário. Sem impacto enquanto só há acervo
+  legado (nada a publicar de forma assíncrona).
 
 ---
 
