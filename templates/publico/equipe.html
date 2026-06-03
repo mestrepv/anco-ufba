@@ -1,55 +1,82 @@
 {% extends "_base_publico.html" %}
-{% load static %}
+{% load static avatar_tags %}
 
 {% block title %}Equipe — AnCo{% endblock %}
-{% block meta_description %}Conheça os pesquisadores que integram a equipe do AnCo — acervo colaborativo de análises de literatura científica sobre Análise Cognitiva.{% endblock %}
-{% block og_description %}Pesquisadores do PPGDC que integram a equipe do AnCo — acervo de Análise Cognitiva.{% endblock %}
+{% block meta_description %}Diretório de pesquisadores que integram a equipe do AnCo — acervo colaborativo de análises de literatura científica sobre Análise Cognitiva.{% endblock %}
+{% block og_description %}Pesquisadores que integram a equipe do AnCo — acervo de Análise Cognitiva.{% endblock %}
 
 {% block extra_head %}
 <style>
+  .equipe-wrap { padding: clamp(32px,5vw,64px) clamp(20px,5vw,56px); }
+  .equipe-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  @media (min-width: 720px) {
+    .equipe-grid { grid-template-columns: 1fr 1fr; gap: 0 40px; }
+  }
   .membro-card {
     padding: 32px 0;
     border-bottom: 1px solid var(--color-rule);
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 16px;
+    align-items: start;
   }
-  .membro-card:last-child { border-bottom: 0; }
-
   .membro-nome {
     font-family: var(--font-serif);
     font-weight: 500;
-    font-size: 22px;
-    line-height: 1.2;
-    letter-spacing: -0.01em;
+    font-size: 20px;
+    line-height: 1.25;
     color: var(--color-ink);
-    margin: 0 0 4px;
+    margin: 0 0 2px;
   }
-
-  .membro-role {
+  .membro-titulacao {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-gold-deep);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 8px;
+  }
+  .membro-vinculo {
     font-family: var(--font-sans);
     font-size: 13px;
     color: var(--color-ink-3);
-    margin: 0 0 16px;
+    margin: 0 0 10px;
+    line-height: 1.4;
   }
-
   .membro-bio {
     font-family: var(--font-serif);
-    font-size: 16px;
-    line-height: 1.6;
+    font-size: 15px;
+    line-height: 1.55;
     color: var(--color-ink-2);
-    text-wrap: pretty;
-    margin: 0;
+    margin: 0 0 10px;
   }
-
+  .membro-areas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0 12px;
+  }
+  .area-chip {
+    display: inline-flex;
+    padding: 3px 10px;
+    background: var(--color-paper-2);
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    color: var(--color-ink-2);
+  }
   .membro-links {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 16px;
+    gap: 12px;
   }
-
   .membro-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
     font-family: var(--font-sans);
     font-size: 12px;
     color: var(--color-gold-deep);
@@ -59,130 +86,165 @@
   }
   .membro-link:hover { color: var(--color-ink); }
 
-  @media (min-width: 768px) {
-    .equipe-layout { display: grid; grid-template-columns: 220px 1fr; gap: 80px; align-items: start; }
-    .equipe-sidebar { position: sticky; top: 32px; }
-    .equipe-sidebar-nav { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; }
-    .equipe-sidebar-nav li a {
-      display: block;
-      padding: 10px 0;
-      font-family: var(--font-sans);
-      font-size: 13px;
-      color: var(--color-ink-3);
-      border-bottom: 1px solid var(--color-rule);
-      text-decoration: none;
-    }
-    .equipe-sidebar-nav li a:hover { color: var(--color-ink); }
-    .equipe-sidebar-nav li:first-child a { border-top: 1px solid var(--color-rule); }
+  /* ── Equipe fundadora (histórico) ──────────────────────── */
+  .fundadora-secao {
+    margin-top: clamp(48px,6vw,80px);
+    padding-top: clamp(40px,5vw,56px);
+    border-top: 1px solid var(--color-rule-strong);
+  }
+  .fundadora-card {
+    padding: 28px 0;
+    border-bottom: 1px solid var(--color-rule);
+  }
+  .fundadora-card:last-child { border-bottom: 0; }
+  .fundadora-nome {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 20px;
+    line-height: 1.2;
+    color: var(--color-ink);
+    margin: 0 0 4px;
+  }
+  .fundadora-role {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--color-gold-deep);
+    margin: 0 0 12px;
+    line-height: 1.4;
+  }
+  .fundadora-bio {
+    font-family: var(--font-serif);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--color-ink-2);
+    margin: 0;
   }
 </style>
 {% endblock %}
 
 {% block content %}
 
-{# ── Cabeçalho ──────────────────────────────────────────────────────────── #}
+{# ── Cabeçalho ──────────────────────────────────────────────────────── #}
 <div style="padding: clamp(32px,5vw,64px) clamp(20px,5vw,56px) 0; border-bottom: 1px solid var(--color-rule);">
   <p class="t-eyebrow" style="margin:0 0 12px;">AnCo</p>
   <h1 class="t-h1" style="margin:0 0 8px;">Equipe de pesquisa</h1>
-  <p class="t-body" style="color:var(--color-ink-3); margin:0 0 32px;">
-    Pesquisadores vinculados ao Doutorado Multi-institucional e Multidisciplinar em Difusão do Conhecimento (DMMDC) que integram o projeto AnCo.
+  <p class="t-body" style="color:var(--color-ink-3); margin:0 0 8px;">
+    Diretório de analistas que contribuem com o acervo. Cada analista é responsável por suas próprias análises e pode ser sorteado para revisões cegas por pares.
+  </p>
+  <p class="t-meta" style="color:var(--color-ink-4); margin: 0 0 32px;">
+    {{ total }} {% if total == 1 %}membro{% else %}membros{% endif %} ativo{{ total|pluralize }} no diretório.
   </p>
 </div>
 
-{# ── Corpo ───────────────────────────────────────────────────────────────── #}
-<div style="padding: clamp(32px,5vw,64px) clamp(20px,5vw,56px);">
-<div class="equipe-layout">
+{# ── Diretório dinâmico ────────────────────────────────────────────── #}
+<div class="equipe-wrap">
 
-  {# Sidebar de navegação (desktop) #}
-  <aside class="equipe-sidebar" aria-label="Membros da equipe">
-    <p class="t-eyebrow" style="margin:0 0 4px;">Membros</p>
-    <ul class="equipe-sidebar-nav">
-      <li><a href="#leliana-santos">Leliana Santos de Sousa</a></li>
-      <li><a href="#teresinha-burnham">Teresinha Fróes Burnham</a></li>
-      <li><a href="#eneida-santana">Eneida Santana</a></li>
-      <li><a href="#jose-damiao">José Damião de Melo</a></li>
-      <li><a href="#julia-andrade">Júlia Carvalho Andrade</a></li>
-      <li><a href="#jucara-freire">Juçara Freire dos Santos</a></li>
-      <li><a href="#maria-aurea">Maria Aurea Caldas Souto</a></li>
-    </ul>
-  </aside>
+<h2 style="font-family:var(--font-serif);font-weight:500;font-size:24px;margin:0 0 8px;color:var(--color-ink);">Analistas ativos</h2>
+<p style="font-family:var(--font-sans);font-size:13px;color:var(--color-ink-3);margin:0 0 24px;">Pesquisadores que contribuem hoje com o acervo e podem ser sorteados para revisões cegas.</p>
 
-  {# Lista de membros #}
-  <div>
-
-    <div class="membro-card" id="leliana-santos">
-      <h2 class="membro-nome">Leliana Santos de Sousa</h2>
-      <p class="membro-role">Professora Adjunto · Universidade do Estado da Bahia (UNEB) · Líder do GEEDR/UNEB/CNPq</p>
-      <p class="membro-bio">
-        Coordenadora das atividades de implantação do Centro de Pesquisa em Educação e Desenvolvimento Regional (CPEDR) da UNEB. Desenvolve estudos nas áreas de saberes e práticas interdisciplinares com ênfase em Educação, Desenvolvimento Regional, Tecnologias, Sustentabilidade, Gestão, Cultura, Memória e Relações Étnico-Raciais. Integra o quadro de docentes do Doutorado Multi-institucional e Multirreferencial em Difusão do Conhecimento (DMMDC) no campo da Análise Cognitiva. Graduada em Licenciatura em Ciências pela UFBA (1982) e em Pedagogia pela Faculdade de Educação da Bahia (1988); Mestre em Educação pela UFBA (1996); Doutora em Ciências da Educação pela Université Vincennes Saint-Denis Paris 8, França (2003).
-      </p>
-    </div>
-
-    <div class="membro-card" id="teresinha-burnham">
-      <h2 class="membro-nome">Teresinha Fróes Burnham</h2>
-      <p class="membro-role">Professora-associada Nível IV · Universidade Federal da Bahia (UFBA) · Fundadora do DMMDC</p>
-      <p class="membro-bio">
-        Fundadora, primeira coordenadora e docente-pesquisadora do Doutorado Multi-institucional e Multidisciplinar em Difusão do Conhecimento (DMMDC). Desenvolve pesquisas nas áreas de Análise Cognitiva, Ciência da Informação e Educação, com ênfase na relação conhecimento e sociedade — principalmente tra(ns)dução do conhecimento, currículo, trabalho, espaços de aprendizagem e gestão do conhecimento. Graduada em História Natural pela Universidade Católica do Salvador (1968); Mestre em Educação pela UFBA (1976); Doutora em Filosofia pela University of Southampton, Inglaterra (1982); Pós-doutora em Sociologia e Política do Currículo pela University of London (1997).
-      </p>
-    </div>
-
-    <div class="membro-card" id="eneida-santana">
-      <h2 class="membro-nome">Eneida Santana</h2>
-      <p class="membro-role">Doutoranda DMMDC (2017) · Bibliotecária · Instituto Federal da Bahia (IFBA) · Coordenadora de Extensão, Camaçari</p>
-      <p class="membro-bio">
-        Pesquisadora de formação docente, tecnologias educacionais e práticas extensionistas. Membra do Grupo de Pesquisa Tecnologia da Informação e Comunicação Aplicadas à Educação e Saúde (TICASE). Possui especialização em Educação a Distância: Tecnologias Educacionais pelo Instituto Federal do Paraná (2016); Mestre em Ciência da Informação pela UFBA (2011); Graduada em Biblioteconomia e Documentação pela UFBA (2008).
-      </p>
-    </div>
-
-    <div class="membro-card" id="jose-damiao">
-      <h2 class="membro-nome">José Damião de Melo</h2>
-      <p class="membro-role">Professor · Instituto Federal de Sergipe (IFS) · Doutorando DMMDC (2017)</p>
-      <p class="membro-bio">
-        Líder do grupo de pesquisas em Educação, Tecnologia e Gestão do Conhecimento. Mestre em Modelagem Computacional de Conhecimento pela Universidade Federal de Alagoas (UFAL, 2012).
-      </p>
-      <div class="membro-links">
-        <a class="membro-link" href="http://www.researcherid.com/rid/A-9122-2010" target="_blank" rel="noopener">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:12px;height:12px;" aria-hidden="true"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3"/><path d="M10 1h5v5"/><line x1="15" y1="1" x2="8" y2="8"/></svg>
-          ResearcherID
-        </a>
-        <a class="membro-link" href="https://www.researchgate.net/profile/Damiao_Melo2" target="_blank" rel="noopener">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:12px;height:12px;" aria-hidden="true"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3"/><path d="M10 1h5v5"/><line x1="15" y1="1" x2="8" y2="8"/></svg>
-          ResearchGate
-        </a>
-        <a class="membro-link" href="https://www.mendeley.com/profiles/jose-damiao-melo/" target="_blank" rel="noopener">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:12px;height:12px;" aria-hidden="true"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3"/><path d="M10 1h5v5"/><line x1="15" y1="1" x2="8" y2="8"/></svg>
-          Mendeley
-        </a>
+{% if analistas %}
+  <div class="equipe-grid">
+    {% for a in analistas %}
+    <article class="membro-card">
+      <div>{% avatar a size=64 %}</div>
+      <div>
+        <h2 class="membro-nome">{{ a.nome_exibicao|default:a.get_full_name|default:a.email }}</h2>
+        <p class="membro-titulacao">
+          {{ a.get_titulacao_display }}
+        </p>
+        <p class="membro-vinculo">
+          {% if a.cargo %}{{ a.cargo }} · {% endif %}{{ a.vinculo_institucional }}{% if a.unidade_departamento %} · {{ a.unidade_departamento }}{% endif %}{% if a.grupo_pesquisa %} · {{ a.grupo_pesquisa }}{% endif %}
+        </p>
+        {% if a.bio_curta %}<p class="membro-bio">{{ a.bio_curta }}</p>{% endif %}
+        {% if a.areas_interesse %}
+        <div class="membro-areas">
+          {% for area in a.areas_interesse|split:";" %}<span class="area-chip">{{ area }}</span>{% endfor %}
+        </div>
+        {% endif %}
+        <div class="membro-links">
+          {% if a.lattes_url %}<a class="membro-link" href="{{ a.lattes_url }}" target="_blank" rel="noopener">Lattes ↗</a>{% endif %}
+          {% if a.orcid %}<a class="membro-link" href="https://orcid.org/{{ a.orcid }}" target="_blank" rel="noopener">ORCID ↗</a>{% endif %}
+          {% if a.linkedin_url %}<a class="membro-link" href="{{ a.linkedin_url }}" target="_blank" rel="noopener">LinkedIn ↗</a>{% endif %}
+          {% if a.pagina_pessoal_url %}<a class="membro-link" href="{{ a.pagina_pessoal_url }}" target="_blank" rel="noopener">Página pessoal ↗</a>{% endif %}
+        </div>
       </div>
-    </div>
+    </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <p style="padding:24px 0;font-family:var(--font-sans);color:var(--color-ink-3);font-style:italic;">Nenhum analista no diretório ainda. Analistas aparecem aqui após completarem o perfil (titulação, bio curta e áreas de interesse).</p>
+{% endif %}
 
-    <div class="membro-card" id="julia-andrade">
-      <h2 class="membro-nome">Júlia Carvalho Andrade</h2>
-      <p class="membro-role">Professora Assistente · Escola de Nutrição · Universidade Federal da Bahia (UFBA)</p>
-      <p class="membro-bio">
-        Nutricionista, Mestre em Alimentos, Nutrição e Saúde, e especialista em Gestão de Negócios em Alimentos. Atua principalmente nos seguintes temas: abordagem interdisciplinar da alimentação e nutrição, técnicas dietéticas, gastronomia aplicada à nutrição clínica, e prevenção e tratamento das Doenças Crônicas Não Transmissíveis (DCNT).
-      </p>
-    </div>
+{# ── Equipe fundadora ──────────────────────────────────────────────── #}
+<section class="fundadora-secao" id="fundadora">
+  <h2 style="font-family:var(--font-serif);font-weight:500;font-size:24px;margin:0 0 8px;color:var(--color-ink);">Equipe fundadora</h2>
+  <p style="font-family:var(--font-sans);font-size:13px;color:var(--color-ink-3);margin:0 0 24px;">
+    Pesquisadores que conceberam e estruturaram o projeto AnCo no Doutorado Multi-institucional e Multidisciplinar em Difusão do Conhecimento (DMMDC).
+  </p>
 
-    <div class="membro-card" id="jucara-freire">
-      <h2 class="membro-nome">Juçara Freire dos Santos</h2>
-      <p class="membro-role">Doutoranda DMMDC · FACED/UFBA · Professora · UNIRB</p>
-      <p class="membro-bio">
-        Mestre em Desenvolvimento e Gestão Social pelo Programa de Desenvolvimento e Gestão Social (PDGS) da Escola de Administração da UFBA. Graduada em Serviço Social pela Universidade Católica do Salvador. Membra do Grupo de Pesquisa Núcleo Interdisciplinar de Estudos e Ações Integradas no Semi Árido (NIEAIS/UFBA). Atua nas áreas de gestão de desenvolvimento socioambiental, planejamento e execução de projetos socioambientais e pesquisa social.
-      </p>
-    </div>
-
-    <div class="membro-card" id="maria-aurea">
-      <h2 class="membro-nome">Maria Aurea Caldas Souto</h2>
-      <p class="membro-role">Professora Assistente · UNCISAL · Doutoranda em Difusão do Conhecimento · UFBA</p>
-      <p class="membro-bio">
-        Diretora do Centro de Educação a Distância da Universidade Estadual de Ciências da Saúde de Alagoas (UNCISAL). Membro fundador da Academia Alagoana de Educação (ACALE). Especialista em Voz pelo Conselho Federal de Fonoaudiologia. Mestre em Educação — linha de pesquisa Tecnologias de Informação e Comunicação na Educação — pela UFAL. Graduada em Fonoaudiologia pela Universidade Estácio de Sá (1978). Atua nas áreas de Fonoaudiologia (voz profissional, cabeça e pescoço) e Tecnologias da Informação e Comunicação na Educação e na Saúde.
-      </p>
-    </div>
-
+  <div class="fundadora-card" id="leliana-santos">
+    <h3 class="fundadora-nome">Leliana Santos de Sousa</h3>
+    <p class="fundadora-role">Professora Adjunto · Universidade do Estado da Bahia (UNEB) · Líder do GEEDR/UNEB/CNPq</p>
+    <p class="fundadora-bio">
+      Coordenadora das atividades de implantação do Centro de Pesquisa em Educação e Desenvolvimento Regional (CPEDR) da UNEB. Desenvolve estudos nas áreas de saberes e práticas interdisciplinares com ênfase em Educação, Desenvolvimento Regional, Tecnologias, Sustentabilidade, Gestão, Cultura, Memória e Relações Étnico-Raciais. Integra o quadro de docentes do Doutorado Multi-institucional e Multirreferencial em Difusão do Conhecimento (DMMDC) no campo da Análise Cognitiva. Graduada em Licenciatura em Ciências pela UFBA (1982) e em Pedagogia pela Faculdade de Educação da Bahia (1988); Mestre em Educação pela UFBA (1996); Doutora em Ciências da Educação pela Université Vincennes Saint-Denis Paris 8, França (2003).
+    </p>
   </div>
 
-</div>
+  <div class="fundadora-card" id="teresinha-burnham">
+    <h3 class="fundadora-nome">Teresinha Fróes Burnham</h3>
+    <p class="fundadora-role">Professora-associada Nível IV · Universidade Federal da Bahia (UFBA) · Fundadora do DMMDC</p>
+    <p class="fundadora-bio">
+      Fundadora, primeira coordenadora e docente-pesquisadora do Doutorado Multi-institucional e Multidisciplinar em Difusão do Conhecimento (DMMDC). Desenvolve pesquisas nas áreas de Análise Cognitiva, Ciência da Informação e Educação, com ênfase na relação conhecimento e sociedade — principalmente tra(ns)dução do conhecimento, currículo, trabalho, espaços de aprendizagem e gestão do conhecimento. Graduada em História Natural pela Universidade Católica do Salvador (1968); Mestre em Educação pela UFBA (1976); Doutora em Filosofia pela University of Southampton, Inglaterra (1982); Pós-doutora em Sociologia e Política do Currículo pela University of London (1997).
+    </p>
+  </div>
+
+  <div class="fundadora-card" id="eneida-santana">
+    <h3 class="fundadora-nome">Eneida Santana</h3>
+    <p class="fundadora-role">Doutoranda DMMDC (2017) · Bibliotecária · Instituto Federal da Bahia (IFBA) · Coordenadora de Extensão, Camaçari</p>
+    <p class="fundadora-bio">
+      Pesquisadora de formação docente, tecnologias educacionais e práticas extensionistas. Membra do Grupo de Pesquisa Tecnologia da Informação e Comunicação Aplicadas à Educação e Saúde (TICASE). Possui especialização em Educação a Distância: Tecnologias Educacionais pelo Instituto Federal do Paraná (2016); Mestre em Ciência da Informação pela UFBA (2011); Graduada em Biblioteconomia e Documentação pela UFBA (2008).
+    </p>
+  </div>
+
+  <div class="fundadora-card" id="jose-damiao">
+    <h3 class="fundadora-nome">José Damião de Melo</h3>
+    <p class="fundadora-role">Professor · Instituto Federal de Sergipe (IFS) · Doutorando DMMDC (2017)</p>
+    <p class="fundadora-bio">
+      Líder do grupo de pesquisas em Educação, Tecnologia e Gestão do Conhecimento. Mestre em Modelagem Computacional de Conhecimento pela Universidade Federal de Alagoas (UFAL, 2012).
+    </p>
+    <div class="membro-links" style="margin-top:12px;">
+      <a class="membro-link" href="http://www.researcherid.com/rid/A-9122-2010" target="_blank" rel="noopener">ResearcherID ↗</a>
+      <a class="membro-link" href="https://www.researchgate.net/profile/Damiao_Melo2" target="_blank" rel="noopener">ResearchGate ↗</a>
+      <a class="membro-link" href="https://www.mendeley.com/profiles/jose-damiao-melo/" target="_blank" rel="noopener">Mendeley ↗</a>
+    </div>
+  </div>
+
+  <div class="fundadora-card" id="julia-andrade">
+    <h3 class="fundadora-nome">Júlia Carvalho Andrade</h3>
+    <p class="fundadora-role">Professora Assistente · Escola de Nutrição · Universidade Federal da Bahia (UFBA)</p>
+    <p class="fundadora-bio">
+      Nutricionista, Mestre em Alimentos, Nutrição e Saúde, e especialista em Gestão de Negócios em Alimentos. Atua principalmente nos seguintes temas: abordagem interdisciplinar da alimentação e nutrição, técnicas dietéticas, gastronomia aplicada à nutrição clínica, e prevenção e tratamento das Doenças Crônicas Não Transmissíveis (DCNT).
+    </p>
+  </div>
+
+  <div class="fundadora-card" id="jucara-freire">
+    <h3 class="fundadora-nome">Juçara Freire dos Santos</h3>
+    <p class="fundadora-role">Doutoranda DMMDC · FACED/UFBA · Professora · UNIRB</p>
+    <p class="fundadora-bio">
+      Mestre em Desenvolvimento e Gestão Social pelo Programa de Desenvolvimento e Gestão Social (PDGS) da Escola de Administração da UFBA. Graduada em Serviço Social pela Universidade Católica do Salvador. Membra do Grupo de Pesquisa Núcleo Interdisciplinar de Estudos e Ações Integradas no Semi Árido (NIEAIS/UFBA). Atua nas áreas de gestão de desenvolvimento socioambiental, planejamento e execução de projetos socioambientais e pesquisa social.
+    </p>
+  </div>
+
+  <div class="fundadora-card" id="maria-aurea">
+    <h3 class="fundadora-nome">Maria Aurea Caldas Souto</h3>
+    <p class="fundadora-role">Professora Assistente · UNCISAL · Doutoranda em Difusão do Conhecimento · UFBA</p>
+    <p class="fundadora-bio">
+      Diretora do Centro de Educação a Distância da Universidade Estadual de Ciências da Saúde de Alagoas (UNCISAL). Membro fundador da Academia Alagoana de Educação (ACALE). Especialista em Voz pelo Conselho Federal de Fonoaudiologia. Mestre em Educação — linha de pesquisa Tecnologias de Informação e Comunicação na Educação — pela UFAL. Graduada em Fonoaudiologia pela Universidade Estácio de Sá (1978). Atua nas áreas de Fonoaudiologia (voz profissional, cabeça e pescoço) e Tecnologias da Informação e Comunicação na Educação e na Saúde.
+    </p>
+  </div>
+
+</section>
+
 </div>
 
 {% endblock %}

@@ -162,7 +162,7 @@ def gerar_citacao_abnt(analise) -> str:
     autor_fmt = _um_autor_abnt(nome_autor)
     titulo = (analise.artigo.titulo or "(sem título)").strip()
     ano_pub = analise.publicada_em.year if analise.publicada_em else analise.criado_em.year
-    url_base = getattr(settings, "BASE_URL", "https://anco.local").rstrip("/")
+    url_base = getattr(settings, "URL_PUBLICA_CITAVEL", settings.BASE_URL).rstrip("/")
     url = f"{url_base}/analise/{analise.pk}/"
     hoje = date.today().strftime("%d %b. %Y").lower()
     return (
@@ -184,6 +184,6 @@ def gerar_citacao_apa(analise) -> str:
     autor_fmt = _um_autor_apa(nome_autor)
     titulo = (analise.artigo.titulo or "(sem título)").strip()
     ano_pub = analise.publicada_em.year if analise.publicada_em else analise.criado_em.year
-    url_base = getattr(settings, "BASE_URL", "https://anco.local").rstrip("/")
+    url_base = getattr(settings, "URL_PUBLICA_CITAVEL", settings.BASE_URL).rstrip("/")
     url = f"{url_base}/analise/{analise.pk}/"
     return f"{autor_fmt} ({ano_pub}). Análise cognitiva: {titulo}. AnCo. {url}"

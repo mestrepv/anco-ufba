@@ -93,7 +93,7 @@ def vitrine_view(request: HttpRequest) -> HttpResponse:
     recentes_qs = (
         Analise.objects.filter(status__in=STATUS_PUBLICOS)
         .select_related("artigo", "analista")
-        .order_by("-publicada_em", "-criado_em")[:5]
+        .order_by("criado_em", "id")[:5]
     )
     recentes = [
         {
@@ -281,10 +281,10 @@ def listagem_view(request: HttpRequest) -> HttpResponse:
             qs = (
                 qs.annotate(search=vector, rank=SearchRank(vector, query))
                 .filter(Q(search=query) | Q(artigo__doi__iexact=consulta))
-                .order_by("-rank", "-criado_em")
+                .order_by("-rank", "-artigo__ano", "artigo__titulo")
             )
         else:
-            qs = qs.order_by("-criado_em")
+            qs = qs.order_by("-artigo__ano", "artigo__titulo", "id")
 
         paginator = Paginator(qs, 20)
         pagina = paginator.get_page(request.GET.get("page") or 1)
@@ -540,7 +540,32 @@ def pagina_sobre_view(request: HttpRequest) -> HttpResponse:
 
 
 def pagina_equipe_view(request: HttpRequest) -> HttpResponse:
-    return render(request, "publico/equipe.html", {"active_nav": "equipe"})
+    """
+    Diretório dinâmico de analistas.
+
+    Aparece quem tem `papel ∈ {analista, curador}` e perfil mínimo preenchido
+    (titulação + bio + áreas). Curador é cargo interno — o publico ve todos
+    como analistas. Contas legado (sintéticas) ficam fora.
+    """
+    analistas = (
+        User.objects.filter(
+            papel__in=[User.Papel.ANALISTA, User.Papel.CURADOR],
+            is_active=True,
+            eh_legado=False,
+        )
+        .exclude(nome_exibicao="")
+        .exclude(vinculo_institucional="")
+        .order_by("papel", "nome_exibicao", "username")
+    )
+    return render(
+        request,
+        "publico/equipe.html",
+        {
+            "active_nav": "equipe",
+            "analistas": analistas,
+            "total": analistas.count(),
+        },
+    )
 
 
 def pagina_termos_view(request: HttpRequest) -> HttpResponse:

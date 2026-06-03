@@ -156,6 +156,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 BASE_URL = env("BASE_URL", default="http://localhost:8000")
 
+# URL canônica que aparece nas citações públicas (ABNT/APA). Independente
+# de BASE_URL — em dev, BASE_URL pode ser um domínio de teste, mas a citação
+# já mostra o domínio definitivo (anco.ufba.br) que receberá os links após
+# a migração final de DNS.
+URL_PUBLICA_CITAVEL = env("URL_PUBLICA_CITAVEL", default="https://anco.ufba.br")
+
 # Serviço de embeddings (Fase 8)
 EMBEDDINGS_URL = env("EMBEDDINGS_URL", default="http://embeddings:8080")
 EMBEDDINGS_TIMEOUT = env.int("EMBEDDINGS_TIMEOUT", default=30)
