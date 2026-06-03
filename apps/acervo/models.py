@@ -90,6 +90,10 @@ class Artigo(models.Model):
         db_index=True,
     )
     titulo = models.TextField()
+    titulo_traduzido = models.TextField(
+        blank=True,
+        help_text="Tradução do título (PT-BR) gerada na curadoria.",
+    )
     titulo_periodico = models.TextField(blank=True)
     ano = models.IntegerField(
         null=True,
@@ -113,6 +117,10 @@ class Artigo(models.Model):
         null=True,
         blank=True,
         limit_choices_to={"vocabulario__codigo": "base"},
+    )
+    outra_base_consulta = models.TextField(
+        blank=True,
+        help_text="Base adicional não modelada no vocabulário (campo da curadoria).",
     )
 
     link_acesso = models.URLField(
