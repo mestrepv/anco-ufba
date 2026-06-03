@@ -216,6 +216,11 @@ class _AnaliseFormBase(forms.ModelForm):
                 field.widget.attrs["class"] = "field-textarea"
             else:
                 field.widget.attrs["class"] = "field-input"
+        # Rótulo dos termos de vocabulário = só o nome (sem o prefixo
+        # "epistemologia:" / "teoria:" do __str__, que serve ao admin).
+        for nome in ("epistemologia", "teoria"):
+            if nome in self.fields:
+                self.fields[nome].label_from_instance = lambda termo: termo.nome
 
 
 class AnalisePresencaForm(_AnaliseFormBase):
