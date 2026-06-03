@@ -135,6 +135,12 @@
             <input type="text" name="titulo_periodico" id="id_titulo_periodico" class="field-input" :value="meta.titulo_periodico || ''">
           </div>
 
+          <div>
+            <label class="field-label" for="id_idioma">Idioma</label>
+            {{ form.idioma }}
+            {% if form.idioma.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ form.idioma.errors|join:" / " }}</p>{% endif %}
+          </div>
+
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
             <div>
               <label class="field-label" for="id_ano">Ano *</label>

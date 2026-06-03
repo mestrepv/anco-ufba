@@ -31,13 +31,13 @@ from string import ascii_uppercase
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.core.paginator import Paginator
-from django.db.models import Max, Min, Q, QuerySet
+from django.db.models import Count, Max, Min, Q, QuerySet
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django_ratelimit.decorators import ratelimit
 
-from apps.acervo.models import Analise, Artigo, Revisao
+from apps.acervo.models import Analise, Artigo, Resenha, Revisao
 
 from .schema import jsonld, schema_analise, schema_artigo
 from .services import (
@@ -564,6 +564,75 @@ def pagina_equipe_view(request: HttpRequest) -> HttpResponse:
             "active_nav": "equipe",
             "analistas": analistas,
             "total": analistas.count(),
+        },
+    )
+
+
+def _distribuicao(base_qs: QuerySet, campo: str, rotulo_fn, ordem) -> dict:
+    """
+    Conta artigos distintos por `campo` no acervo público.
+
+    `rotulo_fn(valor)` traduz o valor cru para um rótulo legível.
+    `ordem` é a chave de `.order_by()` aplicada ao agregado.
+    Retorna {"itens": [{rotulo, n, pct}], "total", "maximo"}.
+    """
+    linhas = (
+        base_qs.values(campo)
+        .annotate(n=Count("id", distinct=True))
+        .order_by(ordem)
+    )
+    total = sum(linha["n"] for linha in linhas)
+    maximo = max((linha["n"] for linha in linhas), default=0)
+    itens = [
+        {
+            "rotulo": rotulo_fn(linha[campo]),
+            "n": linha["n"],
+            "pct": round(linha["n"] * 100 / total, 1) if total else 0,
+        }
+        for linha in linhas
+    ]
+    return {"itens": itens, "total": total, "maximo": maximo}
+
+
+def pagina_estatisticas_view(request: HttpRequest) -> HttpResponse:
+    """
+    Estatísticas do acervo público: distribuição dos artigos por ano,
+    por base de consulta e por idioma. Considera apenas artigos com ao
+    menos uma análise publicada/legado (mesmo universo do acervo público).
+    """
+    base_qs = Artigo.objects.filter(analises__status__in=STATUS_PUBLICOS)
+    total_artigos = base_qs.distinct().count()
+
+    idiomas = dict(Artigo.Idioma.choices)
+
+    por_ano = _distribuicao(
+        base_qs,
+        "ano",
+        lambda v: str(v) if v else "Sem ano informado",
+        "ano",
+    )
+    por_base = _distribuicao(
+        base_qs,
+        "base_consulta__nome",
+        lambda v: v or "Base não informada",
+        "-n",
+    )
+    por_idioma = _distribuicao(
+        base_qs,
+        "idioma",
+        lambda v: idiomas.get(v, "Não informado") if v else "Não informado",
+        "-n",
+    )
+
+    return render(
+        request,
+        "publico/estatisticas.html",
+        {
+            "active_nav": "estatisticas",
+            "total_artigos": total_artigos,
+            "por_ano": por_ano,
+            "por_base": por_base,
+            "por_idioma": por_idioma,
         },
     )
 

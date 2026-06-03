@@ -1,0 +1,128 @@
+{% extends "_base_publico.html" %}
+{% load static %}
+
+{% block title %}Estatísticas do acervo — AnCo{% endblock %}
+{% block meta_description %}Distribuição dos artigos do acervo AnCo por ano de publicação, base de consulta e idioma.{% endblock %}
+{% block og_description %}Distribuição dos artigos do acervo AnCo por ano, base e idioma.{% endblock %}
+
+{% block extra_head %}
+<style>
+  .stats-wrap { padding: clamp(32px,5vw,64px) clamp(20px,5vw,56px); }
+  .stats-secao { margin-top: clamp(40px,5vw,64px); }
+  .stats-secao:first-of-type { margin-top: clamp(24px,3vw,32px); }
+  .stats-secao-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 16px; margin-bottom: 18px;
+    border-bottom: 1px solid var(--color-rule-strong); padding-bottom: 10px;
+  }
+  .stats-secao-titulo {
+    font-family: var(--font-serif); font-weight: 500;
+    font-size: clamp(20px,2.4vw,26px); line-height: 1.15; color: var(--color-ink); margin: 0;
+  }
+  .stats-secao-meta {
+    font-family: var(--font-sans); font-size: 13px; color: var(--color-ink-4);
+    white-space: nowrap;
+  }
+  .stat-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 200px) 1fr minmax(86px, auto);
+    align-items: center; gap: 14px;
+    padding: 7px 0;
+  }
+  .stat-row + .stat-row { border-top: 1px solid var(--color-rule); }
+  .stat-label {
+    font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);
+    line-height: 1.3; overflow-wrap: anywhere;
+  }
+  .stat-track {
+    background: var(--color-paper-2); height: 18px; border-radius: 2px; overflow: hidden;
+  }
+  .stat-fill {
+    height: 100%; min-width: 2px;
+    background: var(--color-gold); border-radius: 2px;
+  }
+  .stat-val {
+    font-family: var(--font-sans); font-size: 13px; color: var(--color-ink); text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-pct { color: var(--color-ink-4); margin-left: 6px; }
+  .stats-vazio {
+    font-family: var(--font-serif); font-style: italic; font-size: 15px;
+    color: var(--color-ink-4); padding: 12px 0;
+  }
+  @media (max-width: 560px) {
+    .stat-row { grid-template-columns: 1fr minmax(72px, auto); }
+    .stat-track { display: none; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Cabeçalho ──────────────────────────────────────────────────────── #}
+<div style="padding: clamp(32px,5vw,64px) clamp(20px,5vw,56px) 0; border-bottom: 1px solid var(--color-rule);">
+  <p class="t-eyebrow" style="margin:0 0 12px;">AnCo</p>
+  <h1 class="t-h1" style="margin:0 0 8px;">Estatísticas do acervo</h1>
+  <p class="t-body" style="color:var(--color-ink-3); margin:0 0 8px;">
+    Distribuição dos artigos catalogados por ano de publicação, base de consulta e idioma.
+  </p>
+  <p class="t-meta" style="color:var(--color-ink-4); margin: 0 0 32px;">
+    {{ total_artigos }} artigo{{ total_artigos|pluralize }} no acervo público.
+  </p>
+</div>
+
+<div class="stats-wrap">
+
+  {# ── Por ano ──────────────────────────────────────────────────────── #}
+  <section class="stats-secao">
+    <div class="stats-secao-head">
+      <h2 class="stats-secao-titulo">Por ano de publicação</h2>
+      <span class="stats-secao-meta">{{ por_ano.itens|length }} ano{{ por_ano.itens|length|pluralize }}</span>
+    </div>
+    {% for item in por_ano.itens %}
+      <div class="stat-row">
+        <div class="stat-label">{{ item.rotulo }}</div>
+        <div class="stat-track"><div class="stat-fill" style="width: {% widthratio item.n por_ano.maximo 100 %}%;"></div></div>
+        <div class="stat-val">{{ item.n }}<span class="stat-pct">{{ item.pct }}%</span></div>
+      </div>
+    {% empty %}
+      <p class="stats-vazio">Sem dados.</p>
+    {% endfor %}
+  </section>
+
+  {# ── Por base de consulta ─────────────────────────────────────────── #}
+  <section class="stats-secao">
+    <div class="stats-secao-head">
+      <h2 class="stats-secao-titulo">Por base de consulta</h2>
+      <span class="stats-secao-meta">{{ por_base.itens|length }} base{{ por_base.itens|length|pluralize:"s" }}</span>
+    </div>
+    {% for item in por_base.itens %}
+      <div class="stat-row">
+        <div class="stat-label">{{ item.rotulo }}</div>
+        <div class="stat-track"><div class="stat-fill" style="width: {% widthratio item.n por_base.maximo 100 %}%;"></div></div>
+        <div class="stat-val">{{ item.n }}<span class="stat-pct">{{ item.pct }}%</span></div>
+      </div>
+    {% empty %}
+      <p class="stats-vazio">Sem dados.</p>
+    {% endfor %}
+  </section>
+
+  {# ── Por idioma ───────────────────────────────────────────────────── #}
+  <section class="stats-secao">
+    <div class="stats-secao-head">
+      <h2 class="stats-secao-titulo">Por idioma</h2>
+      <span class="stats-secao-meta">{{ por_idioma.itens|length }} categoria{{ por_idioma.itens|length|pluralize }}</span>
+    </div>
+    {% for item in por_idioma.itens %}
+      <div class="stat-row">
+        <div class="stat-label">{{ item.rotulo }}</div>
+        <div class="stat-track"><div class="stat-fill" style="width: {% widthratio item.n por_idioma.maximo 100 %}%;"></div></div>
+        <div class="stat-val">{{ item.n }}<span class="stat-pct">{{ item.pct }}%</span></div>
+      </div>
+    {% empty %}
+      <p class="stats-vazio">Sem dados.</p>
+    {% endfor %}
+  </section>
+
+</div>
+{% endblock %}

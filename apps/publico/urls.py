@@ -26,6 +26,7 @@ urlpatterns_root = [
     # Paginas institucionais (Fase 7)
     path("sobre/", views.pagina_sobre_view, name="pagina_sobre"),
     path("equipe/", views.pagina_equipe_view, name="pagina_equipe"),
+    path("estatisticas/", views.pagina_estatisticas_view, name="pagina_estatisticas"),
     path("termos/", views.pagina_termos_view, name="pagina_termos"),
     path("privacidade/", views.pagina_privacidade_view, name="pagina_privacidade"),
     # SEO

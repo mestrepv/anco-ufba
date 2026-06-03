@@ -56,6 +56,15 @@ class Artigo(models.Model):
         TESE = "tese", "Tese"
         OUTRO = "outro", "Outro"
 
+    class Idioma(models.TextChoices):
+        PORTUGUES = "pt", "Português"
+        INGLES = "en", "Inglês"
+        ESPANHOL = "es", "Espanhol"
+        FRANCES = "fr", "Francês"
+        ALEMAO = "de", "Alemão"
+        ITALIANO = "it", "Italiano"
+        OUTRO = "outro", "Outro"
+
     doi = models.CharField(
         max_length=200,
         unique=True,
@@ -95,6 +104,13 @@ class Artigo(models.Model):
         help_text="Tradução do título (PT-BR) gerada na curadoria.",
     )
     titulo_periodico = models.TextField(blank=True)
+    idioma = models.CharField(
+        max_length=10,
+        choices=Idioma.choices,
+        blank=True,
+        db_index=True,
+        help_text="Idioma de publicação da obra. Vazio = não informado.",
+    )
     ano = models.IntegerField(
         null=True,
         blank=True,

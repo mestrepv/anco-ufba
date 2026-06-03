@@ -84,6 +84,7 @@ class ArtigoMetadadosForm(forms.ModelForm):
             "tipo_publicacao",
             "titulo",
             "titulo_periodico",
+            "idioma",
             "ano",
             "volume",
             "numero",
