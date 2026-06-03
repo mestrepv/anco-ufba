@@ -1,17 +1,17 @@
 """
 Adapters do django-allauth para o fluxo de autenticacao da AnCo.
 
-- Valida dominio institucional do e-mail antes de criar conta via OAuth.
-- Configura o User com `papel=leitor` por padrao.
+- Cadastro aberto: qualquer e-mail Google entra como `papel=leitor`.
+- Vinculacao automatica por e-mail (evita conta duplicada).
+- Promocao a analista exige aprovacao da curadoria via SolicitacaoCadastro.
 """
 
 from __future__ import annotations
 
 from allauth.account.adapter import DefaultAccountAdapter
-from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
-from django.shortcuts import render
+from django.contrib.auth import get_user_model
 
 
 def email_dominio_permitido(email: str, dominios_permitidos: list[str] | None = None) -> bool:
@@ -56,23 +56,45 @@ def email_dominio_permitido(email: str, dominios_permitidos: list[str] | None = 
 
 
 class AnCoSocialAccountAdapter(DefaultSocialAccountAdapter):
-    """Adapter de social login. Valida dominio antes de criar conta."""
+    """Adapter de social login.
+
+    Cadastro aberto: qualquer e-mail Google pode criar conta. Toda nova
+    conta nasce com `papel=leitor` (ver `populate_user`); a promoção a
+    analista (e a habilitação como revisor) é controlada pelos curadores
+    via aprovação no admin de SolicitacaoCadastro.
+    """
 
     def pre_social_login(self, request, sociallogin):
         """
-        Chamado pelo allauth apos o OAuth retornar com sucesso, antes de criar
-        ou logar o User. Aqui rejeitamos dominios fora da lista institucional.
+        Vincula automaticamente a SocialAccount a um User existente com o
+        mesmo e-mail (evita criar conta duplicada).
         """
         email = (sociallogin.user.email or "").strip().lower()
-        if not email_dominio_permitido(email):
-            response = render(
-                request,
-                "core/dominio_nao_autorizado.html",
-                {"email": email},
-                status=403,
-            )
-            raise ImmediateHttpResponse(response)
-        # Dominio OK — allauth segue criando/conectando conta.
+        # Vinculacao automatica por e-mail.
+        # Se a SocialAccount ja existe (sociallogin.is_existing), allauth ja
+        # sabe a quem conectar. Se nao existe, procuramos um User com mesmo
+        # e-mail e ligamos a SocialAccount a ele.
+        if sociallogin.is_existing or not email:
+            return
+        User = get_user_model()
+        try:
+            user_existente = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return  # nao existe: allauth criara novo User normalmente
+        except User.MultipleObjectsReturned:
+            return  # ambiguidade: deixa allauth decidir (criara novo)
+        # Conecta a SocialAccount ao User existente — login segue como esse user.
+        sociallogin.connect(request, user_existente)
+
+    def is_open_for_signup(self, request, sociallogin) -> bool:
+        """
+        Cadastro via OAuth (Google) está aberto a qualquer e-mail. Quem entra
+        vira `leitor` e precisa pedir promoção a analista.
+
+        Sobrescreve a checagem do AccountAdapter, que para signup MANUAL
+        (email/senha) continua fechado.
+        """
+        return True
 
     def populate_user(self, request, sociallogin, data):
         """Garante que `papel=leitor` ao criar a conta via OAuth."""

@@ -2,77 +2,181 @@
 
 from __future__ import annotations
 
+from io import BytesIO
+
 from django import forms
+from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import UploadedFile
 
-from .models import SolicitacaoCadastro
+User = get_user_model()
 
 
-class SolicitacaoCadastroForm(forms.ModelForm):
+INSTITUICOES_PERMITIDAS = [
+    ("IFBA", "IFBA — Instituto Federal da Bahia"),
+    ("UFBA", "UFBA — Universidade Federal da Bahia"),
+    ("UNEB", "UNEB — Universidade do Estado da Bahia"),
+]
+
+
+def _processar_foto(arquivo: UploadedFile, lado_max: int = 480) -> ContentFile:
     """
-    Formulario de solicitacao de promocao a analista.
+    Garante 1:1 e redimensiona para no máximo `lado_max` px.
 
-    Atualiza tambem o User vinculado com vinculo_institucional/grupo_pesquisa
-    e nome_exibicao caso ainda nao estejam preenchidos.
+    - Se o cliente já enviou recortada via Cropper.js (já é 1:1), só
+      redimensiona e converte para JPEG.
+    - Se chegou sem recorte (cliente sem JS / fallback), aplica crop
+      centralizado.
+    """
+    from PIL import Image, ImageOps
+
+    img = Image.open(arquivo)
+    img = ImageOps.exif_transpose(img)
+    if img.mode in ("RGBA", "LA", "P"):
+        img = img.convert("RGB")
+    # Fallback de crop centralizado quando não veio 1:1
+    if img.width != img.height:
+        lado = min(img.width, img.height)
+        left = (img.width - lado) // 2
+        top = (img.height - lado) // 2
+        img = img.crop((left, top, left + lado, top + lado))
+    if img.width > lado_max:
+        img = img.resize((lado_max, lado_max), Image.LANCZOS)
+    buffer = BytesIO()
+    img.save(buffer, format="JPEG", quality=88, optimize=True)
+    nome_base = (arquivo.name or "foto").rsplit(".", 1)[0]
+    return ContentFile(buffer.getvalue(), name=f"{nome_base}.jpg")
+
+
+class PerfilForm(forms.ModelForm):
+    """
+    Perfil + solicitações em uma única tela.
+
+    Campos do User: identidade, vínculo, identificadores.
+    Campos virtuais (não persistem direto): `quer_ser_analista`,
+    `quer_ser_revisor` e `justificativa` — disparam a criação de
+    SolicitacaoCadastro tipo correspondente quando marcados.
     """
 
-    nome_exibicao = forms.CharField(
-        max_length=200,
-        required=True,
-        label="Nome de exibição",
-        help_text="Como você quer ser identificado no acervo público.",
-    )
-    vinculo_institucional = forms.CharField(
-        max_length=300,
-        required=True,
-        label="Vínculo institucional",
-        help_text="Universidade, instituto ou grupo ao qual está vinculado.",
-    )
-    grupo_pesquisa = forms.CharField(
-        max_length=300,
+    vinculo_institucional = forms.ChoiceField(
+        choices=[("", "— selecione —")] + INSTITUICOES_PERMITIDAS,
         required=False,
-        label="Grupo de pesquisa",
+        label="Instituição",
     )
-    orcid = forms.CharField(
-        max_length=19,
+
+    quer_ser_analista = forms.BooleanField(
         required=False,
-        label="ORCID",
-        help_text="Formato 0000-0000-0000-0000.",
+        label="Quero ser analista",
+        help_text="Permite criar análises de artigos no acervo. Requer aprovação da curadoria.",
+    )
+    quer_ser_revisor = forms.BooleanField(
+        required=False,
+        label="Quero ser revisor",
+        help_text="Permite ser sorteado para revisar análises por pares. Requer aprovação da curadoria e ser analista.",
     )
 
     class Meta:
-        model = SolicitacaoCadastro
-        fields = ["justificativa"]
-        labels = {"justificativa": "Justificativa"}
-        help_texts = {
-            "justificativa": (
-                "Descreva brevemente sua área de pesquisa e o motivo do "
-                "interesse em participar do acervo."
-            ),
+        model = User
+        fields = [
+            "nome_exibicao",
+            "foto",
+            "vinculo_institucional",
+            "orcid",
+            "lattes_url",
+        ]
+        labels = {
+            "nome_exibicao": "Nome de exibição",
+            "foto": "Foto de perfil",
+            "orcid": "ORCID",
+            "lattes_url": "Currículo Lattes (URL)",
         }
-        widgets = {
-            "justificativa": forms.Textarea(attrs={"rows": 5}),
+        help_texts = {
+            "nome_exibicao": "Como você aparece publicamente no acervo.",
+            "foto": "Será recortada automaticamente em 1:1.",
+            "orcid": "Formato 0000-0000-0000-000X.",
+            "lattes_url": "URL completa do seu currículo na Plataforma Lattes.",
         }
 
-    def __init__(self, *args, usuario=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.usuario = usuario
-        if usuario:
-            self.fields["nome_exibicao"].initial = usuario.nome_exibicao or ""
-            self.fields["vinculo_institucional"].initial = usuario.vinculo_institucional or ""
-            self.fields["grupo_pesquisa"].initial = usuario.grupo_pesquisa or ""
-            self.fields["orcid"].initial = usuario.orcid or ""
+        # Pré-marca os checkboxes com o estado atual do usuário:
+        # - já é analista OU tem solicitação ativa (pendente/aprovada) → marcado
+        from .models import SolicitacaoCadastro
+
+        user = self.instance
+        if user and user.pk:
+            self.fields["quer_ser_analista"].initial = (
+                user.eh_analista
+                or user.solicitacoes.filter(
+                    tipo=SolicitacaoCadastro.Tipo.ANALISTA,
+                    status__in=[
+                        SolicitacaoCadastro.Status.PENDENTE,
+                        SolicitacaoCadastro.Status.APROVADA,
+                    ],
+                ).exists()
+            )
+            self.fields["quer_ser_revisor"].initial = (
+                user.revisor_aprovado
+                or user.solicitacoes.filter(
+                    tipo=SolicitacaoCadastro.Tipo.REVISOR,
+                    status__in=[
+                        SolicitacaoCadastro.Status.PENDENTE,
+                        SolicitacaoCadastro.Status.APROVADA,
+                    ],
+                ).exists()
+            )
 
     def save(self, commit=True):
+        from .models import SolicitacaoCadastro
+
         instance = super().save(commit=False)
-        if self.usuario:
-            instance.usuario = self.usuario
-            # Atualiza dados do User a partir do form
-            self.usuario.nome_exibicao = self.cleaned_data["nome_exibicao"]
-            self.usuario.vinculo_institucional = self.cleaned_data["vinculo_institucional"]
-            self.usuario.grupo_pesquisa = self.cleaned_data.get("grupo_pesquisa", "")
-            self.usuario.orcid = self.cleaned_data.get("orcid", "")
+        # Foto nova: processa antes de persistir (cliente já mandou 1:1 via
+        # Cropper.js; servidor faz fallback se chegou crua)
+        foto = self.cleaned_data.get("foto")
+        if isinstance(foto, UploadedFile):
+            instance.foto = _processar_foto(foto)
         if commit:
-            if self.usuario:
-                self.usuario.save()
             instance.save()
+            self._sincronizar_solicitacoes(instance)
         return instance
+
+    def _sincronizar_solicitacoes(self, user) -> None:
+        """
+        Cria SolicitacaoCadastro pendente para cada tipo marcado sem ativa.
+        Não toca em solicitações existentes (pendentes ou aprovadas).
+        """
+        from .models import SolicitacaoCadastro
+
+        para_criar = []
+        for marcado, tipo, ja_tem_atributo in [
+            (
+                self.cleaned_data.get("quer_ser_analista"),
+                SolicitacaoCadastro.Tipo.ANALISTA,
+                "eh_analista",
+            ),
+            (
+                self.cleaned_data.get("quer_ser_revisor"),
+                SolicitacaoCadastro.Tipo.REVISOR,
+                "revisor_aprovado",
+            ),
+        ]:
+            if not marcado:
+                continue
+            # Pula se já tem o estado final ou solicitação ativa
+            if getattr(user, ja_tem_atributo, False):
+                continue
+            if user.solicitacoes.filter(
+                tipo=tipo,
+                status__in=[
+                    SolicitacaoCadastro.Status.PENDENTE,
+                    SolicitacaoCadastro.Status.APROVADA,
+                ],
+            ).exists():
+                continue
+            para_criar.append(tipo)
+        for tipo in para_criar:
+            SolicitacaoCadastro.objects.create(
+                usuario=user,
+                tipo=tipo,
+                justificativa="",
+            )

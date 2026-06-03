@@ -2,7 +2,7 @@
 {% load socialaccount %}
 
 {% block title %}Entrar — AnCo{% endblock %}
-{% block meta_description %}Acesse a plataforma AnCo com sua conta institucional do Google.{% endblock %}
+{% block meta_description %}Acesse a plataforma AnCo com sua conta Google.{% endblock %}
 
 {% block content %}
 <div style="min-height:60vh;display:flex;align-items:center;justify-content:center;padding:clamp(40px,8vw,80px) clamp(20px,5vw,40px);">
@@ -14,26 +14,27 @@
 
     <h1 class="t-h2" style="margin:0 0 8px;">Entrar na plataforma</h1>
     <p class="t-body" style="margin:0 0 32px;color:var(--color-ink-3);">
-      Use sua conta institucional do Google para acessar o acervo.
+      Acesse com sua conta Google.
     </p>
 
-    <a href="{% provider_login_url 'google' process='login' %}" class="btn btn-primary" style="width:100%;justify-content:center;gap:10px;">
-      <svg viewBox="0 0 18 18" fill="none" style="width:16px;height:16px;flex-shrink:0;" aria-hidden="true">
-        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
-        <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
-        <path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/>
-        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 6.294C4.672 4.169 6.656 3.58 9 3.58z" fill="#EA4335"/>
+    {# ── Login com Google ──────────────────────────────────────────── #}
+    <a href="{% provider_login_url 'google' process='login' %}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}"
+       class="btn btn-secondary"
+       style="width:100%;justify-content:center;display:inline-flex;align-items:center;gap:10px;">
+      <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.79 2.72v2.26h2.9c1.7-1.56 2.69-3.87 2.69-6.62z"/>
+        <path fill="#34A853" d="M9 18c2.43 0 4.47-.81 5.96-2.18l-2.9-2.26c-.81.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.34A9 9 0 0 0 9 18z"/>
+        <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.16.29-1.7V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.04l2.99-2.34z"/>
+        <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .96 4.96l2.99 2.34C4.66 5.17 6.65 3.58 9 3.58z"/>
       </svg>
       Entrar com Google
     </a>
 
-    <hr class="hr" style="margin:28px 0;">
+    <hr class="hr" style="margin:32px 0;">
 
-    <p class="t-small" style="color:var(--color-ink-3);margin:0;">
-      O acervo é mantido por pesquisadores de instituições acadêmicas. Aceitamos
-      contas Google de universidades, institutos federais e centros de pesquisa
-      cadastrados. Se sua instituição não constar na lista,
-      escreva para a curadoria.
+    <p class="t-small" style="color:var(--color-ink-3);margin:0;line-height:1.5;">
+      Qualquer conta Google pode entrar. Para criar e revisar análises, é preciso
+      solicitar promoção a analista e aguardar aprovação da curadoria.
     </p>
 
   </div>

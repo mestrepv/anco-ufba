@@ -1,0 +1,410 @@
+{% extends "_base_publico.html" %}
+{% load avatar_tags %}
+
+{% block title %}{% if onboarding %}Complete seu perfil{% else %}Meu perfil{% endif %} — AnCo{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css">
+<script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js" defer></script>
+<style>
+  .perfil-grid { max-width: 640px; margin: 0 auto; padding: clamp(32px,5vw,56px) clamp(20px,5vw,40px) 80px; }
+  .perfil-bloco {
+    border-top: 1px solid var(--color-rule);
+    padding: 28px 0;
+  }
+  .perfil-bloco:first-of-type { border-top: 0; padding-top: 0; }
+  .perfil-bloco h2 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 20px;
+    margin: 0 0 4px;
+    color: var(--color-ink);
+  }
+  .perfil-bloco .bloco-desc {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--color-ink-3);
+    margin: 0 0 20px;
+  }
+  .perfil-grid label {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-ink-2);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+  .perfil-grid input[type="text"],
+  .perfil-grid input[type="url"],
+  .perfil-grid input[type="email"],
+  .perfil-grid select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--color-rule-strong);
+    background: var(--color-paper);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--color-ink);
+    border-radius: 4px;
+  }
+  .perfil-grid .field-help {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-ink-3);
+    margin: 4px 0 0;
+  }
+  .perfil-grid .field-error {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-danger);
+    margin: 4px 0 0;
+  }
+  .perfil-grid .field-row { margin-bottom: 18px; }
+
+  /* ── Bloco de foto ────────────────────────────────────────── */
+  .foto-modo-preview {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .foto-circulo {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: var(--color-paper-3);
+    color: var(--color-ink-2);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+    flex-shrink: 0;
+  }
+  .foto-circulo img { width: 100%; height: 100%; object-fit: cover; }
+  .btn-secundario {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--color-paper-2);
+    border: 1px solid var(--color-rule-strong);
+    border-radius: 4px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--color-ink);
+    cursor: pointer;
+  }
+  .btn-secundario:hover { background: var(--color-paper-3); }
+  .foto-info {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-ink-3);
+    margin-top: 4px;
+  }
+
+  /* ── Cropper ──────────────────────────────────────────────── */
+  .foto-modo-crop {
+    border: 1px solid var(--color-rule-strong);
+    border-radius: 4px;
+    padding: 16px;
+    background: var(--color-paper-2);
+  }
+  .crop-container {
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
+    aspect-ratio: 1 / 1;
+    background: #000;
+  }
+  .crop-container img {
+    /* Cropper.js controla as dimensões; isto previne flash inicial */
+    display: block;
+    max-width: 100%;
+  }
+  .crop-controles {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .crop-zoom {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-ink-3);
+  }
+  .crop-zoom input[type="range"] {
+    flex: 1;
+    accent-color: var(--color-gold-deep);
+  }
+  .crop-acoes {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  /* Cropper.js: viewBox circular para reforçar que será um avatar */
+  .cropper-view-box,
+  .cropper-face {
+    border-radius: 50%;
+    outline: 1px solid var(--color-gold-deep);
+  }
+
+  .checkbox-row { display: flex; align-items: flex-start; gap: 10px; }
+  .checkbox-row label {
+    margin: 0; text-transform: none; letter-spacing: 0;
+    font-weight: 500; font-size: 14px; color: var(--color-ink);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="perfil-grid">
+
+  {% if onboarding %}
+  <div style="border:1px solid var(--color-gold-deep);background:var(--color-review-bg);padding:18px 22px;margin-bottom:32px;">
+    <p style="margin:0 0 4px;font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--color-gold-deep);text-transform:uppercase;letter-spacing:0.06em;">Bem-vindo(a) à AnCo</p>
+    <p style="margin:0;font-family:var(--font-serif);font-size:16px;color:var(--color-ink-2);line-height:1.5;">
+      Preencha pelo menos <strong>nome</strong> e <strong>instituição</strong> para concluir o onboarding.
+    </p>
+  </div>
+  {% endif %}
+
+  <header style="margin-bottom:32px;">
+    <p class="t-eyebrow" style="margin:0 0 4px;">{% if onboarding %}Onboarding{% else %}Conta{% endif %}</p>
+    <h1 style="font-family:var(--font-serif);font-weight:500;font-size:clamp(26px,3vw,34px);line-height:1.15;margin:0;color:var(--color-ink);">{% if onboarding %}Complete seu perfil{% else %}Meu perfil{% endif %}</h1>
+    <p style="margin:4px 0 0;font-family:var(--font-sans);font-size:13px;color:var(--color-ink-3);">
+      Logado como <strong>{{ user.email }}</strong> · {{ user.get_papel_display }}
+    </p>
+  </header>
+
+  <form method="post" enctype="multipart/form-data" novalidate
+        x-data="{
+          jaEAnalista: {{ ja_e_analista|yesno:'true,false' }},
+          jaERevisorAprovado: {{ ja_e_revisor_aprovado|yesno:'true,false' }},
+          temSolAnalistaAtiva: {{ tem_sol_analista_ativa|yesno:'true,false' }},
+          temSolRevisorAtiva: {{ tem_sol_revisor_ativa|yesno:'true,false' }},
+          querAnalista: {{ form.quer_ser_analista.value|yesno:'true,false' }},
+          querRevisor: {{ form.quer_ser_revisor.value|yesno:'true,false' }},
+          get vaiCriarSolicitacao() {
+            const novaAnalista = this.querAnalista && !this.jaEAnalista && !this.temSolAnalistaAtiva;
+            const novaRevisor  = this.querRevisor  && !this.jaERevisorAprovado && !this.temSolRevisorAtiva;
+            return novaAnalista || novaRevisor;
+          }
+        }">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div style="padding:12px;background:#fdf2f0;border:1px solid var(--color-danger);color:var(--color-danger);margin-bottom:20px;font-family:var(--font-sans);font-size:14px;">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    {# ── Identidade ───────────────────────────────────────────────── #}
+    <section class="perfil-bloco">
+      <h2>Identidade</h2>
+      <p class="bloco-desc">Como você aparece no acervo público.</p>
+
+      <div class="field-row">
+        <label for="{{ form.nome_exibicao.id_for_label }}">{{ form.nome_exibicao.label }}</label>
+        {{ form.nome_exibicao }}
+        {% if form.nome_exibicao.help_text %}<p class="field-help">{{ form.nome_exibicao.help_text }}</p>{% endif %}
+        {% if form.nome_exibicao.errors %}<p class="field-error">{{ form.nome_exibicao.errors|join:" / " }}</p>{% endif %}
+      </div>
+
+      {# ── Bloco da foto com Cropper.js ──────────────────────────── #}
+      <div class="field-row" x-data="cropperFoto()">
+        <label>{{ form.foto.label }}</label>
+
+        {# Modo padrão: bolinha + botão "Escolher / Trocar" #}
+        <div class="foto-modo-preview" x-show="!modoCrop" x-cloak>
+          <div class="foto-circulo">
+            <template x-if="previewUrl"><img :src="previewUrl" alt=""></template>
+            <template x-if="!previewUrl"><span>{{ user.iniciais }}</span></template>
+          </div>
+          <div>
+            <button type="button" class="btn-secundario" @click="$refs.arquivo.click()">
+              {% if user.foto %}Trocar foto{% else %}Escolher foto{% endif %}
+            </button>
+            <p class="foto-info">JPG, PNG ou WebP · ajuste o enquadramento depois.</p>
+          </div>
+        </div>
+
+        {# Modo crop: cropper.js + zoom + confirmar/cancelar #}
+        <div class="foto-modo-crop" x-show="modoCrop" x-cloak>
+          <div class="crop-container">
+            <img x-ref="cropTarget" alt="Pré-visualização da foto">
+          </div>
+          <div class="crop-controles">
+            <div class="crop-zoom">
+              <span>Zoom</span>
+              <input type="range" min="-0.5" max="2" step="0.05" value="0"
+                     @input="setZoom($event.target.value)">
+            </div>
+            <p style="font-family:var(--font-sans);font-size:12px;color:var(--color-ink-3);margin:0;">
+              Arraste a imagem para enquadrar o rosto. O recorte é circular (1:1).
+            </p>
+            <div class="crop-acoes">
+              <button type="button" class="btn btn-sm btn-secondary" @click="cancelar()">Cancelar</button>
+              <button type="button" class="btn btn-sm btn-primary" @click="confirmar()">Confirmar recorte</button>
+            </div>
+          </div>
+        </div>
+
+        {# input real do form: vai no POST; JS substitui files pelo blob recortado após confirmar #}
+        <input type="file" name="{{ form.foto.name }}" id="{{ form.foto.id_for_label }}"
+               accept="image/*" x-ref="campoForm" hidden>
+        {# input temporário que dispara a abertura do crop #}
+        <input type="file" accept="image/*" x-ref="arquivo" hidden
+               @change="abrirCrop($event)">
+
+        {% if form.foto.errors %}<p class="field-error">{{ form.foto.errors|join:" / " }}</p>{% endif %}
+      </div>
+    </section>
+
+    {# ── Vínculo institucional ────────────────────────────────────── #}
+    <section class="perfil-bloco">
+      <h2>Vínculo institucional</h2>
+      <p class="bloco-desc">Selecione sua instituição.</p>
+      <div class="field-row">
+        <label for="{{ form.vinculo_institucional.id_for_label }}">{{ form.vinculo_institucional.label }}</label>
+        {{ form.vinculo_institucional }}
+        {% if form.vinculo_institucional.errors %}<p class="field-error">{{ form.vinculo_institucional.errors|join:" / " }}</p>{% endif %}
+      </div>
+    </section>
+
+    {# ── Identificadores acadêmicos ───────────────────────────────── #}
+    <section class="perfil-bloco">
+      <h2>Identificadores acadêmicos</h2>
+      <p class="bloco-desc">Lattes e ORCID — recomendados para pesquisadores brasileiros.</p>
+
+      <div class="field-row">
+        <label for="{{ form.orcid.id_for_label }}">{{ form.orcid.label }}</label>
+        {{ form.orcid }}
+        {% if form.orcid.help_text %}<p class="field-help">{{ form.orcid.help_text }}</p>{% endif %}
+        {% if form.orcid.errors %}<p class="field-error">{{ form.orcid.errors|join:" / " }}</p>{% endif %}
+      </div>
+
+      <div class="field-row">
+        <label for="{{ form.lattes_url.id_for_label }}">{{ form.lattes_url.label }}</label>
+        {{ form.lattes_url }}
+        {% if form.lattes_url.help_text %}<p class="field-help">{{ form.lattes_url.help_text }}</p>{% endif %}
+        {% if form.lattes_url.errors %}<p class="field-error">{{ form.lattes_url.errors|join:" / " }}</p>{% endif %}
+      </div>
+    </section>
+
+    {# ── Solicitações (analista / revisor) ────────────────────────── #}
+    <section class="perfil-bloco">
+      <h2>Solicitações de cadastro</h2>
+      <p class="bloco-desc">
+        Marque as funções que deseja exercer no acervo. A curadoria avalia cada solicitação separadamente.
+      </p>
+
+      <div class="field-row checkbox-row">
+        <input type="checkbox" name="quer_ser_analista" id="id_quer_ser_analista"
+               x-model="querAnalista">
+        <label for="id_quer_ser_analista">
+          {{ form.quer_ser_analista.label }}
+          {% if form.quer_ser_analista.help_text %}<br><span style="font-weight:400;color:var(--color-ink-3);font-size:13px;">{{ form.quer_ser_analista.help_text }}</span>{% endif %}
+        </label>
+      </div>
+
+      <div class="field-row checkbox-row" style="margin-top:12px;">
+        <input type="checkbox" name="quer_ser_revisor" id="id_quer_ser_revisor"
+               x-model="querRevisor">
+        <label for="id_quer_ser_revisor">
+          {{ form.quer_ser_revisor.label }}
+          {% if form.quer_ser_revisor.help_text %}<br><span style="font-weight:400;color:var(--color-ink-3);font-size:13px;">{{ form.quer_ser_revisor.help_text }}</span>{% endif %}
+        </label>
+      </div>
+    </section>
+
+    <div style="margin-top:32px;display:flex;gap:12px;">
+      <button type="submit" class="btn btn-primary"
+              x-text="vaiCriarSolicitacao
+                ? ({% if onboarding %}'Salvar e enviar solicitação →'{% else %}'Salvar perfil e enviar solicitação'{% endif %})
+                : ({% if onboarding %}'Salvar e continuar →'{% else %}'Salvar perfil'{% endif %})">
+        {% if onboarding %}Salvar e continuar →{% else %}Salvar perfil{% endif %}
+      </button>
+      {% if not onboarding %}<a href="{% url 'painel' %}" class="btn btn-secondary">Cancelar</a>{% endif %}
+    </div>
+  </form>
+</div>
+
+<script>
+function cropperFoto() {
+  return {
+    modoCrop: false,
+    previewUrl: '{% if user.foto %}{{ user.foto.url }}{% endif %}',
+    cropper: null,
+    zoomBase: 0,
+
+    abrirCrop(ev) {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.modoCrop = true;
+        // Espera o DOM atualizar pra inicializar Cropper
+        this.$nextTick(() => {
+          const img = this.$refs.cropTarget;
+          img.src = e.target.result;
+          if (this.cropper) this.cropper.destroy();
+          this.cropper = new Cropper(img, {
+            aspectRatio: 1,
+            viewMode: 1,
+            dragMode: 'move',
+            cropBoxResizable: false,
+            cropBoxMovable: false,
+            toggleDragModeOnDblclick: false,
+            autoCropArea: 0.9,
+            guides: false,
+            highlight: false,
+            background: false,
+            ready: () => {
+              this.zoomBase = this.cropper.getImageData().width;
+            },
+          });
+        });
+      };
+      reader.readAsDataURL(file);
+      // Limpa o input temporário pra permitir reescolher o mesmo arquivo
+      ev.target.value = '';
+    },
+
+    setZoom(valor) {
+      if (!this.cropper) return;
+      // valor em [-0.5, 2]: 0 = tamanho original, +X = mais zoom
+      const fator = Math.pow(2, parseFloat(valor));
+      this.cropper.zoomTo(fator * (this.zoomBase / this.cropper.getImageData().naturalWidth));
+    },
+
+    cancelar() {
+      if (this.cropper) { this.cropper.destroy(); this.cropper = null; }
+      this.modoCrop = false;
+    },
+
+    confirmar() {
+      if (!this.cropper) return;
+      const canvas = this.cropper.getCroppedCanvas({
+        width: 480, height: 480,
+        imageSmoothingQuality: 'high',
+      });
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        // 1. Atualiza preview
+        this.previewUrl = URL.createObjectURL(blob);
+        // 2. Substitui arquivo do input do form (via DataTransfer)
+        const dt = new DataTransfer();
+        dt.items.add(new File([blob], 'foto.jpg', { type: 'image/jpeg' }));
+        this.$refs.campoForm.files = dt.files;
+        // 3. Volta para modo preview
+        this.cancelar();
+      }, 'image/jpeg', 0.88);
+    },
+  };
+}
+</script>
+{% endblock %}

@@ -33,6 +33,14 @@
   </header>
 
   <main id="main-content" tabindex="-1">
+    {% if messages %}
+    <ul role="status" aria-live="polite"
+        style="list-style:none;padding:0;margin:24px auto 0;max-width:1080px;display:grid;gap:8px;padding-inline:clamp(20px,5vw,40px);">
+      {% for message in messages %}
+      <li style="padding:10px 14px;font-family:var(--font-sans);font-size:14px;border:1px solid var(--color-rule);background:{% if message.tags == 'error' %}#fdf2f0{% elif message.tags == 'warning' %}var(--color-review-bg){% elif message.tags == 'success' %}#e0ebd9{% else %}var(--color-paper-2){% endif %};color:{% if message.tags == 'error' %}var(--color-danger){% elif message.tags == 'warning' %}var(--color-gold-deep){% else %}var(--color-ink){% endif %};">{{ message }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
 

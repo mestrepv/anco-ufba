@@ -9,8 +9,7 @@ from django.shortcuts import redirect, render
 
 from apps.acervo.services import lookup_doi
 
-from .forms import SolicitacaoCadastroForm
-from .models import SolicitacaoCadastro
+from .forms import PerfilForm
 
 
 def consultar_doi_view(request: HttpRequest) -> HttpResponse:
@@ -51,44 +50,111 @@ def teste_design_view(request: HttpRequest) -> HttpResponse:
     return render(request, "_teste_design.html", {"colors": colors})
 
 
+# NOTE: as views `solicitar_promocao_view` e `promocao_status_view` foram
+# removidas. Agora as solicitações são criadas direto no /perfil/ e o status
+# aparece no /painel/.
+
+
 @login_required
-def solicitar_promocao_view(request: HttpRequest) -> HttpResponse:
-    """
-    Formulario de solicitacao de promocao a analista.
-
-    Se ja existe solicitacao do usuario, redireciona para a tela de status.
-    Se o usuario ja eh analista ou curador, redireciona para a home.
-    """
-    user = request.user
-    if user.eh_analista:
-        messages.info(request, "Você já é analista — não precisa solicitar promoção.")
-        return redirect("home")
-
-    existente = SolicitacaoCadastro.objects.filter(usuario=user).first()
-    if existente:
-        return redirect("promocao_status")
-
+def perfil_view(request: HttpRequest) -> HttpResponse:
+    """Edição do perfil do usuário. `?onboarding=1` ativa o tom de boas-vindas."""
+    onboarding = request.GET.get("onboarding") == "1"
     if request.method == "POST":
-        form = SolicitacaoCadastroForm(request.POST, usuario=user)
+        form = PerfilForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             form.save()
-            messages.success(
-                request,
-                "Solicitação enviada. Você receberá um e-mail quando for analisada.",
-            )
-            return redirect("promocao_status")
+            messages.success(request, "Perfil atualizado.")
+            # Onboarding concluído → deixa o roteador pós-login decidir o destino
+            # (analista vai p/ painel; leitor vai p/ solicitar promoção).
+            if onboarding and request.user.perfil_completo_minimo:
+                return redirect("pos_login")
+            return redirect("perfil")
     else:
-        form = SolicitacaoCadastroForm(usuario=user)
+        form = PerfilForm(instance=request.user)
 
-    return render(request, "core/solicitar_promocao.html", {"form": form})
+    # Estado das solicitações para o JS do botão decidir o label dinamicamente.
+    from .models import SolicitacaoCadastro
+
+    user = request.user
+    ativas = {
+        s.tipo: True
+        for s in user.solicitacoes.filter(
+            status__in=[
+                SolicitacaoCadastro.Status.PENDENTE,
+                SolicitacaoCadastro.Status.APROVADA,
+            ]
+        )
+    }
+    return render(
+        request,
+        "core/perfil.html",
+        {
+            "form": form,
+            "onboarding": onboarding,
+            "ja_e_analista": user.eh_analista,
+            "ja_e_revisor_aprovado": user.revisor_aprovado,
+            "tem_sol_analista_ativa": SolicitacaoCadastro.Tipo.ANALISTA in ativas,
+            "tem_sol_revisor_ativa": SolicitacaoCadastro.Tipo.REVISOR in ativas,
+        },
+    )
 
 
 @login_required
-def promocao_status_view(request: HttpRequest) -> HttpResponse:
-    """Mostra o status da solicitacao do usuario logado."""
-    solicitacao = SolicitacaoCadastro.objects.filter(usuario=request.user).first()
+def painel_view(request: HttpRequest) -> HttpResponse:
+    """
+    Painel pessoal: solicitações + minhas análises + revisões pendentes.
+    """
+    from datetime import UTC, datetime
+
+    from apps.acervo.models import Analise, Revisao
+
+    from .models import SolicitacaoCadastro
+
+    user = request.user
+
+    minhas_analises = (
+        Analise.objects.filter(analista=user)
+        .select_related("artigo")
+        .order_by("-criado_em")
+    )
+
+    revisoes_pendentes = (
+        Revisao.objects.filter(revisor=user, concluido_em__isnull=True)
+        .select_related("analise", "analise__artigo")
+        .order_by("prazo_em")
+    )
+    revisoes_concluidas = (
+        Revisao.objects.filter(revisor=user, concluido_em__isnull=False)
+        .select_related("analise", "analise__artigo")
+        .order_by("-concluido_em")[:10]
+    )
+    solicitacoes = (
+        SolicitacaoCadastro.objects.filter(usuario=user)
+        .order_by("tipo", "-criado_em")
+    )
+
     return render(
         request,
-        "core/promocao_status.html",
-        {"solicitacao": solicitacao},
+        "core/painel.html",
+        {
+            "minhas_analises": minhas_analises,
+            "revisoes_pendentes": revisoes_pendentes,
+            "revisoes_concluidas": revisoes_concluidas,
+            "solicitacoes": solicitacoes,
+            "agora": datetime.now(tz=UTC),
+        },
     )
+
+
+@login_required
+def pos_login_view(request: HttpRequest) -> HttpResponse:
+    """
+    Redireciona pós-login:
+
+    - Perfil incompleto → /perfil/?onboarding=1
+    - Caso contrário    → /painel/ (mostra estado das solicitações)
+    """
+    user = request.user
+    if not user.perfil_completo_minimo:
+        return redirect(f"{request.build_absolute_uri('/perfil/')}?onboarding=1")
+    return redirect("painel")

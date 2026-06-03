@@ -1,0 +1,234 @@
+{% extends "_base_publico.html" %}
+{% load avatar_tags %}
+
+{% block title %}Painel — AnCo{% endblock %}
+
+{% block extra_head %}
+<style>
+  .painel-wrap { max-width: 1080px; margin: 0 auto; padding: clamp(32px,4vw,48px) clamp(20px,5vw,40px) 80px; }
+  .painel-secao {
+    margin-top: 40px;
+  }
+  .painel-secao h2 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 22px;
+    margin: 0 0 4px;
+    color: var(--color-ink);
+  }
+  .painel-secao .secao-desc {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--color-ink-3);
+    margin: 0 0 18px;
+  }
+  .lista-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--color-rule);
+    align-items: center;
+  }
+  .lista-item:last-child { border-bottom: 0; }
+  /* Variante p/ Minhas análises: Título | Badge | Excluir */
+  .lista-analise {
+    grid-template-columns: 1fr auto auto;
+  }
+  .btn-excluir {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--color-rule-strong);
+    border-radius: 4px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--color-danger);
+    cursor: pointer;
+  }
+  .btn-excluir:hover { background: #fdf2f0; }
+  .status-chip {
+    display: inline-flex;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .status-rascunho { background: var(--color-paper-3); color: var(--color-ink-2); }
+  .status-submetida { background: #e8eef5; color: #2a4d6e; }
+  .status-em_revisao { background: var(--color-review-bg); color: var(--color-gold-deep); }
+  .status-aprovada,
+  .status-publicada { background: #e0ebd9; color: #3a5a2a; }
+  .status-legado { background: var(--color-paper-2); color: var(--color-ink-3); }
+  .status-despublicada { background: #fdf2f0; color: var(--color-danger); }
+  .item-titulo {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    color: var(--color-ink);
+    text-decoration: none;
+    line-height: 1.3;
+  }
+  .item-titulo:hover { color: var(--color-gold-deep); }
+  .item-meta {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-ink-3);
+    margin-top: 4px;
+  }
+  .empty {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--color-ink-3);
+    padding: 24px 0;
+    font-style: italic;
+  }
+  .prazo-vencido { color: var(--color-danger); font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="painel-wrap">
+
+  <header style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+    {% avatar user size=56 %}
+    <div style="flex:1;">
+      <p class="t-eyebrow" style="margin:0 0 4px;">Painel</p>
+      <h1 style="font-family:var(--font-serif);font-weight:500;font-size:clamp(26px,3vw,34px);margin:0;color:var(--color-ink);">Olá, {{ user.nome_exibicao|default:user.get_full_name|default:user.email }}</h1>
+      <p style="margin:4px 0 0;font-family:var(--font-sans);font-size:13px;color:var(--color-ink-3);">{{ user.get_papel_display }}{% if user.vinculo_institucional %} · {{ user.vinculo_institucional }}{% endif %}</p>
+    </div>
+    {% if user.eh_analista %}
+    <a href="{% url 'cadastrar_artigo' %}" class="btn btn-primary">Enviar contribuição</a>
+    {% endif %}
+  </header>
+
+  {% if not user.perfil_completo_minimo %}
+  <div style="margin-top:24px;padding:14px 18px;background:var(--color-review-bg);border:1px solid var(--color-gold-deep);font-family:var(--font-sans);font-size:14px;color:var(--color-ink-2);">
+    Seu perfil está incompleto. <a href="{% url 'perfil' %}" style="color:var(--color-gold-deep);font-weight:600;">Complete o perfil</a> para aparecer no diretório de analistas.
+  </div>
+  {% endif %}
+
+  {# ── Solicitações ──────────────────────────────────────────────── #}
+  {% if solicitacoes %}
+  <section class="painel-secao">
+    <h2>Minhas solicitações</h2>
+    <p class="secao-desc">Estado das solicitações enviadas para a curadoria. <a href="{% url 'perfil' %}" style="color:var(--color-gold-deep);">Gerenciar no perfil →</a></p>
+    <div>
+      {% for s in solicitacoes %}
+      <div class="lista-item" style="grid-template-columns: auto auto 1fr auto;">
+        <span class="status-chip" style="background:var(--color-paper-3);color:var(--color-ink-2);">{{ s.get_tipo_display }}</span>
+        <span class="status-chip status-{{ s.status }}">{{ s.get_status_display }}</span>
+        <div>
+          <div class="item-meta">
+            enviada em {{ s.criado_em|date:"d/m/Y" }}
+            {% if s.revisado_em %}· revisada em {{ s.revisado_em|date:"d/m/Y" }} por {{ s.revisado_por.nome_exibicao|default:s.revisado_por.email }}{% endif %}
+          </div>
+          {% if s.status == "rejeitada" and s.motivo_rejeicao %}
+          <div class="item-meta" style="margin-top:4px;color:var(--color-danger);">Motivo: {{ s.motivo_rejeicao }}</div>
+          {% endif %}
+        </div>
+        <div></div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {# ── Minhas análises ────────────────────────────────────────────── #}
+  <section class="painel-secao">
+    <h2>Minhas análises</h2>
+    <p class="secao-desc">Análises que você criou — rascunhos, submetidas e publicadas.</p>
+    {% if minhas_analises %}
+      <div>
+        {% for a in minhas_analises %}
+        <div class="lista-item lista-analise">
+          <div>
+            <a href="{% url 'pagina_analise' a.pk %}" class="item-titulo">{{ a.artigo.titulo|truncatechars:120 }}</a>
+            <div class="item-meta">
+              {% if a.artigo.ano %}{{ a.artigo.ano }} · {% endif %}criado em {{ a.criado_em|date:"d/m/Y" }}
+            </div>
+          </div>
+          <span class="status-chip status-{{ a.status }}">{{ a.get_status_display }}</span>
+          <div style="display:flex;gap:6px;">
+            {% if a.pode_ser_modificada %}
+            <a href="{% url 'editar_analise' a.pk %}" class="btn btn-sm btn-secondary" title="Editar análise (até 1h após envio)">Editar</a>
+            <form method="post" action="{% url 'excluir_analise' a.pk %}" style="margin:0;"
+                  onsubmit="return confirm('Excluir esta análise? Esta ação não pode ser desfeita.');">
+              {% csrf_token %}
+              <button type="submit" class="btn-excluir" title="Excluir análise (até 1h após envio)">Excluir</button>
+            </form>
+            {% else %}
+            <span style="font-family:var(--font-sans);font-size:11px;color:var(--color-ink-4);">—</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty">Você ainda não tem análises. {% if user.eh_analista %}<a href="{% url 'cadastrar_artigo' %}" style="color:var(--color-gold-deep);">Cadastrar análise →</a>{% endif %}</p>
+    {% endif %}
+  </section>
+
+  {# ── Revisões pendentes ─────────────────────────────────────────── #}
+  {% if user.eh_analista %}
+  <section class="painel-secao">
+    <h2>Tarefas de revisão</h2>
+    <p class="secao-desc">Revisões sorteadas para você, ordenadas por prazo.</p>
+    {% if revisoes_pendentes %}
+      <div>
+        {% for r in revisoes_pendentes %}
+        <div class="lista-item">
+          <span class="status-chip status-{{ r.tipo }}">{{ r.get_tipo_display }}</span>
+          <div>
+            <a href="{% url 'pagina_analise' r.analise.pk %}" class="item-titulo">{{ r.analise.artigo.titulo|truncatechars:100 }}</a>
+            <div class="item-meta">
+              Sorteada em {{ r.sorteado_em|date:"d/m/Y" }} ·
+              <span {% if r.prazo_em < agora %}class="prazo-vencido"{% endif %}>prazo: {{ r.prazo_em|date:"d/m/Y" }}</span>
+            </div>
+          </div>
+          <div>
+            <a href="{% url 'pagina_analise' r.analise.pk %}" class="btn btn-sm btn-primary">Revisar →</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty">Nenhuma revisão pendente.</p>
+    {% endif %}
+
+    {% if revisoes_concluidas %}
+    <details style="margin-top:24px;">
+      <summary style="cursor:pointer;font-family:var(--font-sans);font-size:13px;color:var(--color-ink-3);">Últimas 10 revisões concluídas</summary>
+      <div style="margin-top:12px;">
+        {% for r in revisoes_concluidas %}
+        <div class="lista-item">
+          <span class="status-chip status-{{ r.parecer|default:'legado' }}">{{ r.get_parecer_display|default:"—" }}</span>
+          <div>
+            <a href="{% url 'pagina_analise' r.analise.pk %}" class="item-titulo">{{ r.analise.artigo.titulo|truncatechars:100 }}</a>
+            <div class="item-meta">{{ r.get_tipo_display }} · concluída em {{ r.concluido_em|date:"d/m/Y" }}</div>
+          </div>
+          <div></div>
+        </div>
+        {% endfor %}
+      </div>
+    </details>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {# ── Atalhos ────────────────────────────────────────────────────── #}
+  <section class="painel-secao">
+    <h2>Atalhos</h2>
+    <ul style="list-style:none;padding:0;margin:0;display:grid;gap:8px;font-family:var(--font-sans);font-size:14px;">
+      <li><a href="{% url 'perfil' %}" style="color:var(--color-gold-deep);">Editar meu perfil →</a></li>
+      <li><a href="{% url 'acervo_publico' %}" style="color:var(--color-gold-deep);">Acervo público →</a></li>
+      <li><a href="{% url 'pagina_equipe' %}" style="color:var(--color-gold-deep);">Diretório de analistas →</a></li>
+      {% if user.is_staff %}<li><a href="/admin/" style="color:var(--color-gold-deep);">Admin do sistema →</a></li>{% endif %}
+    </ul>
+  </section>
+
+</div>
+{% endblock %}

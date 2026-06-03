@@ -20,8 +20,8 @@
                 <p class="text-sm text-slate-600 mb-3">Você é {{ user.get_papel_display|lower }}. Crie ou revise análises pelo menu superior.</p>
                 <a href="{% url 'minhas_analises' %}" class="inline-flex items-center px-4 py-2 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm">Minhas análises →</a>
             {% else %}
-                <p class="text-sm text-slate-600 mb-3">Sua conta está ativa como <strong>leitor</strong>. Solicite promoção para criar análises.</p>
-                <a href="{% url 'solicitar_promocao' %}" class="inline-flex items-center px-4 py-2 rounded-md bg-anco hover:bg-anco-dark text-white text-sm">Solicitar promoção →</a>
+                <p class="text-sm text-slate-600 mb-3">Sua conta está ativa como <strong>leitor</strong>. Solicite promoção a analista no perfil.</p>
+                <a href="{% url 'perfil' %}" class="inline-flex items-center px-4 py-2 rounded-md bg-anco hover:bg-anco-dark text-white text-sm">Ir para meu perfil →</a>
             {% endif %}
         {% else %}
             <p class="text-sm text-slate-600 mb-3">Acesse com sua conta institucional do Google.</p>

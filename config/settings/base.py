@@ -147,6 +147,11 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
+# Uploads de usuário (foto de perfil). Em produção, Caddy serve /media/*
+# diretamente de MEDIA_ROOT (configurar bloco no Caddyfile).
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 BASE_URL = env("BASE_URL", default="http://localhost:8000")
@@ -163,7 +168,7 @@ LOGIN_URL = "/accounts/login/"
 # Apos OAuth, vai direto para a view de solicitacao; ela redireciona conforme
 # o estado do usuario (leitor sem solicitacao -> form; leitor com solicitacao
 # -> status; analista/curador -> home).
-LOGIN_REDIRECT_URL = "/cadastro/promocao/"
+LOGIN_REDIRECT_URL = "/_pos_login/"
 LOGOUT_REDIRECT_URL = "/"
 
 # Lista de dominios institucionais aceitos. Sufixos comecando com "."
@@ -191,8 +196,12 @@ ALLOWED_INSTITUTIONAL_DOMAINS = env.list(
 
 # allauth — perfil minimo para auth via Google. Demais defaults bastam.
 ACCOUNT_LOGIN_METHODS = {"email"}
-ACCOUNT_SIGNUP_FIELDS = ["email*"]
-ACCOUNT_EMAIL_VERIFICATION = "none"  # OAuth do Google ja verifica e-mail
+# password1 precisa estar listado para o LoginForm manter o campo de senha
+# (sem isso, allauth remove o campo e o login vira passwordless por codigo).
+# Signup publico esta fechado em apps.core.adapters.AnCoAccountAdapter, entao
+# este campo so afeta o LoginForm.
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*"]
+ACCOUNT_EMAIL_VERIFICATION = "optional"  # cria EmailAddress (já verificado p/ OAuth) sem exigir confirmação
 ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"
 ACCOUNT_LOGOUT_ON_GET = False
 
@@ -211,6 +220,12 @@ SOCIALACCOUNT_PROVIDERS = {
 
 SOCIALACCOUNT_ADAPTER = "apps.core.adapters.AnCoSocialAccountAdapter"
 ACCOUNT_ADAPTER = "apps.core.adapters.AnCoAccountAdapter"
+
+# Pula a tela intermediária "Você está prestes a fazer login...": GET no
+# /accounts/<provider>/login/ já redireciona direto pro provider. A proteção
+# de CSRF da etapa intermediária é dispensada — o Google ainda exige consent
+# explícito do usuário antes de devolver o token, então o risco é baixo.
+SOCIALACCOUNT_LOGIN_ON_GET = True
 
 # Rate limits do allauth (Fase 7). Override em dev pra nao atrapalhar.
 ACCOUNT_RATE_LIMITS = {

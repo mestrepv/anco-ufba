@@ -1,0 +1,8 @@
+{# Avatar: foto > iniciais. Espera contexto {foto_url, iniciais, size, font_size}. #}
+{% if foto_url %}
+<img src="{{ foto_url }}" alt="" width="{{ size }}" height="{{ size }}"
+     style="border-radius:50%;object-fit:cover;display:inline-block;vertical-align:middle;background:var(--color-paper-2);"
+     referrerpolicy="no-referrer">
+{% else %}
+<span style="display:inline-flex;align-items:center;justify-content:center;width:{{ size }}px;height:{{ size }}px;border-radius:50%;background:var(--color-paper-3);color:var(--color-ink-2);font-family:var(--font-sans);font-weight:600;font-size:{{ font_size }}px;line-height:1;vertical-align:middle;letter-spacing:-0.02em;">{{ iniciais }}</span>
+{% endif %}

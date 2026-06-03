@@ -1,4 +1,4 @@
-{% load static %}
+{% load static avatar_tags %}
 {# Uso: {% include "partials/_nav_desktop.html" with active="acervo" %} #}
 {# active: acervo | sobre | metodologia | equipe #}
 <nav style="display:flex;align-items:center;justify-content:space-between;padding:20px 56px;" aria-label="Navegação principal">
@@ -23,17 +23,38 @@
   </div>
 
   <div style="display:flex;align-items:center;gap:12px;">
-    <a href="{% url 'acervo_publico' %}" class="btn btn-sm btn-ghost" aria-label="Ir para busca do acervo">
-      <svg class="icon" style="width:14px;height:14px;" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-        <circle cx="7" cy="7" r="4.5"/><line x1="10.3" y1="10.3" x2="13.5" y2="13.5" stroke-linecap="round"/>
-      </svg>
-      Buscar
-    </a>
     {% if user.is_authenticated %}
-      <form method="post" action="{% url 'account_logout' %}" style="margin:0;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-sm btn-secondary">Sair</button>
-      </form>
+      <div x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false" style="position:relative;">
+        <button
+          @click="open = !open"
+          :aria-expanded="open.toString()"
+          aria-haspopup="menu"
+          aria-label="Menu do usuário"
+          type="button"
+          style="display:inline-flex;align-items:center;gap:10px;padding:4px 10px 4px 4px;background:transparent;border:1px solid var(--color-rule);border-radius:999px;cursor:pointer;font-family:var(--font-sans);font-size:13px;color:var(--color-ink);">
+          {% avatar user size=30 %}
+          <span style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ user.nome_exibicao|default:user.get_full_name|default:user.email }}</span>
+          <span aria-hidden="true" style="color:var(--color-ink-3);font-size:10px;">▾</span>
+        </button>
+
+        <div
+          x-show="open"
+          x-cloak
+          x-transition.opacity.duration.120ms
+          role="menu"
+          style="position:absolute;right:0;top:calc(100% + 6px);min-width:200px;background:var(--color-paper);border:1px solid var(--color-rule);box-shadow:0 4px 18px rgba(0,0,0,0.08);padding:6px 0;z-index:50;font-family:var(--font-sans);font-size:14px;">
+          <a href="{% url 'perfil' %}" role="menuitem" style="display:block;padding:10px 16px;color:var(--color-ink);text-decoration:none;" onmouseover="this.style.background='var(--color-paper-2)'" onmouseout="this.style.background='transparent'">Perfil</a>
+          <a href="{% url 'painel' %}" role="menuitem" style="display:block;padding:10px 16px;color:var(--color-ink);text-decoration:none;" onmouseover="this.style.background='var(--color-paper-2)'" onmouseout="this.style.background='transparent'">Painel</a>
+          {% if user.is_staff %}
+          <a href="/admin/" role="menuitem" style="display:block;padding:10px 16px;color:var(--color-ink);text-decoration:none;" onmouseover="this.style.background='var(--color-paper-2)'" onmouseout="this.style.background='transparent'">Admin</a>
+          {% endif %}
+          <hr style="margin:6px 0;border:0;border-top:1px solid var(--color-rule);">
+          <form method="post" action="{% url 'account_logout' %}" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit" role="menuitem" style="display:block;width:100%;text-align:left;padding:10px 16px;background:transparent;border:0;color:var(--color-ink);font-family:inherit;font-size:inherit;cursor:pointer;" onmouseover="this.style.background='var(--color-paper-2)'" onmouseout="this.style.background='transparent'">Sair</button>
+          </form>
+        </div>
+      </div>
     {% else %}
       <a href="{% url 'account_login' %}" class="btn btn-sm btn-secondary">Entrar</a>
     {% endif %}

@@ -35,6 +35,12 @@
         file_server
     }
 
+    # Uploads de usuario (foto de perfil etc.).
+    handle /media/* {
+        root * /srv
+        file_server
+    }
+
     # Tudo mais vai ao gunicorn
     reverse_proxy web:8000 {
         header_up X-Forwarded-Proto https

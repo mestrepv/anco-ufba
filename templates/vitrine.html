@@ -85,7 +85,13 @@
     <div style="margin-top: 28px;">
       <div class="hero-ctas" style="display:flex; flex-direction:column; gap:10px; flex-wrap:wrap;">
         {% include "partials/_btn.html" with label="Explorar o acervo →" variant="primary" href="/acervo/" %}
-        {% include "partials/_btn.html" with label="Entrar para contribuir" variant="secondary" href="/accounts/login/" %}
+        {% if not request.user.is_authenticated %}
+          {% include "partials/_btn.html" with label="Entrar para contribuir" variant="secondary" href="/accounts/login/" %}
+        {% elif request.user.eh_analista %}
+          {% include "partials/_btn.html" with label="Enviar contribuição" variant="secondary" href="/acervo-analista/artigo/novo/" %}
+        {% else %}
+          {% include "partials/_btn.html" with label="Solicitar acesso de analista" variant="secondary" href="/perfil/" %}
+        {% endif %}
       </div>
       <p class="hero-note t-small" style="display:none; margin-top:18px; max-width:320px;">
         O acervo é público e citável. A contribuição requer cadastro como
