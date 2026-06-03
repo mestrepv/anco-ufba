@@ -49,3 +49,9 @@ pgdata/
 
 # CSS gerado pelo Tailwind (reconstruído no Docker build e em dev com --watch)
 static/css/output.css
+
+# Artefatos gerados pelas ferramentas de recuperação de DOI / migração (tools/)
+/dois_recuperados.json
+/dois_verificados.json
+/dois_verificados_test.json
+/conflitos_doi.csv
