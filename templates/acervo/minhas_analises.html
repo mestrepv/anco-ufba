@@ -10,14 +10,14 @@
       <span class="t-eyebrow" style="color: var(--color-gold);">An·Co · área do analista</span>
       <h1 class="t-h1" style="margin-top: 4px;">Minhas análises</h1>
     </div>
-    <a href="{% url 'buscar_artigo' %}" class="btn btn-primary">+ Nova análise</a>
+    <a href="{% url 'cadastrar_artigo' %}" class="btn btn-primary">+ Nova análise</a>
   </header>
 
   {% if not analises %}
   <div class="meta-card" style="text-align: center; padding: 56px 24px; border-style: dashed;">
     <p class="t-prose" style="color: var(--color-ink-3);">Você ainda não criou nenhuma análise.</p>
     <p class="t-small" style="color: var(--color-ink-4); margin-top: 8px;">
-      Comece em <a href="{% url 'buscar_artigo' %}" class="link">Nova análise</a>.
+      Comece em <a href="{% url 'cadastrar_artigo' %}" class="link">Nova análise</a>.
     </p>
   </div>
   {% else %}

@@ -74,6 +74,7 @@ def revisores_elegiveis(analise: Analise, excluir_ids: set[int] | None = None):
             papel__in=[User.Papel.ANALISTA, User.Papel.CURADOR],
             is_active=True,
             aceita_revisoes=True,
+            revisor_aprovado=True,
         )
         .exclude(pk=analise.analista_id)
         .exclude(pk__in=autores_outras_analises)
@@ -183,6 +184,58 @@ def executar_sorteio(analise: Analise) -> ResultadoSorteio:
         cegas_criadas=len(cegos),
         fila_de_espera=False,
     )
+
+
+@transaction.atomic
+def sortear_revisores_cegos_adicional(analise: Analise) -> ResultadoSorteio:
+    """
+    Sorteia revisores cegos para uma analise que ja tinha sido publicada
+    e ganhou (ou teve editada) uma resenha critica.
+
+    Sem revisao estrutural — apenas cega. Exclui quem ja revisou esta
+    analise antes (para nao repetir). Idempotente em relacao a CEGA do
+    ciclo atual: nao recria se ja existem CEGA com `concluido_em__isnull=True`.
+    """
+    if not analise.tem_resenha:
+        return ResultadoSorteio(0, 0, False, "Analise sem resenha — nada a sortear.")
+
+    cegas_pendentes_qs = Revisao.objects.filter(
+        analise=analise,
+        tipo=Revisao.Tipo.CEGA,
+        concluido_em__isnull=True,
+    )
+    if cegas_pendentes_qs.exists():
+        return ResultadoSorteio(0, 0, False, "Ja existe ciclo cego pendente.")
+
+    ja_revisaram = set(
+        Revisao.objects.filter(analise=analise).values_list("revisor_id", flat=True)
+    )
+    elegiveis = revisores_elegiveis(analise, excluir_ids=ja_revisaram)
+    cegos = _sortear_n(elegiveis, N_REVISORES_CEGOS)
+    if len(cegos) < N_REVISORES_CEGOS:
+        logger.warning(
+            "Faltam revisores cegos adicionais para analise %s (%d de %d)",
+            analise.pk,
+            len(cegos),
+            N_REVISORES_CEGOS,
+        )
+        return ResultadoSorteio(
+            0, 0, True,
+            f"Revisores cegos insuficientes ({len(cegos)} de {N_REVISORES_CEGOS}).",
+        )
+
+    agora = timezone.now()
+    for revisor in cegos:
+        Revisao.objects.create(
+            analise=analise,
+            revisor=revisor,
+            tipo=Revisao.Tipo.CEGA,
+            prazo_em=agora + timedelta(days=PRAZO_CEGA_DIAS),
+        )
+
+    analise.status = Analise.Status.EM_REVISAO
+    analise.save(update_fields=["status"])
+    return ResultadoSorteio(0, len(cegos), False)
 
 
 @transaction.atomic

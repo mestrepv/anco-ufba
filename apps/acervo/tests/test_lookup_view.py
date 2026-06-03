@@ -134,7 +134,10 @@ class TestLookupView:
                 reverse("lookup_identificador") + "?id=10.1016/jaexiste"
             )
         assert resp.status_code == 200
-        assert b"j\xc3\xa1 est\xc3\xa1 no acervo" in resp.content
+        # Banner "arquivo existente" + flag em dados.ja_no_acervo para o Alpine
+        assert b"arquivo existente" in resp.content
+        assert b"j\xc3\xa1 existe no acervo" in resp.content
+        assert b'"ja_no_acervo": true' in resp.content
 
     def test_lixo_textual_retorna_erro_amigavel(self, cliente_analista):
         # "Não consta" não é DOI nem ISBN → tipo desconhecido

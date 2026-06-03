@@ -18,6 +18,7 @@ from .sorteio import (
     executar_sorteio,
     re_sortear_revisao_expirada,
     revisoes_expiradas,
+    sortear_revisores_cegos_adicional,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,25 @@ def task_sortear_revisores(analise_id: int) -> dict:
     return {
         "ok": True,
         "estruturais": resultado.estruturais_criadas,
+        "cegas": resultado.cegas_criadas,
+        "fila_de_espera": resultado.fila_de_espera,
+        "motivo": resultado.motivo,
+    }
+
+
+def task_sortear_cegos_adicional(analise_id: int) -> dict:
+    """Sorteia revisores cegos para resenha adicionada apos publicacao."""
+    try:
+        analise = Analise.objects.get(pk=analise_id)
+    except Analise.DoesNotExist:
+        logger.error("task_sortear_cegos_adicional: analise %s nao existe", analise_id)
+        return {"ok": False, "erro": "analise_nao_existe"}
+
+    resultado = sortear_revisores_cegos_adicional(analise)
+    if resultado.cegas_criadas:
+        _notificar_revisores(analise, 0, resultado.cegas_criadas)
+    return {
+        "ok": True,
         "cegas": resultado.cegas_criadas,
         "fila_de_espera": resultado.fila_de_espera,
         "motivo": resultado.motivo,

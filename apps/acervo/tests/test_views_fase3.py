@@ -63,52 +63,25 @@ def cliente_analista(client, analista):
 
 class TestAcessoControlado:
     def test_anonimo_redireciona_login(self, db, client):
-        for url_name in ("buscar_artigo", "minhas_analises", "cadastrar_artigo"):
+        for url_name in ("minhas_analises", "cadastrar_artigo"):
             resp = client.get(reverse(url_name))
             assert resp.status_code in (301, 302)
             assert "/accounts/login/" in resp["Location"]
 
     def test_leitor_recebe_403(self, db, client, leitor):
         client.force_login(leitor)
-        resp = client.get(reverse("buscar_artigo"))
+        resp = client.get(reverse("cadastrar_artigo"))
         assert resp.status_code == 403
 
-
-# ----------------------------------------------------------------------
-# Busca / cadastro de artigo
-# ----------------------------------------------------------------------
-
-
-class TestBuscarArtigo:
-    def test_get_sem_consulta_renderiza(self, cliente_analista):
+    def test_buscar_redireciona_para_cadastrar(self, cliente_analista):
         resp = cliente_analista.get(reverse("buscar_artigo"))
-        assert resp.status_code == 200
-        assert b"Buscar artigo" in resp.content
+        assert resp.status_code in (301, 302)
+        assert reverse("cadastrar_artigo") in resp["Location"]
 
-    def test_busca_por_doi_encontra(self, cliente_analista, artigo):
-        resp = cliente_analista.get(reverse("buscar_artigo"), {"q": artigo.doi})
-        assert resp.status_code == 200
-        assert artigo.titulo.encode() in resp.content
 
-    def test_busca_por_titulo_parcial_encontra(self, cliente_analista, artigo):
-        resp = cliente_analista.get(reverse("buscar_artigo"), {"q": "teste"})
-        assert resp.status_code == 200
-        assert artigo.titulo.encode() in resp.content
-
-    def test_htmx_retorna_partial(self, cliente_analista, artigo):
-        resp = cliente_analista.get(
-            reverse("buscar_artigo"),
-            {"q": "teste"},
-            HTTP_HX_REQUEST="true",
-        )
-        assert resp.status_code == 200
-        # partial nao tem o titulo da pagina
-        assert b"Buscar artigo</h1>" not in resp.content
-
-    def test_busca_vazia_oferece_cadastrar_quando_consulta(self, cliente_analista, artigo):
-        resp = cliente_analista.get(reverse("buscar_artigo"), {"q": "naoexiste"})
-        assert resp.status_code == 200
-        assert b"Cadastrar novo artigo" in resp.content
+# ----------------------------------------------------------------------
+# Cadastro de artigo
+# ----------------------------------------------------------------------
 
 
 class TestCadastrarArtigo:

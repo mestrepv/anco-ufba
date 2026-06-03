@@ -271,9 +271,9 @@ def listagem_view(request: HttpRequest) -> HttpResponse:
                 "aspectos_relevantes",
                 "definicao_extraida",
                 "resenha_critica",
-                config="portuguese",
+                config="portuguese_unaccent",
             )
-            query = SearchQuery(consulta, config="portuguese")
+            query = SearchQuery(consulta, config="portuguese_unaccent")
             # Filtra pelo operador @@ (match booleano), não por rank > 0:
             # ts_rank pode retornar 1e-20 (não-zero) para não-matches em queries
             # multi-palavra, fazendo `rank > 0` deixar passar tudo. O annotate
@@ -300,7 +300,7 @@ def listagem_view(request: HttpRequest) -> HttpResponse:
     n_filtros_ativos = sum(len(v) for v in facetas_aplicadas.values()) + (
         1 if ano_filtrado else 0
     )
-    ordenar_label = "relevância" if consulta else "mais recentes"
+    ordenar_label = "relevância" if consulta else "ano de publicação"
 
     # Universo da busca semântica (análises com vetor estrutural).
     # Calculado só quando o modo está ativo, para evitar query desnecessária.
@@ -352,7 +352,7 @@ def _linha_planilha(a: Analise) -> dict:
         "periodico": artigo.titulo_periodico or "",
         "autores": artigo.autores or "",
         "base": (artigo.base_consulta.nome if artigo.base_consulta else ""),
-        "doi": artigo.doi if not artigo.doi.startswith("legacy:") else "",
+        "doi": (artigo.doi or "") if not (artigo.doi or "").startswith("legacy:") else "",
         "link_artigo": artigo.link_acesso or artigo.link_acesso_alternativo or "",
         "epistemologia": epistemologia,
         "teoria": teoria,
@@ -397,6 +397,14 @@ def pagina_artigo_view(request: HttpRequest, doi_slug: str) -> HttpResponse:
     )
     snapshots = artigo.snapshots.order_by("-capturado_em")[:1]
 
+    # Análise do usuário logado para este artigo (se já existir), para
+    # decidir entre "Escrever resenha" vs "Continuar minha análise".
+    minha_analise = None
+    if request.user.is_authenticated and request.user.eh_analista:
+        minha_analise = Analise.objects.filter(
+            artigo=artigo, analista=request.user
+        ).first()
+
     return render(
         request,
         "publico/artigo.html",
@@ -405,6 +413,7 @@ def pagina_artigo_view(request: HttpRequest, doi_slug: str) -> HttpResponse:
             "analises": analises_publicas,
             "snapshot_recente": snapshots[0] if snapshots else None,
             "jsonld": jsonld(schema_artigo(artigo)),
+            "minha_analise": minha_analise,
         },
     )
 
@@ -473,6 +482,18 @@ def pagina_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
 
     link_obra = analise.artigo.link_acesso or analise.artigo.link_acesso_alternativo or ""
 
+    # Sinaliza se ha resenha em outras analises publicadas do mesmo artigo
+    # (multiplas resenhas por artigo sao aceitas, uma por analista).
+    outras_com_resenha = (
+        Analise.objects.filter(
+            artigo=analise.artigo,
+            status__in=STATUS_PUBLICOS,
+            tem_resenha=True,
+        )
+        .exclude(pk=analise.pk)
+        .exists()
+    )
+
     return render(
         request,
         "publico/analise.html",
@@ -485,6 +506,7 @@ def pagina_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
             "campos_textuais": campos_textuais,
             "link_obra": link_obra,
             "publicada_fmt": _fmt_data(analise.publicada_em or analise.criado_em),
+            "outras_com_resenha": outras_com_resenha,
             "active_nav": "acervo",
             "jsonld": jsonld(schema_analise(analise)),
         },

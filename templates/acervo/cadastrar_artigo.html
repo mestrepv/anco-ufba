@@ -37,7 +37,7 @@
            hx-get="{% url 'lookup_identificador' %}"
            hx-target="#preview-card"
            hx-swap="innerHTML"
-           hx-trigger="keyup changed delay:700ms, blur"
+           hx-trigger="keyup changed delay:700ms, paste delay:200ms, blur"
            hx-indicator="#lookup-spinner">
 
     <div style="margin-top: 8px; min-height: 22px; display: flex; align-items: center; gap: 10px;">
@@ -225,9 +225,8 @@
   </section>
 
   {# ── Passo 4: ação ─────────────────────────────────────────────── #}
-  <section style="margin-top: 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px;"
+  <section style="margin-top: 24px; display: flex; align-items: center; justify-content: flex-end; gap: 12px;"
            x-show="lookupOk || modoManual" x-cloak>
-    <a href="{% url 'buscar_artigo' %}" class="btn btn-ghost btn-sm">← Voltar à busca</a>
     <button type="submit" form="form-cadastrar-artigo" class="btn btn-primary">
       Cadastrar e iniciar análise →
     </button>
@@ -248,8 +247,8 @@
       meta: {},
       init() {
         // Quando HTMX termina o swap do #preview-card, lemos o JSON
-        // emitido pelo partial via {{ dados|json_script:"lookup-dados" }}
-        // — fica no DOM como <script type="application/json"> (dado, não código).
+        // emitido pelo partial via filtro json_script do Django (id="lookup-dados")
+        // — fica no DOM como script type=application/json (dado, nao codigo).
         document.body.addEventListener('htmx:afterSwap', (ev) => {
           const target = ev.detail && ev.detail.target;
           if (!target || target.id !== 'preview-card') return;
@@ -276,7 +275,9 @@
             'Tese / dissertação': 'dissertacao',
           };
           this.meta.tipo_publicacao = tipoMap[dados.tipo] || 'artigo';
-          this.lookupOk = !!dados.titulo;
+          // Esconde passos 3/4 quando o artigo ja existe no acervo
+          // — o usuario deve ir pela rota de "Iniciar minha analise" no banner.
+          this.lookupOk = !!dados.titulo && !dados.ja_no_acervo;
         });
       }
     };

@@ -50,6 +50,13 @@
     padding: 20px 0;
     border-bottom: 1px solid var(--color-rule);
   }
+  .field-empty {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-style: italic;
+    color: var(--color-ink-4);
+    margin: 0;
+  }
 
   /* ── Citação ──────────────────────────────────── */
   .citation-text {
@@ -151,17 +158,29 @@
       <em>{{ analise.artigo.titulo_periodico }}</em>{% if analise.artigo.volume %}, v. {{ analise.artigo.volume }}{% endif %}{% if analise.artigo.numero %}, n. {{ analise.artigo.numero }}{% endif %}{% if analise.artigo.pagina_inicial %}, p. {{ analise.artigo.pagina_inicial }}{% if analise.artigo.pagina_final %}–{{ analise.artigo.pagina_final }}{% endif %}{% endif %}{% if analise.artigo.ano %}, {{ analise.artigo.ano }}{% endif %}.
     </div>
 
-    {% if analise.artigo.doi and not analise.artigo.doi|slice:":7" == "legacy:" %}
     <div style="margin-top:6px; font-family:var(--font-mono); font-size:12px; color:var(--color-ink-4);">
+      {% if analise.artigo.doi and not analise.artigo.doi|slice:":7" == "legacy:" %}
       DOI: <a href="https://doi.org/{{ analise.artigo.doi }}" target="_blank" rel="noopener noreferrer" style="color:var(--color-gold-deep); text-decoration:none;">{{ analise.artigo.doi }}</a>
+      {% else %}
+      DOI: <span style="font-style:italic;">— sem registro —</span>
+      {% endif %}
     </div>
-    {% endif %}
 
     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:clamp(20px,3vw,28px);">
       {% if link_obra %}
       <a href="{{ link_obra }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">Acessar obra original ↗</a>
       {% endif %}
+      {% if doi_slug %}
       <a href="{% url 'pagina_artigo' doi_slug %}" class="btn btn-sm btn-ghost">Página do artigo →</a>
+      {% endif %}
+      {% if analise.tem_resenha %}
+      <a href="#resenha" class="btn btn-sm btn-secondary">Ver resenha ↓</a>
+      {% elif outras_com_resenha and doi_slug %}
+      <a href="{% url 'pagina_artigo' doi_slug %}" class="btn btn-sm btn-secondary">Ver resenhas deste artigo →</a>
+      {% endif %}
+      {% if user.is_authenticated and user.eh_analista %}
+      <a href="{% url 'iniciar_analise' analise.artigo.pk %}?passo=resenha" class="btn btn-sm btn-ghost">Enviar resenha</a>
+      {% endif %}
     </div>
 
   </div>
@@ -199,71 +218,84 @@
         margin: 0 0 8px;
         color: var(--color-ink);
       ">A obra atravessada pela grade AnCo</h2>
-      <p class="t-small" style="margin:0 0 8px;">Treze campos derivados da metodologia do grupo. Campos vazios são ocultos.</p>
+      <p class="t-small" style="margin:0 0 8px;">Treze campos derivados da metodologia do grupo. Campos sem registro nesta análise podem ser preenchidos por novas análises do mesmo artigo.</p>
 
       <div style="margin-top:16px;">
 
         {# 1. Pertinência #}
-        {% if analise.pertinencia is not None %}
         <div class="field-block">
           <div class="field-label">Pertinência</div>
+          {% if analise.pertinencia is not None %}
           <p class="field-value">{% if analise.pertinencia %}Sim — pertinente para o campo da Análise Cognitiva.{% else %}Não pertinente para o campo da Análise Cognitiva.{% endif %}</p>
+          {% else %}
+          <p class="field-empty">— sem registro —</p>
+          {% endif %}
         </div>
-        {% endif %}
 
         {# 2. Define o conceito / Definição extraída #}
-        {% if analise.define_conceito is not None %}
         <div class="field-block">
           <div class="field-label">Define o conceito</div>
+          {% if analise.define_conceito is not None %}
           <p class="field-value">{% if analise.define_conceito %}Sim{% else %}Não{% endif %}{% if analise.definicao_extraida %}. {{ analise.definicao_extraida }}{% endif %}</p>
-        </div>
-        {% elif analise.definicao_extraida %}
-        <div class="field-block">
-          <div class="field-label">Definição extraída</div>
+          {% elif analise.definicao_extraida %}
           <p class="field-value">{{ analise.definicao_extraida }}</p>
+          {% else %}
+          <p class="field-empty">— sem registro —</p>
+          {% endif %}
         </div>
-        {% endif %}
 
         {# 3–6. Campos textuais: Objeto, Objetivo, Foco, Metodologia #}
         {% for label, valor in campos_textuais %}
-          {% if valor and label != "Aspectos relevantes" and label != "Definição extraída" and label != "Referenciais" and label != "Resultados" and label != "Contexto de produção" and label != "Observações" %}
+          {% if label != "Aspectos relevantes" and label != "Definição extraída" and label != "Referenciais" and label != "Resultados" and label != "Contexto de produção" and label != "Observações" %}
           <div class="field-block">
             <div class="field-label">{{ label }}</div>
+            {% if valor %}
             <p class="field-value">{{ valor }}</p>
+            {% else %}
+            <p class="field-empty">— sem registro —</p>
+            {% endif %}
           </div>
           {% endif %}
         {% endfor %}
 
         {# 7. Epistemologia (chips) #}
-        {% with epist=analise.epistemologia.all %}
-        {% if epist %}
         <div class="field-block">
           <div class="field-label">Epistemologia</div>
+          {% with epist=analise.epistemologia.all %}
+          {% if epist %}
           <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
             {% for e in epist %}{% include "partials/_chip.html" with label=e.nome %}{% endfor %}
           </div>
+          {% else %}
+          <p class="field-empty">— sem classificação registrada —</p>
+          {% endif %}
+          {% endwith %}
         </div>
-        {% endif %}
-        {% endwith %}
 
         {# 8. Teoria de referência (chips) #}
-        {% with teorias=analise.teoria.all %}
-        {% if teorias %}
         <div class="field-block">
           <div class="field-label">Teoria de referência</div>
+          {% with teorias=analise.teoria.all %}
+          {% if teorias %}
           <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
             {% for t in teorias %}{% include "partials/_chip.html" with label=t.nome %}{% endfor %}
           </div>
+          {% else %}
+          <p class="field-empty">— sem classificação registrada —</p>
+          {% endif %}
+          {% endwith %}
         </div>
-        {% endif %}
-        {% endwith %}
 
         {# 9–13. Referenciais, Resultados, Aspectos, Contexto, Observações #}
         {% for label, valor in campos_textuais %}
-          {% if valor and label == "Referenciais" or valor and label == "Resultados" or valor and label == "Aspectos relevantes" or valor and label == "Contexto de produção" or valor and label == "Observações" %}
+          {% if label == "Referenciais" or label == "Resultados" or label == "Aspectos relevantes" or label == "Contexto de produção" or label == "Observações" %}
           <div class="field-block">
             <div class="field-label">{{ label }}</div>
+            {% if valor %}
             <p class="field-value">{{ valor }}</p>
+            {% else %}
+            <p class="field-empty">— sem registro —</p>
+            {% endif %}
           </div>
           {% endif %}
         {% endfor %}
@@ -312,13 +344,18 @@
             <dt style="color:var(--color-ink-3);">Tem resenha</dt>
             <dd style="margin:0; color:var(--color-ink); font-weight:500;">{% if analise.tem_resenha %}sim · revisão cega{% else %}não{% endif %}</dd>
           </div>
+          {% if analise.editado_em %}
+          <div>
+            <dt style="color:var(--color-ink-3);">Última edição</dt>
+            <dd style="margin:0; color:var(--color-ink);">
+              {{ analise.editado_em|date:"d/m/Y H:i" }}
+              {% if analise.editado_por %}
+              <br><span style="color:var(--color-ink-3);">por {{ analise.editado_por.nome_exibicao|default:analise.editado_por.get_full_name|default:analise.editado_por.email }}</span>
+              {% endif %}
+            </dd>
+          </div>
+          {% endif %}
         </dl>
-      </div>
-
-      {# URL estável #}
-      <div style="margin-top:16px; font-family:var(--font-sans); font-size:12px; color:var(--color-ink-3); line-height:1.5;">
-        URL estável<br>
-        <span style="font-family:var(--font-mono); font-size:11px; color:var(--color-ink-2); word-break:break-all;">anco.paulovicente.pro.br/analise/{{ analise.pk }}/</span>
       </div>
 
     </aside>{# /sidebar #}

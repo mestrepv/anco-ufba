@@ -19,7 +19,9 @@
         {% if artigo.numero %} · n. {{ artigo.numero }}{% endif %}
         {% if artigo.pagina_inicial %} · p. {{ artigo.pagina_inicial }}{% if artigo.pagina_final %}–{{ artigo.pagina_final }}{% endif %}{% endif %}
     </p>
-    <p class="text-xs text-slate-400 mt-1 font-mono">{{ artigo.doi }}</p>
+    <p class="text-xs text-slate-400 mt-1 font-mono">
+      {% if artigo.doi and not artigo.doi|slice:":7" == "legacy:" %}{{ artigo.doi }}{% else %}<span class="italic">— sem registro —</span>{% endif %}
+    </p>
 </header>
 
 {% if artigo.resumo %}
@@ -54,6 +56,49 @@
         {% if artigo.artigo_pago %}<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs">Pago</span>{% endif %}
     </div>
 </section>
+
+{# ── Ações para o analista logado ─────────────────────────────────────── #}
+{% if user.is_authenticated and user.eh_analista %}
+<section class="mb-6 p-4 rounded-md border border-amber-200 bg-amber-50">
+    <h2 class="text-sm font-semibold text-slate-700 uppercase mb-2">Contribuir com este artigo</h2>
+    {% if minha_analise %}
+      <p class="text-sm text-slate-700 mb-3">
+        Você já tem uma análise deste artigo (status: <strong>{{ minha_analise.get_status_display|lower }}</strong>).
+      </p>
+      <div class="flex flex-wrap gap-2">
+        {% if minha_analise.pode_ser_modificada %}
+        <a href="{% url 'editar_analise' minha_analise.pk %}"
+           class="inline-flex items-center px-3 py-1.5 rounded-md bg-anco hover:bg-anco-dark text-white text-sm">
+          Continuar minha análise →
+        </a>
+        <a href="{% url 'editar_analise' minha_analise.pk %}?passo=resenha"
+           class="inline-flex items-center px-3 py-1.5 rounded-md bg-white border border-anco text-anco hover:bg-anco hover:text-white text-sm">
+          {% if minha_analise.tem_resenha %}Editar resenha{% else %}Escrever resenha{% endif %}
+        </a>
+        {% else %}
+        <a href="{% url 'pagina_analise' minha_analise.pk %}"
+           class="inline-flex items-center px-3 py-1.5 rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm">
+          Ver minha análise
+        </a>
+        {% endif %}
+      </div>
+    {% else %}
+      <p class="text-sm text-slate-700 mb-3">
+        Como analista, você pode registrar sua análise estruturada ou apenas uma resenha crítica deste artigo.
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <a href="{% url 'iniciar_analise' artigo.pk %}?passo=resenha"
+           class="inline-flex items-center px-3 py-1.5 rounded-md bg-anco hover:bg-anco-dark text-white text-sm">
+          Escrever resenha →
+        </a>
+        <a href="{% url 'iniciar_analise' artigo.pk %}"
+           class="inline-flex items-center px-3 py-1.5 rounded-md bg-white border border-anco text-anco hover:bg-anco hover:text-white text-sm">
+          Análise estruturada completa
+        </a>
+      </div>
+    {% endif %}
+</section>
+{% endif %}
 
 <section>
     <h2 class="text-lg font-semibold text-slate-900 mb-3">Análises ({{ analises|length }})</h2>

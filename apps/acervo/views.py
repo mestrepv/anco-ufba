@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from django.contrib import messages
-from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
@@ -15,7 +15,6 @@ from .forms import (
     AnalisePresencaForm,
     AnaliseResenhaForm,
     ArtigoMetadadosForm,
-    BuscaArtigoForm,
     ComentarioCampoForm,
     IdentificadorLookupForm,
     RevisaoForm,
@@ -45,6 +44,26 @@ def _exige_analista(view):
     return wrapper
 
 
+def _exige_editor(view):
+    """Decorator: analista/curador OU staff. Usado em editar/autosave."""
+
+    def wrapper(request: HttpRequest, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect("account_login")
+        if not (request.user.eh_analista or request.user.is_staff):
+            return HttpResponseForbidden(
+                "Apenas analistas, curadores ou administradores podem editar."
+            )
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
+def _eh_admin(user) -> bool:
+    """Curador ou staff — pode editar qualquer analise a qualquer tempo."""
+    return user.is_staff or getattr(user, "eh_curador", False)
+
+
 # ---------------------------------------------------------------------------
 # Listagem de analises do proprio analista
 # ---------------------------------------------------------------------------
@@ -61,44 +80,13 @@ def minhas_analises_view(request: HttpRequest) -> HttpResponse:
 
 
 # ---------------------------------------------------------------------------
-# Buscar / cadastrar Artigo
+# Cadastrar Artigo (entrada unica do fluxo de contribuicao)
 # ---------------------------------------------------------------------------
 
 
-@_exige_analista
 def buscar_artigo_view(request: HttpRequest) -> HttpResponse:
-    """
-    Tela de busca por artigo. Mostra resultados ja no acervo e oferece
-    cadastro de um novo. Resposta HTMX retorna so o painel de resultados.
-    """
-    form = BuscaArtigoForm(request.GET or None)
-    resultados = []
-    consulta = (request.GET.get("q") or "").strip()
-
-    if consulta:
-        resultados = list(
-            Artigo.objects.filter(
-                Q(doi__iexact=consulta)
-                | Q(titulo__icontains=consulta)
-                | Q(autores__icontains=consulta)
-            ).order_by("-ano", "titulo")[:25]
-        )
-
-    template = (
-        "acervo/_busca_resultados.html"
-        if request.headers.get("HX-Request")
-        else "acervo/buscar_artigo.html"
-    )
-    return render(
-        request,
-        template,
-        {
-            "form": form,
-            "resultados": resultados,
-            "consulta": consulta,
-            "tem_resultados": bool(resultados),
-        },
-    )
+    """Compat: a tela de busca foi unificada em `cadastrar_artigo`."""
+    return redirect("cadastrar_artigo")
 
 
 @_exige_analista
@@ -206,10 +194,43 @@ def lookup_identificador_view(request: HttpRequest) -> HttpResponse:
     if tipo_forcado in {"doi", "isbn"}:
         contexto["tipo"] = tipo_forcado
 
+    # 1) Banco local primeiro: se o artigo ja existe no acervo, evita chamada
+    # externa e exibe direto o aviso "arquivo existente, deseja revisar?".
+    valor = classificado["valor"]
+    existente: Artigo | None = None
+    if valor and contexto["tipo"] == "doi":
+        existente = Artigo.objects.filter(doi=valor).first()
+    elif valor and contexto["tipo"] == "isbn":
+        existente = Artigo.objects.filter(isbn=valor).first()
+
+    if existente is not None:
+        contexto["encontrado"] = True
+        contexto["ja_no_acervo"] = True
+        contexto["artigo_existente"] = existente
+        contexto["dados"] = {
+            "titulo": existente.titulo,
+            "autores_str": existente.autores or "",
+            "ano": existente.ano or "",
+            "doi": existente.doi or "",
+            "isbn": existente.isbn or "",
+            "periodico": existente.titulo_periodico or "",
+            "resumo": existente.resumo or "",
+            "ja_no_acervo": True,
+        }
+        analise = (
+            Analise.objects.filter(artigo=existente, analista=request.user)
+            .order_by("-criado_em")
+            .first()
+        )
+        if analise:
+            contexto["analise_existente_id"] = analise.pk
+        return render(request, "acervo/_preview_metadados.html", contexto)
+
+    # 2) Nao esta no acervo: consulta fonte externa (Crossref / OpenLibrary).
     if contexto["tipo"] == "doi":
-        resultado = lookup_doi(classificado["valor"] or contexto["identificador_raw"])
+        resultado = lookup_doi(valor or contexto["identificador_raw"])
     elif contexto["tipo"] == "isbn":
-        resultado = lookup_isbn(classificado["valor"] or contexto["identificador_raw"])
+        resultado = lookup_isbn(valor or contexto["identificador_raw"])
     else:
         contexto["erro"] = (
             "Não reconheci o formato. Digite um DOI (10.xxxx/yyy) ou ISBN."
@@ -217,25 +238,9 @@ def lookup_identificador_view(request: HttpRequest) -> HttpResponse:
         return render(request, "acervo/_preview_metadados.html", contexto)
 
     contexto["encontrado"] = resultado.encontrado
+    # Copia para nao mutar o objeto cacheado em Redis pelo lookup_doi/lookup_isbn
+    contexto["dados"] = dict(resultado.dados) if resultado.dados else {}
     contexto["erro"] = resultado.erro
-    contexto["dados"] = resultado.dados
-
-    # Verifica se o artigo já está cadastrado no acervo
-    if resultado.encontrado:
-        valor = classificado["valor"]
-        if contexto["tipo"] == "doi":
-            existente = Artigo.objects.filter(doi=valor).first()
-        else:
-            existente = Artigo.objects.filter(isbn=valor).first()
-        if existente:
-            contexto["ja_no_acervo"] = True
-            analise = (
-                Analise.objects.filter(artigo=existente, analista=request.user)
-                .order_by("-criado_em")
-                .first()
-            )
-            if analise:
-                contexto["analise_existente_id"] = analise.pk
 
     return render(request, "acervo/_preview_metadados.html", contexto)
 
@@ -259,7 +264,13 @@ def capturar_snapshot_view(request: HttpRequest, artigo_id: int) -> HttpResponse
 
 @_exige_analista
 def iniciar_analise_view(request: HttpRequest, artigo_id: int) -> HttpResponse:
-    """Cria (ou recupera) Analise para o artigo selecionado."""
+    """
+    Cria (ou recupera) Analise para o artigo selecionado.
+
+    Aceita `?passo=<nome>` para abrir o editor diretamente em um passo
+    específico (ex: `?passo=resenha` quando o analista quer só registrar
+    uma resenha crítica sem preencher a grade toda).
+    """
     artigo = get_object_or_404(Artigo, pk=artigo_id)
     analise, criada = Analise.objects.get_or_create(
         artigo=artigo,
@@ -268,7 +279,11 @@ def iniciar_analise_view(request: HttpRequest, artigo_id: int) -> HttpResponse:
     )
     if criada:
         messages.success(request, "Análise iniciada.")
-    return redirect("editar_analise", analise_id=analise.pk)
+    url = reverse("editar_analise", args=[analise.pk])
+    passo = request.GET.get("passo")
+    if passo:
+        url = f"{url}?passo={passo}"
+    return redirect(url)
 
 
 # ---------------------------------------------------------------------------
@@ -276,12 +291,41 @@ def iniciar_analise_view(request: HttpRequest, artigo_id: int) -> HttpResponse:
 # ---------------------------------------------------------------------------
 
 
-def _get_analise_editavel(request: HttpRequest, analise_id: int) -> Analise:
-    """Devolve a analise se o usuario for o autor e ela ainda eh editavel."""
+def _get_analise_do_autor(request: HttpRequest, analise_id: int) -> Analise:
+    """Devolve a analise se o usuario for o autor (sem checar editabilidade)."""
     analise = get_object_or_404(Analise, pk=analise_id)
     if analise.analista_id != request.user.id:
         raise PermissionError("Voce nao eh o analista desta analise.")
     return analise
+
+
+def _escopo_edicao(request: HttpRequest, analise_id: int) -> tuple[Analise, str]:
+    """
+    Devolve `(analise, escopo)` onde `escopo` e:
+
+    - `"full"`     — pode editar todos os campos (autor em rascunho/janela,
+                     ou curador/admin a qualquer tempo).
+    - `"resenha"`  — pode editar apenas a resenha critica (autor de uma
+                     analise ja publicada/aprovada/legado).
+
+    Levanta `PermissionError` se o usuario nao puder editar nem a resenha.
+    """
+    analise = get_object_or_404(Analise, pk=analise_id)
+    user = request.user
+
+    if _eh_admin(user):
+        return analise, "full"
+
+    if analise.analista_id != user.id:
+        raise PermissionError("Voce nao eh o analista desta analise.")
+
+    if analise.pode_ser_modificada:
+        return analise, "full"
+
+    if analise.pode_editar_resenha_pos_publicacao:
+        return analise, "resenha"
+
+    raise PermissionError("Analise nao pode mais ser editada nesta janela.")
 
 
 PASSOS = [
@@ -292,24 +336,54 @@ PASSOS = [
 ]
 
 
-@_exige_analista
+def _stampar_edicao(analise: Analise, user) -> None:
+    """Marca quem/quando editou. simple-history grava o detalhe."""
+    analise.editado_em = timezone.now()
+    analise.editado_por = user
+
+
+@_exige_editor
 def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     """
-    Edicao da analise. Passo via parametro `?passo=...` (default: identificacao).
-    Cada passo tem seu form proprio; auto-save em outro endpoint.
+    Edicao da analise. Escopo varia conforme papel/estado:
+
+    - Autor em rascunho/janela: todos os passos.
+    - Autor de analise publicada/aprovada/legado: apenas resenha.
+      Salvar a resenha volta status para `submetida` e dispara revisao cega.
+    - Curador/admin: todos os campos a qualquer tempo. Salvar gravara stamp
+      `editado_em` + `editado_por` (alem do historico via simple-history).
     """
-    try:
-        analise = _get_analise_editavel(request, analise_id)
-    except PermissionError:
-        return HttpResponseForbidden("Apenas o analista autor pode editar.")
+    analise = get_object_or_404(Analise, pk=analise_id)
+    user = request.user
+    eh_admin = _eh_admin(user)
 
-    if analise.status not in (Analise.Status.RASCUNHO,):
-        messages.info(request, "Esta análise não está mais em rascunho.")
-        return redirect("minhas_analises")
+    if not eh_admin and analise.analista_id != user.id:
+        return HttpResponseForbidden(
+            "Apenas o analista autor (ou curador/admin) pode editar."
+        )
 
-    passo = request.GET.get("passo", "identificacao")
-    if passo not in dict(PASSOS):
-        passo = "identificacao"
+    if eh_admin:
+        escopo = "full"
+    elif analise.pode_ser_modificada:
+        escopo = "full"
+    elif analise.pode_editar_resenha_pos_publicacao:
+        escopo = "resenha"
+    else:
+        messages.info(
+            request,
+            "Esta análise não pode mais ser editada nesta janela.",
+        )
+        return redirect("painel")
+
+    eh_autor_pos_publicacao = (not eh_admin) and escopo == "resenha"
+
+    # Quando escopo eh "resenha", forca o passo. Quando "full", passo livre.
+    if escopo == "resenha":
+        passo = "resenha"
+    else:
+        passo = request.GET.get("passo", "identificacao")
+        if passo not in dict(PASSOS):
+            passo = "identificacao"
 
     form = None
     if passo == "presenca":
@@ -320,13 +394,39 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
         form = AnaliseResenhaForm(request.POST or None, instance=analise)
 
     if request.method == "POST" and form is not None and form.is_valid():
-        form.save()
+        instance = form.save(commit=False)
+
+        if eh_admin and analise.analista_id != user.id:
+            # Edicao administrativa: stamp obrigatorio.
+            _stampar_edicao(instance, user)
+
+        if eh_autor_pos_publicacao:
+            # Adicionar/editar resenha em analise ja publicada -> revisao cega.
+            _stampar_edicao(instance, user)
+            instance.status = Analise.Status.SUBMETIDA
+            instance.submetida_em = timezone.now()
+            instance.save()
+            # Dispara sorteio so de cegas (estruturais ja foram feitas).
+            from django_q.tasks import async_task
+            async_task(
+                "apps.acervo.tasks.task_sortear_cegos_adicional", instance.pk
+            )
+            messages.success(
+                request,
+                "Resenha salva. A análise voltou para revisão cega antes de "
+                "ser republicada.",
+            )
+            return redirect("pagina_analise", analise_id=analise.pk)
+
+        instance.save()
         messages.success(request, "Passo salvo.")
-        # avanca para o proximo passo
-        ordem = [p for p, _ in PASSOS]
-        idx = ordem.index(passo)
-        proximo = ordem[idx + 1] if idx + 1 < len(ordem) else "resenha"
-        return redirect(f"{request.path}?passo={proximo}")
+
+        if escopo == "full":
+            ordem = [p for p, _ in PASSOS]
+            idx = ordem.index(passo)
+            proximo = ordem[idx + 1] if idx + 1 < len(ordem) else "resenha"
+            return redirect(f"{request.path}?passo={proximo}")
+        return redirect(request.path)
 
     return render(
         request,
@@ -336,30 +436,51 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
             "passos": PASSOS,
             "passo_atual": passo,
             "form": form,
+            "escopo": escopo,
+            "eh_admin_edit": eh_admin and analise.analista_id != user.id,
+            "eh_autor_pos_publicacao": eh_autor_pos_publicacao,
         },
     )
 
 
-@_exige_analista
+@_exige_editor
 @require_POST
 def autosave_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     """
     Auto-save: aceita POST com qualquer subset dos campos editaveis,
     valida e persiste. Resposta JSON com timestamp do save.
-    """
-    try:
-        analise = _get_analise_editavel(request, analise_id)
-    except PermissionError:
-        return HttpResponseForbidden("Apenas o analista autor pode salvar.")
 
-    if analise.status != Analise.Status.RASCUNHO:
+    Respeita o escopo: em escopo "resenha", so persiste `resenha_critica`.
+    """
+    analise = get_object_or_404(Analise, pk=analise_id)
+    user = request.user
+    eh_admin = _eh_admin(user)
+
+    if not eh_admin and analise.analista_id != user.id:
+        return HttpResponseForbidden("Voce nao pode salvar esta analise.")
+
+    if eh_admin:
+        escopo = "full"
+    elif analise.pode_ser_modificada:
+        escopo = "full"
+    elif analise.pode_editar_resenha_pos_publicacao:
+        escopo = "resenha"
+    else:
         return JsonResponse(
-            {"ok": False, "error": "Analise nao esta mais em rascunho."}, status=400
+            {"ok": False, "error": "Analise nao esta mais em rascunho."},
+            status=400,
         )
 
-    form = AnaliseCompletaForm(request.POST, instance=analise)
+    if escopo == "resenha":
+        form = AnaliseResenhaForm(request.POST, instance=analise)
+    else:
+        form = AnaliseCompletaForm(request.POST, instance=analise)
+
     if form.is_valid():
-        form.save()
+        instance = form.save(commit=False)
+        if eh_admin and analise.analista_id != user.id:
+            _stampar_edicao(instance, user)
+        instance.save()
         return JsonResponse({"ok": True, "salvo_em": timezone.now().strftime("%H:%M:%S")})
     return JsonResponse({"ok": False, "errors": form.errors}, status=400)
 
@@ -369,7 +490,7 @@ def autosave_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse
 def submeter_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     """Submete a analise (rascunho -> submetida)."""
     try:
-        analise = _get_analise_editavel(request, analise_id)
+        analise = _get_analise_do_autor(request, analise_id)
     except PermissionError:
         return HttpResponseForbidden("Apenas o analista autor pode submeter.")
 
@@ -392,6 +513,32 @@ def submeter_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse
         return redirect("minhas_analises")
 
     return render(request, "acervo/submeter_analise.html", {"analise": analise})
+
+
+@_exige_analista
+@require_POST
+def excluir_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
+    """
+    Exclui a análise se a revisão ainda não começou (rascunho ou submetida
+    sem revisões criadas). Só o analista autor pode excluir.
+    """
+    try:
+        analise = _get_analise_do_autor(request, analise_id)
+    except PermissionError:
+        return HttpResponseForbidden("Apenas o analista autor pode excluir.")
+
+    if not analise.pode_ser_modificada:
+        messages.error(
+            request,
+            "Esta análise não pode mais ser excluída — janela de 1h após o "
+            "envio já encerrou ou a revisão começou.",
+        )
+        return redirect("painel")
+
+    titulo = analise.artigo.titulo[:80]
+    analise.delete()
+    messages.success(request, f"Análise excluída: \"{titulo}…\"")
+    return redirect("painel")
 
 
 # ---------------------------------------------------------------------------

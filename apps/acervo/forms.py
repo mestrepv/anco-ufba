@@ -23,23 +23,6 @@ def _classe_widget(field: forms.Field, css: str = _CSS_INPUT) -> None:
     field.widget.attrs["class"] = f"{existing} {css}".strip()
 
 
-class BuscaArtigoForm(forms.Form):
-    """Busca por DOI ou texto livre no titulo/resumo."""
-
-    q = forms.CharField(
-        max_length=300,
-        required=False,
-        label="DOI ou termo de busca",
-        widget=forms.TextInput(
-            attrs={
-                "placeholder": "10.xxxx/yyy ou trecho do título",
-                "autocomplete": "off",
-                "class": "input",
-            }
-        ),
-    )
-
-
 class IdentificadorLookupForm(forms.Form):
     """
     Form do passo 1 do cadastro de Artigo: campo único para o identificador.

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+
+from django.utils import timezone
 
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -299,6 +301,18 @@ class Analise(models.Model):
     submetida_em = models.DateTimeField(null=True, blank=True)
     publicada_em = models.DateTimeField(null=True, blank=True)
 
+    # Stamp da ultima edicao feita fora do fluxo normal de rascunho
+    # (curador/admin a qualquer tempo, ou autor adicionando resenha pos-publicacao).
+    # Para o historico completo, ver django-simple-history (HistoricalAnalise).
+    editado_em = models.DateTimeField(null=True, blank=True, db_index=True)
+    editado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="analises_editadas",
+    )
+
     # Embeddings semânticos (Fase 8) — pgvector
     embedding = VectorField(
         dimensions=384,
@@ -334,6 +348,37 @@ class Analise(models.Model):
     def save(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
         self.tem_resenha = bool((self.resenha_critica or "").strip())
         super().save(*args, **kwargs)
+
+    JANELA_EDICAO_POS_ENVIO = timedelta(hours=1)
+
+    @property
+    def pode_ser_modificada(self) -> bool:
+        """
+        Autoria pode editar/excluir enquanto:
+        - status = `rascunho` (qualquer momento), OU
+        - status = `submetida` e dentro da janela de 1h após o envio.
+
+        Após esse período (ou status `em_revisao`/`aprovada`/`publicada`/
+        `legado`/`despublicada`), a análise fica congelada para a autoria.
+        """
+        if self.status == self.Status.RASCUNHO:
+            return True
+        if self.status == self.Status.SUBMETIDA and self.submetida_em:
+            return timezone.now() < self.submetida_em + self.JANELA_EDICAO_POS_ENVIO
+        return False
+
+    @property
+    def pode_editar_resenha_pos_publicacao(self) -> bool:
+        """
+        Mesmo apos publicada, a autoria pode adicionar/editar APENAS a resenha
+        critica. Salvar a resenha dispara nova revisao cega (status volta para
+        `submetida`).
+        """
+        return self.status in {
+            self.Status.APROVADA,
+            self.Status.PUBLICADA,
+            self.Status.LEGADO,
+        }
 
 
 class Revisao(models.Model):

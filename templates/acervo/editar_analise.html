@@ -7,7 +7,11 @@
 
   {# ── Cabeçalho ─────────────────────────────────────────────────── #}
   <header style="margin-bottom: 24px;">
-    <span class="t-eyebrow" style="color: var(--color-gold);">An·Co · análise em rascunho</span>
+    <span class="t-eyebrow" style="color: var(--color-gold);">An·Co ·
+      {% if escopo == "resenha" %}adicionar resenha à análise publicada
+      {% elif eh_admin_edit %}edição administrativa
+      {% else %}análise em rascunho{% endif %}
+    </span>
     <h1 class="t-h1" style="margin-top: 4px; font-size: 26px; line-height: 1.2;">
       {{ analise.artigo.titulo|truncatechars:140 }}
     </h1>
@@ -42,7 +46,23 @@
     {% endif %}
   </header>
 
+  {% if escopo == "resenha" %}
+  <div style="margin: 12px 0 24px; padding: 14px 18px; background: var(--color-review-bg); border: 1px solid var(--color-review-rule); font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);">
+    Esta análise <strong>já foi publicada</strong>. Você pode acrescentar ou editar
+    apenas a <strong>resenha crítica</strong>. Os demais campos estão congelados.
+    Ao salvar, a análise volta a <strong>revisão cega</strong> antes de ser
+    republicada.
+  </div>
+  {% elif eh_admin_edit %}
+  <div style="margin: 12px 0 24px; padding: 14px 18px; background: var(--color-paper-2); border: 1px solid var(--color-rule-strong); font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);">
+    Edição administrativa: você está editando uma análise de outro analista.
+    Esta ação <strong>fica registrada</strong> (data e autor) no acervo público
+    e no histórico de versões.
+  </div>
+  {% endif %}
+
   {# ── Stepper editorial ────────────────────────────────────────── #}
+  {% if escopo != "resenha" %}
   <nav style="display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--color-rule); margin-bottom: 24px;" aria-label="Passos da análise">
     {% for codigo, label in passos %}
     <a href="?passo={{ codigo }}"
@@ -69,6 +89,7 @@
     </a>
     {% endfor %}
   </nav>
+  {% endif %}
 
   {# ── Passo 1: identificação (read-only) ──────────────────────── #}
   {% if passo_atual == "identificacao" %}
@@ -165,13 +186,18 @@
     </div>
 
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 18px; margin-top: 18px; border-top: 1px solid var(--color-paper-3);">
+      {% if escopo == "resenha" %}
+      <a href="{% url 'pagina_analise' analise.pk %}" class="btn btn-ghost btn-sm">← Cancelar</a>
+      <button type="submit" class="btn btn-primary btn-sm">Salvar e reenviar para revisão →</button>
+      {% else %}
       <a href="?passo=identificacao" class="btn btn-ghost btn-sm">← Voltar</a>
       <div style="display: flex; gap: 12px;">
-        {% if passo_atual == "resenha" %}
+        {% if passo_atual == "resenha" and analise.status == "rascunho" %}
         <a href="{% url 'submeter_analise' analise.pk %}" class="btn btn-secondary btn-sm">Submeter para revisão →</a>
         {% endif %}
-        <button type="submit" class="btn btn-primary btn-sm">Salvar e avançar</button>
+        <button type="submit" class="btn btn-primary btn-sm">Salvar{% if eh_admin_edit %}{% else %} e avançar{% endif %}</button>
       </div>
+      {% endif %}
     </div>
   </form>
   {% endif %}

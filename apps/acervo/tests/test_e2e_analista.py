@@ -306,10 +306,10 @@ class TestSmokeNavegacaoAnalista:
         assert resp.status_code == 200
         assert "Minhas an\xe1lises".encode() in resp.content
 
-    def test_buscar_artigo_renderiza(self, cliente):
+    def test_buscar_redireciona_para_cadastrar(self, cliente):
         resp = cliente.get(reverse("buscar_artigo"))
-        assert resp.status_code == 200
-        assert b"Buscar artigo" in resp.content
+        assert resp.status_code in (301, 302)
+        assert reverse("cadastrar_artigo") in resp["Location"]
 
     def test_cadastrar_artigo_renderiza(self, cliente):
         resp = cliente.get(reverse("cadastrar_artigo"))

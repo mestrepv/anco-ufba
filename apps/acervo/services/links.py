@@ -85,16 +85,10 @@ def validar_link(url: str) -> LinkCheckResultado:
             mensagem=f"Falha na requisicao: {type(exc).__name__}",
         )
 
-    if resp.status_code >= 400:
-        return LinkCheckResultado(
-            status="quebrado",
-            codigo_http=resp.status_code,
-            url_final=resp.url,
-            mensagem=f"HTTP {resp.status_code}",
-        )
-
-    # Algum servidor recusa HEAD com 405; tenta GET com stream para nao baixar tudo
-    if resp.status_code == 405:
+    # Muitos publishers (SciELO, Elsevier, Springer, Cloudflare) bloqueiam HEAD
+    # com 403/405/501 mesmo quando o GET funciona normalmente no navegador.
+    # Tenta GET com stream para confirmar antes de classificar.
+    if resp.status_code in (403, 405, 501):
         try:
             resp = requests.get(
                 url,
@@ -111,13 +105,25 @@ def validar_link(url: str) -> LinkCheckResultado:
                 url_final=None,
                 mensagem=f"Falha na requisicao GET fallback: {type(exc).__name__}",
             )
-        if resp.status_code >= 400:
-            return LinkCheckResultado(
-                status="quebrado",
-                codigo_http=resp.status_code,
-                url_final=resp.url,
-                mensagem=f"HTTP {resp.status_code}",
-            )
+
+    # Codigos onde a fonte recusa verificacao automatica ou esta indisponivel
+    # transitoriamente: nao temos como afirmar que o link esta quebrado.
+    # Marca como nao_verificado para nao pintar selos vermelhos enganosos.
+    if resp.status_code in (401, 403, 429, 451) or resp.status_code >= 500:
+        return LinkCheckResultado(
+            status="nao_verificado",
+            codigo_http=resp.status_code,
+            url_final=resp.url,
+            mensagem=f"HTTP {resp.status_code} — fonte recusou verificacao automatica",
+        )
+
+    if resp.status_code >= 400:
+        return LinkCheckResultado(
+            status="quebrado",
+            codigo_http=resp.status_code,
+            url_final=resp.url,
+            mensagem=f"HTTP {resp.status_code}",
+        )
 
     final_url = resp.url
     if final_url and final_url.rstrip("/") != url.rstrip("/"):

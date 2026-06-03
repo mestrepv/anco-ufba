@@ -38,6 +38,11 @@ urlpatterns = [
         views.submeter_analise_view,
         name="submeter_analise",
     ),
+    path(
+        "analise/<int:analise_id>/excluir/",
+        views.excluir_analise_view,
+        name="excluir_analise",
+    ),
     # Revisao por pares (Fase 4)
     path("revisoes/", views.minhas_revisoes_view, name="minhas_revisoes"),
     path("revisao/<int:revisao_id>/", views.revisar_view, name="revisar"),
