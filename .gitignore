@@ -55,3 +55,6 @@ static/css/output.css
 /dois_verificados.json
 /dois_verificados_test.json
 /conflitos_doi.csv
+
+# Exports da base (dump de dados, padrão base-anco-revisada.json)
+/base-anco-export-*.json
