@@ -326,6 +326,19 @@ class Analise(models.Model):
         help_text="Justificativa do curador ao pedir ajustes ou rejeitar.",
     )
 
+    # Despublicacao (exclusao suave): some do acervo publico mas fica no banco,
+    # restauravel por admin/curador. `status_pre_despublicacao` guarda o status
+    # para restaurar (publicada vs legado).
+    despublicada_em = models.DateTimeField(null=True, blank=True)
+    despublicada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="analises_despublicadas",
+    )
+    status_pre_despublicacao = models.CharField(max_length=20, blank=True)
+
     # Stamp da ultima edicao feita fora do fluxo normal de rascunho
     # (curador/admin a qualquer tempo, ou autor adicionando resenha pos-publicacao).
     # Para o historico completo, ver django-simple-history (HistoricalAnalise).

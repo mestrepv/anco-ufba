@@ -477,7 +477,12 @@ def pagina_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
         ).prefetch_related("epistemologia", "teoria"),
         pk=analise_id,
     )
-    if analise.status not in STATUS_PUBLICOS:
+    # Admin/curador podem ver (e restaurar) análises despublicadas; o público não.
+    pode_curar = request.user.is_authenticated and (
+        request.user.is_staff or getattr(request.user, "eh_curador", False)
+    )
+    despublicada = analise.status == Analise.Status.DESPUBLICADA
+    if analise.status not in STATUS_PUBLICOS and not (despublicada and pode_curar):
         raise Http404("Análise não publicada.")
 
     campos_textuais = [(label, getattr(analise, attr) or "") for label, attr in _CAMPOS_TEXTUAIS]
@@ -515,6 +520,8 @@ def pagina_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
             "outras_com_resenha": outras_com_resenha,
             "active_nav": "acervo",
             "jsonld": jsonld(schema_analise(analise)),
+            "pode_curar": pode_curar,
+            "despublicada": despublicada,
         },
     )
 

@@ -771,3 +771,52 @@ def rejeitar_resenha_view(request: HttpRequest, resenha_id: int) -> HttpResponse
     resenha.save()
     messages.success(request, "Resenha rejeitada.")
     return redirect("fila_curadoria")
+
+
+# Status que podem ser despublicados (exclusão suave a partir do acervo público).
+_STATUS_DESPUBLICAVEIS = (Analise.Status.PUBLICADA, Analise.Status.LEGADO)
+
+
+@_exige_curador
+@require_POST
+def despublicar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
+    """
+    Exclusão suave: remove a análise do acervo público (status DESPUBLICADA),
+    mantendo o registro no banco para eventual restauração. Admin/curador only.
+    """
+    analise = get_object_or_404(Analise, pk=analise_id)
+    if analise.status not in _STATUS_DESPUBLICAVEIS:
+        messages.info(request, "Esta análise não está publicada.")
+        return redirect("pagina_analise", analise_id=analise.pk)
+    analise.status_pre_despublicacao = analise.status
+    analise.status = Analise.Status.DESPUBLICADA
+    analise.despublicada_em = timezone.now()
+    analise.despublicada_por = request.user
+    analise.save(update_fields=[
+        "status", "status_pre_despublicacao", "despublicada_em", "despublicada_por",
+    ])
+    messages.success(
+        request,
+        "Análise despublicada — invisível no acervo público, mas preservada no "
+        "banco. Você pode restaurá-la a qualquer momento.",
+    )
+    return redirect("pagina_analise", analise_id=analise.pk)
+
+
+@_exige_curador
+@require_POST
+def restaurar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
+    """Restaura uma análise despublicada ao status que tinha antes."""
+    analise = get_object_or_404(Analise, pk=analise_id)
+    if analise.status != Analise.Status.DESPUBLICADA:
+        messages.info(request, "Esta análise não está despublicada.")
+        return redirect("pagina_analise", analise_id=analise.pk)
+    analise.status = analise.status_pre_despublicacao or Analise.Status.PUBLICADA
+    analise.status_pre_despublicacao = ""
+    analise.despublicada_em = None
+    analise.despublicada_por = None
+    analise.save(update_fields=[
+        "status", "status_pre_despublicacao", "despublicada_em", "despublicada_por",
+    ])
+    messages.success(request, "Análise restaurada ao acervo público.")
+    return redirect("pagina_analise", analise_id=analise.pk)

@@ -126,3 +126,54 @@ class TestConfirmacaoResenha:
         client.post(reverse("rejeitar_resenha", args=[resenha_revisada.pk]))
         resenha_revisada.refresh_from_db()
         assert resenha_revisada.status == Resenha.Status.REJEITADA
+
+
+@pytest.fixture
+def analise_publicada(db, artigo, autor):
+    return Analise.objects.create(
+        artigo=artigo, analista=autor, status=Analise.Status.PUBLICADA
+    )
+
+
+class TestDespublicacao:
+    def test_curador_despublica_some_do_acervo(self, client, curador, analise_publicada):
+        client.force_login(curador)
+        resp = client.post(reverse("despublicar_analise", args=[analise_publicada.pk]))
+        assert resp.status_code == 302
+        analise_publicada.refresh_from_db()
+        assert analise_publicada.status == Analise.Status.DESPUBLICADA
+        assert analise_publicada.despublicada_por_id == curador.pk
+        assert analise_publicada.status_pre_despublicacao == Analise.Status.PUBLICADA
+        # some do acervo público (404 para anônimo)
+        anon = client.__class__()
+        assert anon.get(reverse("pagina_analise", args=[analise_publicada.pk])).status_code == 404
+
+    def test_curador_ve_e_restaura(self, client, curador, analise_publicada):
+        client.force_login(curador)
+        client.post(reverse("despublicar_analise", args=[analise_publicada.pk]))
+        # curador ainda vê a página (200) com o aviso
+        ver = client.get(reverse("pagina_analise", args=[analise_publicada.pk]))
+        assert ver.status_code == 200
+        assert b"Despublicada" in ver.content
+        # restaura
+        client.post(reverse("restaurar_analise", args=[analise_publicada.pk]))
+        analise_publicada.refresh_from_db()
+        assert analise_publicada.status == Analise.Status.PUBLICADA
+        assert analise_publicada.despublicada_em is None
+
+    def test_restaura_preserva_legado(self, client, curador, artigo):
+        u = User.objects.create_user(username="leg", email="leg@u.edu.br", password="x",
+                                     papel=User.Papel.ANALISTA)
+        a = Analise.objects.create(artigo=artigo, analista=u, status=Analise.Status.LEGADO)
+        client.force_login(curador)
+        client.post(reverse("despublicar_analise", args=[a.pk]))
+        client.post(reverse("restaurar_analise", args=[a.pk]))
+        a.refresh_from_db()
+        assert a.status == Analise.Status.LEGADO
+
+    def test_leitor_nao_despublica(self, client, leitor, analise_publicada):
+        client.force_login(leitor)
+        resp = client.post(reverse("despublicar_analise", args=[analise_publicada.pk]))
+        assert resp.status_code == 403
+        analise_publicada.refresh_from_db()
+        assert analise_publicada.status == Analise.Status.PUBLICADA

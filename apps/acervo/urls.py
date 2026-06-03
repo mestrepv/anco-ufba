@@ -79,4 +79,14 @@ urlpatterns = [
         views.rejeitar_resenha_view,
         name="rejeitar_resenha",
     ),
+    path(
+        "curadoria/analise/<int:analise_id>/despublicar/",
+        views.despublicar_analise_view,
+        name="despublicar_analise",
+    ),
+    path(
+        "curadoria/analise/<int:analise_id>/restaurar/",
+        views.restaurar_analise_view,
+        name="restaurar_analise",
+    ),
 ]

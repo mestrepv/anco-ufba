@@ -113,6 +113,14 @@
 
 {% block content %}
 
+{# ── Aviso de despublicação (visível só a admin/curador) ────────────── #}
+{% if despublicada %}
+<div style="padding:12px 20px; background:#fdf2f0; border-bottom:1px solid var(--color-danger); font-family:var(--font-sans); font-size:13px; color:var(--color-danger);">
+  <strong>Despublicada.</strong> Esta análise não aparece no acervo público.
+  Está preservada no banco e pode ser restaurada{% if analise.despublicada_em %} (despublicada em {{ analise.despublicada_em|date:"d/m/Y" }}{% if analise.despublicada_por %} por {{ analise.despublicada_por.nome_exibicao|default:analise.despublicada_por.username }}{% endif %}){% endif %}.
+</div>
+{% endif %}
+
 {# ── Breadcrumb ─────────────────────────────────────────────────────── #}
 <div class="breadcrumb-inner" style="
   padding: 12px 20px;
@@ -180,6 +188,19 @@
       {% endif %}
       {% if user.is_authenticated and user.id == analise.analista_id %}
       <a href="{% url 'editar_resenha' analise.pk %}" class="btn btn-sm btn-ghost">Editar resenha crítica</a>
+      {% endif %}
+
+      {% if pode_curar %}
+        {% if despublicada %}
+        <form method="post" action="{% url 'restaurar_analise' analise.pk %}" style="display:inline; margin-left:auto;">{% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-primary">Restaurar ao acervo</button>
+        </form>
+        {% else %}
+        <form method="post" action="{% url 'despublicar_analise' analise.pk %}" style="display:inline; margin-left:auto;"
+              onsubmit="return confirm('Despublicar esta análise? Ela some do acervo público, mas fica preservada no banco e pode ser restaurada depois.');">{% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-ghost" style="color:var(--color-danger); border-color:var(--color-danger);">Despublicar</button>
+        </form>
+        {% endif %}
       {% endif %}
     </div>
 

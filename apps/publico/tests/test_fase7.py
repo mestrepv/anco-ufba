@@ -56,7 +56,7 @@ class TestPaginasInstitucionais:
         resp = client.get(reverse("pagina_sobre"))
         assert resp.status_code == 200
         assert b"Sobre a AnCo" in resp.content
-        assert b"CC-BY-NC" in resp.content
+        assert b"Creative Commons" in resp.content
 
     def test_equipe(self, client, db):
         resp = client.get(reverse("pagina_equipe"))
@@ -68,7 +68,7 @@ class TestPaginasInstitucionais:
         assert resp.status_code == 200
         assert b"Termos" in resp.content
         # Menciona pontos chave dos termos
-        assert b"CC-BY-NC" in resp.content
+        assert b"CC BY-NC" in resp.content
         assert b"revis" in resp.content.lower()
 
     def test_privacidade(self, client, db):
