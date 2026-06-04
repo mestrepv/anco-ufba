@@ -51,6 +51,8 @@ class ImportarBuscaForm(forms.Form):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        # O __str__ de TermoVocabulario é "base:Nome"; no menu mostramos só o nome.
+        self.fields["base_consulta"].label_from_instance = lambda obj: obj.nome
         for campo in self.fields.values():
             css = campo.widget.attrs.get("class", "")
             campo.widget.attrs["class"] = f"{css} {_CSS}".strip()

@@ -40,6 +40,14 @@ def analista(db):
     )
 
 
+def test_menu_base_sem_prefixo(base_termo):
+    from apps.triagem.forms import ImportarBuscaForm
+
+    labels = [str(label) for _, label in ImportarBuscaForm().fields["base_consulta"].choices]
+    assert "Scopus" in labels
+    assert not any("base:" in label for label in labels)
+
+
 def test_import_persiste_contagens_na_busca(protocolo, base_termo):
     b = Busca.objects.create(protocolo=protocolo, base_consulta=base_termo)
     importar_para_busca(b, parse_ris(RIS))
