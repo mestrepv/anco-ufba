@@ -87,6 +87,33 @@
     font-style: italic;
   }
   .prazo-vencido { color: var(--color-danger); font-weight: 600; }
+
+  /* Fluxo do protocolo (stepper horizontal compacto) */
+  .fluxo {
+    display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: stretch;
+    margin-top: 14px;
+  }
+  .fluxo-no {
+    flex: 1 1 110px; min-width: 100px;
+    background: var(--color-paper-2); border: 1px solid var(--color-rule);
+    border-radius: 6px; padding: 10px 12px; position: relative;
+  }
+  .fluxo-no .fn { font-family: var(--font-sans); font-size: 11px; font-weight: 700; color: var(--color-gold-deep); }
+  .fluxo-no .ft { font-family: var(--font-sans); font-size: 12.5px; color: var(--color-ink); margin-top: 2px; line-height: 1.3; }
+  .fluxo-no .fq { font-family: var(--font-sans); font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; color: var(--color-ink-3); margin-top: 4px; }
+
+  /* Cartões de tarefa */
+  .tarefas { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; }
+  .tarefa {
+    display: flex; flex-direction: column; gap: 6px;
+    border: 1px solid var(--color-rule); border-radius: 8px; padding: 16px;
+    background: var(--color-paper); text-decoration: none;
+  }
+  .tarefa:hover { border-color: var(--color-gold); }
+  .tarefa.destaque { border-color: var(--color-gold-deep); background: var(--color-review-bg); }
+  .tarefa .t-num { font-family: var(--font-serif); font-size: 30px; line-height: 1; color: var(--color-ink); }
+  .tarefa .t-label { font-family: var(--font-sans); font-size: 13.5px; color: var(--color-ink-2); }
+  .tarefa .t-cta { font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--color-gold-deep); margin-top: 2px; }
 </style>
 {% endblock %}
 
@@ -101,7 +128,10 @@
       <p style="margin:4px 0 0;font-family:var(--font-sans);font-size:13px;color:var(--color-ink-3);">{{ user.get_papel_display }}{% if user.vinculo_institucional %} · {{ user.vinculo_institucional }}{% endif %}</p>
     </div>
     {% if user.eh_analista %}
-    <a href="{% url 'triagem_a_analisar' %}" class="btn btn-primary">A analisar</a>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <a href="{% url 'triagem_ajuda' %}" class="btn btn-secondary">Como funciona?</a>
+      <a href="{% url 'triagem_painel' %}" class="btn btn-primary">Ir para a Triagem</a>
+    </div>
     {% endif %}
   </header>
 
@@ -109,6 +139,65 @@
   <div style="margin-top:24px;padding:14px 18px;background:var(--color-review-bg);border:1px solid var(--color-gold-deep);font-family:var(--font-sans);font-size:14px;color:var(--color-ink-2);">
     Seu perfil está incompleto. <a href="{% url 'perfil' %}" style="color:var(--color-gold-deep);font-weight:600;">Complete o perfil</a> para aparecer no diretório de analistas.
   </div>
+  {% endif %}
+
+  {% if user.eh_analista %}
+  {# ── Fluxo do protocolo ────────────────────────────────────────── #}
+  <section class="painel-secao">
+    <h2>O fluxo da triagem (PRISMA-ScR)</h2>
+    <p class="secao-desc">A seleção das fontes vem antes da análise. <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona em detalhe →</a></p>
+    <div class="fluxo">
+      <div class="fluxo-no"><div class="fn">1</div><div class="ft">Importar base</div><div class="fq">Analista</div></div>
+      <div class="fluxo-no"><div class="fn">2</div><div class="ft">Revisar duplicatas</div><div class="fq">Analista</div></div>
+      <div class="fluxo-no"><div class="fn">3</div><div class="ft">Iniciar triagem</div><div class="fq">Curador</div></div>
+      <div class="fluxo-no"><div class="fn">4</div><div class="ft">Triar (≥2 revisores)</div><div class="fq">Revisores</div></div>
+      <div class="fluxo-no"><div class="fn">5</div><div class="ft">Incluídos</div><div class="fq">Consenso/desempate</div></div>
+      <div class="fluxo-no"><div class="fn">6</div><div class="ft">Analisar (Matriz AnCo)</div><div class="fq">Analista</div></div>
+      <div class="fluxo-no"><div class="fn">7</div><div class="ft">Publicar</div><div class="fq">Curador</div></div>
+    </div>
+  </section>
+
+  {# ── Suas tarefas ──────────────────────────────────────────────── #}
+  <section class="painel-secao">
+    <h2>Suas tarefas</h2>
+    <p class="secao-desc">O que está aguardando você agora.</p>
+    {% if n_triagens or n_a_analisar or revisoes_pendentes or n_rascunhos or n_identificados or n_desempates %}
+    <div class="tarefas">
+      {% if n_triagens %}
+      <a class="tarefa destaque" href="{% url 'triagem_minhas' %}">
+        <div class="t-num">{{ n_triagens }}</div><div class="t-label">triagem(ns) pendente(s)</div><div class="t-cta">Triar →</div>
+      </a>
+      {% endif %}
+      {% if n_a_analisar %}
+      <a class="tarefa" href="{% url 'triagem_a_analisar' %}">
+        <div class="t-num">{{ n_a_analisar }}</div><div class="t-label">artigo(s) incluído(s) a analisar</div><div class="t-cta">Analisar →</div>
+      </a>
+      {% endif %}
+      {% if revisoes_pendentes %}
+      <a class="tarefa" href="{% url 'minhas_revisoes' %}">
+        <div class="t-num">{{ revisoes_pendentes|length }}</div><div class="t-label">revisão(ões) de resenha</div><div class="t-cta">Revisar →</div>
+      </a>
+      {% endif %}
+      {% if n_rascunhos %}
+      <a class="tarefa" href="{% url 'minhas_analises' %}">
+        <div class="t-num">{{ n_rascunhos }}</div><div class="t-label">análise(s) em andamento</div><div class="t-cta">Continuar →</div>
+      </a>
+      {% endif %}
+      {% if n_identificados %}
+      <a class="tarefa destaque" href="{% url 'triagem_iniciar' %}">
+        <div class="t-num">{{ n_identificados }}</div><div class="t-label">identificado(s) p/ iniciar triagem</div><div class="t-cta">Iniciar (curador) →</div>
+      </a>
+      {% endif %}
+      {% if n_desempates %}
+      <a class="tarefa destaque" href="{% url 'triagem_desempate' %}">
+        <div class="t-num">{{ n_desempates }}</div><div class="t-label">desempate(s) pendente(s)</div><div class="t-cta">Resolver (curador) →</div>
+      </a>
+      {% endif %}
+    </div>
+    {% else %}
+    <p class="empty">Nada pendente. Comece <a href="{% url 'triagem_painel' %}" style="color:var(--color-gold-deep);">importando uma base na Triagem →</a></p>
+    {% endif %}
+  </section>
   {% endif %}
 
   {# ── Solicitações ──────────────────────────────────────────────── #}
@@ -172,77 +261,14 @@
     {% endif %}
   </section>
 
-  {# ── Revisões pendentes ─────────────────────────────────────────── #}
-  {% if user.eh_analista %}
-  <section class="painel-secao">
-    <h2>Tarefas de revisão</h2>
-    <p class="secao-desc">Revisões sorteadas para você, ordenadas por prazo.</p>
-    {% if revisoes_pendentes %}
-      <div>
-        {% for r in revisoes_pendentes %}
-        <div class="lista-item">
-          <span class="status-chip" style="background:var(--color-paper-3);color:var(--color-ink-2);">resenha</span>
-          <div>
-            <a href="{% url 'pagina_analise' r.resenha.analise.pk %}" class="item-titulo">{{ r.resenha.analise.artigo.titulo|truncatechars:100 }}</a>
-            <div class="item-meta">
-              Sorteada em {{ r.sorteado_em|date:"d/m/Y" }} ·
-              <span {% if r.prazo_em < agora %}class="prazo-vencido"{% endif %}>prazo: {{ r.prazo_em|date:"d/m/Y" }}</span>
-            </div>
-          </div>
-          <div>
-            <a href="{% url 'revisar' r.pk %}" class="btn btn-sm btn-primary">Revisar →</a>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="empty">Nenhuma revisão pendente.</p>
-    {% endif %}
-
-    {% if revisoes_concluidas %}
-    <details style="margin-top:24px;">
-      <summary style="cursor:pointer;font-family:var(--font-sans);font-size:13px;color:var(--color-ink-3);">Últimas 10 revisões concluídas</summary>
-      <div style="margin-top:12px;">
-        {% for r in revisoes_concluidas %}
-        <div class="lista-item">
-          <span class="status-chip status-{{ r.parecer|default:'legado' }}">{{ r.get_parecer_display|default:"—" }}</span>
-          <div>
-            <a href="{% url 'pagina_analise' r.resenha.analise.pk %}" class="item-titulo">{{ r.resenha.analise.artigo.titulo|truncatechars:100 }}</a>
-            <div class="item-meta">resenha · concluída em {{ r.concluido_em|date:"d/m/Y" }}</div>
-          </div>
-          <div></div>
-        </div>
-        {% endfor %}
-      </div>
-    </details>
-    {% endif %}
-  </section>
-  {% endif %}
-
-  {# ── Triagem (PRISMA-ScR) ───────────────────────────────────────── #}
-  {% if user.eh_analista %}
-  <section class="painel-secao">
-    <h2>Triagem (PRISMA-ScR)</h2>
-    <p class="secao-desc">Seleção de fontes anterior à análise: busca em bases, deduplicação e triagem por pares.</p>
-    <ul style="list-style:none;padding:0;margin:0;display:grid;gap:8px;font-family:var(--font-sans);font-size:14px;">
-      <li><a href="{% url 'triagem_painel' %}" style="color:var(--color-gold-deep);">Painel da triagem →</a></li>
-      <li><a href="{% url 'triagem_a_analisar' %}" style="color:var(--color-gold-deep);">Artigos a analisar →</a></li>
-      <li><a href="{% url 'triagem_minhas' %}" style="color:var(--color-gold-deep);">Minhas triagens →</a></li>
-      <li><a href="{% url 'triagem_importar' %}" style="color:var(--color-gold-deep);">Importar busca (RIS/BibTeX/CSV) →</a></li>
-      <li><a href="{% url 'triagem_duplicatas' %}" style="color:var(--color-gold-deep);">Possíveis duplicatas →</a></li>
-      <li><a href="{% url 'triagem_prisma' %}" style="color:var(--color-gold-deep);">Fluxograma PRISMA →</a></li>
-      {% if user.is_staff or user.eh_curador %}
-      <li><a href="{% url 'triagem_iniciar' %}" style="color:var(--color-gold-deep);">Iniciar triagem (curador) →</a></li>
-      <li><a href="{% url 'triagem_desempate' %}" style="color:var(--color-gold-deep);">Desempates pendentes (curador) →</a></li>
-      {% endif %}
-    </ul>
-  </section>
-  {% endif %}
-
   {# ── Atalhos ────────────────────────────────────────────────────── #}
   <section class="painel-secao">
     <h2>Atalhos</h2>
     <ul style="list-style:none;padding:0;margin:0;display:grid;gap:8px;font-family:var(--font-sans);font-size:14px;">
+      {% if user.eh_analista %}
+      <li><a href="{% url 'triagem_painel' %}" style="color:var(--color-gold-deep);">Painel da triagem →</a></li>
+      <li><a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona a triagem →</a></li>
+      {% endif %}
       <li><a href="{% url 'perfil' %}" style="color:var(--color-gold-deep);">Editar meu perfil →</a></li>
       <li><a href="{% url 'acervo_publico' %}" style="color:var(--color-gold-deep);">Acervo público →</a></li>
       <li><a href="{% url 'pagina_equipe' %}" style="color:var(--color-gold-deep);">Diretório de analistas →</a></li>

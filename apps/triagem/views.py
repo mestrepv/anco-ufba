@@ -334,6 +334,14 @@ def desempatar_view(request: HttpRequest, registro_id: int) -> HttpResponse:
 
 
 @_exige_analista
+def ajuda_view(request: HttpRequest) -> HttpResponse:
+    """Como funciona a triagem: protocolo, fluxo e papéis (página de apoio)."""
+    return render(
+        request, "triagem/ajuda.html", {"protocolo": ProtocoloTriagem.ativo()}
+    )
+
+
+@_exige_analista
 def a_analisar_view(request: HttpRequest) -> HttpResponse:
     """Artigos incluídos pela triagem que o usuário ainda não analisou."""
     from apps.acervo.models import Analise, Artigo

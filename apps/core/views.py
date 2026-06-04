@@ -117,6 +117,11 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         .select_related("artigo")
         .order_by("-criado_em")
     )
+    n_rascunhos = sum(
+        1
+        for a in minhas_analises
+        if a.status in (Analise.Status.RASCUNHO, Analise.Status.SUBMETIDA)
+    )
 
     revisoes_pendentes = (
         Revisao.objects.filter(revisor=user, concluido_em__isnull=True)
@@ -133,15 +138,59 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         .order_by("tipo", "-criado_em")
     )
 
+    # ── Contexto da triagem (import lazy p/ evitar ciclo) ──────────────
+    contexto_triagem = {}
+    if getattr(user, "eh_analista", False):
+        from apps.acervo.models import Artigo
+        from apps.triagem.aprovacao import registros_para_desempate
+        from apps.triagem.models import (
+            DecisaoTriagem,
+            ProtocoloTriagem,
+            RegistroTriagem,
+        )
+
+        protocolo = ProtocoloTriagem.ativo()
+        triagens_pendentes = (
+            DecisaoTriagem.objects.filter(revisor=user, concluido_em__isnull=True)
+            .select_related("registro")
+            .order_by("prazo_em")
+        )
+        ja_minhas = Analise.objects.filter(analista=user).values_list(
+            "artigo_id", flat=True
+        )
+        n_a_analisar = (
+            Artigo.objects.filter(
+                registros_triagem__status=RegistroTriagem.Status.INCLUIDO
+            )
+            .exclude(pk__in=ja_minhas)
+            .distinct()
+            .count()
+        )
+        contexto_triagem = {
+            "protocolo_triagem": protocolo,
+            "triagens_pendentes": triagens_pendentes,
+            "n_triagens": triagens_pendentes.count(),
+            "n_a_analisar": n_a_analisar,
+        }
+        if user.is_staff or getattr(user, "eh_curador", False):
+            contexto_triagem["n_identificados"] = protocolo.registros.filter(
+                status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
+            ).count()
+            contexto_triagem["n_desempates"] = len(
+                registros_para_desempate(protocolo)
+            )
+
     return render(
         request,
         "core/painel.html",
         {
             "minhas_analises": minhas_analises,
+            "n_rascunhos": n_rascunhos,
             "revisoes_pendentes": revisoes_pendentes,
             "revisoes_concluidas": revisoes_concluidas,
             "solicitacoes": solicitacoes,
             "agora": datetime.now(tz=UTC),
+            **contexto_triagem,
         },
     )
 
