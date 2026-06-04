@@ -1,10 +1,11 @@
-{% extends "_base.html" %}
+{% extends "_base_publico.html" %}
 {% block title %}Consultar DOI — AnCo{% endblock %}
 
 {% block content %}
+<div class="painel-wrap-conv max-w-3xl mx-auto px-5 py-10">
 <div class="max-w-3xl mx-auto px-4 py-10">
-  <h1 class="text-2xl font-semibold text-slate-800 mb-1">Consultar DOI</h1>
-  <p class="text-sm text-slate-500 mb-8">Retorna metadados do CrossRef + Semantic Scholar.</p>
+  <h1 class="text-2xl font-semibold text-ink mb-1">Consultar DOI</h1>
+  <p class="text-sm text-ink-3 mb-8">Retorna metadados do CrossRef + Semantic Scholar.</p>
 
   <form method="get" class="flex gap-2 mb-10">
     <input
@@ -13,11 +14,11 @@
       value="{{ doi_raw }}"
       placeholder="10.1016/j.neucom.2013.06.001"
       autofocus
-      class="flex-1 rounded border border-slate-300 px-3 py-2 text-sm font-mono
-             focus:outline-none focus:ring-2 focus:ring-anco focus:border-transparent"
+      class="flex-1 rounded border border-rule-strong px-3 py-2 text-sm font-mono
+             focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent"
     >
     <button type="submit"
-      class="rounded bg-anco px-4 py-2 text-sm text-white hover:bg-anco-dark transition-colors">
+      class="rounded bg-gold-deep px-4 py-2 text-sm text-white hover:bg-[#74531a] transition-colors">
       Consultar
     </button>
   </form>
@@ -30,22 +31,22 @@
 
     {% else %}
       {# ── Cabeçalho ── #}
-      <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div class="rounded-lg border border-rule bg-paper shadow-sm overflow-hidden">
 
-        <div class="px-6 py-5 border-b border-slate-100">
-          <p class="text-xs font-mono text-slate-400 mb-1">{{ dados.doi }}</p>
-          <h2 class="text-xl font-semibold text-slate-900 leading-snug">{{ dados.titulo|default:"(sem título)" }}</h2>
+        <div class="px-6 py-5 border-b border-rule">
+          <p class="text-xs font-mono text-ink-4 mb-1">{{ dados.doi }}</p>
+          <h2 class="text-xl font-semibold text-ink leading-snug">{{ dados.titulo|default:"(sem título)" }}</h2>
 
           {% if dados.autores %}
-          <p class="mt-2 text-sm text-slate-600">
+          <p class="mt-2 text-sm text-ink-2">
             {% for a in dados.autores %}
               <span title="{{ a.afiliacao }}">{{ a.nome }}</span>{% if not forloop.last %}; {% endif %}
             {% endfor %}
           </p>
           {% endif %}
 
-          <div class="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
-            {% if dados.periodico %}<span class="font-medium text-slate-700">{{ dados.periodico }}</span>{% endif %}
+          <div class="mt-3 flex flex-wrap gap-3 text-xs text-ink-3">
+            {% if dados.periodico %}<span class="font-medium text-ink-2">{{ dados.periodico }}</span>{% endif %}
             {% if dados.ano %}<span>{{ dados.ano }}</span>{% endif %}
             {% if dados.volume %}<span>v.{{ dados.volume }}</span>{% endif %}
             {% if dados.numero %}<span>n.{{ dados.numero }}</span>{% endif %}
@@ -55,9 +56,9 @@
 
         {# ── Resumo ── #}
         {% if dados.resumo %}
-        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Resumo</p>
-          <p class="text-sm text-slate-700 leading-relaxed">{{ dados.resumo }}</p>
+        <div class="px-6 py-4 border-b border-rule bg-paper-2">
+          <p class="text-xs font-semibold uppercase tracking-wide text-ink-4 mb-2">Resumo</p>
+          <p class="text-sm text-ink-2 leading-relaxed">{{ dados.resumo }}</p>
         </div>
         {% endif %}
 
@@ -66,57 +67,57 @@
 
           {% if dados.editora %}
           <div>
-            <span class="text-xs text-slate-400 block">Editora</span>
+            <span class="text-xs text-ink-4 block">Editora</span>
             <span>{{ dados.editora }}</span>
           </div>
           {% endif %}
 
           {% if dados.tipo %}
           <div>
-            <span class="text-xs text-slate-400 block">Tipo</span>
+            <span class="text-xs text-ink-4 block">Tipo</span>
             <span>{{ dados.tipo }}</span>
           </div>
           {% endif %}
 
           {% if dados.issn_print %}
           <div>
-            <span class="text-xs text-slate-400 block">ISSN impresso</span>
+            <span class="text-xs text-ink-4 block">ISSN impresso</span>
             <span class="font-mono">{{ dados.issn_print }}</span>
           </div>
           {% endif %}
 
           {% if dados.issn_electronic %}
           <div>
-            <span class="text-xs text-slate-400 block">ISSN eletrônico</span>
+            <span class="text-xs text-ink-4 block">ISSN eletrônico</span>
             <span class="font-mono">{{ dados.issn_electronic }}</span>
           </div>
           {% endif %}
 
           {% if dados.citacoes_crossref %}
           <div>
-            <span class="text-xs text-slate-400 block">Citações (CrossRef)</span>
+            <span class="text-xs text-ink-4 block">Citações (CrossRef)</span>
             <span>{{ dados.citacoes_crossref }}</span>
           </div>
           {% endif %}
 
           {% if dados.referencias_count %}
           <div>
-            <span class="text-xs text-slate-400 block">Referências</span>
+            <span class="text-xs text-ink-4 block">Referências</span>
             <span>{{ dados.referencias_count }}</span>
           </div>
           {% endif %}
 
           {% if dados.licenca %}
           <div class="sm:col-span-2">
-            <span class="text-xs text-slate-400 block">Licença</span>
-            <a href="{{ dados.licenca }}" target="_blank" class="text-anco hover:underline break-all">{{ dados.licenca }}</a>
+            <span class="text-xs text-ink-4 block">Licença</span>
+            <a href="{{ dados.licenca }}" target="_blank" class="text-gold-deep hover:underline break-all">{{ dados.licenca }}</a>
           </div>
           {% endif %}
 
           {% if dados.pdf_aberto %}
           <div class="sm:col-span-2">
-            <span class="text-xs text-slate-400 block">PDF open access</span>
-            <a href="{{ dados.pdf_aberto }}" target="_blank" class="text-anco hover:underline break-all">{{ dados.pdf_aberto }}</a>
+            <span class="text-xs text-ink-4 block">PDF open access</span>
+            <a href="{{ dados.pdf_aberto }}" target="_blank" class="text-gold-deep hover:underline break-all">{{ dados.pdf_aberto }}</a>
           </div>
           {% endif %}
 
@@ -124,12 +125,12 @@
 
         {# ── Palavras-chave / Áreas ── #}
         {% if dados.palavras_chave or dados.areas_ss %}
-        <div class="px-6 py-4 border-t border-slate-100 flex flex-wrap gap-2">
+        <div class="px-6 py-4 border-t border-rule flex flex-wrap gap-2">
           {% for kw in dados.palavras_chave %}
             <span class="rounded-full bg-blue-50 text-blue-700 text-xs px-2 py-0.5">{{ kw }}</span>
           {% endfor %}
           {% for area in dados.areas_ss %}
-            <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-2 py-0.5">{{ area }}</span>
+            <span class="rounded-full bg-paper-2 text-ink-2 text-xs px-2 py-0.5">{{ area }}</span>
           {% endfor %}
         </div>
         {% endif %}
@@ -137,9 +138,9 @@
         {# ── Afiliações dos autores ── #}
         {% with afils=dados.autores|dictsort:"afiliacao" %}
         {% if afils %}
-        <div class="px-6 py-4 border-t border-slate-100">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Afiliações</p>
-          <ul class="text-xs text-slate-600 space-y-1">
+        <div class="px-6 py-4 border-t border-rule">
+          <p class="text-xs font-semibold uppercase tracking-wide text-ink-4 mb-2">Afiliações</p>
+          <ul class="text-xs text-ink-2 space-y-1">
             {% for a in dados.autores %}
               {% if a.afiliacao %}
               <li><span class="font-medium">{{ a.nome }}</span> — {{ a.afiliacao }}</li>
@@ -151,15 +152,16 @@
         {% endwith %}
 
         {# ── Link ── #}
-        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center text-xs">
-          <a href="{{ dados.url }}" target="_blank" class="text-anco hover:underline">
+        <div class="px-6 py-4 border-t border-rule bg-paper-2 flex justify-between items-center text-xs">
+          <a href="{{ dados.url }}" target="_blank" class="text-gold-deep hover:underline">
             Abrir no publisher →
           </a>
-          <span class="text-slate-400 font-mono">{{ dados.doi }}</span>
+          <span class="text-ink-4 font-mono">{{ dados.doi }}</span>
         </div>
 
       </div>
     {% endif %}
   {% endif %}
+</div>
 </div>
 {% endblock %}

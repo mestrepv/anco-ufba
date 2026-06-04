@@ -1,12 +1,14 @@
-{% extends "_base.html" %}
+{% extends "_base_publico.html" %}
 
 {% block title %}Domínio não autorizado — AnCo{% endblock %}
 
 {% block content %}
+<div class="painel-wrap-conv max-w-3xl mx-auto px-5 py-10">
 <h1>Domínio não autorizado</h1>
 <div class="alert">
     <p>O e-mail <strong>{{ email }}</strong> não pertence a um domínio institucional cadastrado.</p>
 </div>
 <p>A AnCo aceita contas de instituições acadêmicas. Se sua instituição ainda não está na lista (por exemplo, um <em>e-mail .edu.br</em> que não esteja sendo aceito), entre em contato com a curadoria pelo e-mail <strong>curadoria@anco.local</strong> para que possamos avaliar a inclusão.</p>
 <p><a href="{% url 'home' %}">Voltar à página inicial</a></p>
+</div>
 {% endblock %}
