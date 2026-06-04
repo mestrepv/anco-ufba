@@ -13,6 +13,7 @@ from .forms import (
     AnaliseCompletaForm,
     AnaliseEstruturaForm,
     AnalisePresencaForm,
+    ArtigoAreaForm,
     ArtigoMetadadosForm,
     ComentarioCampoForm,
     IdentificadorLookupForm,
@@ -369,11 +370,26 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     if passo not in dict(PASSOS):
         passo = "identificacao"
 
-    form = None
-    if passo == "presenca":
+    form = None             # form da Análise (presença/estrutura)
+    artigo_form = None      # form do Artigo (identificação: grande área)
+    if passo == "identificacao":
+        artigo_form = ArtigoAreaForm(request.POST or None, instance=analise.artigo)
+    elif passo == "presenca":
         form = AnalisePresencaForm(request.POST or None, instance=analise)
     elif passo == "estrutura":
         form = AnaliseEstruturaForm(request.POST or None, instance=analise)
+
+    def _avancar(passo_atual: str):
+        ordem = [p for p, _ in PASSOS]
+        idx = ordem.index(passo_atual)
+        if idx + 1 < len(ordem):
+            return redirect(f"{request.path}?passo={ordem[idx + 1]}")
+        return redirect(request.path)
+
+    if request.method == "POST" and artigo_form is not None and artigo_form.is_valid():
+        artigo_form.save()  # atualiza a grande área do artigo
+        messages.success(request, "Identificação salva.")
+        return _avancar(passo)
 
     if request.method == "POST" and form is not None and form.is_valid():
         instance = form.save(commit=False)
@@ -381,12 +397,7 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
             _stampar_edicao(instance, user)  # edição administrativa: stamp
         instance.save()
         messages.success(request, "Passo salvo.")
-
-        ordem = [p for p, _ in PASSOS]
-        idx = ordem.index(passo)
-        if idx + 1 < len(ordem):
-            return redirect(f"{request.path}?passo={ordem[idx + 1]}")
-        return redirect(request.path)
+        return _avancar(passo)
 
     return render(
         request,
@@ -396,6 +407,7 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
             "passos": PASSOS,
             "passo_atual": passo,
             "form": form,
+            "artigo_form": artigo_form,
             "resenha": getattr(analise, "resenha", None),
             "eh_admin_edit": eh_admin and analise.analista_id != user.id,
         },

@@ -197,6 +197,13 @@ class TestEditarAnalise:
         analise_rascunho.refresh_from_db()
         assert analise_rascunho.objeto == "obj"
 
+    def test_post_identificacao_salva_grande_area(self, cliente_analista, analise_rascunho):
+        url = reverse("editar_analise", args=[analise_rascunho.pk])  # passo identificacao
+        resp = cliente_analista.post(url, data={"area": "Multidisciplinar"})
+        assert resp.status_code == 302
+        analise_rascunho.artigo.refresh_from_db()
+        assert analise_rascunho.artigo.area == "Multidisciplinar"
+
     def test_outro_analista_nao_pode_editar(self, db, client, analise_rascunho):
         outro = User.objects.create_user(
             username="outro",

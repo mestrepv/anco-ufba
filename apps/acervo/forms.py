@@ -172,6 +172,20 @@ class ArtigoMetadadosForm(forms.ModelForm):
 ArtigoForm = ArtigoMetadadosForm
 
 
+class ArtigoAreaForm(forms.ModelForm):
+    """Edição pontual da grande área do artigo (passo Identificação da análise)."""
+
+    class Meta:
+        model = Artigo
+        fields = ("area",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["area"].required = True
+        self.fields["area"].label = "Grande área (CNPq/CAPES)"
+        self.fields["area"].widget.attrs["class"] = "field-input"
+
+
 # ---------------------------------------------------------------------------
 # Forms parciais para o multipasso da Analise (cada um cobre um passo).
 # ---------------------------------------------------------------------------
