@@ -116,8 +116,16 @@
     <div style="display: grid; gap: 16px;">
     {% for field in form %}
       <div>
-        <label class="field-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        <label class="field-label" {% if field.field.widget.input_type != "radio" %}for="{{ field.id_for_label }}"{% endif %}>{{ field.label }}</label>
+        {% if field.field.widget.input_type == "radio" %}
+        <div class="sim-nao">
+          {% for opt in field %}
+          <label class="sim-nao-opt{% if opt.data.selected %} sim-nao-sel{% endif %}">{{ opt.tag }}<span>{{ opt.choice_label }}</span></label>
+          {% endfor %}
+        </div>
+        {% else %}
         {{ field }}
+        {% endif %}
         {% if field.help_text %}<p class="t-meta" style="color: var(--color-ink-4); margin-top: 4px;">{{ field.help_text }}</p>{% endif %}
         {% if field.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ field.errors|join:" / " }}</p>{% endif %}
       </div>
@@ -152,5 +160,22 @@
 
 </main>
 
-<style>[x-cloak] { display: none !important; }</style>
+<style>
+  [x-cloak] { display: none !important; }
+  /* Booleanos como Sim/Não (radio em formato de pílula) */
+  .sim-nao { display: flex; gap: 10px; margin-top: 4px; }
+  .sim-nao-opt {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 16px; border: 1px solid var(--color-rule-strong);
+    border-radius: 999px; cursor: pointer; user-select: none;
+    font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);
+    background: #fff; transition: border-color .12s, background .12s;
+  }
+  .sim-nao-opt input[type="radio"] { accent-color: var(--color-gold-deep); cursor: pointer; margin: 0; }
+  .sim-nao-opt:hover { border-color: var(--color-gold); }
+  .sim-nao-opt:has(input:checked) {
+    border-color: var(--color-gold-deep); color: var(--color-ink);
+    background: var(--color-review-bg); font-weight: 600;
+  }
+</style>
 {% endblock %}

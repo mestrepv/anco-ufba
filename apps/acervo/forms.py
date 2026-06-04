@@ -215,6 +215,17 @@ CAMPOS_ESTRUTURA = (
 )
 TODOS_OS_CAMPOS = CAMPOS_PRESENCA + CAMPOS_ESTRUTURA
 
+# Booleanos de presença/pertinência: Sim/Não (radio), sem "Desconhecido".
+CAMPOS_SIM_NAO = (
+    "presenca_titulo",
+    "presenca_resumo",
+    "presenca_palavras_chave",
+    "presenca_referencias",
+    "presenca_corpo",
+    "pertinencia",
+    "define_conceito",
+)
+
 
 class _AnaliseFormBase(forms.ModelForm):
     class Meta:
@@ -223,9 +234,20 @@ class _AnaliseFormBase(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Booleanos como Sim/Não (radio) — sem dropdown nem "Desconhecido".
+        # O campo continua opcional (não respondido = em branco); a trava de
+        # completude exige resposta na submissão.
+        for nome in CAMPOS_SIM_NAO:
+            if nome in self.fields:
+                self.fields[nome].widget = forms.RadioSelect(
+                    choices=[(True, "Sim"), (False, "Não")]
+                )
         for _name, field in self.fields.items():
-            if isinstance(field.widget, (forms.CheckboxInput, forms.SelectMultiple)):
-                continue  # M2M e checkbox tem estilo proprio
+            if isinstance(
+                field.widget,
+                (forms.CheckboxInput, forms.SelectMultiple, forms.RadioSelect),
+            ):
+                continue  # M2M, checkbox e radio têm estilo próprio
             if isinstance(field.widget, forms.Textarea):
                 field.widget.attrs["class"] = "field-textarea"
             else:
