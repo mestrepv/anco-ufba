@@ -43,16 +43,16 @@ class ImportarBuscaForm(forms.Form):
         widget=forms.Textarea(attrs={"rows": 2}),
         help_text="A query usada na base (para reprodutibilidade).",
     )
-    campo_busca = forms.ChoiceField(
-        required=False, label="Campo de busca",
-        choices=[("", "— não informado —"), *Busca.CampoBusca.choices],
-        help_text="Onde a query foi aplicada na base.",
+    campos_busca = forms.MultipleChoiceField(
+        required=False, label="Campo(s) de busca",
+        choices=Busca.CampoBusca.choices, widget=forms.CheckboxSelectMultiple,
+        help_text="Onde a query foi aplicada na base (pode marcar mais de um).",
     )
     ano_inicio = forms.IntegerField(
-        required=False, min_value=1900, label="Ano inicial",
+        required=False, min_value=1900, widget=forms.HiddenInput,
     )
     ano_fim = forms.IntegerField(
-        required=False, min_value=1900, label="Ano final",
+        required=False, min_value=1900, widget=forms.HiddenInput,
     )
     idiomas = forms.MultipleChoiceField(
         required=False, label="Idiomas filtrados",

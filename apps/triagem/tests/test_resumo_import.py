@@ -92,7 +92,7 @@ def test_upload_guarda_filtros_estruturados(client, analista, base_termo, settin
     settings.MEDIA_ROOT = str(tmp_path)
     client.force_login(analista)
     resp = _upload(
-        client, base_termo, 1, string_busca="cog", campo_busca="topico",
+        client, base_termo, 1, string_busca="cog", campos_busca=["topico", "resumo"],
         ano_inicio=2017, ano_fim=2025, idiomas=["en", "pt"],
         tipos_documento=["artigo", "revisao"], filtros="acesso aberto",
     )
@@ -101,7 +101,7 @@ def test_upload_guarda_filtros_estruturados(client, analista, base_termo, settin
     assert busca.ano_inicio == 2017 and busca.ano_fim == 2025
     assert set(busca.idiomas) == {"en", "pt"}
     assert set(busca.tipos_documento) == {"artigo", "revisao"}
-    assert busca.campo_busca == "topico"
+    assert set(busca.campos_busca) == {"topico", "resumo"}
     assert busca.filtros == "acesso aberto"
     assert busca.periodo == "2017–2025"
     resumo = client.get(resp.headers["Location"])

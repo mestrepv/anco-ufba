@@ -56,12 +56,12 @@
     <a href="{% url 'triagem_registros' %}" class="btn btn-secondary">Ver todos os registros</a>
   </div>
 
-  {% if busca.string_busca or busca.periodo or busca.idiomas or busca.tipos_documento or busca.filtros or busca.campo_busca %}
+  {% if busca.string_busca or busca.periodo or busca.idiomas or busca.tipos_documento or busca.filtros or busca.campos_busca %}
   <h2 class="tg-h2">Estratégia registrada</h2>
   <div class="tg-card" style="margin-bottom:24px;">
     <table class="tg-table">
       {% if busca.string_busca %}<tr><td style="width:160px;color:var(--color-ink-3);">String de busca</td><td>{{ busca.string_busca }}</td></tr>{% endif %}
-      {% if busca.campo_busca %}<tr><td style="color:var(--color-ink-3);">Campo de busca</td><td>{{ busca.get_campo_busca_display }}</td></tr>{% endif %}
+      {% if busca.campos_busca %}<tr><td style="color:var(--color-ink-3);">Campo(s) de busca</td><td>{{ busca.campos_busca_display }}</td></tr>{% endif %}
       {% if busca.periodo %}<tr><td style="color:var(--color-ink-3);">Período</td><td>{{ busca.periodo }}</td></tr>{% endif %}
       {% if busca.idiomas %}<tr><td style="color:var(--color-ink-3);">Idiomas</td><td>{{ busca.idiomas_display }}</td></tr>{% endif %}
       {% if busca.tipos_documento %}<tr><td style="color:var(--color-ink-3);">Tipos de documento</td><td>{{ busca.tipos_documento_display }}</td></tr>{% endif %}

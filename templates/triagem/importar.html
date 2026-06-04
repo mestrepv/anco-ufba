@@ -34,19 +34,30 @@
       <p class="tg-help">{{ form.string_busca.help_text }}</p>
     </div>
     <div class="tg-field">
-      <label for="{{ form.campo_busca.id_for_label }}">{{ form.campo_busca.label }}</label>
-      {{ form.campo_busca }}
-      <p class="tg-help">{{ form.campo_busca.help_text }}</p>
+      <label>{{ form.campos_busca.label }}</label>
+      <div class="tg-checkgrid">
+        {% for sub in form.campos_busca %}<label>{{ sub.tag }} <span>{{ sub.choice_label }}</span></label>{% endfor %}
+      </div>
+      <p class="tg-help">{{ form.campos_busca.help_text }}</p>
     </div>
 
     <div class="tg-fieldset-title">Filtros aplicados</div>
-    <div class="tg-field">
-      <label>Período</label>
-      <div class="tg-row-2">
-        <div>{{ form.ano_inicio }}{% for e in form.ano_inicio.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}</div>
-        <div>{{ form.ano_fim }}{% for e in form.ano_fim.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}</div>
+    <div class="tg-field tg-slider"
+         x-data="{ de: {{ form.ano_inicio.value|default:ano_min }}, ate: {{ form.ano_fim.value|default:ano_max }} }">
+      <label>Período: <strong x-text="de"></strong> – <strong x-text="ate"></strong></label>
+      <div class="tg-slider-row">
+        <span class="tg-slider-lbl">De</span>
+        <input type="range" name="ano_inicio" min="{{ ano_min }}" max="{{ ano_max }}"
+               :max="ate" x-model.number="de">
       </div>
-      <p class="tg-help">Ano inicial e final (deixe vazio se não filtrou por ano).</p>
+      <div class="tg-slider-row">
+        <span class="tg-slider-lbl">Até</span>
+        <input type="range" name="ano_fim" min="{{ ano_min }}" max="{{ ano_max }}"
+               :min="de" x-model.number="ate">
+      </div>
+      {% for e in form.ano_inicio.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
+      {% for e in form.ano_fim.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
+      <p class="tg-help">Arraste para definir o intervalo de anos da busca.</p>
     </div>
     <div class="tg-field">
       <label>{{ form.idiomas.label }}</label>

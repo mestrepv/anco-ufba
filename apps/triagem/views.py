@@ -115,7 +115,7 @@ def importar_view(request: HttpRequest) -> HttpResponse:
                     base_consulta=cd["base_consulta"],
                     outra_base=cd["outra_base"],
                     string_busca=cd["string_busca"],
-                    campo_busca=cd["campo_busca"],
+                    campos_busca=cd["campos_busca"],
                     ano_inicio=cd["ano_inicio"],
                     ano_fim=cd["ano_fim"],
                     idiomas=cd["idiomas"],
@@ -139,10 +139,17 @@ def importar_view(request: HttpRequest) -> HttpResponse:
     else:
         form = ImportarBuscaForm()
 
+    import datetime
+
     return render(
         request,
         "triagem/importar.html",
-        {"form": form, "protocolo": protocolo},
+        {
+            "form": form,
+            "protocolo": protocolo,
+            "ano_min": 2000,
+            "ano_max": datetime.date.today().year,
+        },
     )
 
 

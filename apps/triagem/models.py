@@ -128,9 +128,9 @@ class Busca(models.Model):
         models.CharField(max_length=20), default=list, blank=True,
         help_text="Tipos de documento filtrados na base.",
     )
-    campo_busca = models.CharField(
-        max_length=20, choices=CampoBusca.choices, blank=True,
-        help_text="Em que campo a query foi aplicada.",
+    campos_busca = ArrayField(
+        models.CharField(max_length=20), default=list, blank=True,
+        help_text="Em que campo(s) a query foi aplicada.",
     )
     filtros = models.TextField(
         blank=True,
@@ -191,6 +191,11 @@ class Busca(models.Model):
     def tipos_documento_display(self) -> str:
         mapa = dict(self.TipoDocumento.choices)
         return ", ".join(mapa.get(t, t) for t in self.tipos_documento)
+
+    @property
+    def campos_busca_display(self) -> str:
+        mapa = dict(self.CampoBusca.choices)
+        return ", ".join(mapa.get(c, c) for c in self.campos_busca)
 
 
 class RegistroTriagem(models.Model):
