@@ -1,5 +1,3 @@
-import contextlib
-
 from django.apps import AppConfig
 
 
@@ -10,7 +8,4 @@ class TriagemConfig(AppConfig):
     verbose_name = "Triagem (PRISMA-ScR)"
 
     def ready(self) -> None:
-        # Receivers registrados na Fase 9.3 (sorteio/avaliação da triagem).
-        # Fase 9.0/9.1: signals ainda não existe; scaffolding aditivo.
-        with contextlib.suppress(ImportError):
-            from . import signals  # noqa: F401
+        from . import signals  # noqa: F401  — registra receivers da triagem
