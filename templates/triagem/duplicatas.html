@@ -39,7 +39,7 @@
           <input type="hidden" name="manter" value="{{ par.a.pk }}">
           <input type="hidden" name="duplicado" value="{{ par.b.pk }}">
           <input type="hidden" name="i" value="{{ i }}">
-          <button class="btn btn-primary" style="width:100%;">Selecionar este (manter)</button>
+          <button class="btn btn-manter" style="width:100%;">Selecionar este (manter)</button>
         </form>
         {% include "triagem/_registro_card.html" with r=par.a %}
       </div>
@@ -49,7 +49,7 @@
           <input type="hidden" name="manter" value="{{ par.b.pk }}">
           <input type="hidden" name="duplicado" value="{{ par.a.pk }}">
           <input type="hidden" name="i" value="{{ i }}">
-          <button class="btn btn-primary" style="width:100%;">Selecionar este (manter)</button>
+          <button class="btn btn-manter" style="width:100%;">Selecionar este (manter)</button>
         </form>
         {% include "triagem/_registro_card.html" with r=par.b %}
       </div>
