@@ -76,9 +76,17 @@ base e de termos epistemológicos tratadas como entradas distintas.
 Mais do que limpeza de dados, esses sintomas evidenciaram que a planilha **não
 suporta a metodologia que a AnCo exige**: não há revisão, histórico de versões,
 integridade referencial, busca facetada, URL citável; e divergências viram
-conflitos de edição. A plataforma é a resposta a esse diagnóstico. A migração do
-legado é **idempotente e auditável** (`manage.py migrate_legacy`), preservando o
-legado pré-validado (status `legado`) ao lado do acervo novo.
+conflitos de edição. A plataforma é a resposta a esse diagnóstico.
+
+**Decisão sobre o acervo de fundação:** a importação direta dos 1.443 registros
+brutos foi **descartada**. Em vez de carregar a plataforma com dados não
+confiáveis, a equipe partiu de uma **base revisada e curada bibliograficamente**
+— [`base-anco-revisada.json`](base-anco-revisada.json), **653 registros** —,
+submetida à **curadoria da bibliotecária e Doutora em Difusão do Conhecimento
+Eneida Santana** (equipe fundadora). Essa base curada constitui o **acervo de
+fundação** (status `legado`), sobre o qual o fluxo novo (cadastro aberto +
+curadoria editorial) passa a operar. A carga é **idempotente e auditável**
+(`manage.py migrate_base_revisada`).
 
 ---
 
@@ -315,8 +323,8 @@ docker compose -f infra/docker-compose.yml --profile embeddings up -d   # busca 
 # Testes / qualidade
 docker compose -f infra/docker-compose.yml exec web pytest --cov
 docker compose -f infra/docker-compose.yml exec web ruff check . && ruff format .
-# Migração do legado (idempotente)
-docker compose -f infra/docker-compose.yml exec web python manage.py migrate_legacy [--dry-run]
+# Carga do acervo de fundação — base revisada e curada (idempotente)
+docker compose -f infra/docker-compose.yml exec web python manage.py migrate_base_revisada [--dry-run]
 # Embeddings
 docker compose -f infra/docker-compose.yml exec web python manage.py reindexar_embeddings [--tudo]
 # Recarga sem rebuild (só template/view): kill -s HUP no gunicorn
@@ -330,8 +338,8 @@ Convenções de desenvolvimento em [CLAUDE.md](CLAUDE.md).
 ## 10. Como citar, autoria e licença
 
 ```bibtex
-@inproceedings{vicente_anco_2026,
-  author    = {Vicente, Paulo and {Grupo de Pesquisa do PPGDC}},
+@inproceedings{moreira_anco_2026,
+  author    = {Moreira, Paulo Vicente and Santana, Eneida and {Grupo de Pesquisa do PPGDC}},
   title     = {De planilha a plataforma: catalogação colaborativa, curadoria
                editorial e revisão por pares para análise cognitiva da
                literatura científica},
@@ -341,7 +349,7 @@ Convenções de desenvolvimento em [CLAUDE.md](CLAUDE.md).
 }
 
 @software{anco_plataforma_2026,
-  author  = {Vicente, Paulo and {Grupo de Pesquisa do PPGDC}},
+  author  = {Moreira, Paulo Vicente and Santana, Eneida and {Grupo de Pesquisa do PPGDC}},
   title   = {{AnCo} --- Plataforma de Análise Cognitiva},
   year    = {2026},
   url     = {https://github.com/mestrepv/anco-ufba},
@@ -352,8 +360,20 @@ Convenções de desenvolvimento em [CLAUDE.md](CLAUDE.md).
 Cada análise publicada tem **URL estável** e citações **ABNT 6023:2018** e **APA 7ª
 ed.** geradas automaticamente ([apps/publico/services.py](apps/publico/services.py)).
 
-**Autoria** — Paulo Vicente · <paulovicente.ifba@gmail.com> · Grupo de pesquisa do
-PPGDC (linha, orientação e demais pesquisadores a preencher antes da submissão).
+**Autoria e equipe**
+
+- **Paulo Vicente Moreira** (nome de citação: **MOREIRA, P. V.**) ·
+  <paulovicente.ifba@gmail.com> — concepção e desenvolvimento da plataforma.
+- **Eneida Santana** — bibliotecária e **Doutora em Difusão do Conhecimento**;
+  equipe fundadora. Responsável pela **curadoria bibliográfica do acervo de
+  fundação** ([`base-anco-revisada.json`](base-anco-revisada.json)). Pesquisadora
+  de formação docente, tecnologias educacionais e práticas extensionistas; membra
+  do Grupo de Pesquisa **TICASE** (Tecnologia da Informação e Comunicação
+  Aplicadas à Educação e Saúde). Especialista em Educação a Distância: Tecnologias
+  Educacionais (IFPR, 2016); Mestre em Ciência da Informação (UFBA, 2011);
+  Bacharel em Biblioteconomia e Documentação (UFBA, 2008).
+- **Grupo de pesquisa do PPGDC** — linha, orientação e demais pesquisadores
+  (a preencher antes da submissão).
 
 **Licenciamento** — Código: **AGPL-3.0-or-later** ([pyproject.toml](pyproject.toml)).
 Conteúdo autoral hospedado (análises, resenhas): **CC BY-NC 4.0**. Obras
