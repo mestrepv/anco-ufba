@@ -48,7 +48,10 @@ def task_avaliar_apos_triagem(registro_id: int) -> dict:
         return {"ok": False, "erro": "registro_nao_existe"}
 
     resultado = avaliar_apos_triagem(registro)
-    # A promoção dos incluídos ao acervo entra na Fase 9.5.
+    if resultado.novo_status == RegistroTriagem.Status.INCLUIDO:
+        from .promocao import promover_para_acervo
+
+        promover_para_acervo(registro)
     return {
         "ok": True,
         "decidida": resultado.decidida,

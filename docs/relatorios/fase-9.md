@@ -24,7 +24,7 @@ reprodutível e reportável segundo o **PRISMA-ScR**. App nativo `apps/triagem`,
 | **9.2** | Importação RIS/BibTeX/CSV + dedup (intra-protocolo e vs. acervo) + command + upload view | ✅ concluída |
 | **9.3** | Sorteio + avaliação + signals + tasks (≥2 revisores, consenso/divergência, prazos) | ✅ concluída |
 | **9.4** | UI de triagem mascarada + minhas-triagens + desempate do curador | ✅ concluída |
-| **9.5** | Promoção de incluídos → `Artigo` (idempotente; legado intocado) | ⏳ pendente |
+| **9.5** | Promoção de incluídos → `Artigo` (idempotente; legado intocado) | ✅ concluída |
 | **9.6** | Contagens/diagrama PRISMA-ScR + proveniência | ⏳ pendente |
 
 ---

@@ -26,6 +26,7 @@ from .importacao import (
     parse_conteudo,
 )
 from .models import Busca, DecisaoTriagem, ProtocoloTriagem, RegistroTriagem
+from .promocao import promover_para_acervo
 from .tasks import iniciar_triagem
 
 
@@ -253,6 +254,8 @@ def desempatar_view(request: HttpRequest, registro_id: int) -> HttpResponse:
             registro.decidida_por = request.user
             registro.decidida_em = timezone.now()
             registro.save()
+            if registro.status == RegistroTriagem.Status.INCLUIDO:
+                promover_para_acervo(registro)
             messages.success(request, "Desempate registrado.")
             return redirect("triagem_desempate")
     else:
