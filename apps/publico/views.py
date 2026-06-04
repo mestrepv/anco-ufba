@@ -504,6 +504,12 @@ def pagina_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     resenha = getattr(analise, "resenha", None)
     resenha_publica = resenha if (resenha and resenha.status in Resenha.PUBLICAS) else None
 
+    # Proveniência: o artigo foi selecionado via triagem PRISMA-ScR?
+    # (reverse de apps.triagem.RegistroTriagem.artigo; "incluido" = status incluído)
+    proveniencia_triagem = analise.artigo.registros_triagem.filter(
+        status="incluido"
+    ).exists()
+
     # Sinaliza se há resenha pública em outras análises do mesmo artigo.
     outras_com_resenha = (
         Analise.objects.filter(
@@ -529,6 +535,7 @@ def pagina_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
             "link_obra": link_obra,
             "publicada_fmt": _fmt_data(analise.publicada_em or analise.criado_em),
             "outras_com_resenha": outras_com_resenha,
+            "proveniencia_triagem": proveniencia_triagem,
             "active_nav": "acervo",
             "jsonld": jsonld(schema_analise(analise)),
             "pode_curar": pode_curar,

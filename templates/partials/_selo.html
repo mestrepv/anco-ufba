@@ -17,6 +17,11 @@
 </span>
 {% elif kind == "historico" %}
 <span class="selo selo-historico">Acervo histórico</span>
+{% elif kind == "triagem" %}
+<span class="selo" style="background:#eef6ef; color:#2f6f4f; border:1px solid #cfe6d6;"
+      title="Selecionado por triagem com ≥2 revisores (PRISMA-ScR)">
+  Selecionado por triagem
+</span>
 {% elif kind == "multi" %}
 <span class="selo selo-multi">Múltiplas análises</span>
 {% endif %}

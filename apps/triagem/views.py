@@ -7,16 +7,24 @@ A interface de triagem por revisor (mascarada) e o desempate entram na 9.4.
 
 from __future__ import annotations
 
+import csv
 import functools
+import json
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.http import HttpRequest, HttpResponse, HttpResponseForbidden
+from django.http import (
+    HttpRequest,
+    HttpResponse,
+    HttpResponseForbidden,
+    JsonResponse,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from . import prisma
 from .aprovacao import registros_para_desempate
 from .forms import DecisaoTriagemForm, DesempateForm, ImportarBuscaForm
 from .importacao import (
@@ -265,4 +273,34 @@ def desempatar_view(request: HttpRequest, registro_id: int) -> HttpResponse:
         request,
         "triagem/desempate.html",
         {"registro": registro, "decisoes": decisoes, "form": form},
+    )
+
+
+@_exige_analista
+def prisma_view(request: HttpRequest) -> HttpResponse:
+    """Fluxograma PRISMA-ScR (contagens) + export CSV/JSON."""
+    protocolo = ProtocoloTriagem.ativo()
+    contagem = prisma.computar(protocolo)
+    formato = request.GET.get("formato")
+
+    if formato == "json":
+        return JsonResponse(contagem.como_dict())
+
+    if formato == "csv":
+        resp = HttpResponse(content_type="text/csv")
+        resp["Content-Disposition"] = 'attachment; filename="prisma_anco.csv"'
+        escritor = csv.writer(resp)
+        escritor.writerow(["etapa", "n"])
+        for chave, valor in contagem.como_dict().items():
+            if chave in ("excluidos_por_motivo",):
+                continue
+            escritor.writerow([chave, valor])
+        for item in contagem.excluidos_por_motivo:
+            escritor.writerow([f"excluido: {item['motivo_exclusao']}", item["n"]])
+        return resp
+
+    return render(
+        request,
+        "triagem/prisma.html",
+        {"protocolo": protocolo, "c": contagem, "json": json.dumps(contagem.como_dict())},
     )

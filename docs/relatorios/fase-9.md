@@ -1,4 +1,4 @@
-# Relatório — Fase 9: Triagem PRISMA-ScR (em andamento)
+# Relatório — Fase 9: Triagem PRISMA-ScR (concluída)
 
 Etapa de **seleção de fontes** anterior à análise (upstream da Matriz AnCo),
 reprodutível e reportável segundo o **PRISMA-ScR**. App nativo `apps/triagem`,
@@ -25,7 +25,7 @@ reprodutível e reportável segundo o **PRISMA-ScR**. App nativo `apps/triagem`,
 | **9.3** | Sorteio + avaliação + signals + tasks (≥2 revisores, consenso/divergência, prazos) | ✅ concluída |
 | **9.4** | UI de triagem mascarada + minhas-triagens + desempate do curador | ✅ concluída |
 | **9.5** | Promoção de incluídos → `Artigo` (idempotente; legado intocado) | ✅ concluída |
-| **9.6** | Contagens/diagrama PRISMA-ScR + proveniência | ⏳ pendente |
+| **9.6** | Contagens/diagrama PRISMA-ScR + proveniência | ✅ concluída |
 
 ---
 
@@ -161,3 +161,44 @@ reprodutível e reportável segundo o **PRISMA-ScR**. App nativo `apps/triagem`,
 ### Pendências para o usuário
 - Aprovar para a **9.3** (sorteio de ≥2 revisores + avaliação consenso/divergência +
   signals + tasks assíncronas; usa o `worker`).
+
+---
+
+## Sub-fases 9.3–9.6 (concluídas)
+
+### 9.3 — Sorteio + avaliação + signals/tasks
+Espelha `apps/acervo/{sorteio,aprovacao,signals,tasks}.py` para a triagem:
+sorteia `protocolo.n_revisores` (≥2), exclui coletores/quem já decidiu, respeita
+carga; consenso `incluir`→INCLUIDO / `excluir`→EXCLUIDO; divergência→desempate.
+Cron de prazos. **+9 testes.**
+
+### 9.4 — UI mascarada + minhas-triagens + desempate
+Ação "Iniciar triagem"; `/triagem/minhas/`; `/triagem/triar/<id>/` (mascarada,
+cega ao coletor e aos pares); fila e resolução de **desempate** do curador; link no
+nav. **+9 testes.**
+
+### 9.5 — Promoção ao acervo
+`promocao.py`: incluído → `Artigo` (`eh_legado=False`), idempotente; reusa Artigo
+existente se casar (legado nunca alterado). Disparo automático no consenso e no
+desempate. **+5 testes.**
+
+### 9.6 — PRISMA + proveniência
+`prisma.py` + `/triagem/prisma/` (contagens identificados/duplicados/triados/
+incluídos/excluídos por motivo) com export **CSV/JSON**; selo "Selecionado por
+triagem" na página pública da análise. **+4 testes.**
+
+## Fechamento da Fase 9
+
+- **Critério de aceite (PRISMA-ScR):** busca em ≥9 bases (vocabulário `base`),
+  importação multi-formato com dedup, triagem por **≥2 revisores independentes**
+  com inclusão/exclusão e **resolução de divergência**, promoção dos incluídos e
+  **fluxograma** exportável. ✅
+- **Aditivo e seguro:** zero alteração de schema em `acervo`/`core`; legado isento
+  por construção. Suíte final: **401 passed, 1 xpassed**.
+- **Deploy:** imagens `web`/`worker` reconstruídas (deps `rispy`/`bibtexparser`);
+  migrations aplicadas; recargas via `kill -s HUP web` + restart `worker`.
+- **Dívida técnica:** concordância (kappa) entre revisores (decisões já registradas;
+  derivação futura); carga de triagem reusa `limite_revisoes_simultaneas`.
+- **Pendências para o usuário:** definir os **critérios reais** de inclusão/exclusão
+  no admin (`Protocolos de triagem`) e habilitar **revisores** (`revisor_aprovado`)
+  para o pool de triagem.

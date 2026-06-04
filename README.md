@@ -30,7 +30,7 @@ facetada e busca semântica.
 5. [Aspectos metodológicos](#5-aspectos-metodológicos)
 6. [Busca semântica](#6-busca-semântica)
 7. [Stack tecnológica — vantagens, desvantagens e substitutos](#7-stack-tecnológica--vantagens-desvantagens-e-substitutos)
-8. [Implementações futuras — triagem com ≥2 revisores (alinhamento PRISMA-ScR)](#8-implementações-futuras--triagem-com-2-revisores-alinhamento-prisma-scr)
+8. [Triagem PRISMA-ScR (Fase 9) — seleção de fontes antes da análise](#8-triagem-prisma-scr-fase-9--seleção-de-fontes-antes-da-análise)
 9. [Bootstrap local e comandos](#9-bootstrap-local-e-comandos)
 10. [Como citar, autoria e licença](#10-como-citar-autoria-e-licença)
 
@@ -271,37 +271,40 @@ dependência de Alpine/CDN no cliente; (iv) Compose não cobre alta disponibilid
 
 ---
 
-## 8. Implementações futuras — triagem com ≥2 revisores (alinhamento PRISMA-ScR)
+## 8. Triagem PRISMA-ScR (Fase 9) — seleção de fontes antes da análise
 
-> **Implementação futura planejada.** Hoje, uma entrada é cadastrada por **um**
-> analista e aprovada por **um** curador. Para tornar o protocolo de seleção do
-> acervo **equivalente ao PRISMA-ScR** (*PRISMA extension for Scoping Reviews*),
-> será adicionada uma etapa de **triagem (screening) por pelo menos 2 revisores
-> independentes**.
+A AnCo inclui uma etapa de **triagem (screening) por ≥2 revisores independentes**,
+anterior à análise — tornando a **seleção do acervo equivalente ao PRISMA-ScR**
+(*PRISMA extension for Scoping Reviews*). É um app nativo **aditivo** (`apps/triagem`),
+sem alterar o schema do acervo: os candidatos vivem em tabelas próprias e **só os
+incluídos viram `Artigo`**.
 
-O PRISMA-ScR recomenda que a **seleção/triagem de fontes** seja conduzida de forma
-**independente por dois ou mais revisores**, com registro de inclusões/exclusões e
-resolução de divergências, garantindo reprodutibilidade e reduzindo viés de
-seleção. A AnCo evoluirá para incorporar isso como fase explícita do fluxo:
+Fluxo dos novos analistas (`/triagem/`):
 
-- **Etapa de triagem dupla-cega**: cada candidato (artigo/registro) é avaliado por
-  **≥2 revisores independentes** quanto a critérios de **inclusão/exclusão**
-  pré-registrados, antes de entrar no acervo como analisável.
-- **Resolução de divergência**: desacordo entre revisores aciona um terceiro
-  parecer (ou decisão de curadoria), com o motivo registrado.
-- **Rastreabilidade tipo fluxograma PRISMA**: contagem de identificados, triados,
-  incluídos e excluídos (com razões) — exportável para compor o **diagrama de fluxo
-  PRISMA-ScR** do estudo.
-- **Reuso da infraestrutura existente**: o sorteio de revisores, o mascaramento de
-  autoria e os pareceres estruturados já implementados para a revisão cega da
-  resenha serão estendidos para a etapa de triagem.
+1. **Busca em ≥9 bases** (reusa o vocabulário `base`) → **importação por arquivo**
+   (**RIS/BibTeX/CSV**) com **deduplicação** determinística (DOI > ISBN > hash).
+   Candidato que já casa com o acervo (inclusive o legado) é marcado e **não** é triado.
+2. **Triagem dupla** — cada registro é sorteado para **≥2 revisores independentes**,
+   que decidem **incluir/excluir/dúvida** (com motivo) numa interface **mascarada**
+   (cega ao coletor e às decisões dos pares).
+3. **Consenso → incluído/excluído**; **divergência → desempate** por curador.
+4. **Promoção** — os incluídos viram `Artigo` (idempotente) e seguem para a **análise
+   pela Matriz AnCo** (fluxo de `Analise` já existente).
+5. **Fluxograma PRISMA-ScR** — contagens (identificados, duplicados, triados,
+   incluídos, excluídos por motivo) em `/triagem/prisma/`, com export **CSV/JSON**.
 
-Com isso, o acervo passa a ser não só uma base navegável, mas um **protocolo de
-revisão de escopo reprodutível e reportável** segundo um padrão internacional.
+**Reuso de infraestrutura**: o sorteio de revisores, o mascaramento e os pareceres
+estruturados da revisão cega de resenha foram **espelhados** para a triagem (módulo
+isolado, sem desestabilizar o fluxo de resenha). O **acervo histórico (legado)**, base
+de fundação curada por Eneida Santana, **não passa por triagem** — por construção.
 
-Demais frentes de roadmap: calibração ativa da busca semântica (feedback de
-relevância por consulta; limiar ajustável); rebuild da imagem do `worker` quando o
-fluxo assíncrono evoluir; fusão de contas de analistas legado.
+Com isso, o acervo é não só uma base navegável, mas um **protocolo de revisão de
+escopo reprodutível e reportável** de ponta a ponta. Detalhes em
+[docs/relatorios/fase-9.md](docs/relatorios/fase-9.md) e no *addendum* da
+especificação.
+
+Demais frentes de roadmap: cálculo de concordância (kappa) entre revisores na triagem;
+calibração ativa da busca semântica; fusão de contas de analistas legado.
 
 ---
 

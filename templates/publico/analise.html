@@ -151,6 +151,7 @@
       {% if analise.tem_resenha_publica %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
       {% if analise.artigo.acesso_aberto %}{% include "partials/_selo.html" with kind="aberto" %}{% endif %}
       {% if analise.status == 'legado' %}{% include "partials/_selo.html" with kind="historico" %}{% endif %}
+      {% if proveniencia_triagem %}{% include "partials/_selo.html" with kind="triagem" %}{% endif %}
     </div>
 
     <p class="t-eyebrow" style="margin-bottom:10px; color:var(--color-gold-deep);">Análise de</p>

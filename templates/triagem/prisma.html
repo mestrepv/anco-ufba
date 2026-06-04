@@ -1,0 +1,64 @@
+{% extends "_base.html" %}
+
+{% block title %}Fluxograma PRISMA · Triagem{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+  <a href="{% url 'triagem_painel' %}" class="text-sm text-slate-500 hover:text-anco">&larr; Triagem</a>
+  <div class="flex items-center justify-between mt-1 mb-4">
+    <h1 class="text-2xl font-bold text-anco">Fluxograma PRISMA-ScR</h1>
+    <div class="flex gap-2 text-sm">
+      <a href="?formato=csv" class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-600 hover:border-anco">CSV</a>
+      <a href="?formato=json" class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-600 hover:border-anco">JSON</a>
+    </div>
+  </div>
+
+  <div class="space-y-3">
+    <div class="rounded-lg border border-slate-300 bg-white p-4">
+      <div class="text-xs uppercase tracking-wide text-slate-400">Identificação</div>
+      <div class="mt-1 text-slate-800">
+        <strong>{{ c.identificados_relatado }}</strong> registros relatados pelas bases
+        ({{ c.n_buscas }} busca{{ c.n_buscas|pluralize }}).
+      </div>
+      <div class="text-sm text-slate-500">
+        {{ c.importados }} importados após dedup · {{ c.duplicados_entre_bases }} duplicados entre bases mesclados.
+      </div>
+    </div>
+
+    <div class="text-center text-slate-400">↓</div>
+
+    <div class="rounded-lg border border-slate-300 bg-white p-4">
+      <div class="text-xs uppercase tracking-wide text-slate-400">Elegibilidade</div>
+      <div class="mt-1 text-slate-800"><strong>{{ c.elegiveis }}</strong> elegíveis à triagem</div>
+      <div class="text-sm text-slate-500">{{ c.ja_no_acervo }} removidos por já estarem no acervo.</div>
+    </div>
+
+    <div class="text-center text-slate-400">↓</div>
+
+    <div class="rounded-lg border border-slate-300 bg-white p-4">
+      <div class="text-xs uppercase tracking-wide text-slate-400">Triagem (≥2 revisores)</div>
+      <div class="grid grid-cols-3 gap-2 mt-2 text-center">
+        <div><div class="text-xl font-bold text-slate-700">{{ c.aguardando }}</div><div class="text-xs text-slate-500">aguardando</div></div>
+        <div><div class="text-xl font-bold text-amber-600">{{ c.em_triagem }}</div><div class="text-xs text-slate-500">em triagem</div></div>
+        <div><div class="text-xl font-bold text-red-600">{{ c.excluidos }}</div><div class="text-xs text-slate-500">excluídos</div></div>
+      </div>
+    </div>
+
+    <div class="text-center text-slate-400">↓</div>
+
+    <div class="rounded-lg border-2 border-emerald-400 bg-emerald-50 p-4 text-center">
+      <div class="text-xs uppercase tracking-wide text-emerald-600">Incluídos no acervo</div>
+      <div class="text-3xl font-bold text-emerald-700">{{ c.incluidos }}</div>
+    </div>
+  </div>
+
+  {% if c.excluidos_por_motivo %}
+    <h2 class="font-semibold text-slate-800 mt-8 mb-2">Excluídos por motivo</h2>
+    <ul class="text-sm text-slate-600 space-y-1">
+      {% for m in c.excluidos_por_motivo %}
+        <li>{{ m.n }} · {{ m.motivo_exclusao }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>
+{% endblock %}

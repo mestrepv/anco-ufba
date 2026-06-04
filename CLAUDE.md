@@ -27,10 +27,11 @@ Leia este arquivo no início de cada sessão.
   `https://github.com/mestrepv/anco-ufba.git`, branch padrão `main`. O `gh`
   está autenticado no root (credential helper configurado), então `git push`
   funciona direto. Fluxo: commitar na `main` e `git push`.
-- **Worker** (`worker`, django-q2): imagem reconstruída com `django-unfold`;
-  roda saudável. Necessário para o fluxo assíncrono de revisão cega das
-  resenhas (sorteio/avaliação/notificações). Após mudar dependências, rebuildar
-  com `docker compose -f infra/docker-compose.yml build worker && up -d worker`.
+- **Worker** (`worker`, django-q2): imagem reconstruída com `django-unfold`,
+  `rispy` e `bibtexparser`; roda saudável. Necessário para o fluxo assíncrono de
+  revisão cega das resenhas **e da triagem** (sorteio/avaliação/promoção/
+  notificações). Após mudar dependências, rebuildar com
+  `docker compose -f infra/docker-compose.yml build worker && up -d worker`.
 
 ---
 
@@ -280,6 +281,18 @@ Fluxo atual:
 - `Revisao` aponta para `Resenha` (não mais para `Analise`); toda revisão é
   cega. Domínio denso — manter os testes (sorteio cego, exclusão de
   autor/co-autor, fallback de fila, re-sorteio, avaliação, curadoria).
+
+### 9.2-bis. Triagem PRISMA-ScR (Fase 9, app `apps/triagem`)
+
+Etapa **anterior à análise**: busca em ≥9 bases → importação (RIS/BibTeX/CSV) com
+dedup → triagem por **≥2 revisores independentes** (incluir/excluir/dúvida, interface
+**mascarada**) → consenso/desempate → **promoção dos incluídos a `Artigo`** → análise
+pela Matriz AnCo. **Aditivo**: tabelas próprias, sem tocar o schema de `acervo`;
+proveniência em `RegistroTriagem.artigo`. **Legado isento** (registro que casa com
+`Artigo` existente vira `ja_no_acervo`, não é triado). Domínio espelha (não generaliza)
+`apps/acervo/{sorteio,aprovacao,signals,tasks}.py`. Import via
+`manage.py importar_triagem <arquivo> --base <nome>`. Fluxograma + export em
+`/triagem/prisma/`. Detalhes: `docs/relatorios/fase-9.md` e addendum da especificação.
 
 ### 9.3. Acervo público (Fase 5)
 URLs **estáveis e citáveis** desde o dia 1. Mudança de URL depois quebra
