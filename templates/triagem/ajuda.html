@@ -1,0 +1,86 @@
+{% extends "_base_publico.html" %}
+
+{% block title %}Como funciona a triagem — AnCo{% endblock %}
+
+{% block extra_head %}
+<style>
+  .ajuda-wrap { max-width: 820px; margin: 0 auto; padding: clamp(32px,4vw,56px) clamp(20px,5vw,40px) 80px; }
+  .ajuda-wrap h1 { font-family: var(--font-serif); font-weight: 500; font-size: clamp(28px,4vw,38px); color: var(--color-ink); margin: 0 0 8px; }
+  .ajuda-wrap h2 { font-family: var(--font-serif); font-weight: 500; font-size: 22px; color: var(--color-ink); margin: 40px 0 12px; }
+  .ajuda-wrap p, .ajuda-wrap li { font-family: var(--font-sans); font-size: 15px; line-height: 1.65; color: var(--color-ink-2); }
+  .ajuda-lead { font-size: 17px !important; color: var(--color-ink-2); }
+  .passo { display: grid; grid-template-columns: 36px 1fr; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--color-rule); }
+  .passo:last-child { border-bottom: 0; }
+  .passo .num { width: 32px; height: 32px; border-radius: 999px; background: var(--color-paper-2); color: var(--color-gold-deep); font-family: var(--font-sans); font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .passo h3 { font-family: var(--font-sans); font-weight: 600; font-size: 15px; color: var(--color-ink); margin: 4px 0 4px; }
+  .passo .quem { font-family: var(--font-sans); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-ink-3); }
+  .criterios { background: var(--color-paper-2); border: 1px solid var(--color-rule); border-radius: 6px; padding: 16px 20px; margin-top: 12px; }
+  .criterios pre { white-space: pre-wrap; font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2); margin: 4px 0 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ajuda-wrap">
+  <p class="t-eyebrow" style="margin:0 0 4px;">Triagem · PRISMA-ScR</p>
+  <h1>Como funciona a triagem</h1>
+  <p class="ajuda-lead">
+    Antes de analisar, selecionamos <strong>quais</strong> artigos entram no acervo —
+    de forma reprodutível e auditável, seguindo o protocolo <strong>PRISMA-ScR</strong>
+    (revisão de escopo). A seleção é feita por <strong>≥2 revisores independentes</strong>,
+    o que reduz o viés e torna o funil rastreável de ponta a ponta.
+  </p>
+
+  <h2>O protocolo</h2>
+  {% if protocolo.pergunta_pesquisa %}
+    <p><strong>Pergunta de pesquisa:</strong> {{ protocolo.pergunta_pesquisa }}</p>
+  {% endif %}
+  <div class="criterios">
+    <strong style="font-family:var(--font-sans);font-size:13px;color:var(--color-ink);">Critérios de inclusão</strong>
+    <pre>{{ protocolo.criterios_inclusao|default:"(a definir pela curadoria)" }}</pre>
+  </div>
+  <div class="criterios">
+    <strong style="font-family:var(--font-sans);font-size:13px;color:var(--color-ink);">Critérios de exclusão</strong>
+    <pre>{{ protocolo.criterios_exclusao|default:"(a definir pela curadoria)" }}</pre>
+  </div>
+  <p style="margin-top:12px;">
+    Cada registro é avaliado por <strong>{{ protocolo.n_revisores }} revisores</strong>
+    (prazo de {{ protocolo.prazo_dias }} dias por triagem).
+  </p>
+
+  <h2>O fluxo, passo a passo</h2>
+  <div>
+    <div class="passo"><div class="num">1</div><div>
+      <div class="quem">Analista</div><h3>Importar uma base</h3>
+      <p>Exporte os resultados da sua busca (RIS, BibTeX ou CSV) e envie em <em>Importar busca</em>. O sistema deduplica automaticamente por DOI/ISBN/título e mostra um resumo.</p></div></div>
+    <div class="passo"><div class="num">2</div><div>
+      <div class="quem">Analista</div><h3>Revisar possíveis duplicatas</h3>
+      <p>Pares de títulos muito parecidos (mesmo artigo sem DOI, ou com DOI diferente) são listados para você confirmar: <em>mesclar</em> ou <em>não são duplicatas</em>.</p></div></div>
+    <div class="passo"><div class="num">3</div><div>
+      <div class="quem">Curador</div><h3>Iniciar a triagem</h3>
+      <p>Quando a coleta do período fecha, o curador dispara o sorteio: cada registro vai para {{ protocolo.n_revisores }} revisores independentes.</p></div></div>
+    <div class="passo"><div class="num">4</div><div>
+      <div class="quem">Revisores</div><h3>Triar (incluir / excluir / dúvida)</h3>
+      <p>Em <em>Minhas triagens</em>, cada revisor decide por título e resumo — sem ver quem coletou nem a decisão dos outros. Exclusões exigem motivo.</p></div></div>
+    <div class="passo"><div class="num">5</div><div>
+      <div class="quem">Sistema / Curador</div><h3>Consenso ou desempate</h3>
+      <p>Concordância resolve automaticamente. Em divergência, o curador faz o <em>desempate</em>.</p></div></div>
+    <div class="passo"><div class="num">6</div><div>
+      <div class="quem">Analista</div><h3>Analisar os incluídos</h3>
+      <p>Os incluídos viram artigos do acervo e aparecem em <em>A analisar</em> — onde você preenche a Matriz AnCo (4 abas).</p></div></div>
+    <div class="passo"><div class="num">7</div><div>
+      <div class="quem">Curador</div><h3>Publicar</h3>
+      <p>A curadoria aprova a análise e ela entra no acervo público. O <em>fluxograma PRISMA</em> acompanha as contagens em cada etapa.</p></div></div>
+  </div>
+
+  <h2>Quem faz o quê</h2>
+  <ul>
+    <li><strong>Analista</strong> — importa bases, revisa duplicatas, analisa os incluídos.</li>
+    <li><strong>Revisor</strong> (analista habilitado) — tria registros sorteados para si.</li>
+    <li><strong>Curador</strong> — inicia a triagem, resolve desempates e publica.</li>
+  </ul>
+
+  <p style="margin-top:32px;">
+    <a href="{% url 'triagem_painel' %}" class="btn btn-primary">Ir para a Triagem</a>
+  </p>
+</div>
+{% endblock %}

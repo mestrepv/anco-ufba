@@ -1,30 +1,28 @@
-{% extends "_base.html" %}
+{% extends "_base_publico.html" %}
 
 {% block title %}Desempates · Triagem{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl">
-  <a href="{% url 'triagem_painel' %}" class="text-sm text-slate-500 hover:text-anco">&larr; Triagem</a>
-  <h1 class="text-2xl font-bold text-anco mt-1 mb-1">Desempates pendentes</h1>
-  <p class="text-sm text-slate-500 mb-6">
+<div class="tg-wrap narrow">
+  <a href="{% url 'triagem_painel' %}" class="tg-back">&larr; Triagem</a>
+  <h1 class="tg-h1" style="margin-top:6px;">Desempates pendentes</h1>
+  <p class="tg-desc">
     Registros em que os revisores divergiram (ou marcaram dúvida). Decida a
     inclusão/exclusão final.
   </p>
 
   {% if registros %}
-    <ul class="space-y-2">
+    <ul class="tg-list">
       {% for r in registros %}
-        <li class="rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-center justify-between">
-          <div class="text-slate-800">{{ r.titulo|truncatechars:110 }}</div>
-          <a href="{% url 'triagem_desempatar' r.pk %}"
-             class="rounded-md bg-anco px-3 py-1.5 text-sm font-medium text-white hover:bg-anco-dark">
-            Resolver
-          </a>
+        <li class="tg-card tg-row" style="border-color:var(--color-review-rule);background:var(--color-review-bg);">
+          <div class="tg-item-title" style="font-size:14.5px;">{{ r.titulo|truncatechars:110 }}</div>
+          <a href="{% url 'triagem_desempatar' r.pk %}" class="btn btn-sm btn-primary" style="flex-shrink:0;">Resolver</a>
         </li>
       {% endfor %}
     </ul>
   {% else %}
-    <p class="text-slate-500">Nenhum desempate pendente.</p>
+    <p class="tg-empty">Nenhum desempate pendente.</p>
   {% endif %}
 </div>
 {% endblock %}

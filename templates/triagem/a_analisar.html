@@ -1,43 +1,41 @@
-{% extends "_base.html" %}
+{% extends "_base_publico.html" %}
 
 {% block title %}A analisar · Triagem{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl">
-  <a href="{% url 'triagem_painel' %}" class="text-sm text-slate-500 hover:text-anco">&larr; Triagem</a>
-  <h1 class="text-2xl font-bold text-anco mt-1 mb-1">Incluídos a analisar</h1>
-  <p class="text-sm text-slate-500 mb-6">
+<div class="tg-wrap">
+  <a href="{% url 'triagem_painel' %}" class="tg-back">&larr; Triagem</a>
+  <h1 class="tg-h1" style="margin-top:6px;">Incluídos a analisar</h1>
+  <p class="tg-desc">
     Artigos selecionados pela triagem (PRISMA-ScR) que você ainda não analisou.
     Escolha um para preencher a Matriz AnCo.
   </p>
 
   {% if pagina.object_list %}
-    <ul class="space-y-2">
+    <ul class="tg-list">
       {% for artigo in pagina %}
-        <li class="rounded-lg border border-slate-200 bg-white p-3 flex items-center justify-between gap-3">
+        <li class="tg-card tg-row">
           <div>
-            <div class="text-slate-800">{{ artigo.titulo|truncatechars:120 }}</div>
-            <div class="text-xs text-slate-400">
+            <div class="tg-item-title">{{ artigo.titulo|truncatechars:120 }}</div>
+            <div class="tg-meta">
               {{ artigo.ano|default:"s.d." }}{% if artigo.titulo_periodico %} · {{ artigo.titulo_periodico }}{% endif %}{% if artigo.doi %} · {{ artigo.doi }}{% endif %}
             </div>
           </div>
-          <a href="{% url 'iniciar_analise' artigo.pk %}"
-             class="shrink-0 rounded-md bg-anco px-3 py-1.5 text-sm font-medium text-white hover:bg-anco-dark">
-            Analisar
-          </a>
+          <a href="{% url 'iniciar_analise' artigo.pk %}" class="btn btn-sm btn-primary" style="flex-shrink:0;">Analisar</a>
         </li>
       {% endfor %}
     </ul>
 
     {% if pagina.has_other_pages %}
-      <div class="flex gap-3 mt-4 text-sm">
-        {% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}" class="text-anco">&larr; anterior</a>{% endif %}
-        <span class="text-slate-500">página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
-        {% if pagina.has_next %}<a href="?page={{ pagina.next_page_number }}" class="text-anco">próxima &rarr;</a>{% endif %}
+      <div class="tg-actions" style="margin-top:18px;align-items:center;">
+        {% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}" style="color:var(--color-gold-deep);font-family:var(--font-sans);font-size:14px;">&larr; anterior</a>{% endif %}
+        <span class="tg-meta">página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+        {% if pagina.has_next %}<a href="?page={{ pagina.next_page_number }}" style="color:var(--color-gold-deep);font-family:var(--font-sans);font-size:14px;">próxima &rarr;</a>{% endif %}
       </div>
     {% endif %}
   {% else %}
-    <p class="text-slate-500">Nenhum artigo incluído aguardando sua análise.</p>
+    <p class="tg-empty">Nenhum artigo incluído aguardando sua análise.</p>
   {% endif %}
 </div>
 {% endblock %}

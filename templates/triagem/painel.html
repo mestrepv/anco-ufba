@@ -1,69 +1,59 @@
-{% extends "_base.html" %}
+{% extends "_base_publico.html" %}
 
 {% block title %}Triagem · AnCo{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl">
-  <div class="flex items-center justify-between mb-2">
-    <h1 class="text-2xl font-bold text-anco">Triagem (PRISMA-ScR)</h1>
-    <div class="flex gap-2">
-      <a href="{% url 'triagem_duplicatas' %}"
-         class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:border-anco">
-        Possíveis duplicatas
-      </a>
-      <a href="{% url 'triagem_prisma' %}"
-         class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:border-anco">
-        Fluxograma PRISMA
-      </a>
-      <a href="{% url 'triagem_minhas' %}"
-         class="rounded-md border border-anco px-4 py-2 text-sm font-medium text-anco hover:bg-anco/5">
-        Minhas triagens
-      </a>
+<div class="tg-wrap">
+  <div class="tg-head">
+    <div>
+      <p class="t-eyebrow" style="margin:0 0 4px;">PRISMA-ScR</p>
+      <h1 class="tg-h1">Triagem</h1>
+    </div>
+    <div class="tg-actions">
+      <a href="{% url 'triagem_ajuda' %}" class="btn btn-secondary">Como funciona?</a>
       {% if user.is_staff or user.eh_curador %}
-        <a href="{% url 'triagem_desempate' %}"
-           class="rounded-md border border-amber-400 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50">
-          Desempates
-        </a>
+        <a href="{% url 'triagem_desempate' %}" class="btn btn-secondary">Desempates</a>
       {% endif %}
-      <a href="{% url 'triagem_importar' %}"
-         class="rounded-md bg-anco px-4 py-2 text-sm font-medium text-white hover:bg-anco-dark">
-        Importar busca
-      </a>
+      <a href="{% url 'triagem_importar' %}" class="btn btn-primary">Importar busca</a>
     </div>
   </div>
-  <p class="text-slate-600 mb-6">
+  <p class="tg-desc">
     Seleção de fontes anterior à análise: busca em ≥9 bases, triagem por ≥2
     revisores e fluxograma PRISMA. O acervo histórico (legado) não passa por triagem.
   </p>
 
-  <div class="rounded-lg border border-slate-200 bg-white p-4 mb-6">
-    <h2 class="font-semibold text-slate-800">{{ protocolo.titulo }}</h2>
-    <p class="text-sm text-slate-500 mt-1">
+  <div class="tg-card" style="margin-bottom:18px;">
+    <strong style="font-family:var(--font-serif);font-size:16px;color:var(--color-ink);">{{ protocolo.titulo }}</strong>
+    <div class="tg-meta" style="margin-top:4px;">
       {{ n_buscas }} busca{{ n_buscas|pluralize }} · {{ n_registros }} registro{{ n_registros|pluralize }} ·
       {{ protocolo.n_revisores }} revisores por registro · prazo {{ protocolo.prazo_dias }} dias
-    </p>
+    </div>
   </div>
 
-  <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
+  <div class="tg-actions" style="margin-bottom:24px;">
+    <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">A analisar</a>
+    <a href="{% url 'triagem_minhas' %}" class="btn btn-secondary">Minhas triagens</a>
+    <a href="{% url 'triagem_duplicatas' %}" class="btn btn-secondary">Possíveis duplicatas</a>
+    <a href="{% url 'triagem_prisma' %}" class="btn btn-secondary">Fluxograma PRISMA</a>
+  </div>
+
+  <div class="tg-grid-stats" style="margin-bottom:28px;">
     {% for card in cards %}
-      <a href="{% url 'triagem_registros' %}?status={{ card.codigo }}"
-         class="rounded-lg border border-slate-200 bg-white p-3 text-center hover:border-anco">
-        <div class="text-2xl font-bold text-anco">{{ card.count }}</div>
-        <div class="text-xs text-slate-500">{{ card.rotulo }}</div>
+      <a class="tg-stat" href="{% url 'triagem_registros' %}?status={{ card.codigo }}">
+        <div class="n">{{ card.count }}</div><div class="l">{{ card.rotulo }}</div>
       </a>
     {% endfor %}
   </div>
 
-  <h2 class="font-semibold text-slate-800 mb-2">Buscas recentes</h2>
+  <h2 class="tg-h2">Buscas recentes</h2>
   {% if buscas %}
-    <table class="w-full text-sm">
-      <thead class="text-left text-slate-500 border-b">
-        <tr><th class="py-1">Base</th><th>Formato</th><th>Identificados</th><th>Data</th></tr>
-      </thead>
+    <table class="tg-table">
+      <thead><tr><th>Base</th><th>Formato</th><th>Identificados</th><th>Data</th></tr></thead>
       <tbody>
         {% for b in buscas %}
-          <tr class="border-b border-slate-100">
-            <td class="py-1">{{ b.base_nome|default:"—" }}</td>
+          <tr>
+            <td>{{ b.base_nome|default:"—" }}</td>
             <td>{{ b.get_formato_display|default:"—" }}</td>
             <td>{{ b.n_identificados }}</td>
             <td>{{ b.data_busca|default:"—" }}</td>
@@ -72,7 +62,7 @@
       </tbody>
     </table>
   {% else %}
-    <p class="text-slate-500 text-sm">Nenhuma busca importada ainda.</p>
+    <p class="tg-empty">Nenhuma busca importada ainda.</p>
   {% endif %}
 </div>
 {% endblock %}

@@ -1,0 +1,45 @@
+{% comment %}Estilos compartilhados das telas de triagem (design system editorial).{% endcomment %}
+<style>
+  .tg-wrap { max-width: 1040px; margin: 0 auto; padding: clamp(28px,4vw,48px) clamp(20px,5vw,40px) 80px; }
+  .tg-wrap.narrow { max-width: 720px; }
+  .tg-back { font-family: var(--font-sans); font-size: 13px; color: var(--color-ink-3); text-decoration: none; }
+  .tg-back:hover { color: var(--color-gold-deep); }
+  .tg-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 6px 0 4px; }
+  .tg-h1 { font-family: var(--font-serif); font-weight: 500; font-size: clamp(24px,3vw,32px); color: var(--color-ink); margin: 0; }
+  .tg-h2 { font-family: var(--font-serif); font-weight: 500; font-size: 20px; color: var(--color-ink); margin: 36px 0 10px; }
+  .tg-desc { font-family: var(--font-sans); font-size: 14px; line-height: 1.6; color: var(--color-ink-3); margin: 8px 0 24px; }
+  .tg-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tg-card { border: 1px solid var(--color-rule); border-radius: 8px; background: var(--color-paper); padding: 16px 18px; }
+  .tg-card + .tg-card { margin-top: 10px; }
+  .tg-grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 10px; }
+  .tg-stat { border: 1px solid var(--color-rule); border-radius: 8px; padding: 12px; text-align: center; background: var(--color-paper); text-decoration: none; display: block; }
+  a.tg-stat:hover { border-color: var(--color-gold); }
+  .tg-stat .n { font-family: var(--font-serif); font-size: 26px; color: var(--color-ink); line-height: 1; }
+  .tg-stat .l { font-family: var(--font-sans); font-size: 11.5px; color: var(--color-ink-3); margin-top: 4px; }
+  .tg-table { width: 100%; border-collapse: collapse; font-family: var(--font-sans); font-size: 14px; }
+  .tg-table th { text-align: left; font-weight: 600; color: var(--color-ink-3); font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; padding: 8px; border-bottom: 1px solid var(--color-rule); }
+  .tg-table td { padding: 10px 8px; border-bottom: 1px solid var(--color-rule); color: var(--color-ink-2); vertical-align: top; }
+  .tg-item-title { font-family: var(--font-serif); font-size: 15px; color: var(--color-ink); text-decoration: none; line-height: 1.3; }
+  a.tg-item-title:hover { color: var(--color-gold-deep); }
+  .tg-meta { font-family: var(--font-sans); font-size: 12px; color: var(--color-ink-3); margin-top: 3px; }
+  .tg-empty { font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-3); font-style: italic; padding: 20px 0; }
+  .tg-note { border: 1px solid var(--color-review-rule); background: var(--color-review-bg); border-radius: 6px; padding: 12px 16px; font-family: var(--font-sans); font-size: 13.5px; line-height: 1.55; color: var(--color-ink-2); }
+  .tg-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+  .tg-chip { display: inline-flex; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--color-rule); font-family: var(--font-sans); font-size: 13px; color: var(--color-ink-3); text-decoration: none; }
+  .tg-chip:hover { border-color: var(--color-gold); }
+  .tg-chip.on { background: var(--color-ink); color: var(--color-paper); border-color: var(--color-ink); }
+  .tg-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .tg-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .tg-field { margin-bottom: 16px; }
+  .tg-field > label { display: block; font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--color-ink-2); margin-bottom: 6px; }
+  .tg-field input[type=text], .tg-field input[type=number], .tg-field input[type=date],
+  .tg-field input[type=file], .tg-field select, .tg-field textarea {
+    width: 100%; font-family: var(--font-sans); font-size: 14px; padding: 9px 11px;
+    border: 1px solid var(--color-rule-strong); border-radius: 6px;
+    background: var(--color-paper); color: var(--color-ink); box-sizing: border-box;
+  }
+  .tg-help { font-family: var(--font-sans); font-size: 12px; color: var(--color-ink-3); margin-top: 4px; }
+  .tg-err { font-family: var(--font-sans); font-size: 12px; color: var(--color-danger); margin-top: 4px; }
+  .tg-radio { display: flex; gap: 10px; flex-wrap: wrap; }
+  .tg-radio label { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--color-rule-strong); border-radius: 6px; padding: 8px 12px; cursor: pointer; font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2); }
+</style>

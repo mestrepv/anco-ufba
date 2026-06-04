@@ -1,54 +1,51 @@
-{% extends "_base.html" %}
+{% extends "_base_publico.html" %}
 
 {% block title %}Possíveis duplicatas · Triagem{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl">
-  <a href="{% url 'triagem_painel' %}" class="text-sm text-slate-500 hover:text-anco">&larr; Triagem</a>
-  <h1 class="text-2xl font-bold text-anco mt-1 mb-1">Possíveis duplicatas</h1>
-  <p class="text-sm text-slate-500 mb-6">
+<div class="tg-wrap narrow">
+  <a href="{% url 'triagem_painel' %}" class="tg-back">&larr; Triagem</a>
+  <h1 class="tg-h1" style="margin-top:6px;">Possíveis duplicatas</h1>
+  <p class="tg-desc">
     Pares com títulos muito parecidos que a deduplicação automática (DOI/ISBN) não
     juntou — mesmo artigo sem DOI ou com DOI divergente. Confirme cada par.
   </p>
 
   {% if pares %}
-    <ul class="space-y-3">
+    <ul class="tg-list">
       {% for par in pares %}
-        <li class="rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <div class="text-xs text-amber-700 mb-2">similaridade {{ par.sim }}</div>
-          <div class="grid sm:grid-cols-2 gap-3 mb-3">
-            <div class="text-sm">
-              <div class="text-slate-800">{{ par.a.titulo|truncatechars:140 }}</div>
-              <div class="text-xs text-slate-400">{{ par.a.ano|default:"s.d." }}{% if par.a.doi %} · {{ par.a.doi }}{% endif %}</div>
+        <li class="tg-card" style="border-color:var(--color-review-rule);background:var(--color-review-bg);">
+          <div class="tg-meta" style="color:var(--color-gold-deep);margin-bottom:8px;">similaridade {{ par.sim }}</div>
+          <div style="display:grid;gap:12px;margin-bottom:14px;">
+            <div>
+              <div class="tg-item-title" style="font-size:14.5px;">{{ par.a.titulo|truncatechars:140 }}</div>
+              <div class="tg-meta">{{ par.a.ano|default:"s.d." }}{% if par.a.doi %} · {{ par.a.doi }}{% endif %}</div>
             </div>
-            <div class="text-sm">
-              <div class="text-slate-800">{{ par.b.titulo|truncatechars:140 }}</div>
-              <div class="text-xs text-slate-400">{{ par.b.ano|default:"s.d." }}{% if par.b.doi %} · {{ par.b.doi }}{% endif %}</div>
+            <div>
+              <div class="tg-item-title" style="font-size:14.5px;">{{ par.b.titulo|truncatechars:140 }}</div>
+              <div class="tg-meta">{{ par.b.ano|default:"s.d." }}{% if par.b.doi %} · {{ par.b.doi }}{% endif %}</div>
             </div>
           </div>
-          <div class="flex gap-2">
+          <div class="tg-actions">
             <form method="post" action="{% url 'triagem_duplicata_mesclar' %}">
               {% csrf_token %}
               <input type="hidden" name="a" value="{{ par.a.pk }}">
               <input type="hidden" name="b" value="{{ par.b.pk }}">
-              <button class="rounded-md bg-anco px-3 py-1.5 text-sm font-medium text-white hover:bg-anco-dark">
-                São duplicatas (mesclar)
-              </button>
+              <button class="btn btn-sm btn-primary">São duplicatas (mesclar)</button>
             </form>
             <form method="post" action="{% url 'triagem_duplicata_descartar' %}">
               {% csrf_token %}
               <input type="hidden" name="a" value="{{ par.a.pk }}">
               <input type="hidden" name="b" value="{{ par.b.pk }}">
-              <button class="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-anco">
-                Não são duplicatas
-              </button>
+              <button class="btn btn-sm btn-secondary">Não são duplicatas</button>
             </form>
           </div>
         </li>
       {% endfor %}
     </ul>
   {% else %}
-    <p class="text-slate-500">Nenhuma possível duplicata pendente.</p>
+    <p class="tg-empty">Nenhuma possível duplicata pendente.</p>
   {% endif %}
 </div>
 {% endblock %}

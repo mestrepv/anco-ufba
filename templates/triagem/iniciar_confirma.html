@@ -1,18 +1,19 @@
-{% extends "_base.html" %}
+{% extends "_base_publico.html" %}
 
 {% block title %}Iniciar triagem · AnCo{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
 
 {% block content %}
-<div class="max-w-xl">
-  <a href="{% url 'triagem_registros' %}" class="text-sm text-slate-500 hover:text-anco">&larr; Registros</a>
-  <h1 class="text-2xl font-bold text-anco mt-1 mb-3">Iniciar triagem</h1>
+<div class="tg-wrap narrow">
+  <a href="{% url 'triagem_registros' %}" class="tg-back">&larr; Registros</a>
+  <h1 class="tg-h1" style="margin-top:6px;">Iniciar triagem</h1>
 
   {% if n_disponiveis %}
-    <p class="text-slate-700 mb-2">
+    <p style="font-family:var(--font-sans);font-size:15px;color:var(--color-ink-2);margin:12px 0 4px;">
       Você está fechando a coleta e iniciando a triagem de
       <strong>{{ n_disponiveis }}</strong> registro(s) identificado(s).
     </p>
-    <p class="text-sm text-slate-500 mb-6">
+    <p class="tg-desc">
       Cada registro será sorteado para <strong>{{ protocolo.n_revisores }}</strong>
       revisores independentes (prazo {{ protocolo.prazo_dias }} dias). Registros já no
       acervo ou marcados como duplicata não entram. Você pode importar mais bases e
@@ -20,13 +21,10 @@
     </p>
     <form method="post">
       {% csrf_token %}
-      <button type="submit"
-              class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
-        Confirmar e sortear revisores
-      </button>
+      <button type="submit" class="btn btn-primary">Confirmar e sortear revisores</button>
     </form>
   {% else %}
-    <p class="text-slate-500">Nenhum registro identificado disponível para triar agora.</p>
+    <p class="tg-empty">Nenhum registro identificado disponível para triar agora.</p>
   {% endif %}
 </div>
 {% endblock %}

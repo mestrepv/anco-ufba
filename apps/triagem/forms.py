@@ -8,10 +8,9 @@ from apps.vocabulario.models import TermoVocabulario
 
 from .models import RegistroTriagem
 
-_CSS = (
-    "w-full rounded-md border border-slate-300 px-3 py-2 text-sm "
-    "focus:border-anco focus:ring-1 focus:ring-anco"
-)
+# Os inputs são estilizados pelo design system via `.tg-field` nos templates
+# (ver templates/triagem/_estilos.html); não injetamos classes utilitárias aqui.
+_CSS = ""
 
 
 class ImportarBuscaForm(forms.Form):

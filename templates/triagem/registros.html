@@ -1,66 +1,53 @@
-{% extends "_base.html" %}
+{% extends "_base_publico.html" %}
 
 {% block title %}Registros · Triagem{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl">
-  <a href="{% url 'triagem_painel' %}" class="text-sm text-slate-500 hover:text-anco">&larr; Triagem</a>
-  <div class="flex items-center justify-between mt-1 mb-4">
-    <h1 class="text-2xl font-bold text-anco">Registros de triagem</h1>
-    <div class="flex gap-2">
+<div class="tg-wrap">
+  <a href="{% url 'triagem_painel' %}" class="tg-back">&larr; Triagem</a>
+  <div class="tg-head">
+    <h1 class="tg-h1">Registros de triagem</h1>
+    <div class="tg-actions">
       {% if n_para_triar and pode_curar %}
-        <a href="{% url 'triagem_iniciar' %}"
-           class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
-          Iniciar triagem ({{ n_para_triar }})
-        </a>
+        <a href="{% url 'triagem_iniciar' %}" class="btn btn-primary">Iniciar triagem ({{ n_para_triar }})</a>
       {% endif %}
-      <a href="{% url 'triagem_importar' %}"
-         class="rounded-md bg-anco px-4 py-2 text-sm font-medium text-white hover:bg-anco-dark">
-        Importar busca
-      </a>
+      <a href="{% url 'triagem_importar' %}" class="btn btn-secondary">Importar busca</a>
     </div>
   </div>
 
-  <div class="flex flex-wrap gap-2 mb-4 text-sm">
-    <a href="{% url 'triagem_registros' %}"
-       class="px-3 py-1 rounded-full border {% if not status_atual %}bg-anco text-white border-anco{% else %}border-slate-300 text-slate-600{% endif %}">Todos</a>
+  <div class="tg-chips" style="margin-top:18px;">
+    <a href="{% url 'triagem_registros' %}" class="tg-chip {% if not status_atual %}on{% endif %}">Todos</a>
     {% for codigo, rotulo in status_choices %}
-      <a href="?status={{ codigo }}"
-         class="px-3 py-1 rounded-full border {% if status_atual == codigo %}bg-anco text-white border-anco{% else %}border-slate-300 text-slate-600{% endif %}">{{ rotulo }}</a>
+      <a href="?status={{ codigo }}" class="tg-chip {% if status_atual == codigo %}on{% endif %}">{{ rotulo }}</a>
     {% endfor %}
   </div>
 
   {% if pagina.object_list %}
-    <table class="w-full text-sm">
-      <thead class="text-left text-slate-500 border-b">
-        <tr><th class="py-2">Título</th><th>Ano</th><th>Status</th><th>Acervo</th></tr>
-      </thead>
+    <table class="tg-table">
+      <thead><tr><th>Título</th><th>Ano</th><th>Status</th><th>Acervo</th></tr></thead>
       <tbody>
         {% for r in pagina %}
-          <tr class="border-b border-slate-100 align-top">
-            <td class="py-2 pr-3">
-              {{ r.titulo|truncatechars:120 }}
-              {% if r.doi %}<div class="text-xs text-slate-400">{{ r.doi }}</div>{% endif %}
-            </td>
-            <td class="py-2">{{ r.ano|default:"—" }}</td>
-            <td class="py-2">{{ r.get_status_display }}</td>
-            <td class="py-2">
-              {% if r.ja_no_acervo %}<span class="text-amber-600 text-xs">já no acervo</span>{% else %}—{% endif %}
-            </td>
+          <tr>
+            <td>{{ r.titulo|truncatechars:120 }}
+              {% if r.doi %}<div class="tg-meta">{{ r.doi }}</div>{% endif %}</td>
+            <td>{{ r.ano|default:"—" }}</td>
+            <td>{{ r.get_status_display }}</td>
+            <td>{% if r.ja_no_acervo %}<span style="color:var(--color-gold-deep);">já no acervo</span>{% else %}—{% endif %}</td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
 
     {% if pagina.has_other_pages %}
-      <div class="flex gap-3 mt-4 text-sm">
-        {% if pagina.has_previous %}<a href="?status={{ status_atual }}&page={{ pagina.previous_page_number }}" class="text-anco">&larr; anterior</a>{% endif %}
-        <span class="text-slate-500">página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
-        {% if pagina.has_next %}<a href="?status={{ status_atual }}&page={{ pagina.next_page_number }}" class="text-anco">próxima &rarr;</a>{% endif %}
+      <div class="tg-actions" style="margin-top:18px;align-items:center;">
+        {% if pagina.has_previous %}<a href="?status={{ status_atual }}&page={{ pagina.previous_page_number }}" style="color:var(--color-gold-deep);font-family:var(--font-sans);font-size:14px;">&larr; anterior</a>{% endif %}
+        <span class="tg-meta">página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+        {% if pagina.has_next %}<a href="?status={{ status_atual }}&page={{ pagina.next_page_number }}" style="color:var(--color-gold-deep);font-family:var(--font-sans);font-size:14px;">próxima &rarr;</a>{% endif %}
       </div>
     {% endif %}
   {% else %}
-    <p class="text-slate-500">Nenhum registro{% if status_atual %} com esse status{% endif %}.</p>
+    <p class="tg-empty">Nenhum registro{% if status_atual %} com esse status{% endif %}.</p>
   {% endif %}
 </div>
 {% endblock %}
