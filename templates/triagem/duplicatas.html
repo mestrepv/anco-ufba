@@ -8,11 +8,12 @@
   <a href="{% url 'triagem_painel' %}" class="tg-back">&larr; Triagem</a>
   <div class="tg-head">
     <h1 class="tg-h1">Possíveis duplicatas</h1>
-    {% if par %}<span class="tg-meta">{{ restantes }} par(es) a revisar</span>{% endif %}
+    {% if par %}<span class="tg-meta">Par {{ i|add:1 }} de {{ total }}</span>{% endif %}
   </div>
   <p class="tg-desc">
     Pares com títulos muito parecidos que a deduplicação automática (DOI/ISBN) não
-    juntou. Compare título, autores, resumo e palavras-chave e decida.
+    juntou. Compare e <strong>selecione qual registro manter</strong>; o outro é marcado
+    como duplicata. Você pode navegar sem decidir.
   </p>
 
   {% if par %}
@@ -32,27 +33,49 @@
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:18px;">
-      {% include "triagem/_registro_card.html" with r=par.a %}
-      {% include "triagem/_registro_card.html" with r=par.b %}
+      <div>
+        {% include "triagem/_registro_card.html" with r=par.a %}
+        <form method="post" action="{% url 'triagem_duplicata_mesclar' %}" style="margin-top:8px;">
+          {% csrf_token %}
+          <input type="hidden" name="manter" value="{{ par.a.pk }}">
+          <input type="hidden" name="duplicado" value="{{ par.b.pk }}">
+          <input type="hidden" name="i" value="{{ i }}">
+          <button class="btn btn-primary" style="width:100%;">Selecionar este (manter)</button>
+        </form>
+      </div>
+      <div>
+        {% include "triagem/_registro_card.html" with r=par.b %}
+        <form method="post" action="{% url 'triagem_duplicata_mesclar' %}" style="margin-top:8px;">
+          {% csrf_token %}
+          <input type="hidden" name="manter" value="{{ par.b.pk }}">
+          <input type="hidden" name="duplicado" value="{{ par.a.pk }}">
+          <input type="hidden" name="i" value="{{ i }}">
+          <button class="btn btn-primary" style="width:100%;">Selecionar este (manter)</button>
+        </form>
+      </div>
     </div>
 
-    <div class="tg-actions">
-      <form method="post" action="{% url 'triagem_duplicata_mesclar' %}">
-        {% csrf_token %}
-        <input type="hidden" name="a" value="{{ par.a.pk }}">
-        <input type="hidden" name="b" value="{{ par.b.pk }}">
-        <button class="btn btn-primary">São duplicatas — mesclar</button>
-      </form>
-      <form method="post" action="{% url 'triagem_duplicata_descartar' %}">
-        {% csrf_token %}
-        <input type="hidden" name="a" value="{{ par.a.pk }}">
-        <input type="hidden" name="b" value="{{ par.b.pk }}">
-        <button class="btn btn-secondary">Não são duplicatas</button>
-      </form>
+    <div class="tg-actions" style="justify-content:space-between;align-items:center;">
+      <div class="tg-actions">
+        {% if tem_anterior %}
+          <a href="?i={{ i|add:-1 }}" class="btn btn-secondary">&larr; Anterior</a>
+        {% endif %}
+        <form method="post" action="{% url 'triagem_duplicata_descartar' %}">
+          {% csrf_token %}
+          <input type="hidden" name="a" value="{{ par.a.pk }}">
+          <input type="hidden" name="b" value="{{ par.b.pk }}">
+          <input type="hidden" name="i" value="{{ i }}">
+          <button class="btn btn-secondary">Não são duplicatas</button>
+        </form>
+      </div>
+      {% if tem_proximo %}
+        <a href="?i={{ i|add:1 }}" class="btn btn-secondary">Pular &rarr;</a>
+      {% endif %}
     </div>
     <p class="tg-help" style="margin-top:12px;">
-      <strong>Mesclar</strong> mantém um registro e descarta o outro (some da triagem).
-      <strong>Não são duplicatas</strong> guarda o par como distinto e não o mostra de novo.
+      <strong>Selecionar este</strong> mantém o registro escolhido e marca o outro como
+      duplicata (some da triagem). <strong>Não são duplicatas</strong> guarda o par como
+      distinto. <strong>Pular</strong> avança sem decidir.
     </p>
   {% else %}
     <div class="tg-note" style="border-color:var(--color-ok);background:#eef4ea;color:#2f5a32;">

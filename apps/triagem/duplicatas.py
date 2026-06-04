@@ -94,7 +94,9 @@ def pares_possiveis(protocolo, limiar: float = LIMIAR, max_pares: int = 200) -> 
     # Prováveis duplicatas reais primeiro: mais sinais concordando (ano, autor),
     # depois maior similaridade de título. Os "mesmo título mas tudo diferente"
     # vão para o fim.
-    pares.sort(key=lambda p: (-_concordancia(p), -p["sim"]))
+    # Concordância (ano/autor) primeiro, depois similaridade; pk como desempate
+    # estável para a navegação por índice ser consistente entre cargas.
+    pares.sort(key=lambda p: (-_concordancia(p), -p["sim"], p["a"].pk, p["b"].pk))
     return pares
 
 

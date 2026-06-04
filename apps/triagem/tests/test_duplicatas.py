@@ -76,16 +76,42 @@ def test_descartar_remove_do_resultado(protocolo):
     assert len(dup.pares_possiveis(protocolo, limiar=0.4)) == 0
 
 
-def test_view_mesclar(client, protocolo, analista):
-    a = _reg(protocolo, "Título praticamente igual aqui")
-    b = _reg(protocolo, "Titulo praticamente igual aqui")
+def test_view_selecionar_este_mantem_o_escolhido(client, protocolo, analista):
+    a = _reg(protocolo, "Título praticamente igual aqui", doi="10.1/aa")
+    b = _reg(protocolo, "Titulo praticamente igual aqui", doi="10.1/bb")
     client.force_login(analista)
+    # "Selecionar este" no registro A: mantém A, marca B como duplicata
     resp = client.post(
-        reverse("triagem_duplicata_mesclar"), data={"a": a.pk, "b": b.pk}
+        reverse("triagem_duplicata_mesclar"),
+        data={"manter": a.pk, "duplicado": b.pk, "i": 0},
     )
     assert resp.status_code == 302
+    a.refresh_from_db()
     b.refresh_from_db()
     assert b.status == RegistroTriagem.Status.DUPLICADO
+    assert b.duplicado_de_id == a.pk
+    assert a.status != RegistroTriagem.Status.DUPLICADO
+
+
+def test_navegar_sem_decidir(client, protocolo, analista):
+    # dois pares distintos
+    _reg(protocolo, "Aprendizagem ativa em sala", doi="10.2/a")
+    _reg(protocolo, "Aprendizagem ativa em sala!", doi="10.2/b")
+    _reg(protocolo, "Memória de trabalho e leitura", doi="10.3/a")
+    _reg(protocolo, "Memória de trabalho e leitura!", doi="10.3/b")
+    client.force_login(analista)
+    r0 = client.get(reverse("triagem_duplicatas"))
+    assert r0.context["total"] == 2
+    assert r0.context["i"] == 0
+    assert r0.context["tem_proximo"] is True
+    # pular para o próximo sem decidir
+    r1 = client.get(reverse("triagem_duplicatas"), {"i": 1})
+    assert r1.context["i"] == 1
+    assert r1.context["tem_proximo"] is False
+    assert r1.context["tem_anterior"] is True
+    # nenhuma decisão foi tomada
+    from apps.triagem.models import RegistroTriagem as RT
+    assert not RT.objects.filter(status=RT.Status.DUPLICADO).exists()
 
 
 def test_view_duplicatas_renderiza(client, protocolo, analista):

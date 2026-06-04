@@ -21,6 +21,7 @@ from django.http import (
     JsonResponse,
 )
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -196,10 +197,17 @@ def registros_view(request: HttpRequest) -> HttpResponse:
 
 @_exige_analista
 def duplicatas_view(request: HttpRequest) -> HttpResponse:
-    """Revisão de possíveis duplicatas — um par por vez, com detalhes."""
+    """Revisão de possíveis duplicatas — um par por vez, navegável."""
     protocolo = ProtocoloTriagem.ativo()
     pares = dup.pares_possiveis(protocolo)
-    par = pares[0] if pares else None
+    n = len(pares)
+
+    try:
+        i = int(request.GET.get("i", 0))
+    except (TypeError, ValueError):
+        i = 0
+    i = max(0, min(i, n - 1)) if n else 0
+    par = pares[i] if n else None
 
     comparacao = None
     if par:
@@ -211,7 +219,6 @@ def duplicatas_view(request: HttpRequest) -> HttpResponse:
             "mesmo_autor": mesmo_autor,
             "autor_a": dup.primeiro_autor(a.autores),
             "autor_b": dup.primeiro_autor(b.autores),
-            # Forte sinal de NÃO-duplicata: ano e autor divergem (com dados).
             "provavel_distinto": (
                 a.ano and b.ano and not mesmo_ano and not mesmo_autor
             ),
@@ -220,34 +227,37 @@ def duplicatas_view(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "triagem/duplicatas.html",
-        {"par": par, "restantes": len(pares), "comp": comparacao},
+        {
+            "par": par, "comp": comparacao, "total": n,
+            "i": i, "tem_anterior": i > 0, "tem_proximo": i < n - 1,
+        },
     )
 
 
-def _par_do_post(request) -> tuple[RegistroTriagem, RegistroTriagem]:
-    a = get_object_or_404(RegistroTriagem, pk=request.POST.get("a"))
-    b = get_object_or_404(RegistroTriagem, pk=request.POST.get("b"))
-    return a, b
+def _voltar_duplicatas(request) -> str:
+    i = request.POST.get("i", "0")
+    return f"{reverse('triagem_duplicatas')}?i={i}"
 
 
 @_exige_analista
 @require_POST
 def mesclar_duplicata_view(request: HttpRequest) -> HttpResponse:
-    a, b = _par_do_post(request)
-    # canônico = menor pk (mantém o mais antigo); o outro vira duplicado.
-    canonico, duplicado = (a, b) if a.pk < b.pk else (b, a)
-    dup.mesclar(canonico, duplicado)
-    messages.success(request, "Registros mesclados (duplicata marcada).")
-    return redirect("triagem_duplicatas")
+    """'Selecionar este': mantém `manter`, marca o outro como duplicata dele."""
+    manter = get_object_or_404(RegistroTriagem, pk=request.POST.get("manter"))
+    duplicado = get_object_or_404(RegistroTriagem, pk=request.POST.get("duplicado"))
+    dup.mesclar(manter, duplicado)
+    messages.success(request, "Duplicata resolvida — mantido o registro selecionado.")
+    return redirect(_voltar_duplicatas(request))
 
 
 @_exige_analista
 @require_POST
 def descartar_duplicata_view(request: HttpRequest) -> HttpResponse:
-    a, b = _par_do_post(request)
+    a = get_object_or_404(RegistroTriagem, pk=request.POST.get("a"))
+    b = get_object_or_404(RegistroTriagem, pk=request.POST.get("b"))
     dup.descartar(a, b)
     messages.info(request, "Par marcado como não duplicata.")
-    return redirect("triagem_duplicatas")
+    return redirect(_voltar_duplicatas(request))
 
 
 @_exige_curador
