@@ -11,9 +11,12 @@ NOVAS_BASES = ["Rianco", "Saber Aberto", "Scielo"]
 def adicionar(apps, schema_editor):
     Vocabulario = apps.get_model("vocabulario", "Vocabulario")
     Termo = apps.get_model("vocabulario", "TermoVocabulario")
-    base, _ = Vocabulario.objects.get_or_create(
-        codigo="base", defaults={"nome": "Base"}
-    )
+    # Só anexa termos a um vocabulário `base` já existente (não o cria — o
+    # seed do `base` vem da fixture/legado; criar aqui quebraria fixtures de
+    # teste que criam o próprio `base`).
+    base = Vocabulario.objects.filter(codigo="base").first()
+    if base is None:
+        return
     for nome in NOVAS_BASES:
         Termo.objects.get_or_create(
             vocabulario=base, nome=nome, defaults={"ativo": True}

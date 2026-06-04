@@ -250,5 +250,20 @@
       ],
       "criado_em": "2026-04-29T12:00:00Z"
     }
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 203,
+    "fields": {"vocabulario": 1, "nome": "RIAnCo", "ativo": true, "sinonimos": [], "criado_em": "2026-04-29T12:00:00Z"}
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 204,
+    "fields": {"vocabulario": 1, "nome": "Saber Aberto", "ativo": true, "sinonimos": [], "criado_em": "2026-04-29T12:00:00Z"}
+  },
+  {
+    "model": "vocabulario.termovocabulario",
+    "pk": 205,
+    "fields": {"vocabulario": 1, "nome": "SciELO", "ativo": true, "sinonimos": ["Scielo"], "criado_em": "2026-04-29T12:00:00Z"}
   }
 ]
