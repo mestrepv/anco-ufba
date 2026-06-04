@@ -43,21 +43,13 @@
 
     <div class="tg-fieldset-title">Filtros aplicados</div>
     <div class="tg-field tg-slider"
-         x-data="{ de: {{ form.ano_inicio.value|default:ano_min }}, ate: {{ form.ano_fim.value|default:ano_max }} }">
-      <label>Período: <strong x-text="de"></strong> – <strong x-text="ate"></strong></label>
-      <div class="tg-slider-row">
-        <span class="tg-slider-lbl">De</span>
-        <input type="range" name="ano_inicio" min="{{ ano_min }}" max="{{ ano_max }}"
-               :max="ate" x-model.number="de">
-      </div>
-      <div class="tg-slider-row">
-        <span class="tg-slider-lbl">Até</span>
-        <input type="range" name="ano_fim" min="{{ ano_min }}" max="{{ ano_max }}"
-               :min="de" x-model.number="ate">
-      </div>
+         x-data="{ de: {{ form.ano_inicio.value|default:ano_min }} }">
+      <label>Período: <strong x-text="de"></strong> – {{ ano_max }}</label>
+      <input type="range" name="ano_inicio" min="{{ ano_min }}" max="{{ ano_max }}" step="1"
+             x-model.number="de">
+      <input type="hidden" name="ano_fim" value="{{ ano_max }}">
       {% for e in form.ano_inicio.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
-      {% for e in form.ano_fim.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
-      <p class="tg-help">Arraste para definir o intervalo de anos da busca.</p>
+      <p class="tg-help">Arraste para definir o ano inicial (busca até {{ ano_max }}).</p>
     </div>
     <div class="tg-field">
       <label>{{ form.idiomas.label }}</label>
