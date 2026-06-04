@@ -101,7 +101,7 @@
       <p style="margin:4px 0 0;font-family:var(--font-sans);font-size:13px;color:var(--color-ink-3);">{{ user.get_papel_display }}{% if user.vinculo_institucional %} · {{ user.vinculo_institucional }}{% endif %}</p>
     </div>
     {% if user.eh_analista %}
-    <a href="{% url 'cadastrar_artigo' %}" class="btn btn-primary">Enviar contribuição</a>
+    <a href="{% url 'triagem_a_analisar' %}" class="btn btn-primary">A analisar</a>
     {% endif %}
   </header>
 
@@ -168,7 +168,7 @@
         {% endfor %}
       </div>
     {% else %}
-      <p class="empty">Você ainda não tem análises. {% if user.eh_analista %}<a href="{% url 'cadastrar_artigo' %}" style="color:var(--color-gold-deep);">Cadastrar análise →</a>{% endif %}</p>
+      <p class="empty">Você ainda não tem análises. {% if user.eh_analista %}<a href="{% url 'triagem_a_analisar' %}" style="color:var(--color-gold-deep);">Ver artigos a analisar →</a>{% endif %}</p>
     {% endif %}
   </section>
 
@@ -216,6 +216,26 @@
       </div>
     </details>
     {% endif %}
+  </section>
+  {% endif %}
+
+  {# ── Triagem (PRISMA-ScR) ───────────────────────────────────────── #}
+  {% if user.eh_analista %}
+  <section class="painel-secao">
+    <h2>Triagem (PRISMA-ScR)</h2>
+    <p class="secao-desc">Seleção de fontes anterior à análise: busca em bases, deduplicação e triagem por pares.</p>
+    <ul style="list-style:none;padding:0;margin:0;display:grid;gap:8px;font-family:var(--font-sans);font-size:14px;">
+      <li><a href="{% url 'triagem_painel' %}" style="color:var(--color-gold-deep);">Painel da triagem →</a></li>
+      <li><a href="{% url 'triagem_a_analisar' %}" style="color:var(--color-gold-deep);">Artigos a analisar →</a></li>
+      <li><a href="{% url 'triagem_minhas' %}" style="color:var(--color-gold-deep);">Minhas triagens →</a></li>
+      <li><a href="{% url 'triagem_importar' %}" style="color:var(--color-gold-deep);">Importar busca (RIS/BibTeX/CSV) →</a></li>
+      <li><a href="{% url 'triagem_duplicatas' %}" style="color:var(--color-gold-deep);">Possíveis duplicatas →</a></li>
+      <li><a href="{% url 'triagem_prisma' %}" style="color:var(--color-gold-deep);">Fluxograma PRISMA →</a></li>
+      {% if user.is_staff or user.eh_curador %}
+      <li><a href="{% url 'triagem_iniciar' %}" style="color:var(--color-gold-deep);">Iniciar triagem (curador) →</a></li>
+      <li><a href="{% url 'triagem_desempate' %}" style="color:var(--color-gold-deep);">Desempates pendentes (curador) →</a></li>
+      {% endif %}
+    </ul>
   </section>
   {% endif %}
 
