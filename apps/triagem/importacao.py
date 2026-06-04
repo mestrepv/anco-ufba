@@ -16,6 +16,8 @@ import logging
 import re
 from dataclasses import dataclass
 
+from django.utils import timezone
+
 from apps.acervo.models import _gerar_identificador_interno
 from apps.acervo.services.crossref import normalizar_doi
 
@@ -278,6 +280,20 @@ def importar_para_busca(busca: Busca, registros_brutos: list[dict]) -> Resultado
             res.criados += 1
         reg.save()
         reg.origem_buscas.add(busca)
+
+    # Persiste o resultado da importação na própria busca (PRISMA por fonte).
+    busca.n_lidos = res.total
+    busca.n_novos = res.criados
+    busca.n_duplicados = res.duplicados
+    busca.n_ja_no_acervo = res.ja_no_acervo
+    busca.n_ignorados = res.ignorados
+    busca.importado_em = timezone.now()
+    busca.save(
+        update_fields=[
+            "n_lidos", "n_novos", "n_duplicados", "n_ja_no_acervo",
+            "n_ignorados", "importado_em",
+        ]
+    )
 
     logger.info(
         "Importação busca=%s base=%s total=%d criados=%d duplicados=%d ja_no_acervo=%d ignorados=%d",

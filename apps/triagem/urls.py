@@ -7,6 +7,7 @@ from . import views
 urlpatterns = [
     path("", views.painel_view, name="triagem_painel"),
     path("importar/", views.importar_view, name="triagem_importar"),
+    path("busca/<int:busca_id>/", views.busca_resumo_view, name="triagem_busca_resumo"),
     path("registros/", views.registros_view, name="triagem_registros"),
     path("iniciar/", views.iniciar_triagem_view, name="triagem_iniciar"),
     path("minhas/", views.minhas_triagens_view, name="triagem_minhas"),

@@ -94,7 +94,6 @@ def painel_view(request: HttpRequest) -> HttpResponse:
 @_exige_analista
 def importar_view(request: HttpRequest) -> HttpResponse:
     protocolo = ProtocoloTriagem.ativo()
-    resultado = None
 
     if request.method == "POST":
         form = ImportarBuscaForm(request.POST, request.FILES)
@@ -127,21 +126,30 @@ def importar_view(request: HttpRequest) -> HttpResponse:
                     busca.delete()
                     form.add_error("arquivo", f"Falha ao ler o arquivo: {exc}")
                 else:
-                    resultado = importar_para_busca(busca, registros)
-                    messages.success(
-                        request,
-                        f"Busca #{busca.pk} ({busca.base_nome}): {resultado.criados} "
-                        f"novos, {resultado.duplicados} duplicados, "
-                        f"{resultado.ja_no_acervo} já no acervo.",
-                    )
-                    return redirect("triagem_registros")
+                    importar_para_busca(busca, registros)
+                    return redirect("triagem_busca_resumo", busca_id=busca.pk)
     else:
         form = ImportarBuscaForm()
 
     return render(
         request,
         "triagem/importar.html",
-        {"form": form, "protocolo": protocolo, "resultado": resultado},
+        {"form": form, "protocolo": protocolo},
+    )
+
+
+@_exige_analista
+def busca_resumo_view(request: HttpRequest, busca_id: int) -> HttpResponse:
+    """Resumo da deduplicação de uma busca recém-importada."""
+    busca = get_object_or_404(Busca, pk=busca_id)
+    registros = (
+        busca.registros.select_related("artigo")
+        .order_by("ja_no_acervo", "titulo")
+    )
+    return render(
+        request,
+        "triagem/busca_resumo.html",
+        {"busca": busca, "registros": registros},
     )
 
 

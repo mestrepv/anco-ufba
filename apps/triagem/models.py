@@ -105,6 +105,13 @@ class Busca(models.Model):
     n_identificados = models.PositiveIntegerField(
         default=0, help_text="Total de registros relatado pela base (para o PRISMA)."
     )
+    # Resultado da importação deste arquivo (preenchido em importar_para_busca).
+    n_lidos = models.PositiveIntegerField(default=0)
+    n_novos = models.PositiveIntegerField(default=0)
+    n_duplicados = models.PositiveIntegerField(default=0)
+    n_ja_no_acervo = models.PositiveIntegerField(default=0)
+    n_ignorados = models.PositiveIntegerField(default=0)
+    importado_em = models.DateTimeField(null=True, blank=True)
     arquivo = models.FileField(
         upload_to="triagem/buscas/", null=True, blank=True,
         help_text="Export cru (RIS/BibTeX/CSV), guardado para auditoria.",

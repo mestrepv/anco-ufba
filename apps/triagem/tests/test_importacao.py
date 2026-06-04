@@ -171,6 +171,6 @@ def test_upload_ris_cria_registro(client, analista, base_termo, settings, tmp_pa
               "string_busca": "cog", "n_identificados": 1, "arquivo": arquivo},
     )
     assert resp.status_code == 302
-    assert resp.headers["Location"] == reverse("triagem_registros")
+    busca = Busca.objects.filter(base_consulta=base_termo).latest("pk")
+    assert resp.headers["Location"] == reverse("triagem_busca_resumo", args=[busca.pk])
     assert RegistroTriagem.objects.filter(doi="10.1000/abc123").exists()
-    assert Busca.objects.filter(base_consulta=base_termo).exists()
