@@ -122,6 +122,43 @@ def test_triar_post_registra_decisao(client, protocolo, revisores):
     assert decisao.concluido_em is not None
 
 
+def test_triar_auto_avanca_para_proxima(client, protocolo):
+    # pool de exatamente 2 revisores → ambos pegam todos os registros
+    rev = _revisor(0)
+    _revisor(1)
+    r1 = RegistroTriagem.objects.create(protocolo=protocolo, titulo="A1", doi="10.4/a")
+    r2 = RegistroTriagem.objects.create(protocolo=protocolo, titulo="A2", doi="10.4/b")
+    executar_sorteio(r1)
+    executar_sorteio(r2)
+    d1 = DecisaoTriagem.objects.filter(registro=r1, revisor=rev).first()
+    d2 = DecisaoTriagem.objects.filter(registro=r2, revisor=rev).first()
+    assert d1 and d2  # ambos sorteados para este revisor
+    client.force_login(rev)
+    resp = client.post(
+        reverse("triagem_triar", args=[d1.pk]),
+        data={"decisao": "incluir", "motivo_exclusao": "", "comentario": ""},
+    )
+    # auto-avança direto para a próxima pendente (não volta para a lista)
+    assert resp.status_code == 302
+    assert resp.headers["Location"] == reverse("triagem_triar", args=[d2.pk])
+
+
+def test_triar_mostra_progresso_e_realce(client, protocolo, revisores):
+    protocolo.termos_realce = "cognição"
+    protocolo.save()
+    reg = RegistroTriagem.objects.create(
+        protocolo=protocolo, titulo="Estudo de cognição", doi="10.4/c",
+        resumo="A cognição humana.",
+    )
+    executar_sorteio(reg)
+    d = DecisaoTriagem.objects.filter(registro=reg).first()
+    client.force_login(d.revisor)
+    resp = client.get(reverse("triagem_triar", args=[d.pk]))
+    assert resp.status_code == 200
+    assert b"de " in resp.content  # "Triagem 1 de N"
+    assert b"<mark>" in resp.content  # termo destacado
+
+
 def test_triar_excluir_exige_motivo(client, protocolo, revisores):
     reg = RegistroTriagem.objects.create(protocolo=protocolo, titulo="Z", doi="10.1/z")
     executar_sorteio(reg)

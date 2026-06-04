@@ -1,28 +1,37 @@
 {% extends "_base_publico.html" %}
 
 {% block title %}Minhas triagens · AnCo{% endblock %}
-{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}
+<style>
+  .tg-progress { height: 6px; background: var(--color-paper-2); border-radius: 999px; overflow: hidden; margin: 10px 0 0; }
+  .tg-progress > span { display: block; height: 100%; background: var(--color-gold-deep); }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="tg-wrap narrow">
   <a href="{% url 'triagem_painel' %}" class="tg-back">&larr; Triagem</a>
   <h1 class="tg-h1" style="margin-top:6px;">Minhas triagens</h1>
 
-  <h2 class="tg-h2">Pendentes ({{ pendentes|length }})</h2>
-  {% if pendentes %}
-    <ul class="tg-list">
-      {% for d in pendentes %}
-        <li class="tg-card tg-row">
-          <div>
-            <div class="tg-item-title">{{ d.registro.titulo|truncatechars:110 }}</div>
-            <div class="tg-meta">prazo: {{ d.prazo_em|date:"d/m/Y" }}</div>
+  {% if primeiro %}
+    <div class="tg-card" style="margin:14px 0 26px;border-color:var(--color-review-rule);background:var(--color-review-bg);">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div style="font-family:var(--font-serif);font-size:18px;color:var(--color-ink);">
+            {{ pendentes|length }} registro(s) para triar
           </div>
-          <a href="{% url 'triagem_triar' d.pk %}" class="btn btn-sm btn-primary" style="flex-shrink:0;">Triar</a>
-        </li>
-      {% endfor %}
-    </ul>
+          <div class="tg-meta">Você já triou {{ feitas }} de {{ total }}.</div>
+        </div>
+        <a href="{% url 'triagem_triar' primeiro.pk %}" class="btn btn-primary">
+          {% if feitas %}Continuar triagem &rarr;{% else %}Começar a triar &rarr;{% endif %}
+        </a>
+      </div>
+      <div class="tg-progress"><span style="width:{{ pct }}%;"></span></div>
+    </div>
   {% else %}
-    <p class="tg-empty">Nenhuma triagem pendente.</p>
+    <div class="tg-note" style="border-color:var(--color-ok);background:#eef4ea;color:#2f5a32;margin:14px 0 26px;">
+      ✔ Nenhuma triagem pendente. {% if total %}Você triou todos os {{ total }} registros sorteados. 🎉{% endif %}
+    </div>
   {% endif %}
 
   {% if concluidas %}

@@ -316,7 +316,7 @@ def iniciar_triagem_view(request: HttpRequest) -> HttpResponse:
 
 @_exige_analista
 def minhas_triagens_view(request: HttpRequest) -> HttpResponse:
-    pendentes = (
+    pendentes = list(
         DecisaoTriagem.objects.filter(revisor=request.user, concluido_em__isnull=True)
         .select_related("registro")
         .order_by("prazo_em")
@@ -326,10 +326,19 @@ def minhas_triagens_view(request: HttpRequest) -> HttpResponse:
         .select_related("registro")
         .order_by("-concluido_em")[:20]
     )
+    total = DecisaoTriagem.objects.filter(revisor=request.user).count()
+    feitas = total - len(pendentes)
     return render(
         request,
         "triagem/minhas_triagens.html",
-        {"pendentes": pendentes, "concluidas": concluidas},
+        {
+            "pendentes": pendentes,
+            "concluidas": concluidas,
+            "primeiro": pendentes[0] if pendentes else None,
+            "total": total,
+            "feitas": feitas,
+            "pct": round(feitas * 100 / total) if total else 0,
+        },
     )
 
 
@@ -337,7 +346,7 @@ def minhas_triagens_view(request: HttpRequest) -> HttpResponse:
 def triar_view(request: HttpRequest, decisao_id: int) -> HttpResponse:
     """Interface de triagem mascarada: o revisor vê só os metadados do registro."""
     decisao = get_object_or_404(
-        DecisaoTriagem.objects.select_related("registro"), pk=decisao_id
+        DecisaoTriagem.objects.select_related("registro__protocolo"), pk=decisao_id
     )
     if decisao.revisor_id != request.user.id:
         return HttpResponseForbidden("Esta triagem não é sua.")
@@ -354,16 +363,51 @@ def triar_view(request: HttpRequest, decisao_id: int) -> HttpResponse:
             decisao.comentario = form.cleaned_data["comentario"]
             decisao.concluido_em = timezone.now()
             decisao.save()  # signal dispara a avaliação
-            messages.success(request, "Decisão registrada. Obrigado!")
+            # Auto-avançar: vai direto ao próximo pendente (fluxo guiado).
+            prox = (
+                DecisaoTriagem.objects.filter(
+                    revisor=request.user, concluido_em__isnull=True
+                )
+                .exclude(pk=decisao.pk)
+                .order_by("prazo_em")
+                .first()
+            )
+            if prox is not None:
+                return redirect("triagem_triar", decisao_id=prox.pk)
+            messages.success(
+                request, "Triagem concluída! 🎉 Você triou todos os registros sorteados."
+            )
             return redirect("triagem_minhas")
     else:
         form = DecisaoTriagemForm()
+
+    # Progresso do revisor (X de Y) para o fluxo guiado.
+    total = DecisaoTriagem.objects.filter(revisor=request.user).count()
+    feitas = DecisaoTriagem.objects.filter(
+        revisor=request.user, concluido_em__isnull=False
+    ).count()
+    pct = round(feitas * 100 / total) if total else 0
+    proximo = (
+        DecisaoTriagem.objects.filter(revisor=request.user, concluido_em__isnull=True)
+        .exclude(pk=decisao.pk)
+        .order_by("prazo_em")
+        .first()
+    )
 
     # Mascarado: nenhuma informação sobre coletor ou outros revisores.
     return render(
         request,
         "triagem/triar.html",
-        {"decisao": decisao, "registro": registro, "form": form},
+        {
+            "decisao": decisao,
+            "registro": registro,
+            "form": form,
+            "termos_realce": registro.protocolo.termos_realce,
+            "posicao": feitas + 1,
+            "total": total,
+            "pct": pct,
+            "proximo": proximo,
+        },
     )
 
 

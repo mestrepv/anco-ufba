@@ -52,6 +52,10 @@ class ProtocoloTriagem(models.Model):
     criterios_exclusao = models.TextField(
         blank=True, help_text="Critérios de exclusão pré-registrados (PRISMA-ScR)."
     )
+    termos_realce = models.TextField(
+        blank=True,
+        help_text="Termos destacados no título/resumo durante a triagem (separados por vírgula).",
+    )
     n_revisores = models.PositiveSmallIntegerField(
         default=2, help_text="Revisores independentes por registro (≥2)."
     )
