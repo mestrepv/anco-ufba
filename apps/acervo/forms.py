@@ -266,6 +266,21 @@ class AnalisePresencaForm(_AnaliseFormBase):
             "aspectos_relevantes": forms.Textarea(attrs={"rows": 3}),
             "definicao_extraida": forms.Textarea(attrs={"rows": 3}),
         }
+        labels = {
+            "presenca_titulo": "Aparece no título?",
+            "presenca_resumo": "Aparece no resumo?",
+            "presenca_palavras_chave": "Aparece nas palavras-chave?",
+            "presenca_referencias": "Aparece nas referências?",
+            "presenca_corpo": "Aparece no corpo do texto?",
+            "pertinencia": "A obra é pertinente à Análise Cognitiva?",
+            "aspectos_relevantes": "Aspectos relevantes",
+            "define_conceito": "A obra define o conceito de Análise Cognitiva?",
+            "definicao_extraida": "Definição extraída",
+        }
+        help_texts = {
+            "aspectos_relevantes": "Em que a obra dialoga com a Análise Cognitiva.",
+            "definicao_extraida": "Se a obra define o conceito, transcreva a definição.",
+        }
 
 
 class AnaliseEstruturaForm(_AnaliseFormBase):
@@ -280,6 +295,23 @@ class AnaliseEstruturaForm(_AnaliseFormBase):
             "resultados": forms.Textarea(attrs={"rows": 3}),
             "contexto_producao": forms.Textarea(attrs={"rows": 2}),
             "observacoes": forms.Textarea(attrs={"rows": 2}),
+        }
+        labels = {
+            "teoria": "Teoria de referência",
+            "contexto_producao": "Contexto de produção",
+            "observacoes": "Observações",
+        }
+        help_texts = {
+            "objeto": "O que (ou quem) a obra investiga.",
+            "objetivo": "O que a obra se propõe a alcançar.",
+            "foco": "Recorte ou ângulo central da abordagem.",
+            "metodologia": "Métodos e procedimentos de pesquisa.",
+            "epistemologia": "Posições epistemológicas — digite para buscar e selecione.",
+            "teoria": "Teorias mobilizadas — digite para buscar e selecione.",
+            "referenciais": "Principais autores e obras de referência.",
+            "resultados": "Principais achados ou conclusões.",
+            "contexto_producao": "Onde/como a obra foi produzida (país, área, projeto).",
+            "observacoes": "Anotações livres do analista.",
         }
 
 

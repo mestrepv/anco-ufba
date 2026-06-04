@@ -416,6 +416,8 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
         messages.success(request, "Passo salvo.")
         return _avancar(passo)
 
+    ordem = [p for p, _ in PASSOS]
+    idx = ordem.index(passo)
     return render(
         request,
         "acervo/editar_analise.html",
@@ -424,6 +426,8 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
             "passos": PASSOS,
             "tabs": _tabs(analise.pk),
             "passo_atual": passo,
+            "passo_anterior": ordem[idx - 1] if idx > 0 else None,
+            "passo_proximo": ordem[idx + 1] if idx + 1 < len(ordem) else None,
             "form": form,
             "artigo_form": artigo_form,
             "resenha": getattr(analise, "resenha", None),

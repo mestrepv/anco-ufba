@@ -121,6 +121,16 @@
       </span>
     </header>
 
+    {% if passo_atual == "presenca" %}
+    <p class="t-small" style="color: var(--color-ink-3); margin: -6px 0 18px;">
+      Indique se o termo <strong>Análise Cognitiva</strong> aparece em cada parte da obra e avalie sua pertinência. Os campos em branco contam como não respondidos.
+    </p>
+    {% elif passo_atual == "estrutura" %}
+    <p class="t-small" style="color: var(--color-ink-3); margin: -6px 0 18px;">
+      Descreva a estrutura analítica da obra segundo a grade AnCo. As dicas abaixo de cada campo orientam o preenchimento.
+    </p>
+    {% endif %}
+
     <div style="display: grid; gap: 16px;">
     {% for field in form %}
       <div>
@@ -141,8 +151,8 @@
     </div>
 
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 18px; margin-top: 18px; border-top: 1px solid var(--color-paper-3);">
-      <a href="?passo=identificacao" class="btn btn-ghost btn-sm">← Voltar</a>
-      <button type="submit" class="btn btn-primary btn-sm">Salvar{% if not eh_admin_edit %} e avançar{% endif %}</button>
+      {% if passo_anterior %}<a href="?passo={{ passo_anterior }}" class="btn btn-ghost btn-sm">← Voltar</a>{% else %}<span></span>{% endif %}
+      <button type="submit" class="btn btn-primary btn-sm">Salvar{% if passo_proximo and not eh_admin_edit %} e avançar{% endif %}</button>
     </div>
   </form>
   {% endif %}
