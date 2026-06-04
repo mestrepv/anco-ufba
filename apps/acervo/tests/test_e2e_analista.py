@@ -148,7 +148,17 @@ class TestFluxoCompletoComDoi:
         )
         assert resp.status_code == 302  # redireciona para o passo seguinte
 
-        # Passo 4: editar — passo "estrutura"
+        # Termos de epistemologia/teoria (obrigatórios para submeter)
+        v_epist, _ = Vocabulario.objects.get_or_create(
+            codigo="epistemologia", defaults={"nome": "Epistemologia"}
+        )
+        v_teor, _ = Vocabulario.objects.get_or_create(
+            codigo="teoria", defaults={"nome": "Teoria"}
+        )
+        t_epist = TermoVocabulario.objects.create(vocabulario=v_epist, nome="Empirismo")
+        t_teor = TermoVocabulario.objects.create(vocabulario=v_teor, nome="Cognição")
+
+        # Passo 4: editar — passo "estrutura" (todos os campos preenchidos)
         resp = cliente.post(
             reverse("editar_analise", args=[analise.pk]) + "?passo=estrutura",
             data={
@@ -156,12 +166,12 @@ class TestFluxoCompletoComDoi:
                 "objetivo": "Investigar processos",
                 "foco": "Decisão coletiva",
                 "metodologia": "Estudo de caso",
-                "epistemologia": [],
-                "teoria": [],
+                "epistemologia": [t_epist.pk],
+                "teoria": [t_teor.pk],
                 "referenciais": "Vygotsky, Bakhtin",
                 "resultados": "Identificou padrões emergentes",
-                "contexto_producao": "",
-                "observacoes": "",
+                "contexto_producao": "Pesquisa de doutorado",
+                "observacoes": "—",
             },
         )
         assert resp.status_code == 302

@@ -165,6 +165,32 @@ def analise_rascunho(db, analista, artigo):
     return Analise.objects.create(artigo=artigo, analista=analista)
 
 
+@pytest.fixture
+def analise_completa(db, analista, vocab):
+    """Análise com todos os campos das abas 1–3 preenchidos (pronta p/ submeter)."""
+    from apps.vocabulario.models import TermoVocabulario, Vocabulario
+
+    artigo = Artigo.objects.create(
+        doi="10.x/completa", titulo="Completa", ano=2020,
+        base_consulta=vocab, link_acesso="https://example.org/c",
+        area="Ciências Humanas",
+    )
+    a = Analise.objects.create(
+        artigo=artigo, analista=analista,
+        presenca_titulo=True, presenca_resumo=True, presenca_palavras_chave=True,
+        presenca_referencias=True, presenca_corpo=True, pertinencia=True,
+        define_conceito=False,
+        aspectos_relevantes="x", objeto="x", objetivo="x", foco="x",
+        metodologia="x", referenciais="x", resultados="x",
+        contexto_producao="x", observacoes="x",
+    )
+    ve, _ = Vocabulario.objects.get_or_create(codigo="epistemologia", defaults={"nome": "Epistemologia"})
+    vt, _ = Vocabulario.objects.get_or_create(codigo="teoria", defaults={"nome": "Teoria"})
+    a.epistemologia.add(TermoVocabulario.objects.create(vocabulario=ve, nome="Empirismo"))
+    a.teoria.add(TermoVocabulario.objects.create(vocabulario=vt, nome="Cognição"))
+    return a
+
+
 class TestEditarAnalise:
     def test_get_passo_identificacao(self, cliente_analista, analise_rascunho):
         url = reverse("editar_analise", args=[analise_rascunho.pk])
@@ -270,26 +296,35 @@ class TestAutoSave:
 
 
 class TestSubmeter:
-    def test_get_renderiza_confirmacao(self, cliente_analista, analise_rascunho):
-        url = reverse("submeter_analise", args=[analise_rascunho.pk])
+    def test_get_renderiza_confirmacao(self, cliente_analista, analise_completa):
+        url = reverse("submeter_analise", args=[analise_completa.pk])
         resp = cliente_analista.get(url)
         assert resp.status_code == 200
         assert b"Submeter" in resp.content
 
-    def test_post_muda_status_e_seta_submetida_em(self, cliente_analista, analise_rascunho):
-        url = reverse("submeter_analise", args=[analise_rascunho.pk])
+    def test_post_muda_status_e_seta_submetida_em(self, cliente_analista, analise_completa):
+        url = reverse("submeter_analise", args=[analise_completa.pk])
         resp = cliente_analista.post(url)
         assert resp.status_code == 302
-        analise_rascunho.refresh_from_db()
-        assert analise_rascunho.status == Analise.Status.SUBMETIDA
-        assert analise_rascunho.submetida_em is not None
+        analise_completa.refresh_from_db()
+        assert analise_completa.status == Analise.Status.SUBMETIDA
+        assert analise_completa.submetida_em is not None
 
-    def test_submeter_avisa_que_aguarda_curadoria(self, cliente_analista, analise_rascunho):
-        url = reverse("submeter_analise", args=[analise_rascunho.pk])
+    def test_submeter_avisa_que_aguarda_curadoria(self, cliente_analista, analise_completa):
+        url = reverse("submeter_analise", args=[analise_completa.pk])
         resp = cliente_analista.post(url, follow=True)
         assert resp.status_code == 200
         msgs = list(resp.context["messages"])
         assert any("curadoria" in str(m).lower() for m in msgs)
+
+    def test_submeter_incompleta_e_bloqueado(self, cliente_analista, analise_rascunho):
+        url = reverse("submeter_analise", args=[analise_rascunho.pk])
+        resp = cliente_analista.post(url, follow=True)
+        assert resp.status_code == 200
+        analise_rascunho.refresh_from_db()
+        assert analise_rascunho.status == Analise.Status.RASCUNHO  # não submeteu
+        msgs = list(resp.context["messages"])
+        assert any("faltam" in str(m).lower() for m in msgs)
 
     def test_analise_ja_submetida_redireciona_sem_alterar(self, cliente_analista, analise_rascunho):
         analise_rascunho.status = Analise.Status.SUBMETIDA

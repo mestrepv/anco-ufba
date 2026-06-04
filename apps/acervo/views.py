@@ -332,8 +332,24 @@ def _get_analise_do_autor(request: HttpRequest, analise_id: int) -> Analise:
 PASSOS = [
     ("identificacao", "Identificação"),
     ("presenca", "Presença e pertinência"),
-    ("estrutura", "Estrutura do artigo"),
+    ("estrutura", "Análise do artigo"),
 ]
+
+# Abas do stepper: os 3 passos da análise + a resenha (entidade própria, em
+# página dedicada). Hrefs absolutos para o stepper funcionar igual nas duas
+# páginas (editar_analise e editar_resenha).
+def _tabs(analise_pk: int) -> list[dict]:
+    base = reverse("editar_analise", args=[analise_pk])
+    tabs = [
+        {"codigo": c, "label": label, "href": f"{base}?passo={c}"}
+        for c, label in PASSOS
+    ]
+    tabs.append({
+        "codigo": "resenha",
+        "label": "Resenha crítica (opcional)",
+        "href": reverse("editar_resenha", args=[analise_pk]),
+    })
+    return tabs
 
 
 def _stampar_edicao(analise: Analise, user) -> None:
@@ -396,6 +412,7 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
         if eh_admin and analise.analista_id != user.id:
             _stampar_edicao(instance, user)  # edição administrativa: stamp
         instance.save()
+        form.save_m2m()  # persiste epistemologia/teoria (M2M)
         messages.success(request, "Passo salvo.")
         return _avancar(passo)
 
@@ -405,11 +422,13 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
         {
             "analise": analise,
             "passos": PASSOS,
+            "tabs": _tabs(analise.pk),
             "passo_atual": passo,
             "form": form,
             "artigo_form": artigo_form,
             "resenha": getattr(analise, "resenha", None),
             "eh_admin_edit": eh_admin and analise.analista_id != user.id,
+            "campos_faltantes": analise.campos_faltantes_submissao(),
         },
     )
 
@@ -441,6 +460,7 @@ def autosave_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse
         if eh_admin and analise.analista_id != user.id:
             _stampar_edicao(instance, user)
         instance.save()
+        form.save_m2m()  # persiste epistemologia/teoria (M2M)
         return JsonResponse({"ok": True, "salvo_em": timezone.now().strftime("%H:%M:%S")})
     return JsonResponse({"ok": False, "errors": form.errors}, status=400)
 
@@ -457,6 +477,16 @@ def submeter_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse
     if analise.status != Analise.Status.RASCUNHO:
         messages.info(request, "Esta análise já foi submetida ou publicada.")
         return redirect("minhas_analises")
+
+    # Trava de servidor: só submete com todos os campos das abas 1–3 preenchidos.
+    faltam = analise.campos_faltantes_submissao()
+    if faltam:
+        messages.error(
+            request,
+            "Preencha todos os campos antes de submeter. Faltam: "
+            + ", ".join(faltam) + ".",
+        )
+        return redirect("editar_analise", analise_id=analise.pk)
 
     if request.method == "POST":
         analise.status = Analise.Status.SUBMETIDA
@@ -543,7 +573,13 @@ def editar_resenha_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     return render(
         request,
         "acervo/editar_resenha.html",
-        {"resenha": resenha, "analise": resenha.analise, "form": form},
+        {
+            "resenha": resenha,
+            "analise": resenha.analise,
+            "form": form,
+            "tabs": _tabs(analise_id),
+            "passo_atual": "resenha",
+        },
     )
 
 

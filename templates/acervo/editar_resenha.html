@@ -5,7 +5,7 @@
 {% block content %}
 <main style="max-width: 760px; margin: 32px auto 80px; padding: 0 24px;">
 
-  <header style="margin-bottom: 20px;">
+  <header style="margin-bottom: 16px;">
     <span class="t-eyebrow" style="color: var(--color-gold);">An·Co · resenha crítica</span>
     <h1 class="t-h1" style="margin-top: 4px; font-size: 24px; line-height: 1.2;">
       {{ analise.artigo.titulo|truncatechars:140 }}
@@ -14,6 +14,8 @@
       Status da resenha: <strong>{{ resenha.get_status_display }}</strong>
     </p>
   </header>
+
+  {% include "acervo/_stepper_analise.html" %}
 
   <div style="margin-bottom: 18px; padding: 12px 16px; background: var(--color-review-bg); border: 1px solid var(--color-review-rule); font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);">
     A resenha crítica passa por <strong>revisão cega por pares</strong> e só aparece

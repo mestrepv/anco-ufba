@@ -1,0 +1,13 @@
+{% comment %}Stepper das abas da análise. Params: tabs, passo_atual.{% endcomment %}
+<nav style="display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--color-rule); margin-bottom: 24px;" aria-label="Passos da análise">
+  {% for t in tabs %}
+  <a href="{{ t.href }}"
+     style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px;
+       font-family: var(--font-sans); font-size: 13px; border-bottom: 2px solid transparent;
+       color: var(--color-ink-3); text-decoration: none;
+       {% if t.codigo == passo_atual %}border-bottom-color: var(--color-gold); color: var(--color-ink); font-weight: 600;{% endif %}">
+    <span class="step-indicator" style="{% if t.codigo != passo_atual %}background: var(--color-paper-2); color: var(--color-ink-3);{% endif %}">{{ forloop.counter }}</span>
+    <span>{{ t.label }}</span>
+  </a>
+  {% endfor %}
+</nav>

@@ -427,6 +427,54 @@ class Analise(models.Model):
         resenha = getattr(self, "resenha", None)
         return bool(resenha and resenha.status in ("publicada", "legado"))
 
+    # Campos obrigatórios para submeter à curadoria (abas 1–3). A resenha
+    # crítica (aba 4) é opcional. `definicao_extraida` só é exigida quando
+    # `define_conceito` é True (não há o que extrair se não define).
+    _SUBMISSAO_BOOL = {
+        "presenca_titulo": "Presença no título",
+        "presenca_resumo": "Presença no resumo",
+        "presenca_palavras_chave": "Presença nas palavras-chave",
+        "presenca_referencias": "Presença nas referências",
+        "presenca_corpo": "Presença no corpo",
+        "pertinencia": "Pertinência",
+        "define_conceito": "Define o conceito",
+    }
+    _SUBMISSAO_TEXTO = {
+        "aspectos_relevantes": "Aspectos relevantes",
+        "objeto": "Objeto",
+        "objetivo": "Objetivo",
+        "foco": "Foco",
+        "metodologia": "Metodologia",
+        "referenciais": "Referenciais",
+        "resultados": "Resultados",
+        "contexto_producao": "Contexto de produção",
+        "observacoes": "Observações",
+    }
+
+    def campos_faltantes_submissao(self) -> list[str]:
+        """Lista (rótulos) dos campos das abas 1–3 ainda não preenchidos."""
+        faltam: list[str] = []
+        if not (self.artigo.area or "").strip():
+            faltam.append("Grande área")
+        for campo, label in self._SUBMISSAO_BOOL.items():
+            if getattr(self, campo) is None:
+                faltam.append(label)
+        for campo, label in self._SUBMISSAO_TEXTO.items():
+            if not (getattr(self, campo) or "").strip():
+                faltam.append(label)
+        if self.define_conceito and not (self.definicao_extraida or "").strip():
+            faltam.append("Definição extraída")
+        if self.pk:
+            if not self.epistemologia.exists():
+                faltam.append("Epistemologia")
+            if not self.teoria.exists():
+                faltam.append("Teoria de referência")
+        return faltam
+
+    @property
+    def pronta_para_submeter(self) -> bool:
+        return not self.campos_faltantes_submissao()
+
 
 class Resenha(models.Model):
     """

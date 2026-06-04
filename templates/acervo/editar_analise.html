@@ -50,18 +50,7 @@
   {% endif %}
 
   {# ── Stepper editorial ────────────────────────────────────────── #}
-  <nav style="display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--color-rule); margin-bottom: 24px;" aria-label="Passos da análise">
-    {% for codigo, label in passos %}
-    <a href="?passo={{ codigo }}"
-       style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px;
-         font-family: var(--font-sans); font-size: 13px; border-bottom: 2px solid transparent;
-         color: var(--color-ink-3); text-decoration: none;
-         {% if codigo == passo_atual %}border-bottom-color: var(--color-gold); color: var(--color-ink); font-weight: 600;{% endif %}">
-      <span class="step-indicator" style="{% if codigo != passo_atual %}background: var(--color-paper-2); color: var(--color-ink-3);{% endif %}">{{ forloop.counter }}</span>
-      <span>{{ label }}</span>
-    </a>
-    {% endfor %}
-  </nav>
+  {% include "acervo/_stepper_analise.html" %}
 
   {# ── Passo 1: identificação (read-only) ──────────────────────── #}
   {% if passo_atual == "identificacao" %}
@@ -142,27 +131,22 @@
   </form>
   {% endif %}
 
-  {# ── Resenha crítica + submissão à curadoria ─────────────────── #}
-  <section class="meta-card" style="margin-top: 24px;">
-    <h2 class="t-h2" style="margin-bottom: 6px;">Resenha crítica <span class="t-meta" style="color: var(--color-ink-4);">(opcional)</span></h2>
-    <p class="t-small" style="color: var(--color-ink-3); margin-bottom: 14px;">
-      A resenha crítica é texto opinativo autoral e passa por <strong>revisão cega por pares</strong>.
-      Ela é independente da publicação da análise: só aparece no acervo após ser revisada e confirmada pela curadoria.
-    </p>
-    {% if resenha %}
-      <p class="t-small" style="margin-bottom: 12px;">Status da resenha: <strong>{{ resenha.get_status_display }}</strong></p>
-    {% endif %}
-    <a href="{% url 'editar_resenha' analise.pk %}" class="btn btn-ghost btn-sm">
-      {% if resenha and resenha.texto %}Editar resenha crítica{% else %}Escrever resenha crítica{% endif %}
-    </a>
-  </section>
-
+  {# ── Submissão à curadoria (só com todos os campos das abas 1–3) ─ #}
   {% if analise.status == "rascunho" %}
-  <section style="margin-top: 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; background: var(--color-paper-2); border: 1px solid var(--color-rule-strong);">
-    <p class="t-small" style="color: var(--color-ink-2); margin: 0;">
-      Quando terminar, submeta para a curadoria avaliar e publicar no acervo.
-    </p>
-    <a href="{% url 'submeter_analise' analise.pk %}" class="btn btn-primary btn-sm">Submeter para curadoria →</a>
+  <section style="margin-top: 24px; padding: 16px 18px; background: var(--color-paper-2); border: 1px solid var(--color-rule-strong);">
+    {% if campos_faltantes %}
+      <p class="t-small" style="color: var(--color-ink-2); margin: 0 0 6px;">
+        Para submeter à curadoria, preencha <strong>todos os campos das abas 1–3</strong>. A resenha crítica (aba 4) é opcional. Faltam:
+      </p>
+      <p class="t-small" style="color: var(--color-danger); margin: 0;">{{ campos_faltantes|join:" · " }}</p>
+    {% else %}
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+        <p class="t-small" style="color: var(--color-ink-2); margin: 0;">
+          Tudo preenchido — submeta para a curadoria avaliar e publicar no acervo.
+        </p>
+        <a href="{% url 'submeter_analise' analise.pk %}" class="btn btn-primary btn-sm">Submeter para curadoria →</a>
+      </div>
+    {% endif %}
   </section>
   {% endif %}
 
