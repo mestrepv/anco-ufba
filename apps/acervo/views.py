@@ -102,6 +102,35 @@ def cadastrar_artigo_view(request: HttpRequest) -> HttpResponse:
     valida link em background e redireciona para a edição da análise.
     """
     if request.method == "POST":
+        # Se o artigo (DOI/ISBN) já existe, reaproveita em vez de barrar com
+        # "já existe": recupera (ou inicia) a análise do usuário e abre para
+        # edição. Excluir uma análise não remove o Artigo — o DOI é único nele.
+        from .services.crossref import normalizar_doi
+
+        doi = normalizar_doi(request.POST.get("doi", ""))
+        isbn = (request.POST.get("isbn") or "").strip()
+        existente = None
+        if doi:
+            existente = Artigo.objects.filter(doi__iexact=doi).first()
+        if existente is None and isbn:
+            existente = Artigo.objects.filter(isbn=isbn).first()
+        if existente is not None:
+            analise, criada = Analise.objects.get_or_create(
+                artigo=existente,
+                analista=request.user,
+                defaults={"status": Analise.Status.RASCUNHO},
+            )
+            if criada:
+                messages.info(
+                    request, "Este artigo já estava no acervo — análise iniciada para você."
+                )
+            else:
+                messages.info(
+                    request,
+                    "Você já tinha uma análise deste artigo — abrindo para continuar.",
+                )
+            return redirect("editar_analise", analise_id=analise.pk)
+
         form = ArtigoMetadadosForm(request.POST)
         if form.is_valid():
             artigo = form.save(commit=False)

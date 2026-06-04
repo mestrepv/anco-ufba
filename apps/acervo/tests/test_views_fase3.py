@@ -128,6 +128,21 @@ class TestCadastrarArtigo:
         mock_validar.assert_called_once()
 
 
+    def test_post_doi_existente_reaproveita_artigo(
+        self, cliente_analista, artigo, analista
+    ):
+        # Reenviar um DOI já cadastrado não cria artigo duplicado nem dá erro:
+        # reaproveita o artigo e abre/recupera a análise do usuário.
+        n_artigos = Artigo.objects.count()
+        resp = cliente_analista.post(
+            reverse("cadastrar_artigo"), data={"doi": artigo.doi}
+        )
+        assert resp.status_code == 302
+        assert Artigo.objects.count() == n_artigos  # não duplicou
+        analise = Analise.objects.get(artigo=artigo, analista=analista)
+        assert reverse("editar_analise", args=[analise.pk]) in resp["Location"]
+
+
 class TestIniciarAnalise:
     def test_post_cria_ou_recupera(self, cliente_analista, artigo, analista):
         url = reverse("iniciar_analise", args=[artigo.pk])
