@@ -199,10 +199,28 @@ def duplicatas_view(request: HttpRequest) -> HttpResponse:
     """Revisão de possíveis duplicatas — um par por vez, com detalhes."""
     protocolo = ProtocoloTriagem.ativo()
     pares = dup.pares_possiveis(protocolo)
+    par = pares[0] if pares else None
+
+    comparacao = None
+    if par:
+        a, b = par["a"], par["b"]
+        mesmo_ano = dup.mesmo_ano(a, b)
+        mesmo_autor = dup.mesmo_primeiro_autor(a.autores, b.autores)
+        comparacao = {
+            "mesmo_ano": mesmo_ano,
+            "mesmo_autor": mesmo_autor,
+            "autor_a": dup.primeiro_autor(a.autores),
+            "autor_b": dup.primeiro_autor(b.autores),
+            # Forte sinal de NÃO-duplicata: ano e autor divergem (com dados).
+            "provavel_distinto": (
+                a.ano and b.ano and not mesmo_ano and not mesmo_autor
+            ),
+        }
+
     return render(
         request,
         "triagem/duplicatas.html",
-        {"par": pares[0] if pares else None, "restantes": len(pares)},
+        {"par": par, "restantes": len(pares), "comp": comparacao},
     )
 
 

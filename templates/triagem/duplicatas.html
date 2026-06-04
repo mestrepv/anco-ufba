@@ -16,8 +16,19 @@
   </p>
 
   {% if par %}
-    <div class="tg-note" style="margin-bottom:14px;">
-      Similaridade de título: <strong>{{ par.sim }}</strong> — são o mesmo trabalho?
+    {% if comp.provavel_distinto %}
+      <div class="tg-note" style="border-color:var(--color-danger);background:#fdf2f0;color:var(--color-danger);margin-bottom:14px;">
+        ⚠ <strong>Provavelmente NÃO são duplicatas:</strong> mesmo título, mas
+        <strong>anos</strong> e <strong>autores</strong> diferentes
+        ({{ comp.autor_a }} × {{ comp.autor_b }}). Pode ser uma obra e a resenha/citação dela.
+      </div>
+    {% endif %}
+    <div class="tg-note" style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;">
+      <span>Similaridade de título: <strong>{{ par.sim }}</strong></span>
+      <span style="color:{% if comp.mesmo_ano %}var(--color-ok){% else %}var(--color-danger){% endif %};">
+        {% if comp.mesmo_ano %}✔ mesmo ano{% else %}✗ anos diferentes{% endif %}</span>
+      <span style="color:{% if comp.mesmo_autor %}var(--color-ok){% else %}var(--color-danger){% endif %};">
+        {% if comp.mesmo_autor %}✔ mesmo 1º autor{% else %}✗ autores diferentes{% endif %}</span>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:18px;">

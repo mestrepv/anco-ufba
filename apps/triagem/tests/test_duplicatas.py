@@ -94,3 +94,52 @@ def test_view_duplicatas_renderiza(client, protocolo, analista):
     client.force_login(analista)
     resp = client.get(reverse("triagem_duplicatas"))
     assert resp.status_code == 200
+
+
+def test_primeiro_autor():
+    assert dup.primeiro_autor("Roubekas, NP; Outro, X") == "Roubekas"
+    assert dup.primeiro_autor("Bowden, H") == "Bowden"
+    assert dup.mesmo_primeiro_autor("Silva, J", "silva, joão") is True
+    assert dup.mesmo_primeiro_autor("Roubekas, NP", "Bowden, H") is False
+
+
+def test_ordena_provaveis_duplicatas_primeiro(protocolo):
+    # par forte: mesmo título, ano e autor (DOIs diferentes → não casou na chave)
+    f1 = RegistroTriagem.objects.create(
+        protocolo=protocolo, titulo="Cognição e cultura na Antiguidade", doi="10.1/a",
+        ano=2020, autores="Silva, J",
+    )
+    f2 = RegistroTriagem.objects.create(
+        protocolo=protocolo, titulo="Cognição e cultura na Antiguidade", doi="10.1/b",
+        ano=2020, autores="Silva, J",
+    )
+    # par fraco: mesmo título, anos e autores diferentes (obra × resenha)
+    RegistroTriagem.objects.create(
+        protocolo=protocolo, titulo="Divinação e mente no mundo grego", doi="10.2/c",
+        ano=2019, autores="Souza, M",
+    )
+    RegistroTriagem.objects.create(
+        protocolo=protocolo, titulo="Divinação e mente no mundo grego", doi="10.2/d",
+        ano=2024, autores="Lima, P",
+    )
+    pares = dup.pares_possiveis(protocolo, limiar=0.5)
+    assert len(pares) == 2
+    # o par com ano+autor concordando vem primeiro
+    primeiro = pares[0]
+    assert {primeiro["a"].pk, primeiro["b"].pk} == {f1.pk, f2.pk}
+
+
+def test_view_avisa_provavel_distinto(client, protocolo, analista):
+    RegistroTriagem.objects.create(
+        protocolo=protocolo, titulo="A Cognitive Analysis of Divination", doi="10.3/a",
+        ano=2025, autores="Roubekas, NP",
+    )
+    RegistroTriagem.objects.create(
+        protocolo=protocolo, titulo="A Cognitive Analysis of Divination", doi="10.3/b",
+        ano=2024, autores="Bowden, H",
+    )
+    client.force_login(analista)
+    resp = client.get(reverse("triagem_duplicatas"))
+    assert resp.status_code == 200
+    assert "Provavelmente NÃO são duplicatas".encode() in resp.content
+    assert b"autores diferentes" in resp.content

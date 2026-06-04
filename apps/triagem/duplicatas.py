@@ -39,6 +39,29 @@ def _pares_descartados(protocolo) -> set[frozenset]:
     return {frozenset(p) for p in pares}
 
 
+def primeiro_autor(autores: str) -> str:
+    """Sobrenome do primeiro autor (ex.: 'Roubekas, NP; ...' -> 'Roubekas')."""
+    if not autores:
+        return ""
+    primeiro = autores.replace("\n", ";").split(";")[0].strip()
+    return primeiro.split(",")[0].strip()
+
+
+def mesmo_primeiro_autor(a: str, b: str) -> bool:
+    pa, pb = primeiro_autor(a).lower(), primeiro_autor(b).lower()
+    return bool(pa) and pa == pb
+
+
+def mesmo_ano(a, b) -> bool:
+    return a.ano is not None and a.ano == b.ano
+
+
+def _concordancia(par: dict) -> int:
+    """Quantos sinais além do título concordam (ano, 1º autor). 0–2."""
+    a, b = par["a"], par["b"]
+    return int(mesmo_ano(a, b)) + int(mesmo_primeiro_autor(a.autores, b.autores))
+
+
 # Campos exibidos na revisão de duplicatas (decidir não só pelo título).
 _CAMPOS = (
     "id", "titulo", "doi", "ano", "identificador",
@@ -67,7 +90,12 @@ def pares_possiveis(protocolo, limiar: float = LIMIAR, max_pares: int = 200) -> 
 
     ids = {i for a, b, _ in triplas for i in (a, b)}
     regs = {r.id: r for r in RegistroTriagem.objects.filter(id__in=ids).only(*_CAMPOS)}
-    return [{"a": regs[a], "b": regs[b], "sim": s} for a, b, s in triplas]
+    pares = [{"a": regs[a], "b": regs[b], "sim": s} for a, b, s in triplas]
+    # Prováveis duplicatas reais primeiro: mais sinais concordando (ano, autor),
+    # depois maior similaridade de título. Os "mesmo título mas tudo diferente"
+    # vão para o fim.
+    pares.sort(key=lambda p: (-_concordancia(p), -p["sim"]))
+    return pares
 
 
 @transaction.atomic

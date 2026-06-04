@@ -13,4 +13,11 @@
   {% else %}
     <div class="tg-meta" style="margin-top:10px;font-style:italic;">Sem resumo disponível.</div>
   {% endif %}
+  {% if r.link %}
+    <a href="{{ r.link }}" target="_blank" rel="noopener"
+       style="display:inline-block;margin-top:10px;font-family:var(--font-sans);font-size:13px;color:var(--color-gold-deep);">Abrir fonte &nearr;</a>
+  {% elif r.doi %}
+    <a href="https://doi.org/{{ r.doi }}" target="_blank" rel="noopener"
+       style="display:inline-block;margin-top:10px;font-family:var(--font-sans);font-size:13px;color:var(--color-gold-deep);">Abrir pelo DOI &nearr;</a>
+  {% endif %}
 </div>
