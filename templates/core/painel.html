@@ -6,197 +6,115 @@
 {% block extra_head %}
 <style>
   .painel-wrap { max-width: 1080px; margin: 0 auto; padding: clamp(32px,4vw,48px) clamp(20px,5vw,40px) 80px; }
-  .painel-secao {
-    margin-top: 40px;
-  }
-  .painel-secao h2 {
-    font-family: var(--font-serif);
-    font-weight: 500;
-    font-size: 22px;
-    margin: 0 0 4px;
-    color: var(--color-ink);
-  }
-  .painel-secao .secao-desc {
-    font-family: var(--font-sans);
-    font-size: 13px;
-    color: var(--color-ink-3);
-    margin: 0 0 18px;
-  }
-  .lista-item {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 16px;
-    padding: 16px 0;
-    border-bottom: 1px solid var(--color-rule);
-    align-items: center;
-  }
+  .painel-secao { margin-top: 44px; }
+  .painel-secao h2 { font-family: var(--font-serif); font-weight: 500; font-size: 22px; margin: 0 0 4px; color: var(--color-ink); }
+  .painel-secao .secao-desc { font-family: var(--font-sans); font-size: 13px; color: var(--color-ink-3); margin: 0 0 16px; }
+
+  /* Hero — o próximo passo (uma ação óbvia) */
+  .hero { margin-top: 28px; border: 1px solid var(--color-review-rule); background: var(--color-review-bg);
+          border-radius: 14px; padding: clamp(20px,3vw,30px); }
+  .hero .eyebrow { font-family: var(--font-sans); font-size: 11px; font-weight: 700; letter-spacing: .06em;
+                   text-transform: uppercase; color: var(--color-gold-deep); }
+  .hero h2 { font-family: var(--font-serif); font-weight: 500; font-size: clamp(20px,2.6vw,27px);
+             color: var(--color-ink); margin: 6px 0 4px; }
+  .hero p { font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2); margin: 0 0 16px; max-width: 56ch; }
+  .btn-grande { display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 8px;
+                font-family: var(--font-sans); font-size: 15px; font-weight: 600; text-decoration: none;
+                background: var(--color-gold-deep); border: 1px solid var(--color-gold-deep); color: #fff; }
+  .btn-grande:hover { background: #74531a; border-color: #74531a; }
+
+  /* Mapa do fluxo — etapas clicáveis */
+  .fluxo-map { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .passo-card { display: flex; flex-direction: column; gap: 8px; min-height: 92px; position: relative;
+                border: 1px solid var(--color-rule); border-radius: 10px; padding: 14px;
+                background: var(--color-paper); text-decoration: none; }
+  a.passo-card:hover { border-color: var(--color-gold); box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+  .passo-card.tem-tarefa { border-color: var(--color-gold-deep); background: var(--color-review-bg); }
+  .passo-card.mudo { opacity: .55; }
+  .passo-num { width: 24px; height: 24px; border-radius: 50%; background: var(--color-paper-2);
+               color: var(--color-ink-3); font-family: var(--font-sans); font-weight: 700; font-size: 12px;
+               display: flex; align-items: center; justify-content: center; }
+  .passo-card.tem-tarefa .passo-num { background: var(--color-gold-deep); color: #fff; }
+  .passo-titulo { font-family: var(--font-sans); font-size: 14px; font-weight: 600; color: var(--color-ink); line-height: 1.25; }
+  .passo-tag { font-family: var(--font-sans); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--color-ink-3); margin-top: auto; }
+  .passo-badge { position: absolute; top: 12px; right: 12px; background: var(--color-gold-deep); color: #fff;
+                 border-radius: 999px; font-family: var(--font-sans); font-size: 12px; font-weight: 700; padding: 2px 9px; }
+
+  /* Listas / chips / utilidades */
+  .lista-item { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; padding: 16px 0;
+                border-bottom: 1px solid var(--color-rule); align-items: center; }
   .lista-item:last-child { border-bottom: 0; }
-  /* Variante p/ Minhas análises: Título | Badge | Excluir */
-  .lista-analise {
-    grid-template-columns: 1fr auto auto;
-  }
-  .btn-excluir {
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 12px;
-    background: transparent;
-    border: 1px solid var(--color-rule-strong);
-    border-radius: 4px;
-    font-family: var(--font-sans);
-    font-size: 13px;
-    color: var(--color-danger);
-    cursor: pointer;
-  }
+  .btn-excluir { display: inline-flex; align-items: center; padding: 6px 12px; background: transparent;
+                 border: 1px solid var(--color-rule-strong); border-radius: 4px; font-family: var(--font-sans);
+                 font-size: 13px; color: var(--color-danger); cursor: pointer; }
   .btn-excluir:hover { background: #fdf2f0; }
-  .status-chip {
-    display: inline-flex;
-    padding: 2px 10px;
-    border-radius: 999px;
-    font-family: var(--font-sans);
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
+  .status-chip { display: inline-flex; padding: 2px 10px; border-radius: 999px; font-family: var(--font-sans);
+                 font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
   .status-rascunho { background: var(--color-paper-3); color: var(--color-ink-2); }
   .status-submetida { background: #e8eef5; color: #2a4d6e; }
-  .status-em_revisao { background: var(--color-review-bg); color: var(--color-gold-deep); }
-  .status-aprovada,
-  .status-publicada { background: #e0ebd9; color: #3a5a2a; }
+  .status-publicada, .status-aprovada { background: #e0ebd9; color: #3a5a2a; }
   .status-legado { background: var(--color-paper-2); color: var(--color-ink-3); }
-  .status-despublicada { background: #fdf2f0; color: var(--color-danger); }
-  .item-titulo {
-    font-family: var(--font-serif);
-    font-size: 16px;
-    color: var(--color-ink);
-    text-decoration: none;
-    line-height: 1.3;
-  }
+  .status-rejeitada, .status-despublicada { background: #fdf2f0; color: var(--color-danger); }
+  .item-titulo { font-family: var(--font-serif); font-size: 16px; color: var(--color-ink); text-decoration: none; line-height: 1.3; }
   .item-titulo:hover { color: var(--color-gold-deep); }
-  .item-meta {
-    font-family: var(--font-sans);
-    font-size: 12px;
-    color: var(--color-ink-3);
-    margin-top: 4px;
-  }
-  .empty {
-    font-family: var(--font-sans);
-    font-size: 14px;
-    color: var(--color-ink-3);
-    padding: 24px 0;
-    font-style: italic;
-  }
-  .prazo-vencido { color: var(--color-danger); font-weight: 600; }
-
-  /* Fluxo do protocolo (stepper horizontal compacto) */
-  .fluxo {
-    display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: stretch;
-    margin-top: 14px;
-  }
-  .fluxo-no {
-    flex: 1 1 110px; min-width: 100px;
-    background: var(--color-paper-2); border: 1px solid var(--color-rule);
-    border-radius: 6px; padding: 10px 12px; position: relative;
-  }
-  .fluxo-no .fn { font-family: var(--font-sans); font-size: 11px; font-weight: 700; color: var(--color-gold-deep); }
-  .fluxo-no .ft { font-family: var(--font-sans); font-size: 12.5px; color: var(--color-ink); margin-top: 2px; line-height: 1.3; }
-  .fluxo-no .fq { font-family: var(--font-sans); font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; color: var(--color-ink-3); margin-top: 4px; }
-
-  /* Cartões de tarefa */
-  .tarefas { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; }
-  .tarefa {
-    display: flex; flex-direction: column; gap: 6px;
-    border: 1px solid var(--color-rule); border-radius: 8px; padding: 16px;
-    background: var(--color-paper); text-decoration: none;
-  }
-  .tarefa:hover { border-color: var(--color-gold); }
-  .tarefa.destaque { border-color: var(--color-gold-deep); background: var(--color-review-bg); }
-  .tarefa .t-num { font-family: var(--font-serif); font-size: 30px; line-height: 1; color: var(--color-ink); }
-  .tarefa .t-label { font-family: var(--font-sans); font-size: 13.5px; color: var(--color-ink-2); }
-  .tarefa .t-cta { font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--color-gold-deep); margin-top: 2px; }
+  .item-meta { font-family: var(--font-sans); font-size: 12px; color: var(--color-ink-3); margin-top: 4px; }
+  .empty { font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-3); padding: 20px 0; font-style: italic; }
+  .painel-utils { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--color-rule);
+                  font-family: var(--font-sans); font-size: 13px; color: var(--color-ink-3); display: flex;
+                  flex-wrap: wrap; gap: 6px 18px; }
+  .painel-utils a { color: var(--color-ink-3); text-decoration: none; }
+  .painel-utils a:hover { color: var(--color-gold-deep); }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="painel-wrap">
 
-  <header style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
-    {% avatar user size=56 %}
-    <div style="flex:1;">
-      <p class="t-eyebrow" style="margin:0 0 4px;">Painel</p>
-      <h1 style="font-family:var(--font-serif);font-weight:500;font-size:clamp(26px,3vw,34px);margin:0;color:var(--color-ink);">Olá, {{ user.nome_exibicao|default:user.get_full_name|default:user.email }}</h1>
-      <p style="margin:4px 0 0;font-family:var(--font-sans);font-size:13px;color:var(--color-ink-3);">{{ user.get_papel_display }}{% if user.vinculo_institucional %} · {{ user.vinculo_institucional }}{% endif %}</p>
+  <header style="display:flex;align-items:center;gap:18px;">
+    {% avatar user size=52 %}
+    <div>
+      <h1 style="font-family:var(--font-serif);font-weight:500;font-size:clamp(24px,3vw,32px);margin:0;color:var(--color-ink);">Olá, {{ user.nome_exibicao|default:user.get_full_name|default:user.email }}</h1>
+      <p style="margin:3px 0 0;font-family:var(--font-sans);font-size:13px;color:var(--color-ink-3);">{{ user.get_papel_display }}{% if user.vinculo_institucional %} · {{ user.vinculo_institucional }}{% endif %}</p>
     </div>
-    {% if user.eh_analista %}
-    <div style="display:flex;gap:8px;align-items:center;">
-      <a href="{% url 'triagem_ajuda' %}" class="btn btn-secondary">Como funciona?</a>
-      <a href="{% url 'triagem_painel' %}" class="btn btn-primary">Ir para a Triagem</a>
-    </div>
-    {% endif %}
   </header>
 
   {% if not user.perfil_completo_minimo %}
-  <div style="margin-top:24px;padding:14px 18px;background:var(--color-review-bg);border:1px solid var(--color-gold-deep);font-family:var(--font-sans);font-size:14px;color:var(--color-ink-2);">
-    Seu perfil está incompleto. <a href="{% url 'perfil' %}" style="color:var(--color-gold-deep);font-weight:600;">Complete o perfil</a> para aparecer no diretório de analistas.
+  <div style="margin-top:20px;padding:14px 18px;border-radius:8px;background:var(--color-review-bg);border:1px solid var(--color-gold-deep);font-family:var(--font-sans);font-size:14px;color:var(--color-ink-2);">
+    Seu perfil está incompleto. <a href="{% url 'perfil' %}" style="color:var(--color-gold-deep);font-weight:600;">Complete o perfil</a> para aparecer no diretório.
   </div>
   {% endif %}
 
   {% if user.eh_analista %}
-  {# ── Fluxo do protocolo ────────────────────────────────────────── #}
-  <section class="painel-secao">
-    <h2>O fluxo da triagem (PRISMA-ScR)</h2>
-    <p class="secao-desc">A seleção das fontes vem antes da análise. <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona em detalhe →</a></p>
-    <div class="fluxo">
-      <div class="fluxo-no"><div class="fn">1</div><div class="ft">Importar base</div><div class="fq">Analista</div></div>
-      <div class="fluxo-no"><div class="fn">2</div><div class="ft">Revisar duplicatas</div><div class="fq">Analista</div></div>
-      <div class="fluxo-no"><div class="fn">3</div><div class="ft">Iniciar triagem</div><div class="fq">Curador</div></div>
-      <div class="fluxo-no"><div class="fn">4</div><div class="ft">Triar (≥2 revisores)</div><div class="fq">Revisores</div></div>
-      <div class="fluxo-no"><div class="fn">5</div><div class="ft">Incluídos</div><div class="fq">Consenso/desempate</div></div>
-      <div class="fluxo-no"><div class="fn">6</div><div class="ft">Analisar (Matriz AnCo)</div><div class="fq">Analista</div></div>
-      <div class="fluxo-no"><div class="fn">7</div><div class="ft">Publicar</div><div class="fq">Curador</div></div>
-    </div>
+  {# ── Hero: o próximo passo ─────────────────────────────────────── #}
+  <section class="hero">
+    <div class="eyebrow">Próximo passo</div>
+    <h2>{{ proxima.titulo }}</h2>
+    {% if proxima.sub %}<p>{{ proxima.sub }}</p>{% endif %}
+    <a href="{{ proxima.href }}" class="btn-grande">{{ proxima.label }} &rarr;</a>
   </section>
 
-  {# ── Suas tarefas ──────────────────────────────────────────────── #}
+  {# ── Mapa do fluxo (clicável) ──────────────────────────────────── #}
   <section class="painel-secao">
-    <h2>Suas tarefas</h2>
-    <p class="secao-desc">O que está aguardando você agora.</p>
-    {% if n_triagens or n_a_analisar or revisoes_pendentes or n_rascunhos or n_identificados or n_desempates %}
-    <div class="tarefas">
-      {% if n_triagens %}
-      <a class="tarefa destaque" href="{% url 'triagem_minhas' %}">
-        <div class="t-num">{{ n_triagens }}</div><div class="t-label">triagem(ns) pendente(s)</div><div class="t-cta">Triar →</div>
-      </a>
-      {% endif %}
-      {% if n_a_analisar %}
-      <a class="tarefa" href="{% url 'triagem_a_analisar' %}">
-        <div class="t-num">{{ n_a_analisar }}</div><div class="t-label">artigo(s) incluído(s) a analisar</div><div class="t-cta">Analisar →</div>
-      </a>
-      {% endif %}
-      {% if revisoes_pendentes %}
-      <a class="tarefa" href="{% url 'minhas_revisoes' %}">
-        <div class="t-num">{{ revisoes_pendentes|length }}</div><div class="t-label">revisão(ões) de resenha</div><div class="t-cta">Revisar →</div>
-      </a>
-      {% endif %}
-      {% if n_rascunhos %}
-      <a class="tarefa" href="{% url 'minhas_analises' %}">
-        <div class="t-num">{{ n_rascunhos }}</div><div class="t-label">análise(s) em andamento</div><div class="t-cta">Continuar →</div>
-      </a>
-      {% endif %}
-      {% if n_identificados %}
-      <a class="tarefa destaque" href="{% url 'triagem_iniciar' %}">
-        <div class="t-num">{{ n_identificados }}</div><div class="t-label">identificado(s) p/ iniciar triagem</div><div class="t-cta">Iniciar (curador) →</div>
-      </a>
-      {% endif %}
-      {% if n_desempates %}
-      <a class="tarefa destaque" href="{% url 'triagem_desempate' %}">
-        <div class="t-num">{{ n_desempates }}</div><div class="t-label">desempate(s) pendente(s)</div><div class="t-cta">Resolver (curador) →</div>
-      </a>
-      {% endif %}
+    <h2>O fluxo da triagem</h2>
+    <p class="secao-desc">Cada etapa leva direto à tela. <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a></p>
+    <div class="fluxo-map">
+      {% for p in passos %}
+        {% if p.curador and not eh_curador_painel %}
+          <div class="passo-card mudo">
+            <span class="passo-num">{{ p.num }}</span>
+            <span class="passo-titulo">{{ p.titulo }}</span>
+            <span class="passo-tag">curador</span>
+          </div>
+        {% else %}
+          <a href="{{ p.href }}" class="passo-card {% if p.count %}tem-tarefa{% endif %}">
+            <span class="passo-num">{{ p.num }}</span>
+            <span class="passo-titulo">{{ p.titulo }}</span>
+            {% if p.curador %}<span class="passo-tag">curador</span>{% endif %}
+            {% if p.count %}<span class="passo-badge">{{ p.count }}</span>{% endif %}
+          </a>
+        {% endif %}
+      {% endfor %}
     </div>
-    {% else %}
-    <p class="empty">Nada pendente. Comece <a href="{% url 'triagem_painel' %}" style="color:var(--color-gold-deep);">importando uma base na Triagem →</a></p>
-    {% endif %}
   </section>
   {% endif %}
 
@@ -205,76 +123,52 @@
   <section class="painel-secao">
     <h2>Minhas solicitações</h2>
     <p class="secao-desc">Estado das solicitações enviadas para a curadoria. <a href="{% url 'perfil' %}" style="color:var(--color-gold-deep);">Gerenciar no perfil →</a></p>
-    <div>
-      {% for s in solicitacoes %}
-      <div class="lista-item" style="grid-template-columns: auto auto 1fr auto;">
-        <span class="status-chip" style="background:var(--color-paper-3);color:var(--color-ink-2);">{{ s.get_tipo_display }}</span>
-        <span class="status-chip status-{{ s.status }}">{{ s.get_status_display }}</span>
-        <div>
-          <div class="item-meta">
-            enviada em {{ s.criado_em|date:"d/m/Y" }}
-            {% if s.revisado_em %}· revisada em {{ s.revisado_em|date:"d/m/Y" }} por {{ s.revisado_por.nome_exibicao|default:s.revisado_por.email }}{% endif %}
-          </div>
-          {% if s.status == "rejeitada" and s.motivo_rejeicao %}
-          <div class="item-meta" style="margin-top:4px;color:var(--color-danger);">Motivo: {{ s.motivo_rejeicao }}</div>
-          {% endif %}
-        </div>
-        <div></div>
-      </div>
-      {% endfor %}
+    {% for s in solicitacoes %}
+    <div class="lista-item" style="grid-template-columns: auto auto 1fr;">
+      <span class="status-chip" style="background:var(--color-paper-3);color:var(--color-ink-2);">{{ s.get_tipo_display }}</span>
+      <span class="status-chip status-{{ s.status }}">{{ s.get_status_display }}</span>
+      <div class="item-meta">enviada em {{ s.criado_em|date:"d/m/Y" }}{% if s.status == "rejeitada" and s.motivo_rejeicao %} · <span style="color:var(--color-danger);">{{ s.motivo_rejeicao }}</span>{% endif %}</div>
     </div>
+    {% endfor %}
   </section>
   {% endif %}
 
-  {# ── Minhas análises ────────────────────────────────────────────── #}
+  {# ── Minhas análises ───────────────────────────────────────────── #}
   <section class="painel-secao">
     <h2>Minhas análises</h2>
     <p class="secao-desc">Análises que você criou — rascunhos, submetidas e publicadas.</p>
     {% if minhas_analises %}
-      <div>
-        {% for a in minhas_analises %}
-        <div class="lista-item lista-analise">
-          <div>
-            <a href="{% url 'pagina_analise' a.pk %}" class="item-titulo">{{ a.artigo.titulo|truncatechars:120 }}</a>
-            <div class="item-meta">
-              {% if a.artigo.ano %}{{ a.artigo.ano }} · {% endif %}criado em {{ a.criado_em|date:"d/m/Y" }}
-            </div>
-          </div>
-          <span class="status-chip status-{{ a.status }}">{{ a.get_status_display }}</span>
-          <div style="display:flex;gap:6px;">
-            {% if a.pode_ser_modificada %}
-            <a href="{% url 'editar_analise' a.pk %}" class="btn btn-sm btn-secondary" title="Editar análise (até 1h após envio)">Editar</a>
-            <form method="post" action="{% url 'excluir_analise' a.pk %}" style="margin:0;"
-                  onsubmit="return confirm('Excluir esta análise? Esta ação não pode ser desfeita.');">
-              {% csrf_token %}
-              <button type="submit" class="btn-excluir" title="Excluir análise (até 1h após envio)">Excluir</button>
-            </form>
-            {% else %}
-            <span style="font-family:var(--font-sans);font-size:11px;color:var(--color-ink-4);">—</span>
-            {% endif %}
-          </div>
+      {% for a in minhas_analises %}
+      <div class="lista-item">
+        <div>
+          <a href="{% url 'pagina_analise' a.pk %}" class="item-titulo">{{ a.artigo.titulo|truncatechars:120 }}</a>
+          <div class="item-meta">{% if a.artigo.ano %}{{ a.artigo.ano }} · {% endif %}criado em {{ a.criado_em|date:"d/m/Y" }}</div>
         </div>
-        {% endfor %}
+        <span class="status-chip status-{{ a.status }}">{{ a.get_status_display }}</span>
+        <div style="display:flex;gap:6px;">
+          {% if a.pode_ser_modificada %}
+          <a href="{% url 'editar_analise' a.pk %}" class="btn btn-sm btn-secondary" title="Editar (até 1h após envio)">Editar</a>
+          <form method="post" action="{% url 'excluir_analise' a.pk %}" style="margin:0;" onsubmit="return confirm('Excluir esta análise? Esta ação não pode ser desfeita.');">
+            {% csrf_token %}
+            <button type="submit" class="btn-excluir" title="Excluir (até 1h após envio)">Excluir</button>
+          </form>
+          {% else %}<span style="font-size:11px;color:var(--color-ink-4);">—</span>{% endif %}
+        </div>
       </div>
+      {% endfor %}
     {% else %}
-      <p class="empty">Você ainda não tem análises. {% if user.eh_analista %}<a href="{% url 'triagem_a_analisar' %}" style="color:var(--color-gold-deep);">Ver artigos a analisar →</a>{% endif %}</p>
+      <p class="empty">Você ainda não tem análises.{% if user.eh_analista %} <a href="{% url 'triagem_a_analisar' %}" style="color:var(--color-gold-deep);font-style:normal;">Ver artigos a analisar →</a>{% endif %}</p>
     {% endif %}
   </section>
 
-  {# ── Atalhos ────────────────────────────────────────────────────── #}
-  <section class="painel-secao">
-    <h2>Atalhos</h2>
-    <ul style="list-style:none;padding:0;margin:0;display:grid;gap:8px;font-family:var(--font-sans);font-size:14px;">
-      {% if user.eh_analista %}
-      <li><a href="{% url 'triagem_painel' %}" style="color:var(--color-gold-deep);">Painel da triagem →</a></li>
-      <li><a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona a triagem →</a></li>
-      {% endif %}
-      <li><a href="{% url 'perfil' %}" style="color:var(--color-gold-deep);">Editar meu perfil →</a></li>
-      <li><a href="{% url 'acervo_publico' %}" style="color:var(--color-gold-deep);">Acervo público →</a></li>
-      <li><a href="{% url 'pagina_equipe' %}" style="color:var(--color-gold-deep);">Diretório de analistas →</a></li>
-      {% if user.is_staff %}<li><a href="/admin/" style="color:var(--color-gold-deep);">Admin do sistema →</a></li>{% endif %}
-    </ul>
-  </section>
+  {# ── Utilidades ────────────────────────────────────────────────── #}
+  <nav class="painel-utils" aria-label="Atalhos">
+    <a href="{% url 'perfil' %}">Perfil</a>
+    <a href="{% url 'acervo_publico' %}">Acervo público</a>
+    <a href="{% url 'pagina_equipe' %}">Diretório</a>
+    {% if user.eh_analista %}<a href="{% url 'triagem_ajuda' %}">Como funciona a triagem</a>{% endif %}
+    {% if user.is_staff %}<a href="/admin/">Admin</a>{% endif %}
+  </nav>
 
 </div>
 {% endblock %}

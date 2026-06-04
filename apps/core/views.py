@@ -141,8 +141,11 @@ def painel_view(request: HttpRequest) -> HttpResponse:
     # ── Contexto da triagem (import lazy p/ evitar ciclo) ──────────────
     contexto_triagem = {}
     if getattr(user, "eh_analista", False):
+        from django.urls import reverse
+
         from apps.acervo.models import Artigo
         from apps.triagem.aprovacao import registros_para_desempate
+        from apps.triagem.duplicatas import contar_pares_possiveis
         from apps.triagem.models import (
             DecisaoTriagem,
             ProtocoloTriagem,
@@ -150,11 +153,14 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         )
 
         protocolo = ProtocoloTriagem.ativo()
+        eh_curador = user.is_staff or getattr(user, "eh_curador", False)
+
         triagens_pendentes = (
             DecisaoTriagem.objects.filter(revisor=user, concluido_em__isnull=True)
             .select_related("registro")
             .order_by("prazo_em")
         )
+        n_triagens = triagens_pendentes.count()
         ja_minhas = Analise.objects.filter(analista=user).values_list(
             "artigo_id", flat=True
         )
@@ -166,19 +172,76 @@ def painel_view(request: HttpRequest) -> HttpResponse:
             .distinct()
             .count()
         )
+        n_duplicatas = contar_pares_possiveis(protocolo)
+        n_identificados = (
+            protocolo.registros.filter(
+                status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
+            ).count()
+            if eh_curador
+            else 0
+        )
+        n_desempates = len(registros_para_desempate(protocolo)) if eh_curador else 0
+
+        # Mapa do fluxo (etapas clicáveis, com contagem onde há trabalho).
+        passos = [
+            {"num": 1, "titulo": "Importar base", "href": reverse("triagem_importar"),
+             "count": None, "curador": False},
+            {"num": 2, "titulo": "Revisar duplicatas", "href": reverse("triagem_duplicatas"),
+             "count": n_duplicatas or None, "curador": False},
+            {"num": 3, "titulo": "Iniciar triagem", "href": reverse("triagem_iniciar"),
+             "count": n_identificados or None, "curador": True},
+            {"num": 4, "titulo": "Triar", "href": reverse("triagem_minhas"),
+             "count": n_triagens or None, "curador": False},
+            {"num": 5, "titulo": "Desempates", "href": reverse("triagem_desempate"),
+             "count": n_desempates or None, "curador": True},
+            {"num": 6, "titulo": "A analisar", "href": reverse("triagem_a_analisar"),
+             "count": n_a_analisar or None, "curador": False},
+            {"num": 7, "titulo": "Acompanhar (PRISMA)", "href": reverse("triagem_prisma"),
+             "count": None, "curador": False},
+        ]
+
+        # Próximo passo: a única coisa óbvia a fazer agora (por prioridade).
+        if n_triagens:
+            proxima = {"titulo": f"Você tem {n_triagens} triagem(ns) para fazer",
+                       "sub": "Decida incluir ou excluir cada registro sorteado para você.",
+                       "href": reverse("triagem_minhas"), "label": "Triar agora"}
+        elif eh_curador and n_desempates:
+            proxima = {"titulo": f"{n_desempates} desempate(s) aguardando você",
+                       "sub": "Revisores divergiram — defina a decisão final.",
+                       "href": reverse("triagem_desempate"), "label": "Resolver desempates"}
+        elif n_a_analisar:
+            proxima = {"titulo": f"{n_a_analisar} artigo(s) prontos para análise",
+                       "sub": "Preencha a Matriz AnCo dos artigos selecionados pela triagem.",
+                       "href": reverse("triagem_a_analisar"), "label": "Analisar"}
+        elif n_duplicatas:
+            proxima = {"titulo": f"{n_duplicatas} possível(is) duplicata(s) para revisar",
+                       "sub": "Confirme quais registros são o mesmo trabalho antes de triar.",
+                       "href": reverse("triagem_duplicatas"), "label": "Revisar duplicatas"}
+        elif eh_curador and n_identificados:
+            proxima = {"titulo": f"{n_identificados} registro(s) prontos para a triagem",
+                       "sub": "Feche a coleta e sorteie os revisores.",
+                       "href": reverse("triagem_iniciar"), "label": "Iniciar triagem"}
+        elif n_rascunhos:
+            proxima = {"titulo": f"{n_rascunhos} análise(s) em andamento",
+                       "sub": "Continue de onde parou.",
+                       "href": reverse("minhas_analises"), "label": "Continuar"}
+        else:
+            proxima = {"titulo": "Tudo em dia 🎉",
+                       "sub": "Importe uma nova base para começar uma rodada de triagem.",
+                       "href": reverse("triagem_importar"), "label": "Importar busca"}
+
         contexto_triagem = {
             "protocolo_triagem": protocolo,
             "triagens_pendentes": triagens_pendentes,
-            "n_triagens": triagens_pendentes.count(),
+            "n_triagens": n_triagens,
             "n_a_analisar": n_a_analisar,
+            "n_duplicatas": n_duplicatas,
+            "n_identificados": n_identificados,
+            "n_desempates": n_desempates,
+            "passos": passos,
+            "proxima": proxima,
+            "eh_curador_painel": eh_curador,
         }
-        if user.is_staff or getattr(user, "eh_curador", False):
-            contexto_triagem["n_identificados"] = protocolo.registros.filter(
-                status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
-            ).count()
-            contexto_triagem["n_desempates"] = len(
-                registros_para_desempate(protocolo)
-            )
 
     return render(
         request,

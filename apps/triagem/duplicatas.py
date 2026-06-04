@@ -100,6 +100,16 @@ def pares_possiveis(protocolo, limiar: float = LIMIAR, max_pares: int = 200) -> 
     return pares
 
 
+def contar_pares_possiveis(protocolo, limiar: float = LIMIAR) -> int:
+    """Conta os pares possíveis pendentes (sem carregar objetos) — p/ badges."""
+    status = [s.value for s in RegistroTriagem.EM_ABERTO]
+    with connection.cursor() as cur:
+        cur.execute(_SQL_PARES, [protocolo.id, protocolo.id, status, status, limiar, 1000])
+        linhas = cur.fetchall()
+    descartados = _pares_descartados(protocolo)
+    return sum(1 for a, b, _ in linhas if frozenset({a, b}) not in descartados)
+
+
 @transaction.atomic
 def mesclar(canonico: RegistroTriagem, duplicado: RegistroTriagem) -> None:
     """Marca `duplicado` como DUPLICADO de `canonico` e funde as origens."""
