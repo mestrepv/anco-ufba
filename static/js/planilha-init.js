@@ -49,6 +49,7 @@
         { title: "Autores", field: "autores", widthGrow: 2, minWidth: 200, headerFilter: "input" },
         { title: "Periodico", field: "periodico", widthGrow: 2, minWidth: 200, headerFilter: "input" },
         { title: "Base", field: "base", width: 130, headerFilter: "input" },
+        { title: "Grande área", field: "area", width: 170, headerFilter: "list", headerFilterParams: { valuesLookup: true, clearable: true } },
         { title: "Epistemologia", field: "epistemologia", widthGrow: 2, minWidth: 180, headerFilter: "input" },
         { title: "Teoria", field: "teoria", widthGrow: 2, minWidth: 180, headerFilter: "input" },
         { title: "Resenha", field: "tem_resenha", width: 100, headerFilter: "tickCross", headerFilterParams: { tristate: true }, formatter: simNao, hozAlign: "center" },

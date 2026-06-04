@@ -368,6 +368,7 @@ def _linha_planilha(a: Analise) -> dict:
         "periodico": artigo.titulo_periodico or "",
         "autores": artigo.autores or "",
         "base": (artigo.base_consulta.nome if artigo.base_consulta else ""),
+        "area": artigo.area or "",
         "doi": (artigo.doi or "") if not (artigo.doi or "").startswith("legacy:") else "",
         "link_artigo": artigo.link_acesso or artigo.link_acesso_alternativo or "",
         "epistemologia": epistemologia,

@@ -85,6 +85,7 @@
       {% endif %}
       <div class="meta-row"><dt>Autores</dt><dd>{{ analise.artigo.autores|truncatechars:300|default:"—" }}</dd></div>
       <div class="meta-row"><dt>Base</dt><dd>{{ analise.artigo.base_consulta.nome|default:"—" }}</dd></div>
+      <div class="meta-row"><dt>Grande área</dt><dd>{{ analise.artigo.area|default:"—" }}</dd></div>
     </dl>
     <div style="display: flex; justify-content: flex-end; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--color-paper-3);">
       <a href="?passo=presenca" class="btn btn-primary">Avançar →</a>

@@ -361,6 +361,12 @@
             <dd style="margin:0; color:var(--color-ink);">{{ analise.artigo.base_consulta.nome }}</dd>
           </div>
           {% endif %}
+          {% if analise.artigo.area %}
+          <div>
+            <dt style="color:var(--color-ink-3);">Grande área</dt>
+            <dd style="margin:0; color:var(--color-ink);">{{ analise.artigo.area }}</dd>
+          </div>
+          {% endif %}
           <div>
             <dt style="color:var(--color-ink-3);">Tem resenha</dt>
             <dd style="margin:0; color:var(--color-ink); font-weight:500;">{% if analise.tem_resenha_publica %}sim · revisão cega{% else %}não{% endif %}</dd>
