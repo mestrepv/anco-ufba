@@ -149,6 +149,7 @@ def importar_view(request: HttpRequest) -> HttpResponse:
             "protocolo": protocolo,
             "ano_min": 2000,
             "ano_max": datetime.date.today().year,
+            "ano_range": datetime.date.today().year - 2000,
         },
     )
 

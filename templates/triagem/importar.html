@@ -42,14 +42,26 @@
     </div>
 
     <div class="tg-fieldset-title">Filtros aplicados</div>
-    <div class="tg-field tg-slider"
-         x-data="{ de: {{ form.ano_inicio.value|default:ano_min }} }">
-      <label>Período: <strong x-text="de"></strong> – {{ ano_max }}</label>
-      <input type="range" name="ano_inicio" min="{{ ano_min }}" max="{{ ano_max }}" step="1"
-             x-model.number="de">
-      <input type="hidden" name="ano_fim" value="{{ ano_max }}">
+    <div class="tg-field"
+         x-data="{ de: {{ form.ano_inicio.value|default:ano_min }}, ate: {{ form.ano_fim.value|default:ano_max }} }">
+      <label>Período: <strong x-text="de"></strong> – <strong x-text="ate"></strong></label>
+      <div class="tg-range">
+        <div class="tg-range-track"></div>
+        <div class="tg-range-fill"
+             :style="'left:' + ((de - {{ ano_min }}) / {{ ano_range }} * 100) + '%; width:' + ((ate - de) / {{ ano_range }} * 100) + '%'"></div>
+        <input type="range" class="tg-range-input" name="ano_inicio"
+               min="{{ ano_min }}" max="{{ ano_max }}" step="1"
+               x-model.number="de" @input="if (de > ate) de = ate">
+        <input type="range" class="tg-range-input" name="ano_fim"
+               min="{{ ano_min }}" max="{{ ano_max }}" step="1"
+               x-model.number="ate" @input="if (ate < de) ate = de">
+      </div>
+      <div class="tg-slider-lbl" style="display:flex;justify-content:space-between;">
+        <span>{{ ano_min }}</span><span>{{ ano_max }}</span>
+      </div>
       {% for e in form.ano_inicio.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
-      <p class="tg-help">Arraste para definir o ano inicial (busca até {{ ano_max }}).</p>
+      {% for e in form.ano_fim.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
+      <p class="tg-help">Arraste os dois pontos: um para o início, outro para o fim do período.</p>
     </div>
     <div class="tg-field">
       <label>{{ form.idiomas.label }}</label>
