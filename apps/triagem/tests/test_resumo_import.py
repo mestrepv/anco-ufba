@@ -117,6 +117,26 @@ def test_periodo_invalido_bloqueia(client, analista, base_termo, settings, tmp_p
     assert not Busca.objects.exists()
 
 
+def test_idioma_outro_exige_especificacao(client, analista, base_termo, settings, tmp_path):
+    settings.MEDIA_ROOT = str(tmp_path)
+    client.force_login(analista)
+    resp = _upload(client, base_termo, 1, idiomas=["outro"])  # sem especificar
+    assert resp.status_code == 200  # bloqueia
+    assert not Busca.objects.exists()
+
+
+def test_idioma_outro_especificado_grava_e_exibe(client, analista, base_termo, settings, tmp_path):
+    settings.MEDIA_ROOT = str(tmp_path)
+    client.force_login(analista)
+    resp = _upload(client, base_termo, 1, idiomas=["en", "outro"], idioma_outro="Catalão")
+    assert resp.status_code == 302
+    busca = Busca.objects.latest("pk")
+    assert busca.idioma_outro == "Catalão"
+    assert "Outro (Catalão)" in busca.idiomas_display
+    resumo = client.get(resp.headers["Location"])
+    assert "Catalão".encode() in resumo.content
+
+
 def test_resumo_avisa_divergencia(client, analista, base_termo, settings, tmp_path):
     settings.MEDIA_ROOT = str(tmp_path)
     client.force_login(analista)

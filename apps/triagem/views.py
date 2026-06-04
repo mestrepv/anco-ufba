@@ -119,6 +119,7 @@ def importar_view(request: HttpRequest) -> HttpResponse:
                     ano_inicio=cd["ano_inicio"],
                     ano_fim=cd["ano_fim"],
                     idiomas=cd["idiomas"],
+                    idioma_outro=cd["idioma_outro"],
                     tipos_documento=cd["tipos_documento"],
                     filtros=cd["filtros"],
                     n_identificados=cd["n_identificados"] or 0,

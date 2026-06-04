@@ -58,6 +58,9 @@ class ImportarBuscaForm(forms.Form):
         required=False, label="Idiomas filtrados",
         choices=Artigo.Idioma.choices, widget=forms.CheckboxSelectMultiple,
     )
+    idioma_outro = forms.CharField(
+        required=False, max_length=100, label="Especifique o outro idioma",
+    )
     tipos_documento = forms.MultipleChoiceField(
         required=False, label="Tipos de documento filtrados",
         choices=Busca.TipoDocumento.choices, widget=forms.CheckboxSelectMultiple,
@@ -105,6 +108,10 @@ class ImportarBuscaForm(forms.Form):
                 self.add_error(campo, f"Ano não pode ser maior que {ano_max}.")
         if ai and af and ai > af:
             self.add_error("ano_fim", "O ano final deve ser ≥ ao ano inicial.")
+        if "outro" in (dados.get("idiomas") or []) and not (
+            dados.get("idioma_outro") or ""
+        ).strip():
+            self.add_error("idioma_outro", "Especifique o outro idioma.")
         return dados
 
 

@@ -124,6 +124,10 @@ class Busca(models.Model):
         models.CharField(max_length=10), default=list, blank=True,
         help_text="Idiomas filtrados na base.",
     )
+    idioma_outro = models.CharField(
+        max_length=100, blank=True,
+        help_text="Especificação quando 'Outro' é escolhido em idiomas.",
+    )
     tipos_documento = ArrayField(
         models.CharField(max_length=20), default=list, blank=True,
         help_text="Tipos de documento filtrados na base.",
@@ -185,7 +189,13 @@ class Busca(models.Model):
         from apps.acervo.models import Artigo
 
         mapa = dict(Artigo.Idioma.choices)
-        return ", ".join(mapa.get(i, i) for i in self.idiomas)
+        nomes = []
+        for i in self.idiomas:
+            if i == "outro" and self.idioma_outro:
+                nomes.append(f"Outro ({self.idioma_outro})")
+            else:
+                nomes.append(mapa.get(i, i))
+        return ", ".join(nomes)
 
     @property
     def tipos_documento_display(self) -> str:

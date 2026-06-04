@@ -63,10 +63,23 @@
       {% for e in form.ano_fim.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
       <p class="tg-help">Arraste os dois pontos: um para o início, outro para o fim do período.</p>
     </div>
-    <div class="tg-field">
+    <div class="tg-field"
+         x-data="{ outro: {% if form.idiomas.value and 'outro' in form.idiomas.value %}true{% else %}false{% endif %} }">
       <label>{{ form.idiomas.label }}</label>
       <div class="tg-checkgrid">
-        {% for sub in form.idiomas %}<label>{{ sub.tag }} <span>{{ sub.choice_label }}</span></label>{% endfor %}
+        {% for sub in form.idiomas %}
+          <label>
+            <input type="checkbox" name="idiomas" value="{{ sub.data.value }}"
+                   {% if sub.data.selected %}checked{% endif %}
+                   {% if sub.data.value == 'outro' %}@change="outro = $event.target.checked"{% endif %}>
+            <span>{{ sub.choice_label }}</span>
+          </label>
+        {% endfor %}
+      </div>
+      <div x-show="outro" x-cloak style="margin-top:10px;">
+        <label for="{{ form.idioma_outro.id_for_label }}" style="display:block;font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--color-ink-2);margin-bottom:6px;">{{ form.idioma_outro.label }}</label>
+        {{ form.idioma_outro }}
+        {% for e in form.idioma_outro.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
       </div>
     </div>
     <div class="tg-field">
