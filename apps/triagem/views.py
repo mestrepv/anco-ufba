@@ -196,10 +196,14 @@ def registros_view(request: HttpRequest) -> HttpResponse:
 
 @_exige_analista
 def duplicatas_view(request: HttpRequest) -> HttpResponse:
-    """Revisão de possíveis duplicatas por similaridade de título."""
+    """Revisão de possíveis duplicatas — um par por vez, com detalhes."""
     protocolo = ProtocoloTriagem.ativo()
     pares = dup.pares_possiveis(protocolo)
-    return render(request, "triagem/duplicatas.html", {"pares": pares})
+    return render(
+        request,
+        "triagem/duplicatas.html",
+        {"par": pares[0] if pares else None, "restantes": len(pares)},
+    )
 
 
 def _par_do_post(request) -> tuple[RegistroTriagem, RegistroTriagem]:

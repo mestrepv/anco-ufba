@@ -1,0 +1,16 @@
+{% comment %}Cartão de um registro de triagem para comparação. Param: r{% endcomment %}
+<div class="tg-card">
+  <div class="tg-item-title" style="font-size:15px;">{{ r.titulo }}</div>
+  <div class="tg-meta" style="margin-top:6px;">{{ r.autores|default:"autores não informados" }}</div>
+  <div class="tg-meta">
+    {{ r.ano|default:"s.d." }}{% if r.titulo_periodico %} · {{ r.titulo_periodico }}{% endif %}{% if r.doi %} · {{ r.doi }}{% endif %}
+  </div>
+  {% if r.palavras_chaves %}
+    <div class="tg-meta" style="margin-top:8px;color:var(--color-ink-2);"><strong>Palavras-chave:</strong> {{ r.palavras_chaves }}</div>
+  {% endif %}
+  {% if r.resumo %}
+    <div style="margin-top:10px;font-family:var(--font-sans);font-size:13px;line-height:1.55;color:var(--color-ink-2);max-height:300px;overflow:auto;padding-right:6px;">{{ r.resumo }}</div>
+  {% else %}
+    <div class="tg-meta" style="margin-top:10px;font-style:italic;">Sem resumo disponível.</div>
+  {% endif %}
+</div>

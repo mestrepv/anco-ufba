@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.indexes import GinIndex, OpClass
 from django.db import models
 from simple_history.models import HistoricalRecords
 
@@ -296,6 +297,13 @@ class RegistroTriagem(models.Model):
             models.UniqueConstraint(
                 fields=["protocolo", "identificador"],
                 name="uniq_registro_por_identificador_protocolo",
+            ),
+        ]
+        indexes = [
+            # Acelera a busca de possíveis duplicatas por similaridade de título.
+            GinIndex(
+                OpClass(models.F("titulo"), name="gin_trgm_ops"),
+                name="triagem_reg_titulo_trgm",
             ),
         ]
 
