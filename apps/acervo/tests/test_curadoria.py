@@ -171,6 +171,16 @@ class TestDespublicacao:
         a.refresh_from_db()
         assert a.status == Analise.Status.LEGADO
 
+    def test_anon_nao_ve_submetida(self, client, analise_submetida):
+        r = client.get(reverse("pagina_analise", args=[analise_submetida.pk]))
+        assert r.status_code == 404
+
+    def test_curador_previa_submetida_e_pode_aprovar(self, client, curador, analise_submetida):
+        client.force_login(curador)
+        r = client.get(reverse("pagina_analise", args=[analise_submetida.pk]))
+        assert r.status_code == 200
+        assert b"Aprovar e publicar" in r.content
+
     def test_leitor_nao_despublica(self, client, leitor, analise_publicada):
         client.force_login(leitor)
         resp = client.post(reverse("despublicar_analise", args=[analise_publicada.pk]))

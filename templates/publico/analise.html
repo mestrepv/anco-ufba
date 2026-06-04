@@ -113,11 +113,19 @@
 
 {% block content %}
 
-{# ── Aviso de despublicação (visível só a admin/curador) ────────────── #}
-{% if despublicada %}
+{# ── Avisos para admin/curador em análises não públicas ─────────────── #}
+{% if submetida %}
+<div style="padding:12px 20px; background:var(--color-review-bg); border-bottom:1px solid var(--color-gold-deep); font-family:var(--font-sans); font-size:13px; color:var(--color-gold-deep);">
+  <strong>Pré-visualização da curadoria.</strong> Análise <strong>submetida</strong>, aguardando aprovação — ainda não está no acervo público. Use os botões abaixo para aprovar, ou a <a href="{% url 'fila_curadoria' %}" style="color:var(--color-gold-deep); text-decoration:underline;">fila de curadoria</a> para pedir ajustes/rejeitar.
+</div>
+{% elif despublicada %}
 <div style="padding:12px 20px; background:#fdf2f0; border-bottom:1px solid var(--color-danger); font-family:var(--font-sans); font-size:13px; color:var(--color-danger);">
   <strong>Despublicada.</strong> Esta análise não aparece no acervo público.
   Está preservada no banco e pode ser restaurada{% if analise.despublicada_em %} (despublicada em {{ analise.despublicada_em|date:"d/m/Y" }}{% if analise.despublicada_por %} por {{ analise.despublicada_por.nome_exibicao|default:analise.despublicada_por.username }}{% endif %}){% endif %}.
+</div>
+{% elif nao_publica %}
+<div style="padding:12px 20px; background:var(--color-paper-2); border-bottom:1px solid var(--color-rule-strong); font-family:var(--font-sans); font-size:13px; color:var(--color-ink-2);">
+  <strong>Pré-visualização.</strong> Status: <strong>{{ status_label }}</strong> — não está no acervo público.
 </div>
 {% endif %}
 
@@ -191,11 +199,17 @@
       {% endif %}
 
       {% if pode_curar %}
-        {% if despublicada %}
+        {% if submetida %}
+        <form method="post" action="{% url 'aprovar_analise' analise.pk %}" style="display:inline; margin-left:auto;"
+              onsubmit="return confirm('Aprovar e publicar esta análise no acervo?');">{% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-primary">Aprovar e publicar</button>
+        </form>
+        <a href="{% url 'fila_curadoria' %}" class="btn btn-sm btn-ghost">Pedir ajustes / rejeitar →</a>
+        {% elif despublicada %}
         <form method="post" action="{% url 'restaurar_analise' analise.pk %}" style="display:inline; margin-left:auto;">{% csrf_token %}
           <button type="submit" class="btn btn-sm btn-primary">Restaurar ao acervo</button>
         </form>
-        {% else %}
+        {% elif analise.status == "publicada" or analise.status == "legado" %}
         <form method="post" action="{% url 'despublicar_analise' analise.pk %}" style="display:inline; margin-left:auto;"
               onsubmit="return confirm('Despublicar esta análise? Ela some do acervo público, mas fica preservada no banco e pode ser restaurada depois.');">{% csrf_token %}
           <button type="submit" class="btn btn-sm btn-ghost" style="color:var(--color-danger); border-color:var(--color-danger);">Despublicar</button>
