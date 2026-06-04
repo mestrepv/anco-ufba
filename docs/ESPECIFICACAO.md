@@ -897,3 +897,34 @@ automática por consenso). Esse fluxo foi **substituído** a pedido do produto:
   no acervo após confirmação da curadoria; a publicação da análise é independente.
 
 Detalhes de implementação: `apps/acervo/{models,sorteio,aprovacao,signals,tasks,views}.py`.
+
+---
+
+## Addendum — Fase 9: Triagem PRISMA-ScR (app `apps/triagem`)
+
+Etapa **anterior à análise** (upstream da Matriz AnCo): seleção de fontes
+reprodutível e reportável segundo o **PRISMA-ScR**. Decisão de produto
+(2026-06): construir como **app nativo** `apps/triagem`, **aditivo** (tabelas
+novas; **sem alterar o schema de `acervo`**).
+
+Fluxo dos **novos analistas**: **busca em ≥9 bases** (reusa o vocabulário `base`
+já existente) → **importação por arquivo** (RIS/BibTeX/CSV) com dedup → **triagem
+por ≥2 revisores independentes** (incluir/excluir/dúvida + motivo), divergência
+resolvida por terceiro/curador → **promoção dos incluídos a `Artigo`** → análise
+pela Matriz AnCo (fluxo de `Analise` já existente).
+
+- **Isenção do legado:** o acervo histórico (`Analise.status = legado`, base de
+  fundação curada por Eneida Santana) **não passa por triagem**. A triagem só cria
+  `Artigo` **novos**; candidato que casa com `Artigo` existente (inclusive legado)
+  é marcado `ja_no_acervo` e não é re-triado nem duplicado.
+- **Modelos:** `ProtocoloTriagem` (singleton), `Busca` (por base, contagem PRISMA),
+  `RegistroTriagem` (candidato pré-`Artigo`, dedup determinístico), `DecisaoTriagem`
+  (parecer de 1 revisor, análogo a `Revisao`).
+- **Infraestrutura reusada (espelhada, não generalizada):** sorteio/avaliação/
+  sinais/tasks de revisão cega de `apps/acervo` → `apps/triagem`, para não
+  desestabilizar a revisão de resenha já testada.
+- **PRISMA-ScR:** contagens (identificados/duplicados/triados/incluídos/excluídos
+  por motivo) e fluxograma derivados dos status de `RegistroTriagem`.
+
+Entregue em sub-fases (9.0 scaffolding → 9.6 PRISMA), uma por vez, com relatório de
+fim de fase e aprovação humana. Plano: `docs/relatorios/fase-9.md`.

@@ -35,6 +35,8 @@ urlpatterns = [
     path("acervo/", include(urlpatterns_acervo)),
     # Fluxos de analista permanecem em /acervo-analista/ apos a Fase 5
     path("acervo-analista/", include("apps.acervo.urls")),
+    # Triagem PRISMA-ScR (Fase 9) — seleção de fontes antes da análise
+    path("triagem/", include("apps.triagem.urls")),
     # Página de teste do design system — remover antes do go-live público
     path("_design/", teste_design_view, name="teste_design"),
     path("_ferramentas/doi/", consultar_doi_view, name="consultar_doi"),
