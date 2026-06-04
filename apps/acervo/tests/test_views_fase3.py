@@ -95,6 +95,9 @@ class TestCadastrarArtigo:
     def test_post_valido_cria_artigo_e_analise(
         self, mock_validar, cliente_analista, vocab, analista
     ):
+        # Cadastro avulso é ação de curador/admin (política da Fase 10).
+        analista.is_staff = True
+        analista.save(update_fields=["is_staff"])
         mock_validar.return_value = LinkCheckResultado(status="ok", codigo_http=200, url_final=None)
         resp = cliente_analista.post(
             reverse("cadastrar_artigo"),

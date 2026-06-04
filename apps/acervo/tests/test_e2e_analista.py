@@ -35,10 +35,13 @@ def vocab_base(db):
 
 @pytest.fixture
 def autor(db):
+    # is_staff: cadastro avulso é ação de curador/admin (política da Fase 10);
+    # o e2e percorre cadastro→análise→submissão a partir desse ator.
     return User.objects.create_user(
         username="autor_e2e",
         email="autor@usp.edu.br",
         password="x",
+        is_staff=True,
         papel=User.Papel.ANALISTA,
     )
 

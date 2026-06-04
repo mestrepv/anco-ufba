@@ -334,6 +334,26 @@ def desempatar_view(request: HttpRequest, registro_id: int) -> HttpResponse:
 
 
 @_exige_analista
+def a_analisar_view(request: HttpRequest) -> HttpResponse:
+    """Artigos incluídos pela triagem que o usuário ainda não analisou."""
+    from apps.acervo.models import Analise, Artigo
+
+    minhas = Analise.objects.filter(analista=request.user).values_list(
+        "artigo_id", flat=True
+    )
+    artigos = (
+        Artigo.objects.filter(
+            registros_triagem__status=RegistroTriagem.Status.INCLUIDO
+        )
+        .exclude(pk__in=minhas)
+        .distinct()
+        .order_by("-ano", "titulo")
+    )
+    pagina = Paginator(artigos, 50).get_page(request.GET.get("page"))
+    return render(request, "triagem/a_analisar.html", {"pagina": pagina})
+
+
+@_exige_analista
 def prisma_view(request: HttpRequest) -> HttpResponse:
     """Fluxograma PRISMA-ScR (contagens) + export CSV/JSON."""
     protocolo = ProtocoloTriagem.ativo()

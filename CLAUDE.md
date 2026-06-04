@@ -294,6 +294,12 @@ proveniência em `RegistroTriagem.artigo`. **Legado isento** (registro que casa 
 `manage.py importar_triagem <arquivo> --base <nome>`. Fluxograma + export em
 `/triagem/prisma/`. Detalhes: `docs/relatorios/fase-9.md` e addendum da especificação.
 
+**Operacional (Fase 10):** import mostra **resumo de dedup** (`/triagem/busca/<id>/`);
+revisão de **possíveis duplicatas** por `pg_trgm` (`/triagem/duplicatas/`); **iniciar
+triagem é ação do curador** (gate de coleta); **só triados entram na análise** —
+analista comum não cadastra Artigo avulso (vira ação de curador/admin) e pega o
+trabalho em `/triagem/a-analisar/`. Ver `docs/relatorios/fase-10.md`.
+
 ### 9.3. Acervo público (Fase 5)
 URLs **estáveis e citáveis** desde o dia 1. Mudança de URL depois quebra
 citações. Padrão sugerido:

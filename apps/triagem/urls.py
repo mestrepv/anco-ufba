@@ -17,5 +17,6 @@ urlpatterns = [
     path("triar/<int:decisao_id>/", views.triar_view, name="triagem_triar"),
     path("desempate/", views.fila_desempate_view, name="triagem_desempate"),
     path("desempate/<int:registro_id>/", views.desempatar_view, name="triagem_desempatar"),
+    path("a-analisar/", views.a_analisar_view, name="triagem_a_analisar"),
     path("prisma/", views.prisma_view, name="triagem_prisma"),
 ]

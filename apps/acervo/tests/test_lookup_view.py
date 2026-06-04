@@ -35,8 +35,10 @@ def vocab_base(db):
 
 @pytest.fixture
 def analista(db):
+    # is_staff: cadastro avulso é ação de curador/admin (política da Fase 10).
     return User.objects.create_user(
-        username="ana", email="ana@usp.edu.br", password="x", papel=User.Papel.ANALISTA
+        username="ana", email="ana@usp.edu.br", password="x",
+        is_staff=True, papel=User.Papel.ANALISTA,
     )
 
 
