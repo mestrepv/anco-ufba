@@ -246,6 +246,7 @@ class RegistroTriagem(models.Model):
     palavras_chaves = models.TextField(blank=True)
     titulo_periodico = models.TextField(blank=True)
     idioma = models.CharField(max_length=20, blank=True)
+    tipo = models.CharField(max_length=40, blank=True, help_text="Tipo de documento (Artigo, Livro…).")
     link = models.URLField(max_length=600, blank=True)
 
     identificador = models.CharField(

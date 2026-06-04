@@ -1,5 +1,8 @@
 {% comment %}Cartão de um registro de triagem para comparação. Param: r{% endcomment %}
 <div class="tg-card">
+  {% if r.tipo %}
+    <span style="display:inline-block;margin-bottom:6px;padding:2px 9px;border-radius:999px;border:1px solid var(--color-rule);background:var(--color-paper-2);font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--color-ink-3);">{{ r.tipo }}</span>
+  {% endif %}
   <div class="tg-item-title" style="font-size:15px;">{{ r.titulo }}</div>
   <div class="tg-meta" style="margin-top:6px;">{{ r.autores|default:"autores não informados" }}</div>
   <div class="tg-meta">

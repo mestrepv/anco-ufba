@@ -64,7 +64,7 @@ def _concordancia(par: dict) -> int:
 
 # Campos exibidos na revisão de duplicatas (decidir não só pelo título).
 _CAMPOS = (
-    "id", "titulo", "doi", "ano", "identificador",
+    "id", "titulo", "doi", "ano", "identificador", "tipo", "link",
     "autores", "resumo", "palavras_chaves", "titulo_periodico",
 )
 

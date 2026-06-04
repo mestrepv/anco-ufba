@@ -66,6 +66,18 @@ def base_termo(db):
 
 # ---- parsers ---------------------------------------------------------------
 
+def test_parse_extrai_tipo():
+    assert parse_ris(RIS)[0]["tipo"] == "Artigo"  # TY - JOUR
+    assert parse_bibtex(BIBTEX)[0]["tipo"] == "Artigo"  # @article
+
+
+def test_import_grava_tipo(protocolo, base_termo):
+    b = Busca.objects.create(protocolo=protocolo, base_consulta=base_termo)
+    importar_para_busca(b, parse_ris(RIS))
+    reg = RegistroTriagem.objects.get(protocolo=protocolo, doi="10.1000/abc123")
+    assert reg.tipo == "Artigo"
+
+
 def test_parse_ris_mapeia_campos():
     (r,) = parse_ris(RIS)
     assert r["titulo"] == "Cognitive analysis in science education"

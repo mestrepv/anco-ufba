@@ -60,6 +60,25 @@ def _limpa_chaves(valor: str) -> str:
     return re.sub(r"\s+", " ", (valor or "").replace("{", "").replace("}", "")).strip()
 
 
+# Códigos de tipo (RIS TY / BibTeX entrytype) → rótulo legível em pt-BR.
+_TIPO_MAP = {
+    "jour": "Artigo", "article": "Artigo",
+    "book": "Livro",
+    "chap": "Capítulo", "inbook": "Capítulo", "incollection": "Capítulo",
+    "cpaper": "Trabalho de evento", "conf": "Trabalho de evento",
+    "inproceedings": "Trabalho de evento", "conference": "Trabalho de evento",
+    "thes": "Tese/Dissertação", "phdthesis": "Tese/Dissertação",
+    "mastersthesis": "Tese/Dissertação",
+    "rprt": "Relatório", "techreport": "Relatório",
+    "review": "Resenha",
+}
+
+
+def _tipo_legivel(codigo) -> str:
+    c = _txt(codigo).lower()
+    return _TIPO_MAP.get(c, _txt(codigo).title())
+
+
 # --------------------------------------------------------------------------- #
 # Parsers por formato → lista de dicts normalizados
 # --------------------------------------------------------------------------- #
@@ -86,6 +105,7 @@ def parse_ris(conteudo: str) -> list[dict]:
                 ),
                 "idioma": _primeiro(e, "language"),
                 "link": _primeiro(e, "url", "urls"),
+                "tipo": _tipo_legivel(e.get("type_of_reference")),
             }
         )
     return registros
@@ -114,6 +134,7 @@ def parse_bibtex(conteudo: str) -> list[dict]:
                 ),
                 "idioma": _primeiro(e, "language", "langid"),
                 "link": _primeiro(e, "url"),
+                "tipo": _tipo_legivel(e.get("ENTRYTYPE")),
             }
         )
     return registros
@@ -131,6 +152,7 @@ _CSV_MAPA = {
     "titulo_periodico": ("titulo_periodico", "periodico", "periódico", "journal", "source", "fonte"),
     "idioma": ("idioma", "language", "la"),
     "link": ("link", "url", "ur", "link_acesso"),
+    "tipo": ("tipo", "tipo_documento", "type", "document type", "dt", "ty"),
 }
 
 
@@ -164,6 +186,7 @@ def parse_csv(conteudo: str) -> list[dict]:
                 "titulo_periodico": col(linha, "titulo_periodico"),
                 "idioma": col(linha, "idioma"),
                 "link": col(linha, "link"),
+                "tipo": _tipo_legivel(col(linha, "tipo")),
             }
         )
     return registros
@@ -270,6 +293,7 @@ def importar_para_busca(busca: Busca, registros_brutos: list[dict]) -> Resultado
             titulo_periodico=periodico,
             idioma=_txt(bruto.get("idioma"))[:20],
             link=_txt(bruto.get("link"))[:600],
+            tipo=_txt(bruto.get("tipo"))[:40],
             identificador=ident,
         )
         if artigo is not None:
