@@ -12,9 +12,6 @@
     </div>
     <div class="tg-actions">
       <a href="{% url 'triagem_ajuda' %}" class="btn btn-secondary">Como funciona?</a>
-      {% if user.is_staff or user.eh_curador %}
-        <a href="{% url 'triagem_desempate' %}" class="btn btn-secondary">Desempates</a>
-      {% endif %}
       <a href="{% url 'triagem_importar' %}" class="btn btn-primary">Importar busca</a>
     </div>
   </div>
@@ -31,10 +28,14 @@
     </div>
   </div>
 
+  {# Atalhos na ordem do fluxo: dedup → triar → desempatar → analisar → relatório #}
   <div class="tg-actions" style="margin-bottom:24px;">
-    <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">A analisar</a>
-    <a href="{% url 'triagem_minhas' %}" class="btn btn-secondary">Minhas triagens</a>
     <a href="{% url 'triagem_duplicatas' %}" class="btn btn-secondary">Possíveis duplicatas</a>
+    <a href="{% url 'triagem_minhas' %}" class="btn btn-secondary">Minhas triagens</a>
+    {% if user.is_staff or user.eh_curador %}
+      <a href="{% url 'triagem_desempate' %}" class="btn btn-secondary">Desempates</a>
+    {% endif %}
+    <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">A analisar</a>
     <a href="{% url 'triagem_prisma' %}" class="btn btn-secondary">Fluxograma PRISMA</a>
   </div>
 
