@@ -273,3 +273,31 @@ class DecisaoTriagem(models.Model):
 
     def __str__(self) -> str:
         return f"Triagem do registro {self.registro_id} por {self.revisor_id}"
+
+
+class ParDuplicataDescartado(models.Model):
+    """Par de registros que um humano marcou como **não** sendo duplicatas.
+
+    Evita reexibir o par na revisão de "possíveis duplicatas". Convenção:
+    `registro_a_id < registro_b_id`.
+    """
+
+    registro_a = models.ForeignKey(
+        RegistroTriagem, on_delete=models.CASCADE, related_name="+"
+    )
+    registro_b = models.ForeignKey(
+        RegistroTriagem, on_delete=models.CASCADE, related_name="+"
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "par descartado (não duplicata)"
+        verbose_name_plural = "pares descartados (não duplicatas)"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["registro_a", "registro_b"], name="uniq_par_descartado"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.registro_a_id} ≠ {self.registro_b_id}"

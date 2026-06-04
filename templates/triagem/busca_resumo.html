@@ -36,8 +36,10 @@
   </div>
 
   <div class="rounded-md bg-sky-50 border border-sky-200 px-4 py-3 text-sm text-sky-800 mb-6">
-    A deduplicação por DOI/ISBN/título já foi aplicada. Quando a coleta do período
-    fechar, o curador inicia a triagem.
+    A deduplicação por DOI/ISBN/título já foi aplicada. Próximo passo: revisar
+    <a href="{% url 'triagem_duplicatas' %}" class="underline">possíveis duplicatas</a>
+    (mesmo artigo sem DOI ou com DOI divergente). Quando a coleta do período fechar,
+    o curador inicia a triagem.
   </div>
 
   <div class="flex gap-2 mb-6">

@@ -7,6 +7,10 @@
   <div class="flex items-center justify-between mb-2">
     <h1 class="text-2xl font-bold text-anco">Triagem (PRISMA-ScR)</h1>
     <div class="flex gap-2">
+      <a href="{% url 'triagem_duplicatas' %}"
+         class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:border-anco">
+        Possíveis duplicatas
+      </a>
       <a href="{% url 'triagem_prisma' %}"
          class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:border-anco">
         Fluxograma PRISMA

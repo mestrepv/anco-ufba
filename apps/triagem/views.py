@@ -24,6 +24,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from . import duplicatas as dup
 from . import prisma
 from .aprovacao import registros_para_desempate
 from .forms import DecisaoTriagemForm, DesempateForm, ImportarBuscaForm
@@ -172,21 +173,69 @@ def registros_view(request: HttpRequest) -> HttpResponse:
         "status_atual": status,
         "status_choices": RegistroTriagem.Status.choices,
         "n_para_triar": n_identificados,
+        "pode_curar": _eh_curador(request.user),
     }
     return render(request, "triagem/registros.html", contexto)
 
 
 @_exige_analista
-@require_POST
-def iniciar_triagem_view(request: HttpRequest) -> HttpResponse:
-    """Enfileira o sorteio de revisores para os registros identificados."""
+def duplicatas_view(request: HttpRequest) -> HttpResponse:
+    """Revisão de possíveis duplicatas por similaridade de título."""
     protocolo = ProtocoloTriagem.ativo()
-    n = iniciar_triagem(protocolo)
-    if n:
-        messages.success(request, f"Triagem iniciada para {n} registro(s).")
-    else:
-        messages.info(request, "Nenhum registro identificado disponível para triar.")
-    return redirect("triagem_registros")
+    pares = dup.pares_possiveis(protocolo)
+    return render(request, "triagem/duplicatas.html", {"pares": pares})
+
+
+def _par_do_post(request) -> tuple[RegistroTriagem, RegistroTriagem]:
+    a = get_object_or_404(RegistroTriagem, pk=request.POST.get("a"))
+    b = get_object_or_404(RegistroTriagem, pk=request.POST.get("b"))
+    return a, b
+
+
+@_exige_analista
+@require_POST
+def mesclar_duplicata_view(request: HttpRequest) -> HttpResponse:
+    a, b = _par_do_post(request)
+    # canônico = menor pk (mantém o mais antigo); o outro vira duplicado.
+    canonico, duplicado = (a, b) if a.pk < b.pk else (b, a)
+    dup.mesclar(canonico, duplicado)
+    messages.success(request, "Registros mesclados (duplicata marcada).")
+    return redirect("triagem_duplicatas")
+
+
+@_exige_analista
+@require_POST
+def descartar_duplicata_view(request: HttpRequest) -> HttpResponse:
+    a, b = _par_do_post(request)
+    dup.descartar(a, b)
+    messages.info(request, "Par marcado como não duplicata.")
+    return redirect("triagem_duplicatas")
+
+
+@_exige_curador
+def iniciar_triagem_view(request: HttpRequest) -> HttpResponse:
+    """Curador fecha a coleta e dispara o sorteio dos identificados.
+
+    GET: confirmação (quantos serão sorteados). POST: enfileira o sorteio.
+    """
+    protocolo = ProtocoloTriagem.ativo()
+    n_disponiveis = protocolo.registros.filter(
+        status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
+    ).count()
+
+    if request.method == "POST":
+        n = iniciar_triagem(protocolo)
+        if n:
+            messages.success(request, f"Triagem iniciada para {n} registro(s).")
+        else:
+            messages.info(request, "Nenhum registro identificado disponível para triar.")
+        return redirect("triagem_registros")
+
+    return render(
+        request,
+        "triagem/iniciar_confirma.html",
+        {"protocolo": protocolo, "n_disponiveis": n_disponiveis},
+    )
 
 
 @_exige_analista

@@ -50,9 +50,9 @@ def leitor(db):
 
 # ---- iniciar triagem -------------------------------------------------------
 
-def test_iniciar_triagem_sorteia(client, protocolo, revisores):
+def test_iniciar_triagem_sorteia(client, protocolo, revisores, curador):
     RegistroTriagem.objects.create(protocolo=protocolo, titulo="A", doi="10.1/a")
-    client.force_login(revisores[0])
+    client.force_login(curador)
     resp = client.post(reverse("triagem_iniciar"))
     assert resp.status_code == 302
     reg = RegistroTriagem.objects.get(doi="10.1/a")
@@ -60,11 +60,17 @@ def test_iniciar_triagem_sorteia(client, protocolo, revisores):
     assert DecisaoTriagem.objects.filter(registro=reg).count() == protocolo.n_revisores
 
 
-def test_iniciar_ignora_ja_no_acervo(client, protocolo, revisores):
+def test_iniciar_exige_curador(client, protocolo, revisores):
+    client.force_login(revisores[0])  # analista comum
+    assert client.get(reverse("triagem_iniciar")).status_code == 403
+    assert client.post(reverse("triagem_iniciar")).status_code == 403
+
+
+def test_iniciar_ignora_ja_no_acervo(client, protocolo, revisores, curador):
     RegistroTriagem.objects.create(
         protocolo=protocolo, titulo="B", doi="10.1/b", ja_no_acervo=True
     )
-    client.force_login(revisores[0])
+    client.force_login(curador)
     client.post(reverse("triagem_iniciar"))
     reg = RegistroTriagem.objects.get(doi="10.1/b")
     assert reg.status == RegistroTriagem.Status.IDENTIFICADO

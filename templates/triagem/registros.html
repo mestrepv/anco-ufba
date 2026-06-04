@@ -8,14 +8,11 @@
   <div class="flex items-center justify-between mt-1 mb-4">
     <h1 class="text-2xl font-bold text-anco">Registros de triagem</h1>
     <div class="flex gap-2">
-      {% if n_para_triar %}
-        <form method="post" action="{% url 'triagem_iniciar' %}">
-          {% csrf_token %}
-          <button type="submit"
-                  class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
-            Iniciar triagem ({{ n_para_triar }})
-          </button>
-        </form>
+      {% if n_para_triar and pode_curar %}
+        <a href="{% url 'triagem_iniciar' %}"
+           class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+          Iniciar triagem ({{ n_para_triar }})
+        </a>
       {% endif %}
       <a href="{% url 'triagem_importar' %}"
          class="rounded-md bg-anco px-4 py-2 text-sm font-medium text-white hover:bg-anco-dark">
