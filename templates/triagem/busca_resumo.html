@@ -1,16 +1,16 @@
 {% extends "_base_publico.html" %}
 
-{% block title %}Resumo da importação · Triagem{% endblock %}
+{% block title %}Detalhe da importação · Triagem{% endblock %}
 {% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
 
 {% block content %}
 <div class="tg-wrap">
   <a href="{% url 'triagem_painel' %}" class="tg-back">&larr; Triagem</a>
-  <h1 class="tg-h1" style="margin-top:6px;">Importação concluída</h1>
+  <h1 class="tg-h1" style="margin-top:6px;">{{ busca.base_nome|default:"Importação" }}</h1>
   <p class="tg-desc">
-    Base: <strong>{{ busca.base_nome|default:"—" }}</strong>
-    {% if busca.formato %}· {{ busca.get_formato_display }}{% endif %}
-    {% if busca.importado_em %}· {{ busca.importado_em|date:"d/m/Y H:i" }}{% endif %}
+    {% if busca.formato %}{{ busca.get_formato_display }} · {% endif %}
+    Importada em <strong>{{ busca.importado_em|date:"d/m/Y \à\s H:i"|default:"—" }}</strong>
+    {% if busca.criado_por %} por {{ busca.criado_por.nome_exibicao|default:busca.criado_por.email }}{% endif %}
   </p>
 
   {% if busca.n_identificados %}
@@ -23,37 +23,21 @@
         ⚠ <strong>Divergência:</strong> a base reportou <strong>{{ busca.n_identificados }}</strong>
         registro(s), mas o arquivo trouxe <strong>{{ busca.n_lidos }}</strong>.
         {% if busca.n_lidos < busca.n_identificados %}
-          <br>O export provavelmente está <strong>incompleto</strong> — no WoS (e na maioria das bases),
-          a exportação vem só da <em>página atual</em>. Reexporte o <strong>intervalo completo</strong>
-          (ex.: <em>“Records from 1 to {{ busca.n_identificados }}”</em>) e importe de novo.
-          Pode reimportar com segurança: a deduplicação não cria duplicatas.
+          <br>O export provavelmente está <strong>incompleto</strong>. Reexporte o intervalo completo
+          (ex.: <em>“Records from 1 to {{ busca.n_identificados }}”</em>), exclua esta importação abaixo e importe de novo.
         {% else %}
-          <br>O arquivo trouxe <strong>mais</strong> do que o informado — confira o número digitado
-          ou se o arquivo mistura registros de outra busca.
+          <br>O arquivo trouxe <strong>mais</strong> do que o informado — confira o número digitado.
         {% endif %}
       </div>
     {% endif %}
   {% endif %}
 
   <div class="tg-grid-stats" style="margin-bottom:18px;">
-    <div class="tg-stat"><div class="n">{{ busca.n_identificados }}</div><div class="l">informados pela base</div></div>
     <div class="tg-stat"><div class="n">{{ busca.n_lidos }}</div><div class="l">lidos do arquivo</div></div>
-    <div class="tg-stat" style="border-color:var(--color-ok);"><div class="n" style="color:var(--color-ok);">{{ busca.n_novos }}</div><div class="l">novos</div></div>
+    <div class="tg-stat" style="border-color:var(--color-ok);"><div class="n" style="color:var(--color-ok);">{{ n_novos }}</div><div class="l">novos a triar</div></div>
+    <div class="tg-stat"><div class="n">{{ n_ja_acervo }}</div><div class="l">já no acervo</div></div>
     <div class="tg-stat" style="border-color:var(--color-review-rule);"><div class="n" style="color:var(--color-gold-deep);">{{ busca.n_duplicados }}</div><div class="l">duplicados (outras bases)</div></div>
-    <div class="tg-stat"><div class="n">{{ busca.n_ja_no_acervo }}</div><div class="l">já no acervo</div></div>
     <div class="tg-stat"><div class="n" style="color:var(--color-ink-3);">{{ busca.n_ignorados }}</div><div class="l">ignorados</div></div>
-  </div>
-
-  <div class="tg-note" style="margin-bottom:24px;">
-    A deduplicação por DOI/ISBN/título já foi aplicada. Próximo passo: revisar
-    <a href="{% url 'triagem_duplicatas' %}" style="color:var(--color-gold-deep);">possíveis duplicatas</a>
-    (mesmo artigo sem DOI ou com DOI divergente). Quando a coleta do período fechar,
-    o curador inicia a triagem.
-  </div>
-
-  <div class="tg-actions" style="margin-bottom:28px;">
-    <a href="{% url 'triagem_importar' %}" class="btn btn-primary">Importar outra base</a>
-    <a href="{% url 'triagem_registros' %}" class="btn btn-secondary">Ver todos os registros</a>
   </div>
 
   {% if busca.string_busca or busca.periodo or busca.idiomas or busca.tipos_documento or busca.filtros or busca.campos_busca %}
@@ -70,19 +54,79 @@
   </div>
   {% endif %}
 
-  <h2 class="tg-h2">Registros desta importação</h2>
-  <table class="tg-table">
-    <thead><tr><th>Título</th><th>Ano</th><th>Situação</th></tr></thead>
-    <tbody>
-      {% for r in registros %}
-        <tr>
-          <td>{{ r.titulo|truncatechars:110 }}
-            {% if r.doi %}<div class="tg-meta">{{ r.doi }}</div>{% endif %}</td>
-          <td>{{ r.ano|default:"—" }}</td>
-          <td>{% if r.ja_no_acervo %}<span style="color:var(--color-ink-3);">já no acervo</span>{% else %}<span style="color:var(--color-ok);">novo</span>{% endif %}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  {# ── Já no acervo histórico ──────────────────────────────────────── #}
+  <h2 class="tg-h2">Já no acervo histórico ({{ n_ja_acervo }})</h2>
+  <p class="secao-desc tg-meta" style="margin:-4px 0 12px;">
+    Registros desta busca que já estão na base curada (legado) — <strong>não</strong> entram na triagem.
+  </p>
+  {% if ja_acervo %}
+    <div style="max-height:340px;overflow:auto;border:1px solid var(--color-rule);border-radius:8px;">
+      <table class="tg-table" style="margin:0;">
+        <tbody>
+          {% for item in ja_acervo %}
+            <tr>
+              <td style="padding-left:14px;">{{ item.reg.titulo|truncatechars:110 }}
+                <div class="tg-meta">{{ item.reg.ano|default:"s.d." }}{% if item.reg.autores %} · {{ item.reg.autores|truncatechars:50 }}{% endif %}</div></td>
+              <td style="text-align:right;padding-right:14px;white-space:nowrap;">
+                {% if item.slug %}<a href="{% url 'pagina_artigo' item.slug %}" style="color:var(--color-gold-deep);font-size:13px;">ver no acervo &nearr;</a>{% else %}<span class="tg-meta">no acervo</span>{% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="tg-empty">Nenhum registro desta busca estava no acervo.</p>
+  {% endif %}
+
+  {# ── Novos a triar ──────────────────────────────────────────────── #}
+  <h2 class="tg-h2">Novos a triar ({{ n_novos }})</h2>
+  <p class="secao-desc tg-meta" style="margin:-4px 0 12px;">Registros inéditos — seguem para a deduplicação e a triagem.</p>
+  {% if novos %}
+    <div style="max-height:340px;overflow:auto;border:1px solid var(--color-rule);border-radius:8px;">
+      <table class="tg-table" style="margin:0;">
+        <tbody>
+          {% for r in novos %}
+            <tr>
+              <td style="padding-left:14px;">{{ r.titulo|truncatechars:110 }}
+                <div class="tg-meta">{{ r.ano|default:"s.d." }}{% if r.tipo %} · {{ r.tipo }}{% endif %}{% if r.doi %} · {{ r.doi }}{% endif %}</div></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="tg-empty">Nenhum registro novo nesta busca.</p>
+  {% endif %}
+
+  {# ── Ações ──────────────────────────────────────────────────────── #}
+  <div class="tg-actions" style="margin-top:24px;">
+    <a href="{% url 'triagem_duplicatas' %}" class="btn btn-primary">Revisar possíveis duplicatas</a>
+    <a href="{% url 'triagem_importar' %}" class="btn btn-secondary">Importar outra base</a>
+  </div>
+
+  {# ── Excluir importação ─────────────────────────────────────────── #}
+  <div class="tg-card" style="margin-top:28px;border-color:#e6c9c2;">
+    <strong style="font-family:var(--font-sans);font-size:14px;color:var(--color-ink);">Excluir esta importação</strong>
+    {% if pode_excluir %}
+      <p class="tg-meta" style="margin:6px 0 12px;">
+        Remove a busca e os registros que vieram só dela (ainda intocados). Use se importou
+        o arquivo errado — depois é só importar de novo.
+      </p>
+      <form method="post" action="{% url 'triagem_busca_excluir' busca.pk %}"
+            onsubmit="return confirm('Excluir esta importação e seus {{ busca.n_lidos }} registro(s)? Esta ação não pode ser desfeita.');">
+        {% csrf_token %}
+        <button type="submit" class="btn-excluir-grande">Excluir importação</button>
+      </form>
+    {% else %}
+      <p class="tg-meta" style="margin:6px 0 0;color:var(--color-danger);">{{ motivo_bloqueio }}</p>
+    {% endif %}
+  </div>
 </div>
+
+<style>
+  .btn-excluir-grande { display:inline-flex; align-items:center; padding:9px 16px; border-radius:6px;
+    background:transparent; border:1px solid var(--color-danger); color:var(--color-danger);
+    font-family:var(--font-sans); font-size:14px; font-weight:600; cursor:pointer; }
+  .btn-excluir-grande:hover { background:#fdf2f0; }
+</style>
 {% endblock %}

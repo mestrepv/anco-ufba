@@ -227,6 +227,47 @@ def decodificar(bytes_arquivo: bytes) -> str:
 # Importação + deduplicação
 # --------------------------------------------------------------------------- #
 
+_STATUS_TRIADOS = (
+    RegistroTriagem.Status.EM_TRIAGEM,
+    RegistroTriagem.Status.INCLUIDO,
+    RegistroTriagem.Status.EXCLUIDO,
+)
+
+
+def busca_pode_excluir(busca) -> tuple[bool, str]:
+    """Pode excluir? Só se nada dela já entrou em triagem (marcar duplicata, não).
+
+    `identificado` e `duplicado` são pré-triagem (refeitos no reimport); apagar é
+    seguro. `em_triagem`/`incluido`/`excluido` significam trabalho a preservar.
+    """
+    if busca.registros.filter(status__in=_STATUS_TRIADOS).exists():
+        return False, (
+            "Esta importação já entrou em triagem — não é possível excluí-la "
+            "para preservar o trabalho já feito."
+        )
+    return True, ""
+
+
+def excluir_busca(busca) -> tuple[bool, str]:
+    """Exclui a importação e seus registros intocados (idempotente-seguro).
+
+    Registros cuja única origem é esta busca (e ainda não triados) são apagados;
+    os compartilhados com outra busca são apenas desvinculados.
+    """
+    ok, motivo = busca_pode_excluir(busca)
+    if not ok:
+        return False, motivo
+    for reg in list(busca.registros.all()):
+        if reg.origem_buscas.count() <= 1:
+            reg.delete()
+        else:
+            reg.origem_buscas.remove(busca)
+    if busca.arquivo:
+        busca.arquivo.delete(save=False)
+    busca.delete()
+    return True, ""
+
+
 @dataclass
 class ResultadoImportacao:
     total: int = 0

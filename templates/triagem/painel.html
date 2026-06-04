@@ -47,23 +47,25 @@
     {% endfor %}
   </div>
 
-  <h2 class="tg-h2">Buscas recentes</h2>
+  <h2 class="tg-h2">Importações</h2>
+  <p class="tg-meta" style="margin:-2px 0 12px;">Clique numa importação para ver a comparação com o acervo, a estratégia e gerenciá-la.</p>
   {% if buscas %}
-    <table class="tg-table">
-      <thead><tr><th>Base</th><th>Formato</th><th>Identificados</th><th>Data</th></tr></thead>
-      <tbody>
-        {% for b in buscas %}
-          <tr>
-            <td>{{ b.base_nome|default:"—" }}</td>
-            <td>{{ b.get_formato_display|default:"—" }}</td>
-            <td>{{ b.n_identificados }}</td>
-            <td>{{ b.data_busca|default:"—" }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    {% for b in buscas %}
+      <a href="{% url 'triagem_busca_resumo' b.pk %}" class="busca-row">
+        <div>
+          <div class="b-base">{{ b.base_nome|default:"Importação" }}</div>
+          <div class="b-meta">
+            {% if b.formato %}{{ b.get_formato_display }} · {% endif %}importada em {{ b.importado_em|date:"d/m/Y H:i"|default:"—" }}
+          </div>
+        </div>
+        <div class="b-nums">
+          <strong>{{ b.n_novos }}</strong> novos · {{ b.n_ja_no_acervo }} no acervo<br>
+          <span class="tg-meta">{{ b.n_lidos }} lidos / {{ b.n_identificados }} na base</span>
+        </div>
+      </a>
+    {% endfor %}
   {% else %}
-    <p class="tg-empty">Nenhuma busca importada ainda.</p>
+    <p class="tg-empty">Nenhuma importação ainda. Comece em <a href="{% url 'triagem_importar' %}" style="color:var(--color-gold-deep);">Importar busca</a>.</p>
   {% endif %}
 </div>
 {% endblock %}

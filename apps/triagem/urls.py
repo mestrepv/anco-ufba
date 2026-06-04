@@ -9,6 +9,7 @@ urlpatterns = [
     path("ajuda/", views.ajuda_view, name="triagem_ajuda"),
     path("importar/", views.importar_view, name="triagem_importar"),
     path("busca/<int:busca_id>/", views.busca_resumo_view, name="triagem_busca_resumo"),
+    path("busca/<int:busca_id>/excluir/", views.excluir_busca_view, name="triagem_busca_excluir"),
     path("registros/", views.registros_view, name="triagem_registros"),
     path("duplicatas/", views.duplicatas_view, name="triagem_duplicatas"),
     path("duplicatas/mesclar/", views.mesclar_duplicata_view, name="triagem_duplicata_mesclar"),

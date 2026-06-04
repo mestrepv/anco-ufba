@@ -30,8 +30,10 @@ from . import prisma
 from .aprovacao import registros_para_desempate
 from .forms import DecisaoTriagemForm, DesempateForm, ImportarBuscaForm
 from .importacao import (
+    busca_pode_excluir,
     decodificar,
     detectar_formato,
+    excluir_busca,
     importar_para_busca,
     parse_conteudo,
 )
@@ -158,17 +160,43 @@ def importar_view(request: HttpRequest) -> HttpResponse:
 
 @_exige_analista
 def busca_resumo_view(request: HttpRequest, busca_id: int) -> HttpResponse:
-    """Resumo da deduplicação de uma busca recém-importada."""
+    """Detalhe de uma importação: comparação com o acervo + gestão."""
+    from apps.publico.services import doi_to_slug
+
     busca = get_object_or_404(Busca, pk=busca_id)
-    registros = (
-        busca.registros.select_related("artigo")
-        .order_by("ja_no_acervo", "titulo")
-    )
+    registros = list(busca.registros.select_related("artigo").order_by("titulo"))
+    ja_acervo = [
+        {"reg": r, "slug": doi_to_slug(r.artigo.identificador_canonico) if r.artigo else ""}
+        for r in registros if r.ja_no_acervo
+    ]
+    novos = [r for r in registros if not r.ja_no_acervo]
+    pode_excluir, motivo_bloqueio = busca_pode_excluir(busca)
     return render(
         request,
         "triagem/busca_resumo.html",
-        {"busca": busca, "registros": registros},
+        {
+            "busca": busca,
+            "ja_acervo": ja_acervo,
+            "novos": novos,
+            "n_ja_acervo": len(ja_acervo),
+            "n_novos": len(novos),
+            "pode_excluir": pode_excluir,
+            "motivo_bloqueio": motivo_bloqueio,
+        },
     )
+
+
+@_exige_analista
+@require_POST
+def excluir_busca_view(request: HttpRequest, busca_id: int) -> HttpResponse:
+    """Exclui uma importação e seus registros intocados (para reimportar)."""
+    busca = get_object_or_404(Busca, pk=busca_id)
+    ok, motivo = excluir_busca(busca)
+    if ok:
+        messages.success(request, "Importação excluída. Você pode importar de novo.")
+        return redirect("triagem_painel")
+    messages.error(request, motivo)
+    return redirect("triagem_busca_resumo", busca_id=busca_id)
 
 
 @_exige_analista

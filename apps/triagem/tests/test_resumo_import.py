@@ -154,3 +154,57 @@ def test_resumo_confere_quando_bate(client, analista, base_termo, settings, tmp_
     resp = _upload(client, base_termo, 1)  # arquivo tem 1, informado 1
     resumo = client.get(resp.headers["Location"])
     assert b"Confere" in resumo.content
+
+
+def test_detalhe_mostra_ja_no_acervo_e_data(client, analista, base_termo, settings, tmp_path):
+    from apps.acervo.models import Artigo
+
+    settings.MEDIA_ROOT = str(tmp_path)
+    Artigo.objects.create(doi="10.1/abc", titulo="x", ano=2020, base_consulta=base_termo)
+    client.force_login(analista)
+    resp = _upload(client, base_termo, 1)  # RIS tem doi 10.1/abc → já no acervo
+    detalhe = client.get(resp.headers["Location"])
+    assert "Já no acervo histórico".encode() in detalhe.content
+    assert b"ver no acervo" in detalhe.content
+    assert b"Importada em" in detalhe.content
+    assert b"Excluir importa" in detalhe.content  # botão presente (intocada)
+
+
+def test_painel_lista_importacoes_clicaveis(client, analista, base_termo, settings, tmp_path):
+    settings.MEDIA_ROOT = str(tmp_path)
+    client.force_login(analista)
+    _upload(client, base_termo, 1)
+    busca = Busca.objects.latest("pk")
+    r = client.get(reverse("triagem_painel"))
+    assert reverse("triagem_busca_resumo", args=[busca.pk]).encode() in r.content
+    assert b"busca-row" in r.content
+
+
+def test_excluir_busca_intocada(client, analista, base_termo, settings, tmp_path):
+    settings.MEDIA_ROOT = str(tmp_path)
+    client.force_login(analista)
+    _upload(client, base_termo, 1)
+    busca = Busca.objects.latest("pk")
+    from apps.triagem.models import RegistroTriagem
+    assert RegistroTriagem.objects.filter(doi="10.1/abc").exists()
+    resp = client.post(reverse("triagem_busca_excluir", args=[busca.pk]))
+    assert resp.status_code == 302
+    assert resp.headers["Location"] == reverse("triagem_painel")
+    assert not Busca.objects.filter(pk=busca.pk).exists()
+    assert not RegistroTriagem.objects.filter(doi="10.1/abc").exists()
+
+
+def test_excluir_bloqueado_se_ja_triado(client, analista, base_termo, settings, tmp_path):
+    from apps.triagem.models import RegistroTriagem
+
+    settings.MEDIA_ROOT = str(tmp_path)
+    client.force_login(analista)
+    _upload(client, base_termo, 1)
+    busca = Busca.objects.latest("pk")
+    reg = RegistroTriagem.objects.get(doi="10.1/abc")
+    reg.status = RegistroTriagem.Status.EM_TRIAGEM  # já entrou em triagem
+    reg.save()
+    resp = client.post(reverse("triagem_busca_excluir", args=[busca.pk]))
+    assert resp.status_code == 302
+    assert Busca.objects.filter(pk=busca.pk).exists()  # NÃO excluiu
+    assert RegistroTriagem.objects.filter(pk=reg.pk).exists()
