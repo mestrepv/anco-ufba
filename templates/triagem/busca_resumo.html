@@ -13,8 +13,31 @@
     {% if busca.importado_em %}· {{ busca.importado_em|date:"d/m/Y H:i" }}{% endif %}
   </p>
 
+  {% if busca.n_identificados %}
+    {% if busca.n_identificados == busca.n_lidos %}
+      <div class="tg-note" style="border-color:var(--color-ok);background:#eef4ea;color:#2f5a32;margin-bottom:16px;">
+        ✔ <strong>Confere:</strong> o arquivo trouxe {{ busca.n_lidos }} registro(s), igual ao que a base reportou.
+      </div>
+    {% else %}
+      <div class="tg-note" style="border-color:var(--color-danger);background:#fdf2f0;color:var(--color-danger);margin-bottom:16px;">
+        ⚠ <strong>Divergência:</strong> a base reportou <strong>{{ busca.n_identificados }}</strong>
+        registro(s), mas o arquivo trouxe <strong>{{ busca.n_lidos }}</strong>.
+        {% if busca.n_lidos < busca.n_identificados %}
+          <br>O export provavelmente está <strong>incompleto</strong> — no WoS (e na maioria das bases),
+          a exportação vem só da <em>página atual</em>. Reexporte o <strong>intervalo completo</strong>
+          (ex.: <em>“Records from 1 to {{ busca.n_identificados }}”</em>) e importe de novo.
+          Pode reimportar com segurança: a deduplicação não cria duplicatas.
+        {% else %}
+          <br>O arquivo trouxe <strong>mais</strong> do que o informado — confira o número digitado
+          ou se o arquivo mistura registros de outra busca.
+        {% endif %}
+      </div>
+    {% endif %}
+  {% endif %}
+
   <div class="tg-grid-stats" style="margin-bottom:18px;">
-    <div class="tg-stat"><div class="n">{{ busca.n_lidos }}</div><div class="l">lidos</div></div>
+    <div class="tg-stat"><div class="n">{{ busca.n_identificados }}</div><div class="l">informados pela base</div></div>
+    <div class="tg-stat"><div class="n">{{ busca.n_lidos }}</div><div class="l">lidos do arquivo</div></div>
     <div class="tg-stat" style="border-color:var(--color-ok);"><div class="n" style="color:var(--color-ok);">{{ busca.n_novos }}</div><div class="l">novos</div></div>
     <div class="tg-stat" style="border-color:var(--color-review-rule);"><div class="n" style="color:var(--color-gold-deep);">{{ busca.n_duplicados }}</div><div class="l">duplicados (outras bases)</div></div>
     <div class="tg-stat"><div class="n">{{ busca.n_ja_no_acervo }}</div><div class="l">já no acervo</div></div>

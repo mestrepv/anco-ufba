@@ -27,6 +27,28 @@ class ImportarBuscaForm(forms.Form):
     outra_base = forms.CharField(
         required=False, label="Outra base (fora do vocabulário)", max_length=200
     )
+    n_identificados = forms.IntegerField(
+        required=True, min_value=0,
+        label="Nº de registros que a base reportou",
+        help_text=(
+            "Total que a busca retornou na base (ex.: 466 no WoS). O sistema "
+            "compara com o que vier no arquivo e avisa se houver divergência."
+        ),
+    )
+    string_busca = forms.CharField(
+        required=False, label="String de busca",
+        widget=forms.Textarea(attrs={"rows": 2}),
+        help_text="A query usada na base (para reprodutibilidade).",
+    )
+    filtros = forms.CharField(
+        required=False, label="Filtros aplicados",
+        widget=forms.Textarea(attrs={"rows": 2}),
+        help_text="Ex.: anos 2017–2025; idioma inglês/português; tipo de documento: artigo.",
+    )
+    data_busca = forms.DateField(
+        required=False, label="Data da busca",
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
     formato = forms.ChoiceField(
         required=False,
         label="Formato",
@@ -38,16 +60,6 @@ class ImportarBuscaForm(forms.Form):
         ],
     )
     arquivo = forms.FileField(label="Arquivo exportado")
-    string_busca = forms.CharField(
-        required=False, label="String de busca", widget=forms.Textarea(attrs={"rows": 2})
-    )
-    n_identificados = forms.IntegerField(
-        required=False, min_value=0, label="Nº identificados relatado pela base"
-    )
-    data_busca = forms.DateField(
-        required=False, label="Data da busca",
-        widget=forms.DateInput(attrs={"type": "date"}),
-    )
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)

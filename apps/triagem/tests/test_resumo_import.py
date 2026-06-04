@@ -66,19 +66,55 @@ def test_ja_no_acervo_contado(protocolo, base_termo):
     assert b.n_ja_no_acervo == 1 and b.n_novos == 0
 
 
-def test_upload_redireciona_para_resumo(client, analista, base_termo, settings, tmp_path):
+def _upload(client, base_termo, n_identificados, conteudo=RIS, **extra):
+    arq = SimpleUploadedFile("scopus.ris", conteudo.encode("utf-8"))
+    data = {
+        "base_consulta": base_termo.pk, "formato": "", "arquivo": arq,
+        "n_identificados": n_identificados, **extra,
+    }
+    return client.post(reverse("triagem_importar"), data=data)
+
+
+def test_n_identificados_obrigatorio(client, analista, base_termo, settings, tmp_path):
     settings.MEDIA_ROOT = str(tmp_path)
     client.force_login(analista)
-    arq = SimpleUploadedFile("scopus.ris", RIS.encode("utf-8"))
+    arq = SimpleUploadedFile("s.ris", RIS.encode("utf-8"))
     resp = client.post(
         reverse("triagem_importar"),
-        data={"base_consulta": base_termo.pk, "formato": "", "arquivo": arq},
+        data={"base_consulta": base_termo.pk, "arquivo": arq},  # sem n_identificados
     )
+    assert resp.status_code == 200  # re-renderiza com erro
+    assert b"obrigat" in resp.content.lower() or b"required" in resp.content.lower()
+    assert not Busca.objects.exists()
+
+
+def test_upload_redireciona_e_guarda_campos(client, analista, base_termo, settings, tmp_path):
+    settings.MEDIA_ROOT = str(tmp_path)
+    client.force_login(analista)
+    resp = _upload(client, base_termo, 1, string_busca="cog", filtros="2017-2025; inglês")
     assert resp.status_code == 302
     busca = Busca.objects.latest("pk")
-    assert resp.headers["Location"] == reverse("triagem_busca_resumo", args=[busca.pk])
-
+    assert busca.n_identificados == 1
+    assert busca.filtros == "2017-2025; inglês"
     resumo = client.get(resp.headers["Location"])
     assert resumo.status_code == 200
-    assert b"Importa" in resumo.content
-    assert b"novos" in resumo.content
+    assert b"lidos do arquivo" in resumo.content
+
+
+def test_resumo_avisa_divergencia(client, analista, base_termo, settings, tmp_path):
+    settings.MEDIA_ROOT = str(tmp_path)
+    client.force_login(analista)
+    # base reportou 466, mas o arquivo só tem 1 registro
+    resp = _upload(client, base_termo, 466)
+    resumo = client.get(resp.headers["Location"])
+    assert b"Diverg" in resumo.content
+    assert b"incompleto" in resumo.content
+    assert b"466" in resumo.content
+
+
+def test_resumo_confere_quando_bate(client, analista, base_termo, settings, tmp_path):
+    settings.MEDIA_ROOT = str(tmp_path)
+    client.force_login(analista)
+    resp = _upload(client, base_termo, 1)  # arquivo tem 1, informado 1
+    resumo = client.get(resp.headers["Location"])
+    assert b"Confere" in resumo.content

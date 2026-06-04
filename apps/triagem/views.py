@@ -114,6 +114,7 @@ def importar_view(request: HttpRequest) -> HttpResponse:
                     base_consulta=form.cleaned_data["base_consulta"],
                     outra_base=form.cleaned_data["outra_base"],
                     string_busca=form.cleaned_data["string_busca"],
+                    filtros=form.cleaned_data["filtros"],
                     n_identificados=form.cleaned_data["n_identificados"] or 0,
                     data_busca=form.cleaned_data["data_busca"],
                     formato=formato,

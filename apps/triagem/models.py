@@ -101,6 +101,10 @@ class Busca(models.Model):
     string_busca = models.TextField(
         blank=True, help_text="String de busca usada (para reprodutibilidade)."
     )
+    filtros = models.TextField(
+        blank=True,
+        help_text="Filtros/limites aplicados (anos, idioma, tipo de documento…).",
+    )
     data_busca = models.DateField(null=True, blank=True)
     n_identificados = models.PositiveIntegerField(
         default=0, help_text="Total de registros relatado pela base (para o PRISMA)."
