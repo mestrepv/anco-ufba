@@ -13,6 +13,14 @@
     confere o nº de registros.
   </p>
 
+  <div class="tg-note" style="margin-bottom:22px;">
+    <strong>A base não exporta arquivo?</strong> (repositórios como Repositório UFBA,
+    RIAnCo, etc.) Use o <strong>Zotero</strong> como ponte: instale o Zotero + a extensão
+    <em>Zotero Connector</em>, capture os resultados na página de busca, exporte em
+    <strong>RIS</strong> e importe o arquivo aqui.
+    <a href="{% url 'triagem_ajuda' %}#zotero" style="color:var(--color-gold-deep);">Passo a passo →</a>
+  </div>
+
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {% for erro in form.non_field_errors %}<p class="tg-err">{{ erro }}</p>{% endfor %}
