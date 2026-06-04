@@ -419,11 +419,11 @@
         <details class="filter-group">
           <summary class="filter-group-header">Status <span>▾</span></summary>
           <div class="filter-group-body">
-            {% for status, count in facetas.status %}
+            {% for codigo, label, count in facetas.status %}
             <label class="filtro-check">
-              <input type="checkbox" name="status" value="{{ status }}"
-                {% if status in facetas_aplicadas.status %}checked{% endif %}>
-              <span>{{ status|capfirst }}</span>
+              <input type="checkbox" name="status" value="{{ codigo }}"
+                {% if codigo in facetas_aplicadas.status %}checked{% endif %}>
+              <span>{{ label }}</span>
               <span class="filtro-count">{{ count }}</span>
             </label>
             {% endfor %}

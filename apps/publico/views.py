@@ -186,7 +186,14 @@ def _calcular_facetas(qs_base: QuerySet) -> dict[str, list[tuple[str, int]]]:
             "artigo__base_consulta__nome", flat=True
         )
     ).most_common(15)
-    facetas["status"] = Counter(qs_base.values_list("status", flat=True)).most_common()
+    # (codigo, rótulo amigável, contagem) — value usa o código; exibe o label.
+    _status_labels = dict(Analise.Status.choices)
+    facetas["status"] = [
+        (codigo, _status_labels.get(codigo, codigo), n)
+        for codigo, n in Counter(
+            qs_base.values_list("status", flat=True)
+        ).most_common()
+    ]
     facetas["resenha_count"] = qs_base.filter(RESENHA_PUBLICA_Q).count()
     facetas["acesso_aberto_count"] = qs_base.filter(artigo__acesso_aberto=True).count()
     return facetas
