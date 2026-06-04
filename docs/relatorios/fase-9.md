@@ -21,7 +21,7 @@ reprodutível e reportável segundo o **PRISMA-ScR**. App nativo `apps/triagem`,
 |---|---|---|
 | **9.0** | Scaffolding: app vazio, INSTALLED_APPS, include de URL, painel placeholder, spec addendum | ✅ concluída |
 | **9.1** | Models (ProtocoloTriagem, Busca, RegistroTriagem, DecisaoTriagem) + admin + migrations + seed | ✅ concluída |
-| **9.2** | Importação RIS/BibTeX/CSV + dedup (intra-protocolo e vs. acervo) + command + upload view | ⏳ pendente |
+| **9.2** | Importação RIS/BibTeX/CSV + dedup (intra-protocolo e vs. acervo) + command + upload view | ✅ concluída |
 | **9.3** | Sorteio + avaliação + signals + tasks (≥2 revisores, consenso/divergência, prazos) | ⏳ pendente |
 | **9.4** | UI de triagem mascarada + minhas-triagens + desempate do curador | ⏳ pendente |
 | **9.5** | Promoção de incluídos → `Artigo` (idempotente; legado intocado) | ⏳ pendente |
@@ -114,3 +114,50 @@ reprodutível e reportável segundo o **PRISMA-ScR**. App nativo `apps/triagem`,
 ### Pendências para o usuário
 - Aprovar para a **9.2** (importação RIS/BibTeX/CSV + dedup + command + upload view) —
   introduz as dependências `rispy`/`bibtexparser` (rebuild de `web`/`worker`).
+
+---
+
+## Sub-fase 9.2 — Importação + deduplicação (concluída)
+
+### O que foi entregue
+- **Parsers** (`apps/triagem/importacao.py`): `parse_ris` (rispy), `parse_bibtex`
+  (bibtexparser v1), `parse_csv` (stdlib, detecta delimitador e mapeia cabeçalhos
+  flexíveis) → dicts normalizados (título, autores, ano, doi, isbn, resumo,
+  palavras-chave, periódico, idioma, link). `decodificar()` (utf-8/latin-1) e
+  `detectar_formato()` pela extensão.
+- **Dedup** (`importar_para_busca`): chave determinística (`chave_dedup`); mesma
+  referência vinda de várias bases → mesclada via `origem_buscas` (conta como
+  duplicado, não cria linha). Contra o acervo: casa com `Artigo` existente
+  (inclusive **legado**) → `ja_no_acervo=True`, vincula `artigo`, **não re-tria**.
+  Idempotente.
+- **Management command** `importar_triagem <arquivo> --base <nome> [...]` (cria a
+  `Busca` e importa; idempotente).
+- **Upload view** `/triagem/importar/` (`ImportarBuscaForm`) + **painel** com
+  contagens por status e buscas recentes + **lista de registros** `/triagem/registros/`
+  (facetas por status), gated a analistas/curadores. Guarda o arquivo cru em
+  `Busca.arquivo` para auditoria.
+- **Dependências:** `rispy>=0.9`, `bibtexparser>=1.4,<2` em `pyproject.toml`
+  (rebuild de `web`/`worker`).
+
+### Critério de aceite
+- [x] Parsers mapeiam RIS/BibTeX/CSV (3 testes).
+- [x] Dedup intra-protocolo mescla origens; reimport idempotente; sem-título ignorado.
+- [x] Candidato que casa com `Artigo` (legado) vira `ja_no_acervo`, não novo.
+- [x] Upload: leitor 403; analista importa RIS e cria registro (redirect p/ lista).
+- [x] `ruff` limpo; telas `/triagem/{,importar/,registros/}` renderizam 200.
+- [x] Suíte completa: **374 passed, 1 xpassed**.
+
+### Decisões tomadas
+- `ja_no_acervo` mantém `status=identificado` + flag (não cria status terminal); o
+  sorteio (9.3) excluirá esses do rastreio. Mantém o registro visível/contável.
+- bibtexparser fixado em v1 (API estável `loads().entries`); v2 muda a API.
+- Lista de registros adiantada para a 9.2 (validação do import); a interface de
+  triagem por revisor e o desempate seguem na 9.4.
+
+### Dívida técnica deixada
+- Parsers cobrem o caminho comum; campos exóticos de bases específicas podem exigir
+  ajuste de mapeamento (arquivo cru fica guardado p/ reprocessar).
+
+### Pendências para o usuário
+- Aprovar para a **9.3** (sorteio de ≥2 revisores + avaliação consenso/divergência +
+  signals + tasks assíncronas; usa o `worker`).

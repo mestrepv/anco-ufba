@@ -25,6 +25,8 @@ dependencies = [
     "pgvector>=0.3",
     "Pillow>=10.3",
     "django-unfold>=0.40",
+    "rispy>=0.9",
+    "bibtexparser>=1.4,<2",
 ]
 
 [project.optional-dependencies]
