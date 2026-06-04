@@ -1,0 +1,30 @@
+{% extends "_base.html" %}
+
+{% block title %}Desempates · Triagem{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+  <a href="{% url 'triagem_painel' %}" class="text-sm text-slate-500 hover:text-anco">&larr; Triagem</a>
+  <h1 class="text-2xl font-bold text-anco mt-1 mb-1">Desempates pendentes</h1>
+  <p class="text-sm text-slate-500 mb-6">
+    Registros em que os revisores divergiram (ou marcaram dúvida). Decida a
+    inclusão/exclusão final.
+  </p>
+
+  {% if registros %}
+    <ul class="space-y-2">
+      {% for r in registros %}
+        <li class="rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-center justify-between">
+          <div class="text-slate-800">{{ r.titulo|truncatechars:110 }}</div>
+          <a href="{% url 'triagem_desempatar' r.pk %}"
+             class="rounded-md bg-anco px-3 py-1.5 text-sm font-medium text-white hover:bg-anco-dark">
+            Resolver
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-slate-500">Nenhum desempate pendente.</p>
+  {% endif %}
+</div>
+{% endblock %}

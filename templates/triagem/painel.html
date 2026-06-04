@@ -6,10 +6,22 @@
 <div class="max-w-4xl">
   <div class="flex items-center justify-between mb-2">
     <h1 class="text-2xl font-bold text-anco">Triagem (PRISMA-ScR)</h1>
-    <a href="{% url 'triagem_importar' %}"
-       class="rounded-md bg-anco px-4 py-2 text-sm font-medium text-white hover:bg-anco-dark">
-      Importar busca
-    </a>
+    <div class="flex gap-2">
+      <a href="{% url 'triagem_minhas' %}"
+         class="rounded-md border border-anco px-4 py-2 text-sm font-medium text-anco hover:bg-anco/5">
+        Minhas triagens
+      </a>
+      {% if user.is_staff or user.eh_curador %}
+        <a href="{% url 'triagem_desempate' %}"
+           class="rounded-md border border-amber-400 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50">
+          Desempates
+        </a>
+      {% endif %}
+      <a href="{% url 'triagem_importar' %}"
+         class="rounded-md bg-anco px-4 py-2 text-sm font-medium text-white hover:bg-anco-dark">
+        Importar busca
+      </a>
+    </div>
   </div>
   <p class="text-slate-600 mb-6">
     Seleção de fontes anterior à análise: busca em ≥9 bases, triagem por ≥2

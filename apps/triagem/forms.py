@@ -6,6 +6,8 @@ from django import forms
 
 from apps.vocabulario.models import TermoVocabulario
 
+from .models import RegistroTriagem
+
 _CSS = (
     "w-full rounded-md border border-slate-300 px-3 py-2 text-sm "
     "focus:border-anco focus:ring-1 focus:ring-anco"
@@ -60,4 +62,56 @@ class ImportarBuscaForm(forms.Form):
             raise forms.ValidationError(
                 "Informe a base de consulta (do vocabulário) ou 'Outra base'."
             )
+        return dados
+
+
+class DecisaoTriagemForm(forms.Form):
+    """Parecer de triagem de um revisor (incluir/excluir/dúvida + motivo)."""
+
+    decisao = forms.ChoiceField(
+        choices=RegistroTriagem.Decisao.choices,
+        widget=forms.RadioSelect,
+        label="Sua decisão",
+    )
+    motivo_exclusao = forms.CharField(
+        required=False, label="Motivo da exclusão",
+        widget=forms.Textarea(attrs={"rows": 2, "class": _CSS}),
+        help_text="Obrigatório se você excluir o registro.",
+    )
+    comentario = forms.CharField(
+        required=False, label="Comentário (opcional)",
+        widget=forms.Textarea(attrs={"rows": 2, "class": _CSS}),
+    )
+
+    def clean(self) -> dict:
+        dados = super().clean()
+        if dados.get("decisao") == RegistroTriagem.Decisao.EXCLUIR and not (
+            dados.get("motivo_exclusao") or ""
+        ).strip():
+            self.add_error("motivo_exclusao", "Informe o motivo da exclusão.")
+        return dados
+
+
+class DesempateForm(forms.Form):
+    """Decisão de desempate do curador para um registro divergente."""
+
+    decisao = forms.ChoiceField(
+        choices=[
+            (RegistroTriagem.Decisao.INCLUIR, "Incluir"),
+            (RegistroTriagem.Decisao.EXCLUIR, "Excluir"),
+        ],
+        widget=forms.RadioSelect,
+        label="Decisão final",
+    )
+    motivo_exclusao = forms.CharField(
+        required=False, label="Motivo da exclusão",
+        widget=forms.Textarea(attrs={"rows": 2, "class": _CSS}),
+    )
+
+    def clean(self) -> dict:
+        dados = super().clean()
+        if dados.get("decisao") == RegistroTriagem.Decisao.EXCLUIR and not (
+            dados.get("motivo_exclusao") or ""
+        ).strip():
+            self.add_error("motivo_exclusao", "Informe o motivo da exclusão.")
         return dados

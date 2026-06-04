@@ -13,16 +13,24 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.http import require_POST
 
-from .forms import ImportarBuscaForm
+from .aprovacao import registros_para_desempate
+from .forms import DecisaoTriagemForm, DesempateForm, ImportarBuscaForm
 from .importacao import (
     decodificar,
     detectar_formato,
     importar_para_busca,
     parse_conteudo,
 )
-from .models import Busca, ProtocoloTriagem, RegistroTriagem
+from .models import Busca, DecisaoTriagem, ProtocoloTriagem, RegistroTriagem
+from .tasks import iniciar_triagem
+
+
+def _eh_curador(user) -> bool:
+    return bool(user.is_staff or getattr(user, "eh_curador", False))
 
 
 def _exige_analista(view):
@@ -35,6 +43,19 @@ def _exige_analista(view):
             return HttpResponseForbidden(
                 "Apenas analistas ou curadores acessam a triagem."
             )
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
+def _exige_curador(view):
+    """Exige curador ou admin."""
+
+    @functools.wraps(view)
+    @login_required
+    def wrapper(request: HttpRequest, *args, **kwargs):
+        if not _eh_curador(request.user):
+            return HttpResponseForbidden("Apenas curadores fazem o desempate.")
         return view(request, *args, **kwargs)
 
     return wrapper
@@ -125,10 +146,120 @@ def registros_view(request: HttpRequest) -> HttpResponse:
         qs = qs.filter(status=status)
 
     pagina = Paginator(qs, 50).get_page(request.GET.get("page"))
+    n_identificados = protocolo.registros.filter(
+        status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
+    ).count()
     contexto = {
         "protocolo": protocolo,
         "pagina": pagina,
         "status_atual": status,
         "status_choices": RegistroTriagem.Status.choices,
+        "n_para_triar": n_identificados,
     }
     return render(request, "triagem/registros.html", contexto)
+
+
+@_exige_analista
+@require_POST
+def iniciar_triagem_view(request: HttpRequest) -> HttpResponse:
+    """Enfileira o sorteio de revisores para os registros identificados."""
+    protocolo = ProtocoloTriagem.ativo()
+    n = iniciar_triagem(protocolo)
+    if n:
+        messages.success(request, f"Triagem iniciada para {n} registro(s).")
+    else:
+        messages.info(request, "Nenhum registro identificado disponível para triar.")
+    return redirect("triagem_registros")
+
+
+@_exige_analista
+def minhas_triagens_view(request: HttpRequest) -> HttpResponse:
+    pendentes = (
+        DecisaoTriagem.objects.filter(revisor=request.user, concluido_em__isnull=True)
+        .select_related("registro")
+        .order_by("prazo_em")
+    )
+    concluidas = (
+        DecisaoTriagem.objects.filter(revisor=request.user, concluido_em__isnull=False)
+        .select_related("registro")
+        .order_by("-concluido_em")[:20]
+    )
+    return render(
+        request,
+        "triagem/minhas_triagens.html",
+        {"pendentes": pendentes, "concluidas": concluidas},
+    )
+
+
+@_exige_analista
+def triar_view(request: HttpRequest, decisao_id: int) -> HttpResponse:
+    """Interface de triagem mascarada: o revisor vê só os metadados do registro."""
+    decisao = get_object_or_404(
+        DecisaoTriagem.objects.select_related("registro"), pk=decisao_id
+    )
+    if decisao.revisor_id != request.user.id:
+        return HttpResponseForbidden("Esta triagem não é sua.")
+    if decisao.concluido_em is not None:
+        messages.info(request, "Você já concluiu esta triagem.")
+        return redirect("triagem_minhas")
+
+    registro = decisao.registro
+    if request.method == "POST":
+        form = DecisaoTriagemForm(request.POST)
+        if form.is_valid():
+            decisao.decisao = form.cleaned_data["decisao"]
+            decisao.motivo_exclusao = form.cleaned_data["motivo_exclusao"]
+            decisao.comentario = form.cleaned_data["comentario"]
+            decisao.concluido_em = timezone.now()
+            decisao.save()  # signal dispara a avaliação
+            messages.success(request, "Decisão registrada. Obrigado!")
+            return redirect("triagem_minhas")
+    else:
+        form = DecisaoTriagemForm()
+
+    # Mascarado: nenhuma informação sobre coletor ou outros revisores.
+    return render(
+        request,
+        "triagem/triar.html",
+        {"decisao": decisao, "registro": registro, "form": form},
+    )
+
+
+@_exige_curador
+def fila_desempate_view(request: HttpRequest) -> HttpResponse:
+    protocolo = ProtocoloTriagem.ativo()
+    registros = registros_para_desempate(protocolo)
+    return render(
+        request, "triagem/desempate_fila.html",
+        {"registros": registros, "protocolo": protocolo},
+    )
+
+
+@_exige_curador
+def desempatar_view(request: HttpRequest, registro_id: int) -> HttpResponse:
+    registro = get_object_or_404(RegistroTriagem, pk=registro_id)
+    decisoes = registro.decisoes.select_related("revisor").all()
+
+    if request.method == "POST":
+        form = DesempateForm(request.POST)
+        if form.is_valid():
+            escolha = form.cleaned_data["decisao"]
+            if escolha == RegistroTriagem.Decisao.INCLUIR:
+                registro.status = RegistroTriagem.Status.INCLUIDO
+            else:
+                registro.status = RegistroTriagem.Status.EXCLUIDO
+                registro.motivo_exclusao = form.cleaned_data["motivo_exclusao"]
+            registro.decisao_final = escolha
+            registro.decidida_por = request.user
+            registro.decidida_em = timezone.now()
+            registro.save()
+            messages.success(request, "Desempate registrado.")
+            return redirect("triagem_desempate")
+    else:
+        form = DesempateForm()
+
+    return render(
+        request,
+        "triagem/desempate.html",
+        {"registro": registro, "decisoes": decisoes, "form": form},
+    )

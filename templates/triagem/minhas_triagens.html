@@ -1,0 +1,41 @@
+{% extends "_base.html" %}
+
+{% block title %}Minhas triagens · AnCo{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+  <h1 class="text-2xl font-bold text-anco mb-4">Minhas triagens</h1>
+
+  <h2 class="font-semibold text-slate-800 mb-2">Pendentes ({{ pendentes|length }})</h2>
+  {% if pendentes %}
+    <ul class="space-y-2 mb-8">
+      {% for d in pendentes %}
+        <li class="rounded-lg border border-slate-200 bg-white p-3 flex items-center justify-between">
+          <div>
+            <div class="text-slate-800">{{ d.registro.titulo|truncatechars:110 }}</div>
+            <div class="text-xs text-slate-500">prazo: {{ d.prazo_em|date:"d/m/Y" }}</div>
+          </div>
+          <a href="{% url 'triagem_triar' d.pk %}"
+             class="rounded-md bg-anco px-3 py-1.5 text-sm font-medium text-white hover:bg-anco-dark">
+            Triar
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-slate-500 text-sm mb-8">Nenhuma triagem pendente.</p>
+  {% endif %}
+
+  {% if concluidas %}
+    <h2 class="font-semibold text-slate-800 mb-2">Concluídas (recentes)</h2>
+    <ul class="space-y-1 text-sm">
+      {% for d in concluidas %}
+        <li class="text-slate-600">
+          {{ d.get_decisao_display }} · {{ d.registro.titulo|truncatechars:90 }}
+          <span class="text-slate-400">— {{ d.concluido_em|date:"d/m/Y" }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>
+{% endblock %}
