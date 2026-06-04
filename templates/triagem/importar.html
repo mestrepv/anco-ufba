@@ -8,24 +8,81 @@
   <a href="{% url 'triagem_painel' %}" class="tg-back">&larr; Triagem</a>
   <h1 class="tg-h1" style="margin-top:6px;">Importar busca</h1>
   <p class="tg-desc">
-    Envie o arquivo exportado de uma base (RIS, BibTeX ou CSV). Os registros são
-    deduplicados dentro do protocolo e contra o acervo (itens já catalogados,
-    inclusive o legado, são marcados e não entram na triagem).
+    Envie o arquivo exportado de uma base (RIS, BibTeX ou CSV). Registre também a
+    estratégia de busca — assim a seleção fica reprodutível (PRISMA-ScR) e o sistema
+    confere o nº de registros.
   </p>
 
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    {% for campo in form %}
+    {% for erro in form.non_field_errors %}<p class="tg-err">{{ erro }}</p>{% endfor %}
+
+    <div class="tg-fieldset-title">Origem</div>
+    {% for campo in form %}{% if campo.name == "base_consulta" or campo.name == "outra_base" or campo.name == "n_identificados" %}
       <div class="tg-field">
-        <label for="{{ campo.id_for_label }}">
-          {{ campo.label }}{% if campo.field.required %} <span style="color:var(--color-danger);">*</span>{% endif %}
-        </label>
+        <label for="{{ campo.id_for_label }}">{{ campo.label }}{% if campo.field.required %} <span style="color:var(--color-danger);">*</span>{% endif %}</label>
         {{ campo }}
         {% if campo.help_text %}<p class="tg-help">{{ campo.help_text }}</p>{% endif %}
-        {% for erro in campo.errors %}<p class="tg-err">{{ erro }}</p>{% endfor %}
+        {% for e in campo.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
       </div>
-    {% endfor %}
-    {% for erro in form.non_field_errors %}<p class="tg-err">{{ erro }}</p>{% endfor %}
+    {% endif %}{% endfor %}
+
+    <div class="tg-fieldset-title">Estratégia de busca</div>
+    <div class="tg-field">
+      <label for="{{ form.string_busca.id_for_label }}">{{ form.string_busca.label }}</label>
+      {{ form.string_busca }}
+      <p class="tg-help">{{ form.string_busca.help_text }}</p>
+    </div>
+    <div class="tg-field">
+      <label for="{{ form.campo_busca.id_for_label }}">{{ form.campo_busca.label }}</label>
+      {{ form.campo_busca }}
+      <p class="tg-help">{{ form.campo_busca.help_text }}</p>
+    </div>
+
+    <div class="tg-fieldset-title">Filtros aplicados</div>
+    <div class="tg-field">
+      <label>Período</label>
+      <div class="tg-row-2">
+        <div>{{ form.ano_inicio }}{% for e in form.ano_inicio.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}</div>
+        <div>{{ form.ano_fim }}{% for e in form.ano_fim.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}</div>
+      </div>
+      <p class="tg-help">Ano inicial e final (deixe vazio se não filtrou por ano).</p>
+    </div>
+    <div class="tg-field">
+      <label>{{ form.idiomas.label }}</label>
+      <div class="tg-checkgrid">
+        {% for sub in form.idiomas %}<label>{{ sub.tag }} <span>{{ sub.choice_label }}</span></label>{% endfor %}
+      </div>
+    </div>
+    <div class="tg-field">
+      <label>{{ form.tipos_documento.label }}</label>
+      <div class="tg-checkgrid">
+        {% for sub in form.tipos_documento %}<label>{{ sub.tag }} <span>{{ sub.choice_label }}</span></label>{% endfor %}
+      </div>
+    </div>
+    <div class="tg-field">
+      <label for="{{ form.filtros.id_for_label }}">{{ form.filtros.label }}</label>
+      {{ form.filtros }}
+      <p class="tg-help">{{ form.filtros.help_text }}</p>
+    </div>
+
+    <div class="tg-fieldset-title">Arquivo</div>
+    <div class="tg-row-2">
+      <div class="tg-field">
+        <label for="{{ form.data_busca.id_for_label }}">{{ form.data_busca.label }}</label>
+        {{ form.data_busca }}
+      </div>
+      <div class="tg-field">
+        <label for="{{ form.formato.id_for_label }}">{{ form.formato.label }}</label>
+        {{ form.formato }}
+      </div>
+    </div>
+    <div class="tg-field">
+      <label for="{{ form.arquivo.id_for_label }}">{{ form.arquivo.label }} <span style="color:var(--color-danger);">*</span></label>
+      {{ form.arquivo }}
+      {% for e in form.arquivo.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
+    </div>
+
     <button type="submit" class="btn btn-primary">Importar</button>
   </form>
 </div>

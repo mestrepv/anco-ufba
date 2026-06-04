@@ -12,6 +12,7 @@ parâmetros (nº de revisores, prazo).
 from __future__ import annotations
 
 from django.conf import settings
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from simple_history.models import HistoricalRecords
 
@@ -83,6 +84,21 @@ class Busca(models.Model):
         BIBTEX = "bibtex", "BibTeX"
         CSV = "csv", "CSV"
 
+    class CampoBusca(models.TextChoices):
+        TOPICO = "topico", "Tópico"
+        TITULO = "titulo", "Título"
+        RESUMO = "resumo", "Resumo"
+        PALAVRAS_CHAVE = "palavras_chave", "Palavras-chave"
+        TODOS = "todos", "Todos os campos"
+
+    class TipoDocumento(models.TextChoices):
+        ARTIGO = "artigo", "Artigo"
+        REVISAO = "revisao", "Revisão"
+        CAPITULO = "capitulo", "Capítulo de livro"
+        EVENTO = "evento", "Trabalho de evento"
+        TESE = "tese_dissertacao", "Tese/Dissertação"
+        OUTRO = "outro", "Outro"
+
     protocolo = models.ForeignKey(
         ProtocoloTriagem, on_delete=models.CASCADE, related_name="buscas"
     )
@@ -101,9 +117,24 @@ class Busca(models.Model):
     string_busca = models.TextField(
         blank=True, help_text="String de busca usada (para reprodutibilidade)."
     )
+    # Filtros estruturados (reprodutibilidade PRISMA, minimiza erro de registro).
+    ano_inicio = models.PositiveSmallIntegerField(null=True, blank=True)
+    ano_fim = models.PositiveSmallIntegerField(null=True, blank=True)
+    idiomas = ArrayField(
+        models.CharField(max_length=10), default=list, blank=True,
+        help_text="Idiomas filtrados na base.",
+    )
+    tipos_documento = ArrayField(
+        models.CharField(max_length=20), default=list, blank=True,
+        help_text="Tipos de documento filtrados na base.",
+    )
+    campo_busca = models.CharField(
+        max_length=20, choices=CampoBusca.choices, blank=True,
+        help_text="Em que campo a query foi aplicada.",
+    )
     filtros = models.TextField(
         blank=True,
-        help_text="Filtros/limites aplicados (anos, idioma, tipo de documento…).",
+        help_text="Outros filtros/limites não cobertos pelos campos acima.",
     )
     data_busca = models.DateField(null=True, blank=True)
     n_identificados = models.PositiveIntegerField(
@@ -142,6 +173,24 @@ class Busca(models.Model):
     @property
     def base_nome(self) -> str:
         return self.base_consulta.nome if self.base_consulta else self.outra_base
+
+    @property
+    def periodo(self) -> str:
+        if self.ano_inicio and self.ano_fim:
+            return f"{self.ano_inicio}–{self.ano_fim}"
+        return str(self.ano_inicio or self.ano_fim or "")
+
+    @property
+    def idiomas_display(self) -> str:
+        from apps.acervo.models import Artigo
+
+        mapa = dict(Artigo.Idioma.choices)
+        return ", ".join(mapa.get(i, i) for i in self.idiomas)
+
+    @property
+    def tipos_documento_display(self) -> str:
+        mapa = dict(self.TipoDocumento.choices)
+        return ", ".join(mapa.get(t, t) for t in self.tipos_documento)
 
 
 class RegistroTriagem(models.Model):

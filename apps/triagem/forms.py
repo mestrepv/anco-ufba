@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import datetime
+
 from django import forms
 
+from apps.acervo.models import Artigo
 from apps.vocabulario.models import TermoVocabulario
 
-from .models import RegistroTriagem
+from .models import Busca, RegistroTriagem
 
 # Os inputs são estilizados pelo design system via `.tg-field` nos templates
 # (ver templates/triagem/_estilos.html); não injetamos classes utilitárias aqui.
@@ -40,10 +43,29 @@ class ImportarBuscaForm(forms.Form):
         widget=forms.Textarea(attrs={"rows": 2}),
         help_text="A query usada na base (para reprodutibilidade).",
     )
+    campo_busca = forms.ChoiceField(
+        required=False, label="Campo de busca",
+        choices=[("", "— não informado —"), *Busca.CampoBusca.choices],
+        help_text="Onde a query foi aplicada na base.",
+    )
+    ano_inicio = forms.IntegerField(
+        required=False, min_value=1900, label="Ano inicial",
+    )
+    ano_fim = forms.IntegerField(
+        required=False, min_value=1900, label="Ano final",
+    )
+    idiomas = forms.MultipleChoiceField(
+        required=False, label="Idiomas filtrados",
+        choices=Artigo.Idioma.choices, widget=forms.CheckboxSelectMultiple,
+    )
+    tipos_documento = forms.MultipleChoiceField(
+        required=False, label="Tipos de documento filtrados",
+        choices=Busca.TipoDocumento.choices, widget=forms.CheckboxSelectMultiple,
+    )
     filtros = forms.CharField(
-        required=False, label="Filtros aplicados",
+        required=False, label="Outros filtros",
         widget=forms.Textarea(attrs={"rows": 2}),
-        help_text="Ex.: anos 2017–2025; idioma inglês/português; tipo de documento: artigo.",
+        help_text="Só o que não couber nos campos acima (ex.: área da base, acesso aberto).",
     )
     data_busca = forms.DateField(
         required=False, label="Data da busca",
@@ -75,6 +97,14 @@ class ImportarBuscaForm(forms.Form):
             raise forms.ValidationError(
                 "Informe a base de consulta (do vocabulário) ou 'Outra base'."
             )
+        ano_max = datetime.date.today().year + 1
+        ai, af = dados.get("ano_inicio"), dados.get("ano_fim")
+        for campo in ("ano_inicio", "ano_fim"):
+            v = dados.get(campo)
+            if v and v > ano_max:
+                self.add_error(campo, f"Ano não pode ser maior que {ano_max}.")
+        if ai and af and ai > af:
+            self.add_error("ano_fim", "O ano final deve ser ≥ ao ano inicial.")
         return dados
 
 

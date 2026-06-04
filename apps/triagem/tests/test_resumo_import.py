@@ -88,17 +88,33 @@ def test_n_identificados_obrigatorio(client, analista, base_termo, settings, tmp
     assert not Busca.objects.exists()
 
 
-def test_upload_redireciona_e_guarda_campos(client, analista, base_termo, settings, tmp_path):
+def test_upload_guarda_filtros_estruturados(client, analista, base_termo, settings, tmp_path):
     settings.MEDIA_ROOT = str(tmp_path)
     client.force_login(analista)
-    resp = _upload(client, base_termo, 1, string_busca="cog", filtros="2017-2025; inglês")
+    resp = _upload(
+        client, base_termo, 1, string_busca="cog", campo_busca="topico",
+        ano_inicio=2017, ano_fim=2025, idiomas=["en", "pt"],
+        tipos_documento=["artigo", "revisao"], filtros="acesso aberto",
+    )
     assert resp.status_code == 302
     busca = Busca.objects.latest("pk")
-    assert busca.n_identificados == 1
-    assert busca.filtros == "2017-2025; inglês"
+    assert busca.ano_inicio == 2017 and busca.ano_fim == 2025
+    assert set(busca.idiomas) == {"en", "pt"}
+    assert set(busca.tipos_documento) == {"artigo", "revisao"}
+    assert busca.campo_busca == "topico"
+    assert busca.filtros == "acesso aberto"
+    assert busca.periodo == "2017–2025"
     resumo = client.get(resp.headers["Location"])
-    assert resumo.status_code == 200
-    assert b"lidos do arquivo" in resumo.content
+    assert b"Estrat" in resumo.content
+    assert b"2017" in resumo.content
+
+
+def test_periodo_invalido_bloqueia(client, analista, base_termo, settings, tmp_path):
+    settings.MEDIA_ROOT = str(tmp_path)
+    client.force_login(analista)
+    resp = _upload(client, base_termo, 1, ano_inicio=2025, ano_fim=2017)  # início > fim
+    assert resp.status_code == 200  # re-renderiza com erro
+    assert not Busca.objects.exists()
 
 
 def test_resumo_avisa_divergencia(client, analista, base_termo, settings, tmp_path):

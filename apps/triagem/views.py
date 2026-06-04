@@ -109,14 +109,20 @@ def importar_view(request: HttpRequest) -> HttpResponse:
             else:
                 raw = enviado.read()
                 enviado.seek(0)
+                cd = form.cleaned_data
                 busca = Busca(
                     protocolo=protocolo,
-                    base_consulta=form.cleaned_data["base_consulta"],
-                    outra_base=form.cleaned_data["outra_base"],
-                    string_busca=form.cleaned_data["string_busca"],
-                    filtros=form.cleaned_data["filtros"],
-                    n_identificados=form.cleaned_data["n_identificados"] or 0,
-                    data_busca=form.cleaned_data["data_busca"],
+                    base_consulta=cd["base_consulta"],
+                    outra_base=cd["outra_base"],
+                    string_busca=cd["string_busca"],
+                    campo_busca=cd["campo_busca"],
+                    ano_inicio=cd["ano_inicio"],
+                    ano_fim=cd["ano_fim"],
+                    idiomas=cd["idiomas"],
+                    tipos_documento=cd["tipos_documento"],
+                    filtros=cd["filtros"],
+                    n_identificados=cd["n_identificados"] or 0,
+                    data_busca=cd["data_busca"],
                     formato=formato,
                     arquivo=enviado,
                     criado_por=request.user,
