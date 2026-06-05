@@ -1,56 +1,79 @@
 {% extends "_base_publico.html" %}
 
-{% block title %}Triagem · AnCo{% endblock %}
-{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+{% block title %}{{ projeto.nome }} · Triagem{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}
+<style>
+  .pj-chip { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-sans); font-size:12px;
+             padding:3px 10px; border-radius:999px; border:1px solid var(--color-rule); background:var(--color-paper-2); color:var(--color-ink-2); }
+  .pj-funil { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; font-family:var(--font-sans); font-size:14px; color:var(--color-ink-2); }
+  .pj-funil b { color:var(--color-ink); font-size:16px; }
+  .pj-funil .seta { color:var(--color-ink-3); }
+  .pj-membros { display:flex; flex-wrap:wrap; gap:8px; }
+  .pj-membro { display:inline-flex; align-items:baseline; gap:6px; font-family:var(--font-sans); font-size:13px;
+               padding:5px 11px; border-radius:999px; border:1px solid var(--color-rule); background:var(--color-paper); color:var(--color-ink-2); }
+  .pj-membro .papel { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--color-gold-deep); }
+  .busca-row .b-por { color:var(--color-ink-2); }
+  .crit-grid { display:grid; grid-template-columns:130px 1fr; gap:8px 14px; align-items:baseline; }
+  .crit-grid .rotulo { font-family:var(--font-sans); font-size:12px; color:var(--color-ink-3); }
+  .crit-grid pre { white-space:pre-wrap; font-family:var(--font-sans); font-size:13.5px; color:var(--color-ink-2); margin:0; line-height:1.5; }
+  @media (max-width:560px){ .crit-grid{ grid-template-columns:1fr; } }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="tg-wrap">
   <a href="{% url 'triagem_projetos' %}" class="tg-back">&larr; Projetos</a>
   <div class="tg-head">
     <div>
-      <p class="t-eyebrow" style="margin:0 0 4px;">PRISMA-ScR · Triagem</p>
+      <p class="t-eyebrow" style="margin:0 0 4px;">Revisão de escopo · PRISMA-ScR</p>
       <h1 class="tg-h1">{{ projeto.nome }}</h1>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+        <a href="{% url 'triagem_protocolo' projeto.slug %}" class="pj-chip">{% if protocolo.travado_em %}🔒 Protocolo v{{ protocolo.versao }}{% else %}✎ Protocolo (rascunho){% endif %}</a>
+        {% if protocolo.registro_externo %}<a href="{{ protocolo.registro_externo }}" target="_blank" rel="noopener" class="pj-chip">Registro externo &nearr;</a>{% endif %}
+        {% if protocolo.usa_texto_completo %}<span class="pj-chip">2 etapas (T/R → texto)</span>{% endif %}
+        <span class="pj-chip">{{ protocolo.n_revisores }} revisores · prazo {{ protocolo.prazo_dias }}d</span>
+        <span class="pj-chip">{% if eh_curador %}você é curador{% else %}você é analista{% endif %}</span>
+      </div>
     </div>
     <div class="tg-actions">
       <a href="{% url 'triagem_ajuda' %}" class="btn btn-secondary">Como funciona?</a>
       <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-primary">Importar busca</a>
     </div>
   </div>
-  <p class="tg-desc">
-    Seleção de fontes anterior à análise: busca em ≥9 bases, triagem por ≥2
-    revisores e fluxograma PRISMA. O acervo histórico (legado) não passa por triagem.
-  </p>
 
-  <div class="tg-card" style="margin-bottom:18px;">
-    <div style="display:grid;grid-template-columns:120px 1fr;gap:6px 14px;align-items:baseline;">
-      <span class="tg-meta" style="color:var(--color-ink-3);">Objetivo</span>
+  {# ── Sobre: objetivo, estratégia, critérios ───────────────────────── #}
+  <div class="tg-card" style="margin:18px 0;">
+    <div class="crit-grid">
+      <span class="rotulo">Objetivo</span>
       <span style="font-family:var(--font-serif);font-size:15px;color:var(--color-ink);line-height:1.4;">{{ protocolo.pergunta_pesquisa|default:"(a definir no protocolo)" }}</span>
-      <span class="tg-meta" style="color:var(--color-ink-3);">Estratégia de busca</span>
-      <span style="font-family:var(--font-sans);font-size:14px;color:var(--color-ink-2);">{% if protocolo.estrategia_busca %}{{ protocolo.estrategia_busca }}{% else %}<span style="color:var(--color-ink-3);">(a definir no protocolo){% if eh_curador %} — <a href="{% url 'triagem_protocolo' projeto.slug %}" style="color:var(--color-gold-deep);">editar</a>{% endif %}</span>{% endif %}</span>
+      <span class="rotulo">Estratégia de busca</span>
+      <span style="font-family:var(--font-sans);font-size:14px;color:var(--color-ink-2);">{% if protocolo.estrategia_busca %}{{ protocolo.estrategia_busca }}{% else %}<span style="color:var(--color-ink-3);">(a definir{% if eh_curador %} — <a href="{% url 'triagem_protocolo' projeto.slug %}" style="color:var(--color-gold-deep);">editar protocolo</a>{% endif %})</span>{% endif %}</span>
+      {% if protocolo.criterios_inclusao %}<span class="rotulo" style="color:var(--color-ok);">✔ Incluir se</span><pre>{{ protocolo.criterios_inclusao }}</pre>{% endif %}
+      {% if protocolo.criterios_exclusao %}<span class="rotulo" style="color:var(--color-danger);">✗ Excluir se</span><pre>{{ protocolo.criterios_exclusao }}</pre>{% endif %}
     </div>
-    <div class="tg-meta" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--color-rule);">
-      {{ n_buscas }} busca{{ n_buscas|pluralize }} · {{ n_registros }} registro{{ n_registros|pluralize }} ·
-      {{ protocolo.n_revisores }} revisores por registro · prazo {{ protocolo.prazo_dias }} dias
-      {% if protocolo.usa_texto_completo %} · <span style="color:var(--color-gold-deep);">2 etapas (título/resumo → texto)</span>{% endif %}
-    </div>
-    <div class="tg-actions" style="margin-top:12px;">
-      <a href="{% url 'triagem_protocolo' projeto.slug %}" class="btn btn-sm btn-secondary">Protocolo {% if protocolo.travado_em %}· v{{ protocolo.versao }} 🔒{% else %}· rascunho{% endif %}</a>
+    <div class="tg-actions" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--color-rule);">
+      <a href="{% url 'triagem_protocolo' projeto.slug %}" class="btn btn-sm btn-secondary">Protocolo completo</a>
       <a href="{% url 'triagem_checklist' projeto.slug %}" class="btn btn-sm btn-secondary">Checklist PRISMA-ScR</a>
       <a href="{% url 'triagem_calibracao' projeto.slug %}" class="btn btn-sm btn-secondary">Calibração</a>
     </div>
   </div>
 
-  {# Atalhos na ordem do fluxo: dedup → triar → desempatar → analisar → relatório #}
-  <div class="tg-actions" style="margin-bottom:24px;">
-    <a href="{% url 'triagem_duplicatas' projeto.slug %}" class="btn btn-secondary">Possíveis duplicatas</a>
-    <a href="{% url 'triagem_minhas' %}" class="btn btn-secondary">Minhas triagens</a>
-    {% if user.is_staff or user.eh_curador %}
-      <a href="{% url 'triagem_desempate' projeto.slug %}" class="btn btn-secondary">Desempates</a>
-    {% endif %}
-    <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">A analisar</a>
-    <a href="{% url 'triagem_prisma' projeto.slug %}" class="btn btn-secondary">Fluxograma PRISMA</a>
+  {# ── Andamento (funil PRISMA + concordância) ──────────────────────── #}
+  <h2 class="tg-h2">Andamento</h2>
+  <div class="tg-card" style="margin-bottom:14px;">
+    <div class="pj-funil">
+      <span><b>{{ c.identificados_relatado }}</b> relatados</span><span class="seta">→</span>
+      <span><b>{{ c.importados }}</b> importados</span><span class="seta">→</span>
+      <span><b>{{ c.elegiveis }}</b> elegíveis</span><span class="seta">→</span>
+      <span><b>{{ c.em_triagem }}</b> em triagem</span><span class="seta">→</span>
+      <span style="color:var(--color-ok);"><b style="color:var(--color-ok);">{{ c.incluidos }}</b> incluídos</span>
+      {% if acordo.kappa is not None %}<span class="seta">·</span><span>κ {{ acordo.kappa|floatformat:2 }} <span class="tg-meta">({{ acordo.interpretacao }})</span></span>{% endif %}
+    </div>
+    <p class="tg-meta" style="margin:10px 0 0;">{{ c.ja_no_acervo }} já no acervo (isentos) · {{ c.duplicados_entre_bases }} duplicados entre bases ·
+      <a href="{% url 'triagem_prisma' projeto.slug %}" style="color:var(--color-gold-deep);">Fluxograma PRISMA completo →</a></p>
   </div>
 
+  {% if cards %}
   <div class="tg-grid-stats" style="margin-bottom:28px;">
     {% for card in cards %}
       <a class="tg-stat" href="{% url 'triagem_registros' projeto.slug %}?status={{ card.codigo }}">
@@ -58,21 +81,45 @@
       </a>
     {% endfor %}
   </div>
+  {% endif %}
 
-  <h2 class="tg-h2">Importações</h2>
-  <p class="tg-meta" style="margin:-2px 0 12px;">Clique numa importação para ver a comparação com o acervo, a estratégia e gerenciá-la.</p>
+  {# ── Ações rápidas ────────────────────────────────────────────────── #}
+  <div class="tg-actions" style="margin-bottom:28px;">
+    <a href="{% url 'triagem_duplicatas' projeto.slug %}" class="btn btn-secondary">Possíveis duplicatas</a>
+    <a href="{% url 'triagem_minhas' %}" class="btn btn-secondary">Minhas triagens</a>
+    {% if eh_curador %}
+      <a href="{% url 'triagem_iniciar' projeto.slug %}" class="btn btn-secondary">Iniciar triagem</a>
+      <a href="{% url 'triagem_desempate' projeto.slug %}" class="btn btn-secondary">Desempates</a>
+    {% endif %}
+    <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">A analisar</a>
+  </div>
+
+  {# ── Equipe ───────────────────────────────────────────────────────── #}
+  <h2 class="tg-h2">Equipe <span class="tg-meta">({{ n_membros }})</span></h2>
+  <div class="pj-membros" style="margin-bottom:28px;">
+    {% for m in membros %}
+      <span class="pj-membro">{{ m.usuario.nome_exibicao|default:m.usuario.email }}{% if m.papel == 'curador' %} <span class="papel">curador</span>{% endif %}</span>
+    {% empty %}
+      <span class="tg-meta">Sem membros designados.</span>
+    {% endfor %}
+    {% if eh_curador %}<a href="/admin/triagem/protocolotriagem/{{ projeto.pk }}/change/" class="pj-membro" style="border-style:dashed;color:var(--color-gold-deep);">+ gerenciar equipe</a>{% endif %}
+  </div>
+
+  {# ── Importações ──────────────────────────────────────────────────── #}
+  <h2 class="tg-h2">Importações <span class="tg-meta">({{ n_buscas }})</span></h2>
+  <p class="tg-meta" style="margin:-2px 0 12px;">Quem importou, quando e o resultado da deduplicação. Clique para ver a comparação com o acervo e gerenciar.</p>
   {% if buscas %}
     {% for b in buscas %}
       <a href="{% url 'triagem_busca_resumo' projeto.slug b.pk %}" class="busca-row">
         <div>
           <div class="b-base">{{ b.base_nome|default:"Importação" }}</div>
           <div class="b-meta">
-            {% if b.formato %}{{ b.get_formato_display }} · {% endif %}importada em {{ b.importado_em|date:"d/m/Y H:i"|default:"—" }}
+            {% if b.formato %}{{ b.get_formato_display }} · {% endif %}por <span class="b-por">{{ b.criado_por.nome_exibicao|default:b.criado_por.email|default:"—" }}</span> · {{ b.importado_em|date:"d/m/Y H:i"|default:"—" }}
           </div>
         </div>
         <div class="b-nums">
           <strong>{{ b.n_novos }}</strong> novos · {{ b.n_ja_no_acervo }} no acervo<br>
-          <span class="tg-meta">{{ b.n_lidos }} lidos / {{ b.n_identificados }} na base</span>
+          <span class="tg-meta">{{ b.n_lidos }} lidos{% if b.n_identificados %} / {{ b.n_identificados }} relatados{% if b.n_lidos != b.n_identificados %} <span style="color:var(--color-danger);">⚠</span>{% endif %}{% endif %}</span>
         </div>
       </a>
     {% endfor %}

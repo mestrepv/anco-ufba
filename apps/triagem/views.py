@@ -178,22 +178,38 @@ def novo_projeto_view(request: HttpRequest) -> HttpResponse:
 
 @_projeto_analista
 def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
+    from django.db.models import Count
+
+    from . import concordancia as conc
+
+    # Só os status com registros (não polui com zeros).
+    contagens = dict(
+        projeto.registros.values_list("status").annotate(n=Count("id"))
+    )
     cards = [
-        {
-            "codigo": codigo,
-            "rotulo": rotulo,
-            "count": projeto.registros.filter(status=codigo).count(),
-        }
+        {"codigo": codigo, "rotulo": rotulo, "count": contagens.get(codigo, 0)}
         for codigo, rotulo in RegistroTriagem.Status.choices
+        if contagens.get(codigo, 0)
     ]
+    buscas = (
+        projeto.buscas.select_related("criado_por", "base_consulta")
+        .order_by("-importado_em", "-criado_em")[:50]
+    )
+    membros = (
+        projeto.membros.select_related("usuario").order_by("-papel", "usuario__nome_exibicao")
+    )
     contexto = {
         "projeto": projeto,
         "protocolo": projeto,
-        "buscas": projeto.buscas.all()[:20],
+        "buscas": buscas,
         "n_buscas": projeto.buscas.count(),
         "cards": cards,
         "n_registros": projeto.registros.count(),
         "eh_curador": projeto.eh_curador_no(request.user),
+        "membros": membros,
+        "n_membros": membros.count(),
+        "c": prisma.computar(projeto),
+        "acordo": conc.calcular(projeto),
     }
     return render(request, "triagem/painel.html", contexto)
 
