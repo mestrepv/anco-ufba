@@ -127,7 +127,6 @@ class PerfilForm(forms.ModelForm):
             )
 
     def save(self, commit=True):
-        from .models import SolicitacaoCadastro
 
         instance = super().save(commit=False)
         # Foto nova: processa antes de persistir (cliente já mandou 1:1 via
