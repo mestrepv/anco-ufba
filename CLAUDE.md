@@ -300,6 +300,36 @@ triagem é ação do curador** (gate de coleta); **só triados entram na anális
 analista comum não cadastra Artigo avulso (vira ação de curador/admin) e pega o
 trabalho em `/triagem/a-analisar/`. Ver `docs/relatorios/fase-10.md`.
 
+**Rigor para alto impacto (Fase 11):** **concordância κ de Fleiss** + % de acordo no
+PRISMA/exports (`concordancia.py`); **checklist PRISMA-ScR** de 22 itens
+(`/triagem/checklist/`, `checklist.py`); **protocolo a priori** com registro externo
+(OSF), versão e **trava** via `SnapshotProtocolo` (`/triagem/protocolo/`); **triagem em
+duas etapas** título/resumo → texto completo, **opt-in** por
+`ProtocoloTriagem.usa_texto_completo` (default `False` preserva etapa única) —
+`DecisaoTriagem.etapa` (`ta`/`tc`/`ca`), status `INCLUIDO_TA`/`EM_TEXTO`/`EXCLUIDO_TC`,
+transição centralizada em `aprovacao.consolidar_registro`/`destino`; **calibração
+(piloto)** com toda a equipe e gate de κ≥0,60 (`calibracao.py`, `RodadaCalibracao`,
+`/triagem/calibracao/`), isolada via etapa `CALIBRACAO`. Ver `docs/relatorios/fase-11.md`.
+Migrations triagem `0014`–`0016`.
+
+**Projetos / multi-revisão (Fase 12):** a triagem é **multi-projeto** — cada projeto é uma
+revisão de escopo independente. `ProtocoloTriagem` **é** o projeto (ganhou
+`nome/slug/estrategia_busca/arquivado`); **membership** via `ProjetoMembro(projeto, usuario,
+papel∈{analista,curador})` — papel **por projeto** (`projeto.eh_curador_no(user)` = papel
+curador no projeto **ou** `is_staff`). **Escopo por URL**: rotas do projeto sob
+`/triagem/p/<slug>/…` (decoradores `_projeto_analista`/`_projeto_curador` em
+`apps/triagem/views.py`); `/triagem/` é a **lista de projetos**; rotas globais por-usuário
+(`minhas`, `triar/<id>`, `a-analisar`, `ajuda`) sem slug; caminhos antigos **redirecionam**
+para o projeto default. **Sorteio e calibração restritos aos membros**; aprovação de revisor
+(`revisor_aprovado`) segue global. **Acervo/análise/usuários/vocabulário são globais**; só o
+processo de triagem é por projeto (mesmo artigo pode ser incluído por 2 projetos). **Gate de
+dedup**: curador resolve qualquer par; analista só os pares de **bases que importou**
+(`_pode_resolver_par`). Admin cria projeto e designa membros (inline em ProtocoloTriagem).
+`ProtocoloTriagem.ativo()` = 1º projeto não arquivado (compat/legado). `importar_triagem`
+aceita `--projeto <slug>`. Testes usam `tests/conftest.py` (`turl`/`membro`). Ver
+`docs/relatorios/fase-12.md` e `docs/planos/fase-12-projetos.md`. Migrations triagem
+`0017`–`0019`.
+
 ### 9.3. Acervo público (Fase 5)
 URLs **estáveis e citáveis** desde o dia 1. Mudança de URL depois quebra
 citações. Padrão sugerido:
