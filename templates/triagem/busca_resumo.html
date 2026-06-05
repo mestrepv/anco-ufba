@@ -104,7 +104,8 @@
     <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-secondary">Importar outra base</a>
   </div>
 
-  {# ── Excluir importação ─────────────────────────────────────────── #}
+  {# ── Excluir importação (só importador/curador) ──────────────────── #}
+  {% if pode_gerenciar %}
   <div class="tg-card" style="margin-top:28px;border-color:#e6c9c2;">
     <strong style="font-family:var(--font-sans);font-size:14px;color:var(--color-ink);">Excluir esta importação</strong>
     {% if pode_excluir %}
@@ -121,6 +122,7 @@
       <p class="tg-meta" style="margin:6px 0 0;color:var(--color-danger);">{{ motivo_bloqueio }}</p>
     {% endif %}
   </div>
+  {% endif %}
 </div>
 
 <style>

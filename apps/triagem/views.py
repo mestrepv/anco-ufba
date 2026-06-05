@@ -277,6 +277,11 @@ def busca_resumo_view(
     ]
     novos = [r for r in registros if not r.ja_no_acervo]
     pode_excluir, motivo_bloqueio = busca_pode_excluir(busca)
+    # Só o importador (ou o curador) gerencia/exclui a própria importação.
+    pode_gerenciar = (
+        busca.criado_por_id == request.user.id
+        or projeto.eh_curador_no(request.user)
+    )
     return render(
         request,
         "triagem/busca_resumo.html",
@@ -289,6 +294,7 @@ def busca_resumo_view(
             "n_novos": len(novos),
             "pode_excluir": pode_excluir,
             "motivo_bloqueio": motivo_bloqueio,
+            "pode_gerenciar": pode_gerenciar,
         },
     )
 
@@ -300,6 +306,10 @@ def excluir_busca_view(
 ) -> HttpResponse:
     """Exclui uma importação e seus registros intocados (para reimportar)."""
     busca = get_object_or_404(Busca, pk=busca_id, protocolo=projeto)
+    if not (busca.criado_por_id == request.user.id or projeto.eh_curador_no(request.user)):
+        return HttpResponseForbidden(
+            "Só quem importou (ou o curador) pode excluir esta importação."
+        )
     ok, motivo = excluir_busca(busca)
     if ok:
         messages.success(request, "Importação excluída. Você pode importar de novo.")

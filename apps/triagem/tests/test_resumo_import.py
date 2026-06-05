@@ -209,3 +209,21 @@ def test_excluir_bloqueado_se_ja_triado(client, analista, base_termo, settings, 
     assert resp.status_code == 302
     assert Busca.objects.filter(pk=busca.pk).exists()  # NÃO excluiu
     assert RegistroTriagem.objects.filter(pk=reg.pk).exists()
+
+
+def test_excluir_so_pelo_importador_ou_curador(client, analista, base_termo, settings, tmp_path):
+    settings.MEDIA_ROOT = str(tmp_path)
+    client.force_login(analista)  # analista importa → é o dono
+    _upload(client, base_termo, 1)
+    busca = Busca.objects.latest("pk")
+
+    # outro membro (não importou) não vê o botão nem pode excluir
+    outro = membro(User.objects.create_user(
+        username="outro", email="outro@u.edu", password="x", papel=User.Papel.ANALISTA
+    ))
+    client.force_login(outro)
+    detalhe = client.get(turl("triagem_busca_resumo", args=[busca.pk]))
+    assert b"Excluir importa" not in detalhe.content  # botão escondido
+    resp = client.post(turl("triagem_busca_excluir", args=[busca.pk]))
+    assert resp.status_code == 403
+    assert Busca.objects.filter(pk=busca.pk).exists()  # nada foi excluído
