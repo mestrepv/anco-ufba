@@ -21,6 +21,16 @@
 
 {% block content %}
 <div class="ajuda-wrap">
+  {% if protocolo.eh_anco %}
+  <p class="t-eyebrow" style="margin:0 0 4px;">Triagem · Revisão ANCO</p>
+  <h1>Como funciona a triagem</h1>
+  <p class="ajuda-lead">
+    Antes de analisar, selecionamos <strong>quais</strong> artigos têm potencial para a
+    análise. No fluxo <strong>Revisão ANCO</strong>, cada analista <strong>tria a própria
+    base</strong>; os incluídos são ordenados por relevância e o curador <strong>sorteia
+    uma cota</strong> para cada analista preencher a Matriz AnCo.
+  </p>
+  {% else %}
   <p class="t-eyebrow" style="margin:0 0 4px;">Triagem · PRISMA-ScR</p>
   <h1>Como funciona a triagem</h1>
   <p class="ajuda-lead">
@@ -29,6 +39,7 @@
     (revisão de escopo). A seleção é feita por <strong>≥2 revisores independentes</strong>,
     o que reduz o viés e torna o funil rastreável de ponta a ponta.
   </p>
+  {% endif %}
 
   <h2>O protocolo</h2>
   {% if protocolo.pergunta_pesquisa %}
@@ -42,12 +53,39 @@
     <strong style="font-family:var(--font-sans);font-size:13px;color:var(--color-ink);">Critérios de exclusão</strong>
     <pre>{{ protocolo.criterios_exclusao|default:"(a definir pela curadoria)" }}</pre>
   </div>
+  {% if not protocolo.eh_anco %}
   <p style="margin-top:12px;">
     Cada registro é avaliado por <strong>{{ protocolo.n_revisores }} revisores</strong>
     (prazo de {{ protocolo.prazo_dias }} dias por triagem).
   </p>
+  {% endif %}
 
   <h2>O fluxo, passo a passo</h2>
+  {% if protocolo.eh_anco %}
+  <div>
+    <div class="passo"><div class="num">1</div><div>
+      <div class="quem">Analista</div><h3>Importar a sua base</h3>
+      <p>Exporte os resultados da sua busca (RIS, BibTeX ou CSV) e envie em <em>Importar busca</em>. O sistema deduplica automaticamente por DOI/ISBN/título e mostra um resumo.</p></div></div>
+    <div class="passo"><div class="num">2</div><div>
+      <div class="quem">Analista</div><h3>Revisar as duplicatas da sua base</h3>
+      <p>Você confirma os pares parecidos das bases que <strong>você importou</strong> (e os cruzamentos com outras bases já carregadas): <em>mesclar</em> ou <em>não são duplicatas</em>. O acervo já curado fica de fora.</p></div></div>
+    <div class="passo"><div class="num">3</div><div>
+      <div class="quem">Analista</div><h3>Triar a própria base</h3>
+      <p>Em <em>Triar minha base</em>, você decide por título e resumo se o artigo tem potencial para a análise: <em>incluir</em> ou <em>excluir</em>. Sem sorteio de revisores.</p></div></div>
+    <div class="passo"><div class="num">4</div><div>
+      <div class="quem">Todos</div><h3>Incluídos por relevância</h3>
+      <p>Os incluídos aparecem ordenados pela <strong>correspondência com os termos da busca</strong> — os mais prováveis de pertencer ao campo vêm primeiro.</p></div></div>
+    <div class="passo"><div class="num">5</div><div>
+      <div class="quem">Curador</div><h3>Sortear a análise</h3>
+      <p>O curador distribui uma <strong>cota</strong> (ex.: 5 artigos) para cada analista, preferindo <strong>bases diferentes</strong>, e escolhe <strong>revisão única ou dupla</strong>.</p></div></div>
+    <div class="passo"><div class="num">6</div><div>
+      <div class="quem">Analista</div><h3>Analisar os artigos da sua cota</h3>
+      <p>Em <em>A analisar</em> você vê <strong>apenas os artigos sorteados para você</strong> e preenche a Matriz AnCo (4 abas).</p></div></div>
+    <div class="passo"><div class="num">7</div><div>
+      <div class="quem">Curador</div><h3>Consenso (dupla) e publicação</h3>
+      <p>Na revisão dupla, o curador <strong>concilia</strong> as duas análises numa final. A curadoria aprova e a análise entra no acervo público.</p></div></div>
+  </div>
+  {% else %}
   <div>
     <div class="passo"><div class="num">1</div><div>
       <div class="quem">Analista</div><h3>Importar uma base</h3>
@@ -71,6 +109,7 @@
       <div class="quem">Curador</div><h3>Publicar</h3>
       <p>A curadoria aprova a análise e ela entra no acervo público. O <em>fluxograma PRISMA</em> acompanha as contagens em cada etapa.</p></div></div>
   </div>
+  {% endif %}
 
   <h2 id="zotero">Bases sem exportação de arquivo (use o Zotero)</h2>
   <p>
@@ -92,11 +131,18 @@
     <p>Use <em>Importar busca</em> com esse arquivo, informando a base e o nº de registros que o repositório retornou — a rastreabilidade PRISMA fica preservada.</p></div></div>
 
   <h2>Quem faz o quê</h2>
+  {% if protocolo.eh_anco %}
+  <ul>
+    <li><strong>Analista</strong> — importa a própria base, revisa suas duplicatas, tria a própria base e analisa a cota recebida.</li>
+    <li><strong>Curador</strong> — sorteia a análise (cota, única/dupla), concilia a revisão dupla e publica.</li>
+  </ul>
+  {% else %}
   <ul>
     <li><strong>Analista</strong> — importa bases, revisa duplicatas, analisa os incluídos.</li>
     <li><strong>Revisor</strong> (analista habilitado) — tria registros sorteados para si.</li>
     <li><strong>Curador</strong> — inicia a triagem, resolve desempates e publica.</li>
   </ul>
+  {% endif %}
 
   <p style="margin-top:32px;">
     <a href="{% url 'triagem_projetos' %}" class="btn btn-primary">Ir para a Triagem</a>
