@@ -100,10 +100,15 @@
   <section class="painel-secao">
     <h2>O fluxo da triagem</h2>
     <p class="secao-desc">
-      Projeto <strong>{{ protocolo_triagem.nome }}</strong> ·
+      Projeto <a href="{% url 'triagem_painel' protocolo_triagem.slug %}" style="color:var(--color-gold-deep);font-weight:600;">{{ protocolo_triagem.nome }}</a> ·
       <a href="{% url 'triagem_projetos' %}" style="color:var(--color-gold-deep);">{% if n_projetos > 1 %}trocar projeto ({{ n_projetos }}){% else %}meus projetos{% endif %} →</a> ·
       <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a>
     </p>
+    {% if protocolo_triagem.pergunta_pesquisa %}
+      <p class="secao-desc" style="margin-top:-4px;">
+        <span style="color:var(--color-ink-3);">Objetivo:</span> {{ protocolo_triagem.pergunta_pesquisa }}
+      </p>
+    {% endif %}
     <div class="fluxo-map">
       {% for p in passos %}
         {% if p.curador and not eh_curador_painel %}

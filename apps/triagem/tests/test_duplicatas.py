@@ -275,6 +275,19 @@ def test_dedup_gate_nao_dono_recebe_403(client, protocolo):
     assert b.status != RegistroTriagem.Status.DUPLICADO
 
 
+def test_contar_pares_do_usuario_respeita_o_gate(protocolo):
+    # Pares de uma base importada por OUTRO usuário.
+    dono = _analista("dono")
+    intruso = _analista("intru2")
+    _com_dono(protocolo, "Cognição situada e prática docente", "10.8/a", dono)
+    _com_dono(protocolo, "Cognicao situada e pratica docente", "10.8/b", dono)
+    # Contagem total = 1; mas o intruso (não importou, não curador) vê 0.
+    assert dup.contar_pares_possiveis(protocolo) == 1
+    assert dup.contar_pares_do_usuario(protocolo, intruso, eh_curador=False) == 0
+    assert dup.contar_pares_do_usuario(protocolo, dono, eh_curador=False) == 1
+    assert dup.contar_pares_do_usuario(protocolo, intruso, eh_curador=True) == 1
+
+
 def test_dedup_gate_curador_resolve_qualquer_par(client, protocolo):
     importador = _analista("imp")
     curador = membro(User.objects.create_user(

@@ -109,6 +109,26 @@ def pares_possiveis(protocolo, limiar: float = LIMIAR, max_pares: int = 200) -> 
     return pares
 
 
+def pares_do_usuario(projeto, user, eh_curador: bool, limiar: float = LIMIAR,
+                     max_pares: int = 200) -> list[dict]:
+    """Pares que o usuário pode resolver: curador vê todos; analista só os que
+    tocam bases que ele importou (Fase 12.4)."""
+    pares = pares_possiveis(projeto, limiar, max_pares)
+    if eh_curador:
+        return pares
+    return [
+        p for p in pares
+        if user.id in (importadores(p["a"]) | importadores(p["b"]))
+    ]
+
+
+def contar_pares_do_usuario(projeto, user, eh_curador: bool, limiar: float = LIMIAR) -> int:
+    """Conta os pares que o usuário pode resolver (alinha painel e tela)."""
+    if eh_curador:
+        return contar_pares_possiveis(projeto, limiar)
+    return len(pares_do_usuario(projeto, user, False, limiar))
+
+
 def contar_pares_possiveis(protocolo, limiar: float = LIMIAR) -> int:
     """Conta os pares possíveis pendentes (sem carregar objetos) — p/ badges."""
     status = [s.value for s in RegistroTriagem.EM_ABERTO]

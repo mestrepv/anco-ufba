@@ -145,7 +145,7 @@ def painel_view(request: HttpRequest) -> HttpResponse:
 
         from apps.acervo.models import Artigo
         from apps.triagem.aprovacao import registros_para_desempate
-        from apps.triagem.duplicatas import contar_pares_possiveis
+        from apps.triagem.duplicatas import contar_pares_do_usuario
         from apps.triagem.models import (
             DecisaoTriagem,
             ProtocoloTriagem,
@@ -181,7 +181,9 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         if protocolo is not None:
             sl = protocolo.slug
             eh_curador = protocolo.eh_curador_no(user)
-            n_duplicatas = contar_pares_possiveis(protocolo)
+            # Conta só as duplicatas que o usuário pode resolver (alinha com a
+            # tela, que aplica o gate importador/curador da Fase 12.4).
+            n_duplicatas = contar_pares_do_usuario(protocolo, user, eh_curador)
             n_identificados = (
                 protocolo.registros.filter(
                     status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False

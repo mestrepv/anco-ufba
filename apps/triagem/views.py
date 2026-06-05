@@ -340,12 +340,7 @@ def duplicatas_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResp
     importou (Fase 12.4).
     """
     eh_curador = projeto.eh_curador_no(request.user)
-    pares = dup.pares_possiveis(projeto)
-    if not eh_curador:
-        pares = [
-            p for p in pares
-            if request.user.id in (dup.importadores(p["a"]) | dup.importadores(p["b"]))
-        ]
+    pares = dup.pares_do_usuario(projeto, request.user, eh_curador)
     n = len(pares)
 
     try:

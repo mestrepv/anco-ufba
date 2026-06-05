@@ -22,8 +22,13 @@
   </p>
 
   <div class="tg-card" style="margin-bottom:18px;">
-    <strong style="font-family:var(--font-serif);font-size:16px;color:var(--color-ink);">{{ protocolo.titulo }}</strong>
-    <div class="tg-meta" style="margin-top:4px;">
+    <div style="display:grid;grid-template-columns:120px 1fr;gap:6px 14px;align-items:baseline;">
+      <span class="tg-meta" style="color:var(--color-ink-3);">Objetivo</span>
+      <span style="font-family:var(--font-serif);font-size:15px;color:var(--color-ink);line-height:1.4;">{{ protocolo.pergunta_pesquisa|default:"(a definir no protocolo)" }}</span>
+      <span class="tg-meta" style="color:var(--color-ink-3);">Estratégia de busca</span>
+      <span style="font-family:var(--font-sans);font-size:14px;color:var(--color-ink-2);">{% if protocolo.estrategia_busca %}{{ protocolo.estrategia_busca }}{% else %}<span style="color:var(--color-ink-3);">(a definir no protocolo){% if eh_curador %} — <a href="{% url 'triagem_protocolo' projeto.slug %}" style="color:var(--color-gold-deep);">editar</a>{% endif %}</span>{% endif %}</span>
+    </div>
+    <div class="tg-meta" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--color-rule);">
       {{ n_buscas }} busca{{ n_buscas|pluralize }} · {{ n_registros }} registro{{ n_registros|pluralize }} ·
       {{ protocolo.n_revisores }} revisores por registro · prazo {{ protocolo.prazo_dias }} dias
       {% if protocolo.usa_texto_completo %} · <span style="color:var(--color-gold-deep);">2 etapas (título/resumo → texto)</span>{% endif %}
