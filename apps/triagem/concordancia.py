@@ -42,6 +42,41 @@ class Concordancia:
         }
 
 
+def fleiss_e_acordo(itens: list[list[str]], n: int):
+    """κ de Fleiss + % de acordo para `itens` (cada um com `n` avaliações).
+
+    Retorna `(perc_acordo, kappa, distribuicao)` onde distribuicao é
+    `[(categoria, n_atribuições)]`. Núcleo reutilizável (triagem e calibração).
+    """
+    N = len(itens)
+    if N == 0:
+        return None, None, []
+
+    categorias = sorted({d for item in itens for d in item})
+    idx = {c: i for i, c in enumerate(categorias)}
+    k = len(categorias)
+
+    acordos = sum(1 for item in itens if len(set(item)) == 1)
+    perc = acordos / N
+
+    totais_cat = [0] * k
+    soma_Pi = 0.0
+    for item in itens:
+        contagem = [0] * k
+        for d in item:
+            contagem[idx[d]] += 1
+        for j in range(k):
+            totais_cat[j] += contagem[j]
+        soma_Pi += (sum(c * c for c in contagem) - n) / (n * (n - 1))
+    P_bar = soma_Pi / N
+    p_j = [totais_cat[j] / (N * n) for j in range(k)]
+    P_e = sum(p * p for p in p_j)
+    kappa = (P_bar - P_e) / (1 - P_e) if (1 - P_e) > 1e-9 else None
+
+    distribuicao = [(c, totais_cat[idx[c]]) for c in categorias]
+    return perc, kappa, distribuicao
+
+
 def _interpretar(kappa: float | None) -> str:
     """Escala de Landis & Koch (1977)."""
     if kappa is None:
@@ -59,15 +94,21 @@ def _interpretar(kappa: float | None) -> str:
     return "quase perfeita"
 
 
-def calcular(protocolo) -> Concordancia:
+def calcular(protocolo, etapa: str | None = None) -> Concordancia:
+    """Concordância dos revisores. `etapa` restringe a um estágio (TA/TC);
+    o padrão é a 1ª etapa (título/resumo), a triagem primária reportada."""
     n = protocolo.n_revisores
     if n < 2:
         return Concordancia(n_revisores=n)
 
-    # Decisões concluídas, agrupadas por registro.
+    if etapa is None:
+        etapa = DecisaoTriagem.Etapa.TITULO_RESUMO
+
+    # Decisões concluídas da etapa, agrupadas por registro.
     por_registro: dict[int, list[str]] = {}
     decisoes = DecisaoTriagem.objects.filter(
         registro__protocolo=protocolo,
+        etapa=etapa,
         concluido_em__isnull=False,
         decisao__isnull=False,
     ).values_list("registro_id", "decisao")
@@ -76,40 +117,15 @@ def calcular(protocolo) -> Concordancia:
 
     # Itens duplamente triados (exatamente n decisões → n constante p/ Fleiss).
     itens = [v for v in por_registro.values() if len(v) == n]
-    N = len(itens)
-    if N == 0:
+    if not itens:
         return Concordancia(n_itens=0, n_revisores=n)
 
-    categorias = sorted({d for item in itens for d in item})
-    idx = {c: i for i, c in enumerate(categorias)}
-    k = len(categorias)
-
-    # Percentual de acordo (todos os revisores na mesma categoria).
-    acordos = sum(1 for item in itens if len(set(item)) == 1)
-    perc = acordos / N
-
-    # Fleiss' kappa.
-    totais_cat = [0] * k
-    soma_Pi = 0.0
-    for item in itens:
-        contagem = [0] * k
-        for d in item:
-            contagem[idx[d]] += 1
-        for j in range(k):
-            totais_cat[j] += contagem[j]
-        soma_Pi += (sum(c * c for c in contagem) - n) / (n * (n - 1))
-    P_bar = soma_Pi / N
-    p_j = [totais_cat[j] / (N * n) for j in range(k)]
-    P_e = sum(p * p for p in p_j)
-    kappa = (P_bar - P_e) / (1 - P_e) if (1 - P_e) > 1e-9 else None
-
-    rotulos = dict(
-        DecisaoTriagem._meta.get_field("decisao").choices or []
-    )
-    distribuicao = [(rotulos.get(c, c), totais_cat[idx[c]]) for c in categorias]
+    perc, kappa, distribuicao = fleiss_e_acordo(itens, n)
+    rotulos = dict(DecisaoTriagem._meta.get_field("decisao").choices or [])
+    distribuicao = [(rotulos.get(c, c), total) for c, total in distribuicao]
 
     return Concordancia(
-        n_itens=N,
+        n_itens=len(itens),
         n_revisores=n,
         perc_acordo=perc,
         kappa=kappa,

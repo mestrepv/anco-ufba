@@ -86,17 +86,24 @@
 
   {% if user.eh_analista %}
   {# ── Hero: o próximo passo ─────────────────────────────────────── #}
+  {% if proxima %}
   <section class="hero">
     <div class="eyebrow">Próximo passo</div>
     <h2>{{ proxima.titulo }}</h2>
     {% if proxima.sub %}<p>{{ proxima.sub }}</p>{% endif %}
     <a href="{{ proxima.href }}" class="btn-grande">{{ proxima.label }} &rarr;</a>
   </section>
+  {% endif %}
 
   {# ── Mapa do fluxo (clicável) ──────────────────────────────────── #}
+  {% if passos %}
   <section class="painel-secao">
     <h2>O fluxo da triagem</h2>
-    <p class="secao-desc">Cada etapa leva direto à tela. <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a></p>
+    <p class="secao-desc">
+      Projeto <strong>{{ protocolo_triagem.nome }}</strong> ·
+      <a href="{% url 'triagem_projetos' %}" style="color:var(--color-gold-deep);">{% if n_projetos > 1 %}trocar projeto ({{ n_projetos }}){% else %}meus projetos{% endif %} →</a> ·
+      <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a>
+    </p>
     <div class="fluxo-map">
       {% for p in passos %}
         {% if p.curador and not eh_curador_painel %}
@@ -116,7 +123,8 @@
       {% endfor %}
     </div>
   </section>
-  {% endif %}
+  {% endif %}{# passos #}
+  {% endif %}{# eh_analista #}
 
   {# ── Solicitações ──────────────────────────────────────────────── #}
   {% if solicitacoes %}

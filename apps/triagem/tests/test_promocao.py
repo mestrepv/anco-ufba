@@ -15,6 +15,8 @@ from apps.triagem.promocao import promover_para_acervo
 from apps.triagem.sorteio import executar_sorteio
 from apps.vocabulario.models import TermoVocabulario, Vocabulario
 
+from .conftest import membro
+
 User = get_user_model()
 pytestmark = pytest.mark.django_db
 
@@ -32,10 +34,10 @@ def base_termo(db):
 
 def _revisores(n=2):
     return [
-        User.objects.create_user(
+        membro(User.objects.create_user(
             username=f"rv{i}", email=f"rv{i}@u.edu", password="x",
             papel=User.Papel.ANALISTA, revisor_aprovado=True, aceita_revisoes=True,
-        )
+        ))
         for i in range(n)
     ]
 

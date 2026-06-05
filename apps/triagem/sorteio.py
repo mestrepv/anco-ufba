@@ -47,7 +47,10 @@ def _coletores(registro: RegistroTriagem) -> set[int]:
 
 
 def revisores_elegiveis(registro: RegistroTriagem, excluir_ids: set[int] | None = None):
-    """Queryset de Users elegíveis a triar `registro`."""
+    """Queryset de Users elegíveis a triar `registro`.
+
+    Restrito aos **membros do projeto** (Fase 12.2) que sejam revisores aprovados.
+    """
     excluir = set(excluir_ids or set()) | _coletores(registro)
     return (
         User.objects.filter(
@@ -55,6 +58,7 @@ def revisores_elegiveis(registro: RegistroTriagem, excluir_ids: set[int] | None 
             is_active=True,
             aceita_revisoes=True,
             revisor_aprovado=True,
+            projetos_triagem__projeto=registro.protocolo,
         )
         .exclude(pk__in=excluir)
         .annotate(
@@ -76,21 +80,33 @@ def _sortear_n(elegiveis_qs, n: int) -> list:
 
 
 @transaction.atomic
-def executar_sorteio(registro: RegistroTriagem) -> ResultadoSorteio:
-    """Sorteia revisores para um registro `identificado` (idempotente)."""
+def executar_sorteio(
+    registro: RegistroTriagem, etapa: str = DecisaoTriagem.Etapa.TITULO_RESUMO
+) -> ResultadoSorteio:
+    """Sorteia revisores para a `etapa` de triagem de um registro (idempotente).
+
+    `etapa` TA: registro `identificado`/`em_triagem` -> `em_triagem`.
+    `etapa` TC: registro `incluido_ta`/`em_texto`    -> `em_texto` (2º estágio).
+    """
     if registro.ja_no_acervo:
         return ResultadoSorteio(0, False, "Já no acervo — não entra em triagem.")
-    if registro.status not in RegistroTriagem.EM_ABERTO:
-        return ResultadoSorteio(0, False, f"Status {registro.status} não tria.")
+
+    eh_tc = etapa == DecisaoTriagem.Etapa.TEXTO_COMPLETO
+    if eh_tc:
+        validos = (RegistroTriagem.Status.INCLUIDO_TA, RegistroTriagem.Status.EM_TEXTO)
+    else:
+        validos = RegistroTriagem.EM_ABERTO
+    if registro.status not in validos:
+        return ResultadoSorteio(0, False, f"Status {registro.status} não tria ({etapa}).")
 
     pendentes = DecisaoTriagem.objects.filter(
-        registro=registro, concluido_em__isnull=True
+        registro=registro, etapa=etapa, concluido_em__isnull=True
     )
     if pendentes.exists():
         return ResultadoSorteio(0, False, "Já há ciclo de triagem pendente.")
 
     ja_decidiram = set(
-        DecisaoTriagem.objects.filter(registro=registro).values_list(
+        DecisaoTriagem.objects.filter(registro=registro, etapa=etapa).values_list(
             "revisor_id", flat=True
         )
     )
@@ -109,24 +125,28 @@ def executar_sorteio(registro: RegistroTriagem) -> ResultadoSorteio:
     agora = timezone.now()
     prazo = agora + timedelta(days=registro.protocolo.prazo_dias)
     for revisor in sorteados:
-        DecisaoTriagem.objects.create(registro=registro, revisor=revisor, prazo_em=prazo)
+        DecisaoTriagem.objects.create(
+            registro=registro, revisor=revisor, etapa=etapa, prazo_em=prazo
+        )
 
-    registro.status = RegistroTriagem.Status.EM_TRIAGEM
+    registro.status = (
+        RegistroTriagem.Status.EM_TEXTO if eh_tc else RegistroTriagem.Status.EM_TRIAGEM
+    )
     registro.save(update_fields=["status"])
     return ResultadoSorteio(criadas=len(sorteados), fila_de_espera=False)
 
 
 @transaction.atomic
 def re_sortear_triagem_expirada(decisao: DecisaoTriagem) -> DecisaoTriagem | None:
-    """Substitui um revisor expirado por outro elegível no mesmo registro."""
+    """Substitui um revisor expirado por outro elegível na mesma etapa."""
     if decisao.concluido_em is not None:
         return decisao
 
     registro = decisao.registro
     ja_designados = set(
-        DecisaoTriagem.objects.filter(registro=registro).values_list(
-            "revisor_id", flat=True
-        )
+        DecisaoTriagem.objects.filter(
+            registro=registro, etapa=decisao.etapa
+        ).values_list("revisor_id", flat=True)
     )
     novos = _sortear_n(revisores_elegiveis(registro, excluir_ids=ja_designados), 1)
     if not novos:

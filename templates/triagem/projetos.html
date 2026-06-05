@@ -1,0 +1,48 @@
+{% extends "_base_publico.html" %}
+
+{% block title %}Projetos · Triagem{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+
+{% block content %}
+<div class="tg-wrap">
+  <div class="tg-head">
+    <div>
+      <p class="t-eyebrow" style="margin:0 0 4px;">PRISMA-ScR</p>
+      <h1 class="tg-h1">Projetos de triagem</h1>
+    </div>
+    <div class="tg-actions">
+      <a href="{% url 'triagem_ajuda' %}" class="btn btn-secondary">Como funciona?</a>
+      {% if pode_criar %}<a href="{% url 'triagem_novo_projeto' %}" class="btn btn-primary">Novo projeto</a>{% endif %}
+    </div>
+  </div>
+  <p class="tg-desc">
+    Cada projeto é uma <strong>revisão de escopo</strong> independente — pergunta, estratégia de
+    busca, protocolo registrado e fluxograma PRISMA próprios. Você vê os projetos de que participa.
+  </p>
+
+  {% if projetos %}
+    <div style="display:grid;gap:12px;margin-top:18px;">
+      {% for item in projetos %}
+        <a href="{% url 'triagem_painel' item.projeto.slug %}" class="busca-row" style="align-items:center;">
+          <div>
+            <div class="b-base">{{ item.projeto.nome }}{% if item.eh_curador %} <span class="tg-meta" style="color:var(--color-gold-deep);">· curador</span>{% endif %}</div>
+            <div class="b-meta">
+              {% if item.projeto.pergunta_pesquisa %}{{ item.projeto.pergunta_pesquisa|truncatechars:90 }}{% else %}{{ item.projeto.titulo }}{% endif %}
+            </div>
+          </div>
+          <div class="b-nums">
+            <strong>{{ item.n_registros }}</strong> registro{{ item.n_registros|pluralize }}<br>
+            <span class="tg-meta">{{ item.n_buscas }} busca{{ item.n_buscas|pluralize }}{% if item.projeto.travado_em %} · protocolo v{{ item.projeto.versao }} 🔒{% endif %}</span>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="tg-empty">
+      Você ainda não participa de nenhum projeto.
+      {% if pode_criar %}Crie o primeiro em <a href="{% url 'triagem_novo_projeto' %}" style="color:var(--color-gold-deep);">Novo projeto</a>.
+      {% else %}Peça à curadoria para incluí-lo em um projeto.{% endif %}
+    </p>
+  {% endif %}
+</div>
+{% endblock %}

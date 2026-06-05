@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="tg-wrap narrow">
-  <a href="{% url 'triagem_registros' %}" class="tg-back">&larr; Registros</a>
+  <a href="{% url 'triagem_registros' projeto.slug %}" class="tg-back">&larr; Registros</a>
   <h1 class="tg-h1" style="margin-top:6px;">Iniciar triagem</h1>
 
   {% if n_disponiveis %}

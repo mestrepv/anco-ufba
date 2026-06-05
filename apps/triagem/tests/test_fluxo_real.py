@@ -29,6 +29,8 @@ from apps.triagem.models import (
 from apps.triagem.promocao import promover_para_acervo
 from apps.triagem.tasks import iniciar_triagem
 
+from .conftest import membro
+
 User = get_user_model()
 
 RIS_PATH = Path(os.environ.get("TRIAGEM_RIS_PATH", "/tmp/wos.ris"))
@@ -40,11 +42,11 @@ pytestmark = [
 
 
 def _revisor(n):
-    return User.objects.create_user(
+    return membro(User.objects.create_user(
         username=f"rv{n}", email=f"rv{n}@u.edu", password="x",
         papel=User.Papel.ANALISTA, revisor_aprovado=True, aceita_revisoes=True,
         limite_revisoes_simultaneas=500,
-    )
+    ))
 
 
 def _decide(registro, revisor, decisao):

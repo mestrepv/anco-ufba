@@ -1,0 +1,47 @@
+{% extends "_base_publico.html" %}
+
+{% block title %}Duplicatas mescladas · Triagem{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+
+{% block content %}
+<div class="tg-wrap narrow">
+  <a href="{% url 'triagem_duplicatas' projeto.slug %}" class="tg-back">&larr; Possíveis duplicatas</a>
+  <div class="tg-head"><h1 class="tg-h1">Duplicatas mescladas</h1></div>
+  <p class="tg-desc">
+    Registros marcados como duplicata (saíram da triagem). Trilha de auditoria: quem
+    resolveu e quando. Se foi engano, <strong>desfaça</strong> — o registro volta para a triagem.
+  </p>
+
+  {% if mescladas %}
+    <ul class="tg-list">
+      {% for r in mescladas %}
+        <li class="tg-card" style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+            <div style="flex:1;min-width:240px;">
+              <div class="tg-item-title" style="font-size:14.5px;">{{ r.titulo }}</div>
+              <div class="tg-meta" style="margin-top:4px;">{{ r.autores|default:"autores não informados" }} · {{ r.ano|default:"s.d." }}</div>
+              {% if r.duplicado_de %}
+                <div class="tg-meta" style="margin-top:6px;">
+                  Mantido como canônico: <strong>{{ r.duplicado_de.titulo|truncatechars:80 }}</strong>
+                </div>
+              {% endif %}
+              <div class="tg-meta" style="margin-top:4px;color:var(--color-ink-3);">
+                Resolvido por {% if r.duplicado_por %}{{ r.duplicado_por.nome_exibicao|default:r.duplicado_por.email }}{% else %}—{% endif %}
+                {% if r.duplicado_em %}· {{ r.duplicado_em|date:"d/m/Y H:i" }}{% endif %}
+              </div>
+            </div>
+            <form method="post" action="{% url 'triagem_duplicata_desfazer' projeto.slug %}"
+                  onsubmit="return confirm('Desfazer a mescla? O registro volta para a triagem.');">
+              {% csrf_token %}
+              <input type="hidden" name="duplicado" value="{{ r.pk }}">
+              <button class="btn btn-secondary btn-sm">Desfazer</button>
+            </form>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="tg-empty">Nenhuma duplicata mesclada ainda.</p>
+  {% endif %}
+</div>
+{% endblock %}

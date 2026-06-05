@@ -10,6 +10,8 @@ from apps.triagem.models import Busca, ProtocoloTriagem, RegistroTriagem
 from apps.triagem.promocao import promover_para_acervo
 from apps.vocabulario.models import TermoVocabulario, Vocabulario
 
+from .conftest import membro, turl
+
 User = get_user_model()
 pytestmark = pytest.mark.django_db
 
@@ -27,9 +29,9 @@ def base_termo(db):
 
 @pytest.fixture
 def analista(db):
-    return User.objects.create_user(
+    return membro(User.objects.create_user(
         username="ana", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
-    )
+    ))
 
 
 def test_contagem_prisma(protocolo, base_termo):
@@ -60,15 +62,15 @@ def test_prisma_view_e_exports(client, protocolo, analista, base_termo):
     Busca.objects.create(protocolo=protocolo, base_consulta=base_termo, n_identificados=10)
     client.force_login(analista)
 
-    html = client.get(reverse("triagem_prisma"))
+    html = client.get(turl("triagem_prisma"))
     assert html.status_code == 200
     assert b"PRISMA" in html.content
 
-    js = client.get(reverse("triagem_prisma"), {"formato": "json"})
+    js = client.get(turl("triagem_prisma"), {"formato": "json"})
     assert js.status_code == 200
     assert js.json()["identificados_relatado"] == 10
 
-    csv_resp = client.get(reverse("triagem_prisma"), {"formato": "csv"})
+    csv_resp = client.get(turl("triagem_prisma"), {"formato": "csv"})
     assert csv_resp.status_code == 200
     assert csv_resp["Content-Type"].startswith("text/csv")
 

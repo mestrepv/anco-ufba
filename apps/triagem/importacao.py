@@ -227,11 +227,7 @@ def decodificar(bytes_arquivo: bytes) -> str:
 # Importação + deduplicação
 # --------------------------------------------------------------------------- #
 
-_STATUS_TRIADOS = (
-    RegistroTriagem.Status.EM_TRIAGEM,
-    RegistroTriagem.Status.INCLUIDO,
-    RegistroTriagem.Status.EXCLUIDO,
-)
+_STATUS_TRIADOS = RegistroTriagem.TRIADOS
 
 
 def busca_pode_excluir(busca) -> tuple[bool, str]:

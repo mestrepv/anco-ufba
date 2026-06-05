@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="tg-wrap">
-  <a href="{% url 'triagem_painel' %}" class="tg-back">&larr; Triagem</a>
+  <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; Triagem</a>
   <h1 class="tg-h1" style="margin-top:6px;">{{ busca.base_nome|default:"Importação" }}</h1>
   <p class="tg-desc">
     {% if busca.formato %}{{ busca.get_formato_display }} · {% endif %}
@@ -100,8 +100,8 @@
 
   {# ── Ações ──────────────────────────────────────────────────────── #}
   <div class="tg-actions" style="margin-top:24px;">
-    <a href="{% url 'triagem_duplicatas' %}" class="btn btn-primary">Revisar possíveis duplicatas</a>
-    <a href="{% url 'triagem_importar' %}" class="btn btn-secondary">Importar outra base</a>
+    <a href="{% url 'triagem_duplicatas' projeto.slug %}" class="btn btn-primary">Revisar possíveis duplicatas</a>
+    <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-secondary">Importar outra base</a>
   </div>
 
   {# ── Excluir importação ─────────────────────────────────────────── #}
@@ -112,7 +112,7 @@
         Remove a busca e os registros que vieram só dela (ainda intocados). Use se importou
         o arquivo errado — depois é só importar de novo.
       </p>
-      <form method="post" action="{% url 'triagem_busca_excluir' busca.pk %}"
+      <form method="post" action="{% url 'triagem_busca_excluir' projeto.slug busca.pk %}"
             onsubmit="return confirm('Excluir esta importação e seus {{ busca.n_lidos }} registro(s)? Esta ação não pode ser desfeita.');">
         {% csrf_token %}
         <button type="submit" class="btn-excluir-grande">Excluir importação</button>

@@ -29,10 +29,31 @@
   </div>
   <div class="tg-progress"><span style="width:{{ pct }}%;"></span></div>
 
-  <h1 class="tg-h1" style="margin:0 0 4px;">Incluir no acervo?</h1>
-  <p class="tg-desc" style="margin-bottom:16px;">
-    Decida por título e resumo, segundo os critérios. Sua avaliação é independente.
-  </p>
+  {% if decisao.etapa == 'ca' %}
+    <div class="tg-note" style="margin-bottom:14px;border-color:var(--color-gold-deep);background:var(--color-review-bg);">
+      <strong>Calibração (piloto).</strong> Toda a equipe tria esta amostra para medir a
+      concordância. Decida por título/resumo, como no run real.
+    </div>
+    <h1 class="tg-h1" style="margin:0 0 4px;">Incluir no acervo? <span class="tg-meta">(calibração)</span></h1>
+    <p class="tg-desc" style="margin-bottom:16px;">
+      Decida por título e resumo, segundo os critérios. Sua avaliação é independente.
+    </p>
+  {% elif decisao.etapa == 'tc' %}
+    <div class="tg-note" style="margin-bottom:14px;border-color:var(--color-gold-deep);background:var(--color-review-bg);">
+      <strong>2ª etapa — texto completo.</strong> Este registro já passou na triagem por
+      título/resumo. Avalie agora o <strong>texto completo</strong> contra os critérios.
+    </div>
+    <h1 class="tg-h1" style="margin:0 0 4px;">Confirmar inclusão (texto completo)?</h1>
+    <p class="tg-desc" style="margin-bottom:16px;">
+      Abra o texto completo e decida segundo os critérios. Registre o <em>motivo</em> ao excluir
+      (PRISMA: <em>excluídos com razões</em>). Sua avaliação é independente.
+    </p>
+  {% else %}
+    <h1 class="tg-h1" style="margin:0 0 4px;">Incluir no acervo?</h1>
+    <p class="tg-desc" style="margin-bottom:16px;">
+      Decida por título e resumo, segundo os critérios. Sua avaliação é independente.
+    </p>
+  {% endif %}
 
   {% if decisao.registro.protocolo.criterios_inclusao or decisao.registro.protocolo.criterios_exclusao %}
     <div class="tg-card" style="margin-bottom:18px;background:var(--color-paper-2);">
@@ -59,7 +80,14 @@
     {% if registro.palavras_chaves %}
       <p class="tg-meta" style="margin-top:12px;"><strong>Palavras-chave:</strong> {{ registro.palavras_chaves|realce:termos_realce }}</p>
     {% endif %}
-    {% if registro.link %}<a href="{{ registro.link }}" target="_blank" rel="noopener" style="display:inline-block;margin-top:12px;color:var(--color-gold-deep);font-size:14px;">Abrir fonte &nearr;</a>
+    {% if decisao.etapa == 'tc' %}
+      {% if registro.link or registro.doi %}
+        <a href="{% if registro.link %}{{ registro.link }}{% else %}https://doi.org/{{ registro.doi }}{% endif %}"
+           target="_blank" rel="noopener" class="btn btn-primary" style="margin-top:14px;">Abrir texto completo &nearr;</a>
+      {% else %}
+        <p class="tg-meta" style="margin-top:14px;color:var(--color-danger);">Sem link direto — localize o texto completo pelo título/DOI.</p>
+      {% endif %}
+    {% elif registro.link %}<a href="{{ registro.link }}" target="_blank" rel="noopener" style="display:inline-block;margin-top:12px;color:var(--color-gold-deep);font-size:14px;">Abrir fonte &nearr;</a>
     {% elif registro.doi %}<a href="https://doi.org/{{ registro.doi }}" target="_blank" rel="noopener" style="display:inline-block;margin-top:12px;color:var(--color-gold-deep);font-size:14px;">Abrir pelo DOI &nearr;</a>{% endif %}
   </article>
 

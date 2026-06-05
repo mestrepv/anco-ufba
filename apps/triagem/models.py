@@ -15,6 +15,7 @@ from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.indexes import GinIndex, OpClass
 from django.db import models
+from django.utils.text import slugify
 from simple_history.models import HistoricalRecords
 
 from apps.acervo.models import _gerar_identificador_interno
@@ -40,10 +41,29 @@ def chave_dedup(
 
 
 class ProtocoloTriagem(models.Model):
-    """Protocolo da revisão de escopo (singleton). Critérios e parâmetros."""
+    """Projeto de revisão de escopo: critérios, parâmetros e equipe.
+
+    Cada projeto é uma revisão independente (pergunta/estratégia próprias), com seu
+    corpus, dedup, triagem, PRISMA e concordância. Acervo (`Artigo`) e análise são
+    globais. Fase 12.
+    """
 
     titulo = models.CharField(
         max_length=300, default="Revisão de escopo — Análise Cognitiva"
+    )
+    nome = models.CharField(
+        max_length=120, blank=True, help_text="Nome curto do projeto (para a interface)."
+    )
+    slug = models.SlugField(
+        max_length=140, unique=True, blank=True,
+        help_text="Identificador do projeto na URL (/triagem/p/<slug>/).",
+    )
+    estrategia_busca = models.TextField(
+        blank=True,
+        help_text="String/lógica de busca que define a revisão (ex.: BLOCO 1 AND BLOCO 2).",
+    )
+    arquivado = models.BooleanField(
+        default=False, help_text="Projeto concluído: some dos seletores, sem ser apagado."
     )
     pergunta_pesquisa = models.TextField(blank=True)
     criterios_inclusao = models.TextField(
@@ -62,6 +82,18 @@ class ProtocoloTriagem(models.Model):
     prazo_dias = models.PositiveSmallIntegerField(
         default=21, help_text="Prazo (dias) para concluir cada triagem."
     )
+    usa_texto_completo = models.BooleanField(
+        default=False,
+        help_text="Ativa a 2ª etapa de triagem (texto completo) após o título/resumo.",
+    )
+    registro_externo = models.URLField(
+        max_length=300, blank=True,
+        help_text="Registro público do protocolo (ex.: OSF) — a priori.",
+    )
+    versao = models.PositiveSmallIntegerField(default=1)
+    travado_em = models.DateTimeField(
+        null=True, blank=True, help_text="Quando esta versão foi travada (a priori)."
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
@@ -70,15 +102,142 @@ class ProtocoloTriagem(models.Model):
         verbose_name_plural = "protocolos de triagem"
 
     def __str__(self) -> str:
-        return self.titulo
+        return self.nome or self.titulo
+
+    def save(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
+        if not self.slug:
+            base = slugify(self.nome or self.titulo or "projeto") or "projeto"
+            slug, i = base, 2
+            while (
+                ProtocoloTriagem.objects.exclude(pk=self.pk).filter(slug=slug).exists()
+            ):
+                slug, i = f"{base}-{i}", i + 1
+            self.slug = slug
+        super().save(*args, **kwargs)
 
     @classmethod
     def ativo(cls) -> ProtocoloTriagem:
-        """Retorna o protocolo único (cria com padrões se não existir)."""
-        obj = cls.objects.order_by("id").first()
+        """Retorna o protocolo único (cria com padrões se não existir).
+
+        Transição (Fase 12): enquanto a navegação por projeto não substitui todos
+        os pontos de uso, `ativo()` devolve o primeiro projeto não arquivado.
+        """
+        obj = cls.objects.filter(arquivado=False).order_by("id").first()
+        if obj is None:
+            obj = cls.objects.order_by("id").first()
         if obj is None:
             obj = cls.objects.create()
         return obj
+
+    def papel_de(self, user) -> str | None:
+        """Papel do usuário NESTE projeto (ou None se não for membro)."""
+        if user is None or not user.is_authenticated:
+            return None
+        m = self.membros.filter(usuario=user).first()
+        return m.papel if m else None
+
+    def eh_membro(self, user) -> bool:
+        return self.papel_de(user) is not None
+
+    def eh_curador_no(self, user) -> bool:
+        """Curador do projeto (ou admin global)."""
+        if user is not None and getattr(user, "is_staff", False):
+            return True
+        return self.papel_de(user) == ProjetoMembro.Papel.CURADOR
+
+    def snapshot_dados(self) -> dict:
+        return {
+            "titulo": self.titulo,
+            "pergunta_pesquisa": self.pergunta_pesquisa,
+            "criterios_inclusao": self.criterios_inclusao,
+            "criterios_exclusao": self.criterios_exclusao,
+            "n_revisores": self.n_revisores,
+            "prazo_dias": self.prazo_dias,
+            "usa_texto_completo": self.usa_texto_completo,
+            "termos_realce": self.termos_realce,
+            "registro_externo": self.registro_externo,
+        }
+
+    def travar(self, user) -> None:
+        """Congela a versão atual (a priori) num snapshot e marca travado_em."""
+        from django.utils import timezone
+
+        SnapshotProtocolo.objects.get_or_create(
+            protocolo=self, versao=self.versao,
+            defaults={"dados": self.snapshot_dados(), "travado_por": user},
+        )
+        self.travado_em = timezone.now()
+        self.save(update_fields=["travado_em"])
+
+    def abrir_nova_versao(self) -> None:
+        """Destrava para edição como uma nova versão."""
+        self.versao += 1
+        self.travado_em = None
+        self.save(update_fields=["versao", "travado_em"])
+
+
+class SnapshotProtocolo(models.Model):
+    """Versão congelada do protocolo (auditável; a priori)."""
+
+    protocolo = models.ForeignKey(
+        ProtocoloTriagem, on_delete=models.CASCADE, related_name="versoes"
+    )
+    versao = models.PositiveSmallIntegerField()
+    dados = models.JSONField(default=dict)
+    travado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="+",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "versão do protocolo"
+        verbose_name_plural = "versões do protocolo"
+        ordering = ["-versao"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["protocolo", "versao"], name="uniq_versao_por_protocolo"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.protocolo_id} v{self.versao}"
+
+
+class ProjetoMembro(models.Model):
+    """Vínculo de um usuário a um projeto, com papel **no projeto** (Fase 12).
+
+    O papel global de `User` rege o acesso à plataforma; este papel rege as ações
+    da triagem do projeto. Alguém pode ser curador de um projeto e analista de outro.
+    """
+
+    class Papel(models.TextChoices):
+        ANALISTA = "analista", "Analista"
+        CURADOR = "curador", "Curador"
+
+    projeto = models.ForeignKey(
+        ProtocoloTriagem, on_delete=models.CASCADE, related_name="membros"
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="projetos_triagem"
+    )
+    papel = models.CharField(
+        max_length=10, choices=Papel.choices, default=Papel.ANALISTA
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "membro do projeto"
+        verbose_name_plural = "membros do projeto"
+        ordering = ["projeto", "usuario"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["projeto", "usuario"], name="uniq_membro_por_projeto"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.usuario_id} em {self.projeto_id} ({self.papel})"
 
 
 class Busca(models.Model):
@@ -218,9 +377,12 @@ class RegistroTriagem(models.Model):
 
     class Status(models.TextChoices):
         IDENTIFICADO = "identificado", "Identificado"
-        EM_TRIAGEM = "em_triagem", "Em triagem"
+        EM_TRIAGEM = "em_triagem", "Em triagem (título/resumo)"
+        INCLUIDO_TA = "incluido_ta", "Incluído no título/resumo"
+        EM_TEXTO = "em_texto", "Em triagem (texto completo)"
         INCLUIDO = "incluido", "Incluído"
-        EXCLUIDO = "excluido", "Excluído"
+        EXCLUIDO = "excluido", "Excluído (título/resumo)"
+        EXCLUIDO_TC = "excluido_tc", "Excluído (texto completo)"
         DUPLICADO = "duplicado", "Duplicado"
 
     class Decisao(models.TextChoices):
@@ -230,7 +392,17 @@ class RegistroTriagem(models.Model):
 
     # Status que aguardam ou já passaram pela triagem por pares.
     EM_ABERTO = (Status.IDENTIFICADO, Status.EM_TRIAGEM)
-    TRIADOS = (Status.INCLUIDO, Status.EXCLUIDO)
+    # Status terminais de uma decisão consolidada (consenso ou desempate).
+    TERMINAIS = (Status.INCLUIDO, Status.EXCLUIDO, Status.EXCLUIDO_TC)
+    # Status em que o registro já entrou no processo de triagem (não-deletável).
+    TRIADOS = (
+        Status.EM_TRIAGEM,
+        Status.INCLUIDO_TA,
+        Status.EM_TEXTO,
+        Status.INCLUIDO,
+        Status.EXCLUIDO,
+        Status.EXCLUIDO_TC,
+    )
 
     protocolo = models.ForeignKey(
         ProtocoloTriagem, on_delete=models.CASCADE, related_name="registros"
@@ -266,6 +438,12 @@ class RegistroTriagem(models.Model):
     duplicado_de = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="duplicatas"
     )
+    duplicado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="duplicatas_resolvidas",
+        help_text="Quem resolveu este registro como duplicata (auditoria).",
+    )
+    duplicado_em = models.DateTimeField(null=True, blank=True)
     ja_no_acervo = models.BooleanField(
         default=False, db_index=True,
         help_text="Casa com Artigo já existente (inclusive legado): não re-triar.",
@@ -322,15 +500,38 @@ class RegistroTriagem(models.Model):
             )
         super().save(*args, **kwargs)
 
+    @property
+    def procedencia(self) -> list[dict]:
+        """Bases e importadores de origem (para informar a decisão de dedup)."""
+        itens = []
+        for b in self.origem_buscas.all():
+            por = b.criado_por
+            itens.append(
+                {
+                    "base": b.base_nome or "base não informada",
+                    "por": (por.nome_exibicao or por.email) if por else "—",
+                }
+            )
+        return itens
+
 
 class DecisaoTriagem(models.Model):
     """Parecer de triagem de um revisor (análogo a `acervo.Revisao`)."""
+
+    class Etapa(models.TextChoices):
+        TITULO_RESUMO = "ta", "Título e resumo"
+        TEXTO_COMPLETO = "tc", "Texto completo"
+        CALIBRACAO = "ca", "Calibração (piloto)"
 
     registro = models.ForeignKey(
         RegistroTriagem, on_delete=models.CASCADE, related_name="decisoes"
     )
     revisor = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="triagens_feitas"
+    )
+    etapa = models.CharField(
+        max_length=2, choices=Etapa.choices, default=Etapa.TITULO_RESUMO, db_index=True,
+        help_text="Etapa da triagem (título/resumo ou texto completo).",
     )
     decisao = models.CharField(
         max_length=10, choices=RegistroTriagem.Decisao.choices, null=True, blank=True
@@ -347,8 +548,8 @@ class DecisaoTriagem(models.Model):
         ordering = ["-sorteado_em"]
         constraints = [
             models.UniqueConstraint(
-                fields=["registro", "revisor"],
-                name="uniq_decisao_por_revisor_registro",
+                fields=["registro", "revisor", "etapa"],
+                name="uniq_decisao_por_revisor_registro_etapa",
             ),
         ]
 
@@ -369,6 +570,10 @@ class ParDuplicataDescartado(models.Model):
     registro_b = models.ForeignKey(
         RegistroTriagem, on_delete=models.CASCADE, related_name="+"
     )
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="pares_descartados",
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -382,3 +587,40 @@ class ParDuplicataDescartado(models.Model):
 
     def __str__(self) -> str:
         return f"{self.registro_a_id} ≠ {self.registro_b_id}"
+
+
+class RodadaCalibracao(models.Model):
+    """Piloto de calibração: toda a equipe tria uma amostra comum antes do run.
+
+    Mede a confiabilidade entre avaliadores (κ de Fleiss) sobre os mesmos itens,
+    para decidir se os critérios estão claros o suficiente. As decisões usam a
+    etapa `CALIBRACAO` em `DecisaoTriagem` — isoladas da triagem real (não mudam
+    o status do registro nem entram nas contagens PRISMA/concordância oficiais).
+    """
+
+    protocolo = models.ForeignKey(
+        ProtocoloTriagem, on_delete=models.CASCADE, related_name="calibracoes"
+    )
+    registros = models.ManyToManyField(
+        RegistroTriagem, related_name="calibracoes",
+        help_text="Amostra comum triada por toda a equipe.",
+    )
+    criada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="calibracoes_criadas",
+    )
+    criada_em = models.DateTimeField(auto_now_add=True)
+    fechada_em = models.DateTimeField(null=True, blank=True)
+    # Resultados congelados no fechamento (auditável).
+    n_itens = models.PositiveIntegerField(default=0)
+    n_revisores = models.PositiveIntegerField(default=0)
+    perc_acordo = models.FloatField(null=True, blank=True)
+    kappa = models.FloatField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "rodada de calibração"
+        verbose_name_plural = "rodadas de calibração"
+        ordering = ["-criada_em"]
+
+    def __str__(self) -> str:
+        return f"Calibração {self.pk} do protocolo {self.protocolo_id}"

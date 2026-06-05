@@ -2,7 +2,6 @@
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.urls import reverse
 from django.utils import timezone
 
 from apps.triagem.models import (
@@ -13,15 +12,17 @@ from apps.triagem.models import (
 )
 from apps.triagem.sorteio import executar_sorteio
 
+from .conftest import membro, turl
+
 User = get_user_model()
 pytestmark = pytest.mark.django_db
 
 
 def _revisor(n):
-    return User.objects.create_user(
+    return membro(User.objects.create_user(
         username=f"rev{n}", email=f"rev{n}@u.edu", password="x",
         papel=User.Papel.ANALISTA, revisor_aprovado=True, aceita_revisoes=True,
-    )
+    ))
 
 
 @pytest.fixture
@@ -36,9 +37,9 @@ def revisores(db):
 
 @pytest.fixture
 def curador(db):
-    return User.objects.create_user(
+    return membro(User.objects.create_user(
         username="cur", email="cur@u.edu", password="x", papel=User.Papel.CURADOR
-    )
+    ), papel="curador")
 
 
 @pytest.fixture
@@ -53,7 +54,7 @@ def leitor(db):
 def test_iniciar_triagem_sorteia(client, protocolo, revisores, curador):
     RegistroTriagem.objects.create(protocolo=protocolo, titulo="A", doi="10.1/a")
     client.force_login(curador)
-    resp = client.post(reverse("triagem_iniciar"))
+    resp = client.post(turl("triagem_iniciar"))
     assert resp.status_code == 302
     reg = RegistroTriagem.objects.get(doi="10.1/a")
     assert reg.status == RegistroTriagem.Status.EM_TRIAGEM
@@ -62,8 +63,8 @@ def test_iniciar_triagem_sorteia(client, protocolo, revisores, curador):
 
 def test_iniciar_exige_curador(client, protocolo, revisores):
     client.force_login(revisores[0])  # analista comum
-    assert client.get(reverse("triagem_iniciar")).status_code == 403
-    assert client.post(reverse("triagem_iniciar")).status_code == 403
+    assert client.get(turl("triagem_iniciar")).status_code == 403
+    assert client.post(turl("triagem_iniciar")).status_code == 403
 
 
 def test_iniciar_ignora_ja_no_acervo(client, protocolo, revisores, curador):
@@ -71,7 +72,7 @@ def test_iniciar_ignora_ja_no_acervo(client, protocolo, revisores, curador):
         protocolo=protocolo, titulo="B", doi="10.1/b", ja_no_acervo=True
     )
     client.force_login(curador)
-    client.post(reverse("triagem_iniciar"))
+    client.post(turl("triagem_iniciar"))
     reg = RegistroTriagem.objects.get(doi="10.1/b")
     assert reg.status == RegistroTriagem.Status.IDENTIFICADO
     assert DecisaoTriagem.objects.filter(registro=reg).count() == 0
@@ -91,7 +92,7 @@ def test_triar_mascara_coletor_e_outros(client, protocolo, revisores):
     decisao = DecisaoTriagem.objects.filter(registro=reg).first()
 
     client.force_login(decisao.revisor)
-    resp = client.get(reverse("triagem_triar", args=[decisao.pk]))
+    resp = client.get(turl("triagem_triar", args=[decisao.pk]))
     assert resp.status_code == 200
     assert b"Sigiloso" in resp.content
     # mascaramento: não expõe o coletor
@@ -104,7 +105,7 @@ def test_triar_so_revisor_designado(client, protocolo, revisores):
     decisao = DecisaoTriagem.objects.filter(registro=reg).first()
     intruso = _revisor(98)
     client.force_login(intruso)
-    assert client.get(reverse("triagem_triar", args=[decisao.pk])).status_code == 403
+    assert client.get(turl("triagem_triar", args=[decisao.pk])).status_code == 403
 
 
 def test_triar_post_registra_decisao(client, protocolo, revisores):
@@ -113,7 +114,7 @@ def test_triar_post_registra_decisao(client, protocolo, revisores):
     decisao = DecisaoTriagem.objects.filter(registro=reg).first()
     client.force_login(decisao.revisor)
     resp = client.post(
-        reverse("triagem_triar", args=[decisao.pk]),
+        turl("triagem_triar", args=[decisao.pk]),
         data={"decisao": "incluir", "motivo_exclusao": "", "comentario": "ok"},
     )
     assert resp.status_code == 302
@@ -135,12 +136,12 @@ def test_triar_auto_avanca_para_proxima(client, protocolo):
     assert d1 and d2  # ambos sorteados para este revisor
     client.force_login(rev)
     resp = client.post(
-        reverse("triagem_triar", args=[d1.pk]),
+        turl("triagem_triar", args=[d1.pk]),
         data={"decisao": "incluir", "motivo_exclusao": "", "comentario": ""},
     )
     # auto-avança direto para a próxima pendente (não volta para a lista)
     assert resp.status_code == 302
-    assert resp.headers["Location"] == reverse("triagem_triar", args=[d2.pk])
+    assert resp.headers["Location"] == turl("triagem_triar", args=[d2.pk])
 
 
 def test_triar_mostra_progresso_e_realce(client, protocolo, revisores):
@@ -153,7 +154,7 @@ def test_triar_mostra_progresso_e_realce(client, protocolo, revisores):
     executar_sorteio(reg)
     d = DecisaoTriagem.objects.filter(registro=reg).first()
     client.force_login(d.revisor)
-    resp = client.get(reverse("triagem_triar", args=[d.pk]))
+    resp = client.get(turl("triagem_triar", args=[d.pk]))
     assert resp.status_code == 200
     assert b"de " in resp.content  # "Triagem 1 de N"
     assert b"<mark>" in resp.content  # termo destacado
@@ -165,7 +166,7 @@ def test_triar_excluir_exige_motivo(client, protocolo, revisores):
     decisao = DecisaoTriagem.objects.filter(registro=reg).first()
     client.force_login(decisao.revisor)
     resp = client.post(
-        reverse("triagem_triar", args=[decisao.pk]),
+        turl("triagem_triar", args=[decisao.pk]),
         data={"decisao": "excluir", "motivo_exclusao": "", "comentario": ""},
     )
     assert resp.status_code == 200  # re-renderiza com erro
@@ -188,7 +189,7 @@ def test_desempate_lista_divergentes(client, protocolo, revisores, curador):
     reg = RegistroTriagem.objects.create(protocolo=protocolo, titulo="Div", doi="10.1/d")
     _divergir(reg)
     client.force_login(curador)
-    resp = client.get(reverse("triagem_desempate"))
+    resp = client.get(turl("triagem_desempate"))
     assert resp.status_code == 200
     assert b"Div" in resp.content
 
@@ -198,7 +199,7 @@ def test_desempatar_incluir(client, protocolo, revisores, curador):
     _divergir(reg)
     client.force_login(curador)
     resp = client.post(
-        reverse("triagem_desempatar", args=[reg.pk]),
+        turl("triagem_desempatar", args=[reg.pk]),
         data={"decisao": "incluir", "motivo_exclusao": ""},
     )
     assert resp.status_code == 302
@@ -209,4 +210,4 @@ def test_desempatar_incluir(client, protocolo, revisores, curador):
 
 def test_leitor_nao_desempata(client, leitor):
     client.force_login(leitor)
-    assert client.get(reverse("triagem_desempate")).status_code == 403
+    assert client.get(turl("triagem_desempate")).status_code == 403

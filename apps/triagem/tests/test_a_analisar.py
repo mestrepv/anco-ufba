@@ -9,6 +9,8 @@ from apps.triagem.models import ProtocoloTriagem, RegistroTriagem
 from apps.triagem.promocao import promover_para_acervo
 from apps.vocabulario.models import TermoVocabulario, Vocabulario
 
+from .conftest import turl
+
 User = get_user_model()
 pytestmark = pytest.mark.django_db
 
@@ -56,7 +58,7 @@ def test_analista_nao_cria_artigo_avulso(client, analista, vocab):
               "link_acesso": "https://e.org/x"},
     )
     assert resp.status_code == 302
-    assert resp.headers["Location"] == reverse("triagem_a_analisar")
+    assert resp.headers["Location"] == turl("triagem_a_analisar")
     assert not Artigo.objects.filter(doi="10.123/novo").exists()
 
 
@@ -75,7 +77,7 @@ def test_curador_cria_artigo_avulso(client, curador, vocab):
 def test_a_analisar_lista_incluidos(client, protocolo, analista):
     artigo = _artigo_incluido(protocolo)
     client.force_login(analista)
-    resp = client.get(reverse("triagem_a_analisar"))
+    resp = client.get(turl("triagem_a_analisar"))
     assert resp.status_code == 200
     assert artigo in list(resp.context["pagina"].object_list)
 
@@ -84,7 +86,7 @@ def test_a_analisar_oculta_ja_analisados(client, protocolo, analista):
     artigo = _artigo_incluido(protocolo, doi="10.3/ja")
     Analise.objects.create(artigo=artigo, analista=analista, status=Analise.Status.RASCUNHO)
     client.force_login(analista)
-    resp = client.get(reverse("triagem_a_analisar"))
+    resp = client.get(turl("triagem_a_analisar"))
     assert artigo not in list(resp.context["pagina"].object_list)
 
 

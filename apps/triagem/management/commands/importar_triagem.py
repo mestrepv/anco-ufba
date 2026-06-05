@@ -37,6 +37,8 @@ class Command(BaseCommand):
         parser.add_argument("--string-busca", type=str, default="")
         parser.add_argument("--n-identificados", type=int, default=0)
         parser.add_argument("--data", type=str, default=None, help="YYYY-MM-DD")
+        parser.add_argument("--projeto", type=str, default=None,
+                            help="Slug do projeto (default: projeto ativo).")
 
     def handle(self, *args, **opts) -> None:
         caminho = Path(opts["arquivo"])
@@ -60,7 +62,12 @@ class Command(BaseCommand):
                     "Cadastre no admin ou use --outra-base."
                 )
 
-        protocolo = ProtocoloTriagem.ativo()
+        if opts["projeto"]:
+            protocolo = ProtocoloTriagem.objects.filter(slug=opts["projeto"]).first()
+            if protocolo is None:
+                raise CommandError(f"Projeto '{opts['projeto']}' não encontrado.")
+        else:
+            protocolo = ProtocoloTriagem.ativo()
         busca = Busca.objects.create(
             protocolo=protocolo,
             base_consulta=base_termo,

@@ -1,0 +1,36 @@
+{% extends "_base_publico.html" %}
+
+{% block title %}Novo projeto · Triagem{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+
+{% block content %}
+<div class="tg-wrap narrow">
+  <a href="{% url 'triagem_projetos' %}" class="tg-back">&larr; Projetos</a>
+  <div class="tg-head"><h1 class="tg-h1">Novo projeto</h1></div>
+  <p class="tg-desc">
+    Crie uma nova revisão de escopo. Você entra como <strong>curador</strong> do projeto e poderá
+    designar os membros (analistas/curadores) no admin. Critérios e parâmetros são definidos depois,
+    na página do <em>Protocolo</em>.
+  </p>
+
+  <form method="post" class="tg-card" style="margin-top:8px;">
+    {% csrf_token %}
+    <div class="tg-field">
+      <label>Nome do projeto *</label>
+      <input type="text" name="nome" required maxlength="120" placeholder="Ex.: Cognitive analysis — blocos 1 e 2"
+             style="width:100%;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;">
+    </div>
+    <div class="tg-field">
+      <label>Pergunta de pesquisa</label>
+      <textarea name="pergunta_pesquisa" rows="2"
+                style="width:100%;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;"></textarea>
+    </div>
+    <div class="tg-field">
+      <label>Estratégia de busca</label>
+      <textarea name="estrategia_busca" rows="3" placeholder='Ex.: ("cognitive analysis" OR homônimos) AND BLOCO 2'
+                style="width:100%;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;"></textarea>
+    </div>
+    <button class="btn btn-primary">Criar projeto</button>
+  </form>
+</div>
+{% endblock %}

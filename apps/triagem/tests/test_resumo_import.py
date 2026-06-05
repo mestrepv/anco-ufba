@@ -3,12 +3,13 @@
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.urls import reverse
 
 from apps.acervo.models import Artigo
 from apps.triagem.importacao import importar_para_busca, parse_ris
 from apps.triagem.models import Busca, ProtocoloTriagem
 from apps.vocabulario.models import TermoVocabulario, Vocabulario
+
+from .conftest import membro, turl
 
 User = get_user_model()
 pytestmark = pytest.mark.django_db
@@ -35,9 +36,9 @@ def base_termo(db):
 
 @pytest.fixture
 def analista(db):
-    return User.objects.create_user(
+    return membro(User.objects.create_user(
         username="ana", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
-    )
+    ))
 
 
 def test_menu_base_sem_prefixo(base_termo):
@@ -72,7 +73,7 @@ def _upload(client, base_termo, n_identificados, conteudo=RIS, **extra):
         "base_consulta": base_termo.pk, "formato": "", "arquivo": arq,
         "n_identificados": n_identificados, **extra,
     }
-    return client.post(reverse("triagem_importar"), data=data)
+    return client.post(turl("triagem_importar"), data=data)
 
 
 def test_n_identificados_obrigatorio(client, analista, base_termo, settings, tmp_path):
@@ -80,7 +81,7 @@ def test_n_identificados_obrigatorio(client, analista, base_termo, settings, tmp
     client.force_login(analista)
     arq = SimpleUploadedFile("s.ris", RIS.encode("utf-8"))
     resp = client.post(
-        reverse("triagem_importar"),
+        turl("triagem_importar"),
         data={"base_consulta": base_termo.pk, "arquivo": arq},  # sem n_identificados
     )
     assert resp.status_code == 200  # re-renderiza com erro
@@ -175,8 +176,8 @@ def test_painel_lista_importacoes_clicaveis(client, analista, base_termo, settin
     client.force_login(analista)
     _upload(client, base_termo, 1)
     busca = Busca.objects.latest("pk")
-    r = client.get(reverse("triagem_painel"))
-    assert reverse("triagem_busca_resumo", args=[busca.pk]).encode() in r.content
+    r = client.get(turl("triagem_painel"))
+    assert turl("triagem_busca_resumo", args=[busca.pk]).encode() in r.content
     assert b"busca-row" in r.content
 
 
@@ -187,9 +188,9 @@ def test_excluir_busca_intocada(client, analista, base_termo, settings, tmp_path
     busca = Busca.objects.latest("pk")
     from apps.triagem.models import RegistroTriagem
     assert RegistroTriagem.objects.filter(doi="10.1/abc").exists()
-    resp = client.post(reverse("triagem_busca_excluir", args=[busca.pk]))
+    resp = client.post(turl("triagem_busca_excluir", args=[busca.pk]))
     assert resp.status_code == 302
-    assert resp.headers["Location"] == reverse("triagem_painel")
+    assert resp.headers["Location"] == turl("triagem_painel")
     assert not Busca.objects.filter(pk=busca.pk).exists()
     assert not RegistroTriagem.objects.filter(doi="10.1/abc").exists()
 
@@ -204,7 +205,7 @@ def test_excluir_bloqueado_se_ja_triado(client, analista, base_termo, settings, 
     reg = RegistroTriagem.objects.get(doi="10.1/abc")
     reg.status = RegistroTriagem.Status.EM_TRIAGEM  # já entrou em triagem
     reg.save()
-    resp = client.post(reverse("triagem_busca_excluir", args=[busca.pk]))
+    resp = client.post(turl("triagem_busca_excluir", args=[busca.pk]))
     assert resp.status_code == 302
     assert Busca.objects.filter(pk=busca.pk).exists()  # NÃO excluiu
     assert RegistroTriagem.objects.filter(pk=reg.pk).exists()

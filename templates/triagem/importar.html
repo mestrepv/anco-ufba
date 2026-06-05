@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="tg-wrap narrow">
-  <a href="{% url 'triagem_painel' %}" class="tg-back">&larr; Triagem</a>
+  <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; Triagem</a>
   <h1 class="tg-h1" style="margin-top:6px;">Importar busca</h1>
   <p class="tg-desc">
     Envie o arquivo exportado de uma base (RIS, BibTeX ou CSV). Registre também a

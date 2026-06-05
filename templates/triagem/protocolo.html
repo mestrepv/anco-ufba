@@ -1,0 +1,85 @@
+{% extends "_base_publico.html" %}
+
+{% block title %}Protocolo · Triagem{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+
+{% block content %}
+<div class="tg-wrap narrow">
+  <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; Triagem</a>
+  <div class="tg-head">
+    <h1 class="tg-h1">Protocolo da revisão</h1>
+    <span class="tg-meta">versão {{ protocolo.versao }} ·
+      {% if protocolo.travado_em %}<span style="color:var(--color-ok);">travado em {{ protocolo.travado_em|date:"d/m/Y H:i" }}</span>
+      {% else %}<span style="color:var(--color-danger);">rascunho (não travado)</span>{% endif %}
+    </span>
+  </div>
+  <p class="tg-desc">
+    Critérios e estratégia definidos <strong>a priori</strong>. Trave a versão antes de iniciar a
+    triagem e registre o protocolo externamente (ex.: OSF) — exigência de rigor (PRISMA-ScR).
+  </p>
+
+  {% if not protocolo.travado_em %}
+    <div class="tg-note" style="border-color:var(--color-danger);background:#fdf2f0;color:var(--color-danger);margin-bottom:16px;">
+      ⚠ Esta versão ainda <strong>não foi travada</strong>. Para rigor, trave antes de iniciar a triagem.
+    </div>
+  {% endif %}
+
+  <h2 class="tg-h2">Critérios e parâmetros</h2>
+  <div class="tg-card" style="margin-bottom:18px;">
+    <table class="tg-table">
+      <tr><td style="width:200px;color:var(--color-ink-3);">Pergunta de pesquisa</td><td>{{ protocolo.pergunta_pesquisa|default:"—" }}</td></tr>
+      <tr><td style="color:var(--color-ink-3);">Critérios de inclusão</td><td><pre style="white-space:pre-wrap;font-family:var(--font-sans);margin:0;">{{ protocolo.criterios_inclusao|default:"—" }}</pre></td></tr>
+      <tr><td style="color:var(--color-ink-3);">Critérios de exclusão</td><td><pre style="white-space:pre-wrap;font-family:var(--font-sans);margin:0;">{{ protocolo.criterios_exclusao|default:"—" }}</pre></td></tr>
+      <tr><td style="color:var(--color-ink-3);">Revisores por registro</td><td>{{ protocolo.n_revisores }} · prazo {{ protocolo.prazo_dias }} dias</td></tr>
+      <tr><td style="color:var(--color-ink-3);">Triagem em 2 etapas</td><td>{% if protocolo.usa_texto_completo %}sim (título/resumo → texto completo){% else %}não (só título/resumo){% endif %}</td></tr>
+    </table>
+    <p class="tg-meta" style="margin-top:10px;">Critérios e pergunta são editados no <a href="/admin/triagem/protocolotriagem/{{ protocolo.pk }}/change/" style="color:var(--color-gold-deep);">admin</a>.</p>
+  </div>
+
+  {% if user.is_staff or user.eh_curador %}
+  <h2 class="tg-h2">Gestão (curador)</h2>
+  <div class="tg-card" style="margin-bottom:18px;">
+    <form method="post" style="margin-bottom:16px;">
+      {% csrf_token %}
+      <input type="hidden" name="acao" value="salvar">
+      <div class="tg-field">
+        <label>Registro externo (URL — ex.: OSF)</label>
+        <input type="text" name="registro_externo" value="{{ protocolo.registro_externo }}"
+               placeholder="https://osf.io/..." style="width:100%;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;">
+      </div>
+      <div class="tg-field">
+        <label style="display:inline-flex;align-items:center;gap:8px;font-weight:400;">
+          <input type="checkbox" name="usa_texto_completo" {% if protocolo.usa_texto_completo %}checked{% endif %}>
+          Ativar 2ª etapa (texto completo) na triagem
+        </label>
+      </div>
+      <button class="btn btn-secondary">Salvar</button>
+    </form>
+    <div class="tg-actions">
+      {% if protocolo.travado_em %}
+        <form method="post">{% csrf_token %}<input type="hidden" name="acao" value="nova_versao"><button class="btn btn-secondary">Abrir nova versão (editar)</button></form>
+      {% else %}
+        <form method="post" onsubmit="return confirm('Travar a versão {{ protocolo.versao }}? Os critérios ficam congelados (a priori).');">{% csrf_token %}<input type="hidden" name="acao" value="travar"><button class="btn btn-primary">Travar versão {{ protocolo.versao }}</button></form>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if protocolo.registro_externo %}
+    <p class="tg-meta" style="margin-bottom:18px;">Registro: <a href="{{ protocolo.registro_externo }}" target="_blank" rel="noopener" style="color:var(--color-gold-deep);">{{ protocolo.registro_externo }} &nearr;</a></p>
+  {% endif %}
+
+  <h2 class="tg-h2">Versões travadas</h2>
+  {% if versoes %}
+    <ul class="tg-list">
+      {% for v in versoes %}
+        <li class="tg-card tg-row">
+          <div><strong>v{{ v.versao }}</strong> <span class="tg-meta">— travada em {{ v.criado_em|date:"d/m/Y H:i" }}{% if v.travado_por %} por {{ v.travado_por.nome_exibicao|default:v.travado_por.email }}{% endif %}</span></div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="tg-empty">Nenhuma versão travada ainda.</p>
+  {% endif %}
+</div>
+{% endblock %}

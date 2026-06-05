@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="tg-wrap narrow">
-  <a href="{% url 'triagem_painel' %}" class="tg-back">&larr; Triagem</a>
+  <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; Triagem</a>
   <h1 class="tg-h1" style="margin-top:6px;">Desempates pendentes</h1>
   <p class="tg-desc">
     Registros em que os revisores divergiram (ou marcaram dúvida). Decida a
@@ -17,7 +17,7 @@
       {% for r in registros %}
         <li class="tg-card tg-row" style="border-color:var(--color-review-rule);background:var(--color-review-bg);">
           <div class="tg-item-title" style="font-size:14.5px;">{{ r.titulo|truncatechars:110 }}</div>
-          <a href="{% url 'triagem_desempatar' r.pk %}" class="btn btn-sm btn-primary" style="flex-shrink:0;">Resolver</a>
+          <a href="{% url 'triagem_desempatar' projeto.slug r.pk %}" class="btn btn-sm btn-primary" style="flex-shrink:0;">Resolver</a>
         </li>
       {% endfor %}
     </ul>

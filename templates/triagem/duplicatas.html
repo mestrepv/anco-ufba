@@ -5,15 +5,19 @@
 
 {% block content %}
 <div class="tg-wrap">
-  <a href="{% url 'triagem_painel' %}" class="tg-back">&larr; Triagem</a>
+  <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; Triagem</a>
   <div class="tg-head">
     <h1 class="tg-h1">Possíveis duplicatas</h1>
-    {% if par %}<span class="tg-meta">Par {{ i|add:1 }} de {{ total }}</span>{% endif %}
+    <div class="tg-actions" style="align-items:baseline;">
+      {% if par %}<span class="tg-meta">Par {{ i|add:1 }} de {{ total }}</span>{% endif %}
+      <a href="{% url 'triagem_duplicatas_mescladas' projeto.slug %}" class="tg-meta" style="color:var(--color-gold-deep);">Ver mescladas</a>
+    </div>
   </div>
   <p class="tg-desc">
     Pares com títulos muito parecidos que a deduplicação automática (DOI/ISBN) não
     juntou. Compare e <strong>selecione qual registro manter</strong>; o outro é marcado
     como duplicata. Você pode navegar sem decidir.
+    {% if not eh_curador %}<br><span class="tg-meta">Você vê os pares que tocam bases que <strong>você importou</strong>; pares entre bases de outros são resolvidos pelo curador.</span>{% endif %}
   </p>
 
   {% if par %}
@@ -34,7 +38,7 @@
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:18px;">
       <div>
-        <form method="post" action="{% url 'triagem_duplicata_mesclar' %}" style="margin-bottom:8px;">
+        <form method="post" action="{% url 'triagem_duplicata_mesclar' projeto.slug %}" style="margin-bottom:8px;">
           {% csrf_token %}
           <input type="hidden" name="manter" value="{{ par.a.pk }}">
           <input type="hidden" name="duplicado" value="{{ par.b.pk }}">
@@ -44,7 +48,7 @@
         {% include "triagem/_registro_card.html" with r=par.a %}
       </div>
       <div>
-        <form method="post" action="{% url 'triagem_duplicata_mesclar' %}" style="margin-bottom:8px;">
+        <form method="post" action="{% url 'triagem_duplicata_mesclar' projeto.slug %}" style="margin-bottom:8px;">
           {% csrf_token %}
           <input type="hidden" name="manter" value="{{ par.b.pk }}">
           <input type="hidden" name="duplicado" value="{{ par.a.pk }}">
@@ -60,7 +64,7 @@
         {% if tem_anterior %}
           <a href="?i={{ i|add:-1 }}" class="btn btn-secondary">&larr; Anterior</a>
         {% endif %}
-        <form method="post" action="{% url 'triagem_duplicata_descartar' %}">
+        <form method="post" action="{% url 'triagem_duplicata_descartar' projeto.slug %}">
           {% csrf_token %}
           <input type="hidden" name="a" value="{{ par.a.pk }}">
           <input type="hidden" name="b" value="{{ par.b.pk }}">

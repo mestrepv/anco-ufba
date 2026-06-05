@@ -5,19 +5,19 @@
 
 {% block content %}
 <div class="tg-wrap">
-  <a href="{% url 'triagem_painel' %}" class="tg-back">&larr; Triagem</a>
+  <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; Triagem</a>
   <div class="tg-head">
     <h1 class="tg-h1">Registros de triagem</h1>
     <div class="tg-actions">
       {% if n_para_triar and pode_curar %}
-        <a href="{% url 'triagem_iniciar' %}" class="btn btn-primary">Iniciar triagem ({{ n_para_triar }})</a>
+        <a href="{% url 'triagem_iniciar' projeto.slug %}" class="btn btn-primary">Iniciar triagem ({{ n_para_triar }})</a>
       {% endif %}
-      <a href="{% url 'triagem_importar' %}" class="btn btn-secondary">Importar busca</a>
+      <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-secondary">Importar busca</a>
     </div>
   </div>
 
   <div class="tg-chips" style="margin-top:18px;">
-    <a href="{% url 'triagem_registros' %}" class="tg-chip {% if not status_atual %}on{% endif %}">Todos</a>
+    <a href="{% url 'triagem_registros' projeto.slug %}" class="tg-chip {% if not status_atual %}on{% endif %}">Todos</a>
     {% for codigo, rotulo in status_choices %}
       <a href="?status={{ codigo }}" class="tg-chip {% if status_atual == codigo %}on{% endif %}">{{ rotulo }}</a>
     {% endfor %}

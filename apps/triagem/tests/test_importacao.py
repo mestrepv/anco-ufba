@@ -3,7 +3,6 @@
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.urls import reverse
 
 from apps.acervo.models import Artigo
 from apps.triagem.importacao import (
@@ -14,6 +13,8 @@ from apps.triagem.importacao import (
 )
 from apps.triagem.models import Busca, ProtocoloTriagem, RegistroTriagem
 from apps.vocabulario.models import TermoVocabulario, Vocabulario
+
+from .conftest import membro, turl
 
 User = get_user_model()
 pytestmark = pytest.mark.django_db
@@ -156,9 +157,9 @@ def test_candidato_ja_no_acervo_nao_vira_novo(protocolo, base_termo):
 
 @pytest.fixture
 def analista(db):
-    return User.objects.create_user(
+    return membro(User.objects.create_user(
         username="ana", email="a@u.edu.br", password="x", papel=User.Papel.ANALISTA
-    )
+    ))
 
 
 @pytest.fixture
@@ -170,7 +171,7 @@ def leitor(db):
 
 def test_leitor_nao_importa(client, leitor):
     client.force_login(leitor)
-    assert client.get(reverse("triagem_importar")).status_code == 403
+    assert client.get(turl("triagem_importar")).status_code == 403
 
 
 def test_upload_ris_cria_registro(client, analista, base_termo, settings, tmp_path):
@@ -178,11 +179,11 @@ def test_upload_ris_cria_registro(client, analista, base_termo, settings, tmp_pa
     client.force_login(analista)
     arquivo = SimpleUploadedFile("scopus.ris", RIS.encode("utf-8"), content_type="text/plain")
     resp = client.post(
-        reverse("triagem_importar"),
+        turl("triagem_importar"),
         data={"base_consulta": base_termo.pk, "outra_base": "", "formato": "",
               "string_busca": "cog", "n_identificados": 1, "arquivo": arquivo},
     )
     assert resp.status_code == 302
     busca = Busca.objects.filter(base_consulta=base_termo).latest("pk")
-    assert resp.headers["Location"] == reverse("triagem_busca_resumo", args=[busca.pk])
+    assert resp.headers["Location"] == turl("triagem_busca_resumo", args=[busca.pk])
     assert RegistroTriagem.objects.filter(doi="10.1000/abc123").exists()

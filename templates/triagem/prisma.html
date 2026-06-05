@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="tg-wrap narrow">
-  <a href="{% url 'triagem_painel' %}" class="tg-back">&larr; Triagem</a>
+  <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; Triagem</a>
   <div class="tg-head">
     <h1 class="tg-h1">Fluxograma PRISMA-ScR</h1>
     <div class="tg-actions">
@@ -36,13 +36,24 @@
     </div>
     <div class="pr-arrow">↓</div>
     <div class="pr-box">
-      <div class="pr-eyebrow">Triagem (≥2 revisores)</div>
+      <div class="pr-eyebrow">Triagem por título/resumo (≥2 revisores)</div>
       <div class="tg-grid-stats" style="margin-top:10px;">
         <div class="tg-stat"><div class="n">{{ c.aguardando }}</div><div class="l">aguardando</div></div>
         <div class="tg-stat"><div class="n" style="color:var(--color-gold-deep);">{{ c.em_triagem }}</div><div class="l">em triagem</div></div>
         <div class="tg-stat"><div class="n" style="color:var(--color-danger);">{{ c.excluidos }}</div><div class="l">excluídos</div></div>
       </div>
     </div>
+    {% if c.duas_etapas %}
+      <div class="pr-arrow">↓</div>
+      <div class="pr-box">
+        <div class="pr-eyebrow">Triagem por texto completo (≥2 revisores)</div>
+        <div class="tg-grid-stats" style="margin-top:10px;">
+          <div class="tg-stat"><div class="n">{{ c.incluidos_ta }}</div><div class="l">aguardando texto</div></div>
+          <div class="tg-stat"><div class="n" style="color:var(--color-gold-deep);">{{ c.em_texto }}</div><div class="l">em triagem</div></div>
+          <div class="tg-stat"><div class="n" style="color:var(--color-danger);">{{ c.excluidos_tc }}</div><div class="l">excluídos (texto)</div></div>
+        </div>
+      </div>
+    {% endif %}
     <div class="pr-arrow">↓</div>
     <div class="pr-box" style="border:2px solid var(--color-ok);background:#eef4ea;text-align:center;">
       <div class="pr-eyebrow" style="color:var(--color-ok);">Incluídos no acervo</div>
@@ -69,9 +80,18 @@
   {% endif %}
 
   {% if c.excluidos_por_motivo %}
-    <h2 class="tg-h2">Excluídos por motivo</h2>
+    <h2 class="tg-h2">Excluídos por motivo{% if c.duas_etapas %} (título/resumo){% endif %}</h2>
     <ul class="tg-list">
       {% for m in c.excluidos_por_motivo %}
+        <li class="tg-meta" style="font-size:14px;color:var(--color-ink-2);">{{ m.n }} · {{ m.motivo_exclusao }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if c.excluidos_tc_por_motivo %}
+    <h2 class="tg-h2">Excluídos no texto completo, por motivo</h2>
+    <ul class="tg-list">
+      {% for m in c.excluidos_tc_por_motivo %}
         <li class="tg-meta" style="font-size:14px;color:var(--color-ink-2);">{{ m.n }} · {{ m.motivo_exclusao }}</li>
       {% endfor %}
     </ul>

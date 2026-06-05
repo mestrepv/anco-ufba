@@ -39,6 +39,15 @@ def _pares_descartados(protocolo) -> set[frozenset]:
     return {frozenset(p) for p in pares}
 
 
+def importadores(registro) -> set[int]:
+    """IDs de quem importou as buscas de origem do registro (donos do par)."""
+    return set(
+        registro.origem_buscas.exclude(criado_por__isnull=True).values_list(
+            "criado_por_id", flat=True
+        )
+    )
+
+
 def primeiro_autor(autores: str) -> str:
     """Sobrenome do primeiro autor (ex.: 'Roubekas, NP; ...' -> 'Roubekas')."""
     if not autores:
@@ -111,18 +120,64 @@ def contar_pares_possiveis(protocolo, limiar: float = LIMIAR) -> int:
 
 
 @transaction.atomic
-def mesclar(canonico: RegistroTriagem, duplicado: RegistroTriagem) -> None:
-    """Marca `duplicado` como DUPLICADO de `canonico` e funde as origens."""
+def mesclar(canonico: RegistroTriagem, duplicado: RegistroTriagem, por=None) -> None:
+    """Marca `duplicado` como DUPLICADO de `canonico` e funde as origens.
+
+    Registra quem resolveu (`por`) e quando, para auditoria. Reversível por
+    `desfazer_mescla` enquanto o registro não tiver entrado em triagem real.
+    """
+    from django.utils import timezone
+
     if canonico.pk == duplicado.pk:
         return
     for busca in duplicado.origem_buscas.all():
         canonico.origem_buscas.add(busca)
     duplicado.status = RegistroTriagem.Status.DUPLICADO
     duplicado.duplicado_de = canonico
-    duplicado.save(update_fields=["status", "duplicado_de"])
+    duplicado.duplicado_por = por
+    duplicado.duplicado_em = timezone.now()
+    duplicado.save(
+        update_fields=["status", "duplicado_de", "duplicado_por", "duplicado_em"]
+    )
 
 
-def descartar(reg_a: RegistroTriagem, reg_b: RegistroTriagem) -> None:
+@transaction.atomic
+def desfazer_mescla(duplicado: RegistroTriagem) -> bool:
+    """Reabre um registro marcado como duplicata (volta a `identificado`).
+
+    Remove do canônico as buscas que vieram do duplicado (pares fuzzy são, na
+    prática, de bases distintas). Retorna False se já não for uma duplicata.
+    """
+    if duplicado.status != RegistroTriagem.Status.DUPLICADO:
+        return False
+    canonico = duplicado.duplicado_de
+    if canonico is not None:
+        for busca in duplicado.origem_buscas.all():
+            canonico.origem_buscas.remove(busca)
+    duplicado.status = RegistroTriagem.Status.IDENTIFICADO
+    duplicado.duplicado_de = None
+    duplicado.duplicado_por = None
+    duplicado.duplicado_em = None
+    duplicado.save(
+        update_fields=["status", "duplicado_de", "duplicado_por", "duplicado_em"]
+    )
+    return True
+
+
+def mescladas(protocolo):
+    """Registros marcados como duplicata neste protocolo (para auditoria/undo)."""
+    return (
+        RegistroTriagem.objects.filter(
+            protocolo=protocolo, status=RegistroTriagem.Status.DUPLICADO
+        )
+        .select_related("duplicado_de", "duplicado_por")
+        .order_by("-duplicado_em")
+    )
+
+
+def descartar(reg_a: RegistroTriagem, reg_b: RegistroTriagem, por=None) -> None:
     """Registra que o par NÃO é duplicata (ordena a<b)."""
     a, b = sorted((reg_a.pk, reg_b.pk))
-    ParDuplicataDescartado.objects.get_or_create(registro_a_id=a, registro_b_id=b)
+    ParDuplicataDescartado.objects.get_or_create(
+        registro_a_id=a, registro_b_id=b, defaults={"criado_por": por}
+    )

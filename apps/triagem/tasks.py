@@ -20,17 +20,40 @@ from .sorteio import (
 logger = logging.getLogger(__name__)
 
 
-def task_sortear_triagem(registro_id: int) -> dict:
-    """Sorteia revisores para um registro identificado."""
+def avancar_apos_status(registro: RegistroTriagem) -> None:
+    """Efeitos colaterais de uma consolidação: promoção ou 2º estágio.
+
+    `incluido`     -> promove ao acervo (`Artigo`).
+    `incluido_ta`  -> dispara o sorteio da etapa de texto completo.
+    Compartilhada pela avaliação automática e pelo desempate manual.
+    """
+    from django_q.tasks import async_task
+
+    if registro.status == RegistroTriagem.Status.INCLUIDO:
+        from .promocao import promover_para_acervo
+
+        promover_para_acervo(registro)
+    elif registro.status == RegistroTriagem.Status.INCLUIDO_TA:
+        async_task(
+            "apps.triagem.tasks.task_sortear_triagem",
+            registro.pk,
+            DecisaoTriagem.Etapa.TEXTO_COMPLETO,
+        )
+
+
+def task_sortear_triagem(
+    registro_id: int, etapa: str = DecisaoTriagem.Etapa.TITULO_RESUMO
+) -> dict:
+    """Sorteia revisores para uma etapa de triagem de um registro."""
     try:
         registro = RegistroTriagem.objects.select_related("protocolo").get(pk=registro_id)
     except RegistroTriagem.DoesNotExist:
         logger.error("task_sortear_triagem: registro %s não existe", registro_id)
         return {"ok": False, "erro": "registro_nao_existe"}
 
-    resultado = executar_sorteio(registro)
+    resultado = executar_sorteio(registro, etapa)
     if resultado.criadas:
-        _notificar_revisores_triagem(registro)
+        _notificar_revisores_triagem(registro, etapa)
     return {
         "ok": True,
         "criadas": resultado.criadas,
@@ -48,10 +71,8 @@ def task_avaliar_apos_triagem(registro_id: int) -> dict:
         return {"ok": False, "erro": "registro_nao_existe"}
 
     resultado = avaliar_apos_triagem(registro)
-    if resultado.novo_status == RegistroTriagem.Status.INCLUIDO:
-        from .promocao import promover_para_acervo
-
-        promover_para_acervo(registro)
+    if resultado.decidida:
+        avancar_apos_status(registro)
     return {
         "ok": True,
         "decidida": resultado.decidida,
@@ -106,16 +127,23 @@ def _enviar(assunto: str, corpo: str, destinatarios: list[str]) -> None:
         logger.exception("Falha ao enviar notificação de triagem")
 
 
-def _notificar_revisores_triagem(registro: RegistroTriagem) -> None:
+def _notificar_revisores_triagem(
+    registro: RegistroTriagem, etapa: str = DecisaoTriagem.Etapa.TITULO_RESUMO
+) -> None:
+    base = (
+        "texto completo"
+        if etapa == DecisaoTriagem.Etapa.TEXTO_COMPLETO
+        else "título e resumo"
+    )
     pendentes = DecisaoTriagem.objects.filter(
-        registro=registro, concluido_em__isnull=True
+        registro=registro, etapa=etapa, concluido_em__isnull=True
     ).select_related("revisor")
     for d in pendentes:
         _enviar(
             "Triagem AnCo — você foi sorteado",
             (
                 "Você foi sorteado para triar um registro (inclusão/exclusão por "
-                f"título e resumo). Prazo: {d.prazo_em:%d/%m/%Y}.\n\n"
+                f"{base}). Prazo: {d.prazo_em:%d/%m/%Y}.\n\n"
                 "Acesse 'Minhas triagens' na plataforma."
             ),
             [d.revisor.email],

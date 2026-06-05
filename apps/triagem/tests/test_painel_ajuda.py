@@ -7,6 +7,8 @@ from django.urls import reverse
 from apps.triagem.models import ProtocoloTriagem, RegistroTriagem
 from apps.triagem.promocao import promover_para_acervo
 
+from .conftest import membro, turl
+
 User = get_user_model()
 pytestmark = pytest.mark.django_db
 
@@ -18,9 +20,9 @@ def protocolo(db):
 
 @pytest.fixture
 def analista(db):
-    return User.objects.create_user(
+    return membro(User.objects.create_user(
         username="ana", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
-    )
+    ))
 
 
 @pytest.fixture
@@ -32,7 +34,7 @@ def leitor(db):
 
 def test_ajuda_renderiza_com_criterios(client, protocolo, analista):
     client.force_login(analista)
-    resp = client.get(reverse("triagem_ajuda"))
+    resp = client.get(turl("triagem_ajuda"))
     assert resp.status_code == 200
     assert b"Como funciona a triagem" in resp.content
     assert b"PRISMA-ScR" in resp.content
@@ -40,7 +42,7 @@ def test_ajuda_renderiza_com_criterios(client, protocolo, analista):
 
 def test_ajuda_exige_analista(client, leitor):
     client.force_login(leitor)
-    assert client.get(reverse("triagem_ajuda")).status_code == 403
+    assert client.get(turl("triagem_ajuda")).status_code == 403
 
 
 def test_painel_mostra_fluxo_e_proximo_passo(client, analista):

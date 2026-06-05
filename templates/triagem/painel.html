@@ -5,14 +5,15 @@
 
 {% block content %}
 <div class="tg-wrap">
+  <a href="{% url 'triagem_projetos' %}" class="tg-back">&larr; Projetos</a>
   <div class="tg-head">
     <div>
-      <p class="t-eyebrow" style="margin:0 0 4px;">PRISMA-ScR</p>
-      <h1 class="tg-h1">Triagem</h1>
+      <p class="t-eyebrow" style="margin:0 0 4px;">PRISMA-ScR · Triagem</p>
+      <h1 class="tg-h1">{{ projeto.nome }}</h1>
     </div>
     <div class="tg-actions">
       <a href="{% url 'triagem_ajuda' %}" class="btn btn-secondary">Como funciona?</a>
-      <a href="{% url 'triagem_importar' %}" class="btn btn-primary">Importar busca</a>
+      <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-primary">Importar busca</a>
     </div>
   </div>
   <p class="tg-desc">
@@ -25,23 +26,29 @@
     <div class="tg-meta" style="margin-top:4px;">
       {{ n_buscas }} busca{{ n_buscas|pluralize }} · {{ n_registros }} registro{{ n_registros|pluralize }} ·
       {{ protocolo.n_revisores }} revisores por registro · prazo {{ protocolo.prazo_dias }} dias
+      {% if protocolo.usa_texto_completo %} · <span style="color:var(--color-gold-deep);">2 etapas (título/resumo → texto)</span>{% endif %}
+    </div>
+    <div class="tg-actions" style="margin-top:12px;">
+      <a href="{% url 'triagem_protocolo' projeto.slug %}" class="btn btn-sm btn-secondary">Protocolo {% if protocolo.travado_em %}· v{{ protocolo.versao }} 🔒{% else %}· rascunho{% endif %}</a>
+      <a href="{% url 'triagem_checklist' projeto.slug %}" class="btn btn-sm btn-secondary">Checklist PRISMA-ScR</a>
+      <a href="{% url 'triagem_calibracao' projeto.slug %}" class="btn btn-sm btn-secondary">Calibração</a>
     </div>
   </div>
 
   {# Atalhos na ordem do fluxo: dedup → triar → desempatar → analisar → relatório #}
   <div class="tg-actions" style="margin-bottom:24px;">
-    <a href="{% url 'triagem_duplicatas' %}" class="btn btn-secondary">Possíveis duplicatas</a>
+    <a href="{% url 'triagem_duplicatas' projeto.slug %}" class="btn btn-secondary">Possíveis duplicatas</a>
     <a href="{% url 'triagem_minhas' %}" class="btn btn-secondary">Minhas triagens</a>
     {% if user.is_staff or user.eh_curador %}
-      <a href="{% url 'triagem_desempate' %}" class="btn btn-secondary">Desempates</a>
+      <a href="{% url 'triagem_desempate' projeto.slug %}" class="btn btn-secondary">Desempates</a>
     {% endif %}
     <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">A analisar</a>
-    <a href="{% url 'triagem_prisma' %}" class="btn btn-secondary">Fluxograma PRISMA</a>
+    <a href="{% url 'triagem_prisma' projeto.slug %}" class="btn btn-secondary">Fluxograma PRISMA</a>
   </div>
 
   <div class="tg-grid-stats" style="margin-bottom:28px;">
     {% for card in cards %}
-      <a class="tg-stat" href="{% url 'triagem_registros' %}?status={{ card.codigo }}">
+      <a class="tg-stat" href="{% url 'triagem_registros' projeto.slug %}?status={{ card.codigo }}">
         <div class="n">{{ card.count }}</div><div class="l">{{ card.rotulo }}</div>
       </a>
     {% endfor %}
@@ -51,7 +58,7 @@
   <p class="tg-meta" style="margin:-2px 0 12px;">Clique numa importação para ver a comparação com o acervo, a estratégia e gerenciá-la.</p>
   {% if buscas %}
     {% for b in buscas %}
-      <a href="{% url 'triagem_busca_resumo' b.pk %}" class="busca-row">
+      <a href="{% url 'triagem_busca_resumo' projeto.slug b.pk %}" class="busca-row">
         <div>
           <div class="b-base">{{ b.base_nome|default:"Importação" }}</div>
           <div class="b-meta">
@@ -65,7 +72,7 @@
       </a>
     {% endfor %}
   {% else %}
-    <p class="tg-empty">Nenhuma importação ainda. Comece em <a href="{% url 'triagem_importar' %}" style="color:var(--color-gold-deep);">Importar busca</a>.</p>
+    <p class="tg-empty">Nenhuma importação ainda. Comece em <a href="{% url 'triagem_importar' projeto.slug %}" style="color:var(--color-gold-deep);">Importar busca</a>.</p>
   {% endif %}
 </div>
 {% endblock %}

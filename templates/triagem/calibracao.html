@@ -1,0 +1,76 @@
+{% extends "_base_publico.html" %}
+
+{% block title %}Calibração · Triagem{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+
+{% block content %}
+<div class="tg-wrap narrow">
+  <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; Triagem</a>
+  <div class="tg-head"><h1 class="tg-h1">Calibração (piloto)</h1></div>
+  <p class="tg-desc">
+    Antes do run real, <strong>toda a equipe</strong> tria uma amostra comum e medimos a
+    concordância (<strong>κ de Fleiss</strong>). Se a concordância for substancial (κ ≥ 0,60),
+    os critérios estão claros; senão, refine o <a href="{% url 'triagem_protocolo' projeto.slug %}" style="color:var(--color-gold-deep);">protocolo</a>
+    e repita. As decisões de calibração são isoladas — não afetam o fluxograma PRISMA nem o run real.
+  </p>
+
+  {% if eh_curador %}
+  <div class="tg-card" style="margin-bottom:20px;">
+    <form method="post" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+      {% csrf_token %}
+      <input type="hidden" name="acao" value="iniciar">
+      <div class="tg-field" style="margin:0;">
+        <label>Tamanho da amostra</label>
+        <input type="number" name="tamanho" value="10" min="1" max="50"
+               style="width:90px;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;">
+      </div>
+      <button class="btn btn-primary">Iniciar nova calibração</button>
+    </form>
+  </div>
+  {% endif %}
+
+  {% for item in rodadas %}
+    {% with r=item.rodada res=item.resultado %}
+    <div class="tg-card" style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
+        <strong>Calibração #{{ r.pk }}</strong>
+        <span class="tg-meta">{{ r.criada_em|date:"d/m/Y" }} ·
+          {% if r.fechada_em %}<span style="color:var(--color-ok);">fechada</span>{% else %}<span style="color:var(--color-gold-deep);">em andamento</span>{% endif %}
+        </span>
+      </div>
+      <div class="tg-grid-stats" style="margin-top:12px;">
+        <div class="tg-stat"><div class="n">{{ res.completos }}/{{ res.n_itens }}</div><div class="l">itens triados</div></div>
+        <div class="tg-stat"><div class="n">{{ res.n_revisores }}</div><div class="l">revisores</div></div>
+        <div class="tg-stat"><div class="n">{% if res.perc_pct is not None %}{{ res.perc_pct }}%{% else %}—{% endif %}</div><div class="l">acordo</div></div>
+        <div class="tg-stat" style="border-color:var(--color-gold);">
+          <div class="n" style="color:var(--color-gold-deep);">{% if res.kappa is not None %}{{ res.kappa|floatformat:2 }}{% else %}—{% endif %}</div>
+          <div class="l">κ de Fleiss</div>
+        </div>
+      </div>
+      {% if res.kappa is not None %}
+        <p style="margin-top:12px;font-family:var(--font-sans);font-size:14px;">
+          Concordância <strong>{{ res.interpretacao }}</strong>.
+          {% if res.pronto %}
+            <span style="color:var(--color-ok);">✔ Equipe calibrada — pode iniciar o run real.</span>
+          {% else %}
+            <span style="color:var(--color-danger);">⚠ Abaixo de 0,60 — revise os critérios antes do run.</span>
+          {% endif %}
+        </p>
+      {% else %}
+        <p class="tg-meta" style="margin-top:12px;">Aguardando a equipe concluir a amostra para calcular κ.</p>
+      {% endif %}
+      {% if eh_curador and not r.fechada_em %}
+        <form method="post" style="margin-top:10px;" onsubmit="return confirm('Fechar esta calibração e congelar o resultado?');">
+          {% csrf_token %}
+          <input type="hidden" name="acao" value="fechar">
+          <input type="hidden" name="rodada_id" value="{{ r.pk }}">
+          <button class="btn btn-secondary btn-sm">Fechar e congelar resultado</button>
+        </form>
+      {% endif %}
+    </div>
+    {% endwith %}
+  {% empty %}
+    <p class="tg-empty">Nenhuma calibração ainda.</p>
+  {% endfor %}
+</div>
+{% endblock %}

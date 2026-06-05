@@ -13,6 +13,8 @@ from apps.triagem.models import (
 )
 from apps.triagem.sorteio import executar_sorteio, revisores_elegiveis
 
+from .conftest import inscrever
+
 User = get_user_model()
 pytestmark = pytest.mark.django_db
 
@@ -30,8 +32,10 @@ def _revisor(n):
 
 
 @pytest.fixture
-def revisores(db):
-    return [_revisor(i) for i in range(4)]
+def revisores(db, protocolo):
+    revs = [_revisor(i) for i in range(4)]
+    inscrever(protocolo, *revs)
+    return revs
 
 
 @pytest.fixture
@@ -76,7 +80,8 @@ def test_sorteio_idempotente(protocolo, registro, revisores):
 
 
 def test_revisores_insuficientes_fila(protocolo, registro):
-    so_um = _revisor(99)  # noqa: F841 — único revisor aprovado
+    so_um = _revisor(99)  # único revisor aprovado
+    inscrever(protocolo, so_um)
     res = executar_sorteio(registro)
     assert res.fila_de_espera is True and res.criadas == 0
     registro.refresh_from_db()

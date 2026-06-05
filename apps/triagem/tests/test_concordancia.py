@@ -2,15 +2,16 @@
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.urls import reverse
 from django.utils import timezone
 
 from apps.triagem import concordancia as conc
 from apps.triagem.models import DecisaoTriagem, ProtocoloTriagem, RegistroTriagem
 
+from .conftest import membro, turl
+
 User = get_user_model()
 pytestmark = pytest.mark.django_db
-I = RegistroTriagem.Decisao
+DEC = RegistroTriagem.Decisao
 
 
 @pytest.fixture
@@ -47,10 +48,10 @@ def test_sem_itens_decididos(protocolo):
 
 def test_kappa_e_acordo(protocolo, revs):
     # 3 concordam, 1 diverge → acordo 0.75; κ de Fleiss ≈ 0.47 (moderada)
-    _decidido(protocolo, revs, [I.INCLUIR, I.INCLUIR], "10.1/a")
-    _decidido(protocolo, revs, [I.EXCLUIR, I.EXCLUIR], "10.1/b")
-    _decidido(protocolo, revs, [I.INCLUIR, I.INCLUIR], "10.1/c")
-    _decidido(protocolo, revs, [I.INCLUIR, I.EXCLUIR], "10.1/d")
+    _decidido(protocolo, revs, [DEC.INCLUIR, DEC.INCLUIR], "10.1/a")
+    _decidido(protocolo, revs, [DEC.EXCLUIR, DEC.EXCLUIR], "10.1/b")
+    _decidido(protocolo, revs, [DEC.INCLUIR, DEC.INCLUIR], "10.1/c")
+    _decidido(protocolo, revs, [DEC.INCLUIR, DEC.EXCLUIR], "10.1/d")
     r = conc.calcular(protocolo)
     assert r.n_itens == 4
     assert r.n_revisores == 2
@@ -64,7 +65,7 @@ def test_ignora_itens_incompletos(protocolo, revs):
     # registro com só 1 decisão concluída → não entra no cálculo
     reg = RegistroTriagem.objects.create(protocolo=protocolo, titulo="X", doi="10.2/x")
     DecisaoTriagem.objects.create(
-        registro=reg, revisor=revs[0], decisao=I.INCLUIR,
+        registro=reg, revisor=revs[0], decisao=DEC.INCLUIR,
         prazo_em=timezone.now(), concluido_em=timezone.now(),
     )
     DecisaoTriagem.objects.create(
@@ -75,19 +76,19 @@ def test_ignora_itens_incompletos(protocolo, revs):
 
 @pytest.fixture
 def analista(db):
-    return User.objects.create_user(
+    return membro(User.objects.create_user(
         username="ana", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
-    )
+    ))
 
 
 def test_prisma_exibe_e_exporta_concordancia(client, protocolo, revs, analista):
-    _decidido(protocolo, revs, [I.INCLUIR, I.INCLUIR], "10.3/a")
-    _decidido(protocolo, revs, [I.INCLUIR, I.EXCLUIR], "10.3/b")
+    _decidido(protocolo, revs, [DEC.INCLUIR, DEC.INCLUIR], "10.3/a")
+    _decidido(protocolo, revs, [DEC.INCLUIR, DEC.EXCLUIR], "10.3/b")
     client.force_login(analista)
-    html = client.get(reverse("triagem_prisma"))
+    html = client.get(turl("triagem_prisma"))
     assert "Concordância entre revisores".encode() in html.content
-    assert "Fleiss".encode() in html.content
-    js = client.get(reverse("triagem_prisma"), {"formato": "json"})
+    assert b"Fleiss" in html.content
+    js = client.get(turl("triagem_prisma"), {"formato": "json"})
     dados = js.json()
     assert dados["concordancia_n_itens"] == 2
     assert "concordancia_fleiss_kappa" in dados

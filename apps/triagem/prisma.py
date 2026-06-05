@@ -25,6 +25,12 @@ class ContagemPrisma:
     excluidos: int
     excluidos_por_motivo: list = field(default_factory=list)
     n_buscas: int = 0
+    # Segundo estágio (texto completo) — só > 0 quando o protocolo o usa.
+    duas_etapas: bool = False
+    incluidos_ta: int = 0  # passaram no título/resumo, aguardando texto
+    em_texto: int = 0  # em triagem de texto completo
+    excluidos_tc: int = 0  # excluídos no texto completo
+    excluidos_tc_por_motivo: list = field(default_factory=list)
 
     def como_dict(self) -> dict:
         d = self.__dict__.copy()
@@ -47,13 +53,15 @@ def computar(protocolo) -> ContagemPrisma:
     duplicados_entre_bases = max(total_vinculos - importados, 0)
 
     ja_no_acervo = regs.filter(ja_no_acervo=True).count()
-    por_motivo = list(
-        regs.filter(status=S.EXCLUIDO)
-        .exclude(motivo_exclusao="")
-        .values("motivo_exclusao")
-        .annotate(n=Count("id"))
-        .order_by("-n")
-    )
+
+    def _por_motivo(status: str) -> list:
+        return list(
+            regs.filter(status=status)
+            .exclude(motivo_exclusao="")
+            .values("motivo_exclusao")
+            .annotate(n=Count("id"))
+            .order_by("-n")
+        )
 
     return ContagemPrisma(
         identificados_relatado=identificados,
@@ -65,6 +73,11 @@ def computar(protocolo) -> ContagemPrisma:
         em_triagem=regs.filter(status=S.EM_TRIAGEM).count(),
         incluidos=regs.filter(status=S.INCLUIDO).count(),
         excluidos=regs.filter(status=S.EXCLUIDO).count(),
-        excluidos_por_motivo=por_motivo,
+        excluidos_por_motivo=_por_motivo(S.EXCLUIDO),
         n_buscas=Busca.objects.filter(protocolo=protocolo).count(),
+        duas_etapas=protocolo.usa_texto_completo,
+        incluidos_ta=regs.filter(status=S.INCLUIDO_TA).count(),
+        em_texto=regs.filter(status=S.EM_TEXTO).count(),
+        excluidos_tc=regs.filter(status=S.EXCLUIDO_TC).count(),
+        excluidos_tc_por_motivo=_por_motivo(S.EXCLUIDO_TC),
     )

@@ -2,7 +2,6 @@
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.urls import reverse
 
 from apps.triagem import duplicatas as dup
 from apps.triagem.models import (
@@ -12,6 +11,8 @@ from apps.triagem.models import (
     RegistroTriagem,
 )
 from apps.triagem.sorteio import executar_sorteio
+
+from .conftest import membro, turl
 
 User = get_user_model()
 pytestmark = pytest.mark.django_db
@@ -28,9 +29,26 @@ def _reg(protocolo, titulo, doi=""):
 
 @pytest.fixture
 def analista(db):
-    return User.objects.create_user(
+    # Curador do projeto: resolve qualquer par (testes de mecânica da dedup).
+    return membro(User.objects.create_user(
         username="ana", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
-    )
+    ), papel="curador")
+
+
+def _com_dono(protocolo, titulo, doi, dono):
+    """Registro cuja base de origem foi importada por `dono`."""
+    from apps.triagem.models import Busca
+
+    r = _reg(protocolo, titulo, doi)
+    b = Busca.objects.create(protocolo=protocolo, criado_por=dono)
+    r.origem_buscas.add(b)
+    return r
+
+
+def _analista(nome):
+    return membro(User.objects.create_user(
+        username=nome, email=f"{nome}@u.edu", password="x", papel=User.Papel.ANALISTA
+    ))
 
 
 def test_detecta_titulos_semelhantes_sem_doi(protocolo):
@@ -82,7 +100,7 @@ def test_view_selecionar_este_mantem_o_escolhido(client, protocolo, analista):
     client.force_login(analista)
     # "Selecionar este" no registro A: mantém A, marca B como duplicata
     resp = client.post(
-        reverse("triagem_duplicata_mesclar"),
+        turl("triagem_duplicata_mesclar"),
         data={"manter": a.pk, "duplicado": b.pk, "i": 0},
     )
     assert resp.status_code == 302
@@ -100,12 +118,12 @@ def test_navegar_sem_decidir(client, protocolo, analista):
     _reg(protocolo, "Memória de trabalho e leitura", doi="10.3/a")
     _reg(protocolo, "Memória de trabalho e leitura!", doi="10.3/b")
     client.force_login(analista)
-    r0 = client.get(reverse("triagem_duplicatas"))
+    r0 = client.get(turl("triagem_duplicatas"))
     assert r0.context["total"] == 2
     assert r0.context["i"] == 0
     assert r0.context["tem_proximo"] is True
     # pular para o próximo sem decidir
-    r1 = client.get(reverse("triagem_duplicatas"), {"i": 1})
+    r1 = client.get(turl("triagem_duplicatas"), {"i": 1})
     assert r1.context["i"] == 1
     assert r1.context["tem_proximo"] is False
     assert r1.context["tem_anterior"] is True
@@ -118,7 +136,7 @@ def test_view_duplicatas_renderiza(client, protocolo, analista):
     _reg(protocolo, "Texto sobre aprendizagem situada")
     _reg(protocolo, "Texto sobre aprendizagem situada!")
     client.force_login(analista)
-    resp = client.get(reverse("triagem_duplicatas"))
+    resp = client.get(turl("triagem_duplicatas"))
     assert resp.status_code == 200
 
 
@@ -155,6 +173,126 @@ def test_ordena_provaveis_duplicatas_primeiro(protocolo):
     assert {primeiro["a"].pk, primeiro["b"].pk} == {f1.pk, f2.pk}
 
 
+def test_mesclar_grava_autor_e_data(protocolo, analista):
+    a = _reg(protocolo, "Cognição distribuída e ferramentas")
+    b = _reg(protocolo, "Cognicao distribuida e ferramentas")
+    dup.mesclar(a, b, por=analista)
+    b.refresh_from_db()
+    assert b.duplicado_por_id == analista.pk
+    assert b.duplicado_em is not None
+
+
+def test_descartar_grava_autor(protocolo, analista):
+    a = _reg(protocolo, "Atenção seletiva e leitura")
+    b = _reg(protocolo, "Atencao seletiva e leitura")
+    dup.descartar(a, b, por=analista)
+    par = ParDuplicataDescartado.objects.get()
+    assert par.criado_por_id == analista.pk
+
+
+def test_desfazer_mescla_reabre_e_separa_origens(protocolo):
+    from apps.triagem.models import Busca
+
+    a = _reg(protocolo, "Metacognição na resolução de problemas")
+    b = _reg(protocolo, "Metacognicao na resolucao de problemas")
+    busca_b = Busca.objects.create(protocolo=protocolo)
+    b.origem_buscas.add(busca_b)
+    dup.mesclar(a, b)
+    assert busca_b in a.origem_buscas.all()  # origem fundida
+
+    assert dup.desfazer_mescla(b) is True
+    b.refresh_from_db()
+    assert b.status == RegistroTriagem.Status.IDENTIFICADO
+    assert b.duplicado_de_id is None
+    assert b.duplicado_por_id is None
+    assert busca_b not in a.origem_buscas.all()  # origem devolvida
+    # volta a aparecer como possível duplicata
+    assert len(dup.pares_possiveis(protocolo, limiar=0.4)) == 1
+
+
+def test_desfazer_mescla_nao_duplicata_retorna_false(protocolo):
+    a = _reg(protocolo, "Qualquer título aqui")
+    assert dup.desfazer_mescla(a) is False
+
+
+def test_mescladas_lista_e_view(client, protocolo, analista):
+    a = _reg(protocolo, "Carga cognitiva e multimídia", doi="10.9/a")
+    b = _reg(protocolo, "Carga cognitiva e multimidia", doi="10.9/b")
+    dup.mesclar(a, b, por=analista)
+    assert list(dup.mescladas(protocolo)) == [b]
+
+    client.force_login(analista)
+    resp = client.get(turl("triagem_duplicatas_mescladas"))
+    assert resp.status_code == 200
+    # desfazer pela view
+    resp2 = client.post(
+        turl("triagem_duplicata_desfazer"), data={"duplicado": b.pk}
+    )
+    assert resp2.status_code == 302
+    b.refresh_from_db()
+    assert b.status == RegistroTriagem.Status.IDENTIFICADO
+
+
+def test_procedencia_mostra_base_e_importador(protocolo):
+    from apps.triagem.models import Busca
+
+    importador = User.objects.create_user(
+        username="imp", email="imp@u.edu", password="x",
+        papel=User.Papel.ANALISTA, nome_exibicao="Importador Teste",
+    )
+    busca = Busca.objects.create(
+        protocolo=protocolo, outra_base="Scopus", criado_por=importador
+    )
+    r = _reg(protocolo, "Artigo com procedência")
+    r.origem_buscas.add(busca)
+    proc = r.procedencia
+    assert proc == [{"base": "Scopus", "por": "Importador Teste"}]
+
+
+def test_dedup_gate_analista_ve_so_pares_que_importou(client, protocolo):
+    importador = _analista("imp")
+    outro = _analista("out")
+    _com_dono(protocolo, "Título igual sobre cognição distribuída", "10.5/a", importador)
+    _com_dono(protocolo, "Titulo igual sobre cognicao distribuida", "10.5/b", importador)
+    client.force_login(importador)
+    assert client.get(turl("triagem_duplicatas")).context["total"] == 1
+    client.force_login(outro)  # não importou → não vê o par
+    assert client.get(turl("triagem_duplicatas")).context["total"] == 0
+
+
+def test_dedup_gate_nao_dono_recebe_403(client, protocolo):
+    importador = _analista("imp")
+    intruso = _analista("intru")
+    a = _com_dono(protocolo, "Atenção e memória de trabalho", "10.6/a", importador)
+    b = _com_dono(protocolo, "Atencao e memoria de trabalho", "10.6/b", importador)
+    client.force_login(intruso)
+    resp = client.post(
+        turl("triagem_duplicata_mesclar"),
+        data={"manter": a.pk, "duplicado": b.pk, "i": 0},
+    )
+    assert resp.status_code == 403
+    b.refresh_from_db()
+    assert b.status != RegistroTriagem.Status.DUPLICADO
+
+
+def test_dedup_gate_curador_resolve_qualquer_par(client, protocolo):
+    importador = _analista("imp")
+    curador = membro(User.objects.create_user(
+        username="cur", email="cur@u.edu", password="x", papel=User.Papel.CURADOR
+    ), papel="curador")
+    a = _com_dono(protocolo, "Aprendizagem por descoberta guiada", "10.7/a", importador)
+    b = _com_dono(protocolo, "Aprendizagem por descoberta guiada!", "10.7/b", importador)
+    client.force_login(curador)
+    assert client.get(turl("triagem_duplicatas")).context["total"] == 1  # vê tudo
+    resp = client.post(
+        turl("triagem_duplicata_mesclar"),
+        data={"manter": a.pk, "duplicado": b.pk, "i": 0},
+    )
+    assert resp.status_code == 302
+    b.refresh_from_db()
+    assert b.status == RegistroTriagem.Status.DUPLICADO
+
+
 def test_view_avisa_provavel_distinto(client, protocolo, analista):
     RegistroTriagem.objects.create(
         protocolo=protocolo, titulo="A Cognitive Analysis of Divination", doi="10.3/a",
@@ -165,7 +303,7 @@ def test_view_avisa_provavel_distinto(client, protocolo, analista):
         ano=2024, autores="Bowden, H",
     )
     client.force_login(analista)
-    resp = client.get(reverse("triagem_duplicatas"))
+    resp = client.get(turl("triagem_duplicatas"))
     assert resp.status_code == 200
     assert "Provavelmente NÃO são duplicatas".encode() in resp.content
     assert b"autores diferentes" in resp.content

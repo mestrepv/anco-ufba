@@ -1,0 +1,44 @@
+{% extends "_base_publico.html" %}
+
+{% block title %}Checklist PRISMA-ScR · Triagem{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+
+{% block content %}
+<div class="tg-wrap narrow">
+  <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; Triagem</a>
+  <div class="tg-head">
+    <h1 class="tg-h1">Checklist PRISMA-ScR</h1>
+    <a href="?formato=csv" class="btn btn-secondary">Exportar CSV</a>
+  </div>
+  <p class="tg-desc">
+    Os 22 itens do <em>Preferred Reporting Items for Systematic reviews and Meta-Analyses
+    extension for Scoping Reviews</em> (Tricco et al., <em>Ann Intern Med</em> 2018). Para cada item,
+    indicamos <strong>onde o AnCo já apoia</strong> o relato; os demais são redigidos no manuscrito.
+    Itens 12 e 16 (avaliação crítica) são <strong>opcionais</strong> em revisões de escopo.
+  </p>
+
+  {% for grupo in secoes %}
+    <h2 class="tg-h2">{{ grupo.secao }}</h2>
+    <ul class="tg-list" style="margin-bottom:18px;">
+      {% for it in grupo.itens %}
+        <li class="tg-card" style="margin-bottom:8px;">
+          <div style="display:flex;gap:10px;align-items:baseline;">
+            <span style="font-weight:600;color:var(--color-gold-deep);min-width:24px;">{{ it.num }}</span>
+            <div style="flex:1;">
+              <div style="font-weight:600;">
+                {{ it.titulo }}
+                {% if it.opcional %}<span class="tg-badge" style="background:var(--color-paper);color:var(--color-ink-3);font-weight:400;">opcional</span>{% endif %}
+              </div>
+              <p style="margin:4px 0 0;color:var(--color-ink-2);font-size:14px;">{{ it.descricao }}</p>
+              <p style="margin:6px 0 0;font-size:13px;color:var(--color-ink-3);">
+                <strong style="color:var(--color-gold-deep);">AnCo:</strong>
+                {% if it.link %}<a href="{% if 'triagem_' in it.link %}{% url it.link projeto.slug %}{% else %}{% url it.link %}{% endif %}" style="color:var(--color-gold-deep);">{{ it.anco }}</a>{% else %}{{ it.anco }}{% endif %}
+              </p>
+            </div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endfor %}
+</div>
+{% endblock %}

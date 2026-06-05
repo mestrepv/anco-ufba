@@ -38,7 +38,7 @@
                 {% if user.eh_analista %}
                     <a href="{% url 'minhas_analises' %}" class="text-slate-600 hover:text-anco">Minhas análises</a>
                     <a href="{% url 'minhas_revisoes' %}" class="text-slate-600 hover:text-anco">Minhas revisões</a>
-                    <a href="{% url 'triagem_painel' %}" class="text-slate-600 hover:text-anco">Triagem</a>
+                    <a href="{% url 'triagem_projetos' %}" class="text-slate-600 hover:text-anco">Triagem</a>
                     <a href="{% url 'triagem_a_analisar' %}" class="text-slate-600 hover:text-anco">A analisar</a>
                     {% if user.is_staff or user.eh_curador %}
                         <a href="{% url 'cadastrar_artigo' %}" class="text-slate-600 hover:text-anco">Cadastrar avulso</a>
