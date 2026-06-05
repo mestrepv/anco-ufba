@@ -483,20 +483,25 @@ def a_analisar_view(request: HttpRequest) -> HttpResponse:
 
 @_exige_analista
 def prisma_view(request: HttpRequest) -> HttpResponse:
-    """Fluxograma PRISMA-ScR (contagens) + export CSV/JSON."""
+    """Fluxograma PRISMA-ScR (contagens + concordância) + export CSV/JSON."""
+    from . import concordancia as conc
+
     protocolo = ProtocoloTriagem.ativo()
     contagem = prisma.computar(protocolo)
+    acordo = conc.calcular(protocolo)
     formato = request.GET.get("formato")
 
+    export = {**contagem.como_dict(), **acordo.como_dict()}
+
     if formato == "json":
-        return JsonResponse(contagem.como_dict())
+        return JsonResponse(export)
 
     if formato == "csv":
         resp = HttpResponse(content_type="text/csv")
         resp["Content-Disposition"] = 'attachment; filename="prisma_anco.csv"'
         escritor = csv.writer(resp)
         escritor.writerow(["etapa", "n"])
-        for chave, valor in contagem.como_dict().items():
+        for chave, valor in export.items():
             if chave in ("excluidos_por_motivo",):
                 continue
             escritor.writerow([chave, valor])
@@ -507,5 +512,10 @@ def prisma_view(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "triagem/prisma.html",
-        {"protocolo": protocolo, "c": contagem, "json": json.dumps(contagem.como_dict())},
+        {
+            "protocolo": protocolo,
+            "c": contagem,
+            "acordo": acordo,
+            "json": json.dumps(export),
+        },
     )

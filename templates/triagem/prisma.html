@@ -50,6 +50,24 @@
     </div>
   </div>
 
+  <h2 class="tg-h2">Concordância entre revisores</h2>
+  {% if acordo.n_itens %}
+    <div class="tg-grid-stats" style="margin-bottom:10px;">
+      <div class="tg-stat"><div class="n">{{ acordo.perc_pct }}%</div><div class="l">acordo</div></div>
+      <div class="tg-stat" style="border-color:var(--color-gold);">
+        <div class="n" style="color:var(--color-gold-deep);">{% if acordo.kappa is not None %}{{ acordo.kappa|floatformat:2 }}{% else %}—{% endif %}</div>
+        <div class="l">κ de Fleiss</div></div>
+      <div class="tg-stat"><div class="n" style="font-size:18px;">{{ acordo.interpretacao }}</div><div class="l">concordância</div></div>
+      <div class="tg-stat"><div class="n">{{ acordo.n_itens }}</div><div class="l">itens (×{{ acordo.n_revisores }} revisores)</div></div>
+    </div>
+    <p class="tg-meta" style="margin-bottom:24px;">
+      κ de Fleiss sobre os registros duplamente triados (escala de Landis &amp; Koch).
+      Adequado porque os pares de revisores variam por registro.
+    </p>
+  {% else %}
+    <p class="tg-empty">Ainda não há registros duplamente triados para calcular a concordância.</p>
+  {% endif %}
+
   {% if c.excluidos_por_motivo %}
     <h2 class="tg-h2">Excluídos por motivo</h2>
     <ul class="tg-list">
