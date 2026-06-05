@@ -40,6 +40,50 @@ class UserAdmin(DjangoUserAdmin, UnfoldModelAdmin):
     )
     search_fields = ("username", "email", "nome_exibicao", "vinculo_institucional", "orcid")
 
+    actions = [
+        "promover_curador",
+        "promover_analista",
+        "rebaixar_leitor",
+        "aprovar_revisor",
+        "conceder_admin",
+        "revogar_admin",
+    ]
+
+    @admin.action(description="Promover papel a CURADOR")
+    def promover_curador(self, request, queryset):
+        n = queryset.update(papel=User.Papel.CURADOR)
+        self.message_user(request, f"{n} usuário(s) promovido(s) a curador.")
+
+    @admin.action(description="Definir papel como ANALISTA")
+    def promover_analista(self, request, queryset):
+        n = queryset.update(papel=User.Papel.ANALISTA)
+        self.message_user(request, f"{n} usuário(s) definido(s) como analista.")
+
+    @admin.action(description="Rebaixar papel para LEITOR")
+    def rebaixar_leitor(self, request, queryset):
+        n = queryset.update(papel=User.Papel.LEITOR)
+        self.message_user(request, f"{n} usuário(s) rebaixado(s) a leitor.")
+
+    @admin.action(description="Aprovar como revisor (entra no sorteio de triagem)")
+    def aprovar_revisor(self, request, queryset):
+        n = queryset.update(revisor_aprovado=True)
+        self.message_user(request, f"{n} usuário(s) aprovado(s) como revisor.")
+
+    @admin.action(description="Conceder acesso de admin do site (staff)")
+    def conceder_admin(self, request, queryset):
+        n = queryset.update(is_staff=True)
+        self.message_user(
+            request,
+            f"{n} usuário(s) com acesso de admin. Para superusuário, marque na "
+            "ficha do usuário.",
+        )
+
+    @admin.action(description="Revogar acesso de admin do site (staff)")
+    def revogar_admin(self, request, queryset):
+        # Nunca revoga o próprio acesso (evita travar a si mesmo).
+        n = queryset.exclude(pk=request.user.pk).update(is_staff=False)
+        self.message_user(request, f"{n} usuário(s) sem acesso de admin.")
+
     fieldsets = (
         *DjangoUserAdmin.fieldsets,
         (
