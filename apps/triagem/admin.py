@@ -6,13 +6,16 @@ from unfold.admin import ModelAdmin as UnfoldModelAdmin
 from unfold.admin import TabularInline as UnfoldTabularInline
 
 from .models import (
+    AtribuicaoAnalise,
     Busca,
+    ConsensoAnalise,
     DecisaoTriagem,
     ProjetoMembro,
     ProtocoloTriagem,
     RegistroTriagem,
     RodadaCalibracao,
     SnapshotProtocolo,
+    SorteioAnalise,
 )
 
 
@@ -40,6 +43,7 @@ class ProtocoloTriagemAdmin(UnfoldModelAdmin):
     list_display = (
         "nome",
         "slug",
+        "modo",
         "arquivado",
         "versao",
         "usa_texto_completo",
@@ -47,7 +51,7 @@ class ProtocoloTriagemAdmin(UnfoldModelAdmin):
         "n_revisores",
         "atualizado_em",
     )
-    list_filter = ("arquivado", "usa_texto_completo")
+    list_filter = ("modo", "arquivado", "usa_texto_completo")
     search_fields = ("nome", "titulo", "slug")
     prepopulated_fields = {"slug": ("nome",)}
     readonly_fields = ("versao", "travado_em", "criado_em", "atualizado_em")
@@ -123,3 +127,40 @@ class RodadaCalibracaoAdmin(UnfoldModelAdmin):
     list_filter = ("protocolo",)
     readonly_fields = ("criada_em", "fechada_em", "n_itens", "n_revisores", "perc_acordo", "kappa")
     filter_horizontal = ("registros",)
+
+
+class AtribuicaoAnaliseInline(UnfoldTabularInline):
+    model = AtribuicaoAnalise
+    extra = 0
+    fields = ("analista", "artigo", "criado_em")
+    readonly_fields = ("criado_em",)
+    autocomplete_fields = ("analista", "artigo")
+
+
+@admin.register(SorteioAnalise)
+class SorteioAnaliseAdmin(UnfoldModelAdmin):
+    list_display = ("pk", "projeto", "modo_revisao", "cota", "criado_por", "criado_em")
+    list_filter = ("modo_revisao", "projeto")
+    search_fields = ("projeto__nome", "projeto__titulo", "observacoes")
+    autocomplete_fields = ("projeto", "criado_por")
+    readonly_fields = ("criado_em",)
+    inlines = [AtribuicaoAnaliseInline]
+
+
+@admin.register(AtribuicaoAnalise)
+class AtribuicaoAnaliseAdmin(UnfoldModelAdmin):
+    list_display = ("pk", "sorteio", "analista", "artigo", "criado_em")
+    list_filter = ("sorteio__projeto",)
+    search_fields = ("analista__email", "artigo__titulo")
+    autocomplete_fields = ("sorteio", "analista", "artigo")
+    readonly_fields = ("criado_em",)
+
+
+@admin.register(ConsensoAnalise)
+class ConsensoAnaliseAdmin(UnfoldModelAdmin):
+    list_display = ("pk", "artigo", "analise_final", "conciliado_por", "conciliado_em")
+    list_filter = ("sorteio__projeto",)
+    search_fields = ("artigo__titulo",)
+    autocomplete_fields = ("artigo", "sorteio", "analise_final", "conciliado_por")
+    filter_horizontal = ("analises",)
+    readonly_fields = ("criado_em",)
