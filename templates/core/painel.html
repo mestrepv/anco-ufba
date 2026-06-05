@@ -85,13 +85,41 @@
   {% endif %}
 
   {% if user.eh_analista %}
-  {# ── Hero: o próximo passo ─────────────────────────────────────── #}
-  {% if proxima %}
+  {# ── Próximo passo (só quando há tarefa real) ──────────────────── #}
+  {% if proxima and not proxima.ocioso %}
   <section class="hero">
     <div class="eyebrow">Próximo passo</div>
     <h2>{{ proxima.titulo }}</h2>
     {% if proxima.sub %}<p>{{ proxima.sub }}</p>{% endif %}
     <a href="{{ proxima.href }}" class="btn-grande">{{ proxima.label }} &rarr;</a>
+  </section>
+  {# ── Sem tarefa pendente: orienta pelos projetos do analista ───── #}
+  {% elif meus_projetos %}
+  <section class="painel-secao" style="margin-top:24px;">
+    <h2>Seus projetos</h2>
+    <p class="secao-desc">Você está em dia. Estes são os projetos em que você participa — entre para importar bases, revisar duplicatas ou triar.</p>
+    <div style="display:grid;gap:14px;">
+      {% for p in meus_projetos %}
+      <div class="lista-item" style="display:block;border:1px solid var(--color-rule);border-radius:10px;padding:18px 20px;background:var(--color-paper);">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;">
+          <a href="{% url 'triagem_painel' p.slug %}" class="item-titulo" style="font-family:var(--font-serif);font-size:18px;color:var(--color-ink);">{{ p.nome }}</a>
+          <a href="{% url 'triagem_painel' p.slug %}" class="btn btn-sm btn-primary">Entrar no projeto &rarr;</a>
+        </div>
+        {% if p.pergunta_pesquisa %}
+          <p style="margin:10px 0 0;font-family:var(--font-sans);font-size:14px;line-height:1.55;color:var(--color-ink-2);"><span style="color:var(--color-ink-3);">Objetivo:</span> {{ p.pergunta_pesquisa }}</p>
+        {% endif %}
+        <p style="margin:6px 0 0;font-family:var(--font-sans);font-size:13.5px;color:var(--color-ink-2);">
+          <span style="color:var(--color-ink-3);">Estratégia de busca:</span>
+          {% if p.estrategia_busca %}{{ p.estrategia_busca }}{% else %}<span style="color:var(--color-ink-3);">(a definir no protocolo)</span>{% endif %}
+        </p>
+        <p style="margin:10px 0 0;font-size:13px;">
+          <a href="{% url 'triagem_importar' p.slug %}" style="color:var(--color-gold-deep);">Importar base →</a> ·
+          <a href="{% url 'triagem_protocolo' p.slug %}" style="color:var(--color-gold-deep);">Protocolo e critérios →</a> ·
+          <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a>
+        </p>
+      </div>
+      {% endfor %}
+    </div>
   </section>
   {% endif %}
 

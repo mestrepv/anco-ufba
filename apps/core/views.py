@@ -236,9 +236,12 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                        "sub": "Continue de onde parou.",
                        "href": reverse("minhas_analises"), "label": "Continuar"}
         elif protocolo is not None:
+            # Sem tarefa pendente: em vez de um card vazio, o painel mostra os
+            # projetos do analista (objetivo + instruções). Ver core/painel.html.
             proxima = {"titulo": "Tudo em dia 🎉",
                        "sub": "Importe uma nova base para começar uma rodada de triagem.",
-                       "href": reverse("triagem_importar", args=[sl]), "label": "Importar busca"}
+                       "href": reverse("triagem_importar", args=[sl]),
+                       "label": "Importar busca", "ocioso": True}
         else:
             proxima = None
 

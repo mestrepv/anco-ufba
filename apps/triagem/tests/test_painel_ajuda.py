@@ -45,13 +45,28 @@ def test_ajuda_exige_analista(client, leitor):
     assert client.get(turl("triagem_ajuda")).status_code == 403
 
 
-def test_painel_mostra_fluxo_e_proximo_passo(client, analista):
+def test_painel_ocioso_mostra_projetos_e_fluxo(client, analista):
+    # Sem tarefa pendente: em vez do "Próximo passo", orienta pelos projetos.
     client.force_login(analista)
     resp = client.get(reverse("painel"))
     assert resp.status_code == 200
     assert b"O fluxo da triagem" in resp.content
+    assert b"Seus projetos" in resp.content
+    assert "Próximo passo".encode() not in resp.content
+    assert b"Importar base" in resp.content
+
+
+def test_painel_com_tarefa_mostra_proximo_passo(client, protocolo, analista):
+    # Com artigo a analisar, o "Próximo passo" volta a aparecer (não é o ocioso).
+    reg = RegistroTriagem.objects.create(
+        protocolo=protocolo, titulo="Incluído", doi="10.9/p",
+        status=RegistroTriagem.Status.INCLUIDO,
+    )
+    promover_para_acervo(reg)
+    client.force_login(analista)
+    resp = client.get(reverse("painel"))
     assert "Próximo passo".encode() in resp.content
-    assert b"Importar base" in resp.content  # etapa clicável do mapa
+    assert b"Seus projetos" not in resp.content
 
 
 def test_painel_conta_a_analisar(client, protocolo, analista):
