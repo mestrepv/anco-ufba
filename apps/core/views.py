@@ -172,43 +172,56 @@ def painel_view(request: HttpRequest) -> HttpResponse:
             .count()
         )
 
-        if protocolo is not None:
-            sl = protocolo.slug
-            eh_curador = protocolo.eh_curador_no(user)
-            # Conta só as duplicatas que o usuário pode resolver (alinha com a
-            # tela, que aplica o gate importador/curador da Fase 12.4).
-            n_duplicatas = contar_pares_do_usuario(protocolo, user, eh_curador)
-            n_identificados = (
-                protocolo.registros.filter(
+        # Um bloco por projeto: objetivo, estratégia e as 7 etapas com OS
+        # contadores do usuário NAQUELE projeto (painel consolidado).
+        def _passos_projeto(p):
+            eh_cur = p.eh_curador_no(user)
+            n_dup = contar_pares_do_usuario(p, user, eh_cur)
+            n_ident = (
+                p.registros.filter(
                     status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
                 ).count()
-                if eh_curador
-                else 0
+                if eh_cur else 0
             )
-            n_desempates = len(registros_para_desempate(protocolo)) if eh_curador else 0
-
-            # Mapa do fluxo (etapas clicáveis, com contagem onde há trabalho).
+            n_desemp = len(registros_para_desempate(p)) if eh_cur else 0
+            n_triar = DecisaoTriagem.objects.filter(
+                revisor=user, concluido_em__isnull=True, registro__protocolo=p
+            ).count()
+            n_analisar = (
+                Artigo.objects.filter(
+                    registros_triagem__status=RegistroTriagem.Status.INCLUIDO,
+                    registros_triagem__protocolo=p,
+                ).exclude(pk__in=ja_minhas).distinct().count()
+            )
             passos = [
-                {"num": 1, "titulo": "Importar base", "href": reverse("triagem_importar", args=[sl]),
-                 "count": None, "curador": False},
-                {"num": 2, "titulo": "Revisar duplicatas", "href": reverse("triagem_duplicatas", args=[sl]),
-                 "count": n_duplicatas or None, "curador": False},
-                {"num": 3, "titulo": "Iniciar triagem", "href": reverse("triagem_iniciar", args=[sl]),
-                 "count": n_identificados or None, "curador": True},
-                {"num": 4, "titulo": "Triar", "href": reverse("triagem_minhas"),
-                 "count": n_triagens or None, "curador": False},
-                {"num": 5, "titulo": "Desempates", "href": reverse("triagem_desempate", args=[sl]),
-                 "count": n_desempates or None, "curador": True},
-                {"num": 6, "titulo": "A analisar", "href": reverse("triagem_a_analisar"),
-                 "count": n_a_analisar or None, "curador": False},
-                {"num": 7, "titulo": "Acompanhar (PRISMA)", "href": reverse("triagem_prisma", args=[sl]),
-                 "count": None, "curador": False},
+                {"num": 1, "titulo": "Importar base",
+                 "href": reverse("triagem_importar", args=[p.slug]), "count": None, "curador": False},
+                {"num": 2, "titulo": "Revisar duplicatas",
+                 "href": reverse("triagem_duplicatas", args=[p.slug]), "count": n_dup or None, "curador": False},
+                {"num": 3, "titulo": "Iniciar triagem",
+                 "href": reverse("triagem_iniciar", args=[p.slug]), "count": n_ident or None, "curador": True},
+                {"num": 4, "titulo": "Triar",
+                 "href": reverse("triagem_minhas"), "count": n_triar or None, "curador": False},
+                {"num": 5, "titulo": "Desempates",
+                 "href": reverse("triagem_desempate", args=[p.slug]), "count": n_desemp or None, "curador": True},
+                {"num": 6, "titulo": "A analisar",
+                 "href": reverse("triagem_a_analisar"), "count": n_analisar or None, "curador": False},
+                {"num": 7, "titulo": "Acompanhar (PRISMA)",
+                 "href": reverse("triagem_prisma", args=[p.slug]), "count": None, "curador": False},
             ]
-        else:
-            sl = None
-            eh_curador = False
-            n_duplicatas = n_identificados = n_desempates = 0
-            passos = []
+            return {"projeto": p, "eh_curador": eh_cur, "passos": passos,
+                    "n_dup": n_dup, "n_ident": n_ident, "n_desemp": n_desemp}
+
+        projetos_painel = [_passos_projeto(p) for p in meus_projetos]
+
+        # Próximo passo: nudge cross-projeto (usa o projeto ativo p/ as etapas
+        # específicas de projeto; triagens/a-analisar são globais).
+        ativo = projetos_painel[0] if projetos_painel else None
+        sl = protocolo.slug if protocolo is not None else None
+        eh_curador = ativo["eh_curador"] if ativo else False
+        n_duplicatas = ativo["n_dup"] if ativo else 0
+        n_identificados = ativo["n_ident"] if ativo else 0
+        n_desempates = ativo["n_desemp"] if ativo else 0
 
         # Próximo passo: a única coisa óbvia a fazer agora (por prioridade).
         if n_triagens:
@@ -246,18 +259,9 @@ def painel_view(request: HttpRequest) -> HttpResponse:
             proxima = None
 
         contexto_triagem = {
-            "protocolo_triagem": protocolo,
-            "meus_projetos": meus_projetos,
+            "projetos_painel": projetos_painel,
             "n_projetos": len(meus_projetos),
-            "triagens_pendentes": triagens_pendentes,
-            "n_triagens": n_triagens,
-            "n_a_analisar": n_a_analisar,
-            "n_duplicatas": n_duplicatas,
-            "n_identificados": n_identificados,
-            "n_desempates": n_desempates,
-            "passos": passos,
             "proxima": proxima,
-            "eh_curador_painel": eh_curador,
         }
 
     return render(

@@ -64,6 +64,13 @@
                   flex-wrap: wrap; gap: 6px 18px; }
   .painel-utils a { color: var(--color-ink-3); text-decoration: none; }
   .painel-utils a:hover { color: var(--color-gold-deep); }
+  .projeto-bloco { border: 1px solid var(--color-rule); border-radius: 12px; background: var(--color-paper); padding: 20px 22px; margin-bottom: 16px; }
+  .projeto-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .projeto-nome { font-family: var(--font-serif); font-size: 19px; color: var(--color-ink); text-decoration: none; }
+  .projeto-nome:hover { color: var(--color-gold-deep); }
+  .projeto-papel { font-family: var(--font-sans); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--color-gold-deep); vertical-align: middle; }
+  .projeto-meta { font-family: var(--font-sans); font-size: 14px; line-height: 1.55; color: var(--color-ink-2); margin: 10px 0 0; }
+  .projeto-meta .rotulo { color: var(--color-ink-3); }
 </style>
 {% endblock %}
 
@@ -93,70 +100,47 @@
     {% if proxima.sub %}<p>{{ proxima.sub }}</p>{% endif %}
     <a href="{{ proxima.href }}" class="btn-grande">{{ proxima.label }} &rarr;</a>
   </section>
-  {# ── Sem tarefa pendente: orienta pelos projetos do analista ───── #}
-  {% elif meus_projetos %}
-  <section class="painel-secao" style="margin-top:24px;">
-    <h2>Seus projetos</h2>
-    <p class="secao-desc">Você está em dia. Estes são os projetos em que você participa — entre para importar bases, revisar duplicatas ou triar.</p>
-    <div style="display:grid;gap:14px;">
-      {% for p in meus_projetos %}
-      <div class="lista-item" style="display:block;border:1px solid var(--color-rule);border-radius:10px;padding:18px 20px;background:var(--color-paper);">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;">
-          <a href="{% url 'triagem_painel' p.slug %}" class="item-titulo" style="font-family:var(--font-serif);font-size:18px;color:var(--color-ink);">{{ p.nome }}</a>
-          <a href="{% url 'triagem_painel' p.slug %}" class="btn btn-sm btn-primary">Entrar no projeto &rarr;</a>
-        </div>
-        {% if p.pergunta_pesquisa %}
-          <p style="margin:10px 0 0;font-family:var(--font-sans);font-size:14px;line-height:1.55;color:var(--color-ink-2);"><span style="color:var(--color-ink-3);">Objetivo:</span> {{ p.pergunta_pesquisa }}</p>
-        {% endif %}
-        <p style="margin:6px 0 0;font-family:var(--font-sans);font-size:13.5px;color:var(--color-ink-2);">
-          <span style="color:var(--color-ink-3);">Estratégia de busca:</span>
-          {% if p.estrategia_busca %}{{ p.estrategia_busca }}{% else %}<span style="color:var(--color-ink-3);">(a definir no protocolo)</span>{% endif %}
-        </p>
-        <p style="margin:10px 0 0;font-size:13px;">
-          <a href="{% url 'triagem_importar' p.slug %}" style="color:var(--color-gold-deep);">Importar base →</a> ·
-          <a href="{% url 'triagem_protocolo' p.slug %}" style="color:var(--color-gold-deep);">Protocolo e critérios →</a> ·
-          <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a>
-        </p>
-      </div>
-      {% endfor %}
-    </div>
-  </section>
   {% endif %}
 
-  {# ── Mapa do fluxo (clicável) ──────────────────────────────────── #}
-  {% if passos %}
+  {# ── Projeto(s): objetivo, estratégia e as 7 etapas com seus contadores ── #}
+  {% if projetos_painel %}
   <section class="painel-secao">
-    <h2>O fluxo da triagem</h2>
-    <p class="secao-desc">
-      Projeto <a href="{% url 'triagem_painel' protocolo_triagem.slug %}" style="color:var(--color-gold-deep);font-weight:600;">{{ protocolo_triagem.nome }}</a> ·
-      <a href="{% url 'triagem_projetos' %}" style="color:var(--color-gold-deep);">{% if n_projetos > 1 %}trocar projeto ({{ n_projetos }}){% else %}meus projetos{% endif %} →</a> ·
-      <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a>
-    </p>
-    {% if protocolo_triagem.pergunta_pesquisa %}
-      <p class="secao-desc" style="margin-top:-4px;">
-        <span style="color:var(--color-ink-3);">Objetivo:</span> {{ protocolo_triagem.pergunta_pesquisa }}
+    <h2>{% if n_projetos > 1 %}Seus projetos{% else %}Seu projeto{% endif %}</h2>
+    <p class="secao-desc">A revisão de escopo em que você participa e onde você está em cada etapa. <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a></p>
+    {% for item in projetos_painel %}
+    <div class="projeto-bloco">
+      <div class="projeto-cab">
+        <a href="{% url 'triagem_painel' item.projeto.slug %}" class="projeto-nome">{{ item.projeto.nome }}{% if item.eh_curador %} <span class="projeto-papel">curador</span>{% endif %}</a>
+        <a href="{% url 'triagem_painel' item.projeto.slug %}" class="btn btn-sm btn-primary">Entrar no projeto &rarr;</a>
+      </div>
+      {% if item.projeto.pergunta_pesquisa %}
+        <p class="projeto-meta"><span class="rotulo">Objetivo:</span> {{ item.projeto.pergunta_pesquisa }}</p>
+      {% endif %}
+      <p class="projeto-meta"><span class="rotulo">Estratégia de busca:</span>
+        {% if item.projeto.estrategia_busca %}{{ item.projeto.estrategia_busca }}{% else %}<span style="color:var(--color-ink-3);">(a definir no protocolo){% if item.eh_curador %} — <a href="{% url 'triagem_protocolo' item.projeto.slug %}" style="color:var(--color-gold-deep);">editar</a>{% endif %}</span>{% endif %}
       </p>
-    {% endif %}
-    <div class="fluxo-map">
-      {% for p in passos %}
-        {% if p.curador and not eh_curador_painel %}
-          <div class="passo-card mudo">
-            <span class="passo-num">{{ p.num }}</span>
-            <span class="passo-titulo">{{ p.titulo }}</span>
-            <span class="passo-tag">curador</span>
-          </div>
-        {% else %}
-          <a href="{{ p.href }}" class="passo-card {% if p.count %}tem-tarefa{% endif %}">
-            <span class="passo-num">{{ p.num }}</span>
-            <span class="passo-titulo">{{ p.titulo }}</span>
-            {% if p.curador %}<span class="passo-tag">curador</span>{% endif %}
-            {% if p.count %}<span class="passo-badge">{{ p.count }}</span>{% endif %}
-          </a>
-        {% endif %}
-      {% endfor %}
+      <div class="fluxo-map" style="margin-top:14px;">
+        {% for p in item.passos %}
+          {% if p.curador and not item.eh_curador %}
+            <div class="passo-card mudo">
+              <span class="passo-num">{{ p.num }}</span>
+              <span class="passo-titulo">{{ p.titulo }}</span>
+              <span class="passo-tag">curador</span>
+            </div>
+          {% else %}
+            <a href="{{ p.href }}" class="passo-card {% if p.count %}tem-tarefa{% endif %}">
+              <span class="passo-num">{{ p.num }}</span>
+              <span class="passo-titulo">{{ p.titulo }}</span>
+              {% if p.curador %}<span class="passo-tag">curador</span>{% endif %}
+              {% if p.count %}<span class="passo-badge">{{ p.count }}</span>{% endif %}
+            </a>
+          {% endif %}
+        {% endfor %}
+      </div>
     </div>
+    {% endfor %}
   </section>
-  {% endif %}{# passos #}
+  {% endif %}
   {% endif %}{# eh_analista #}
 
   {# ── Minhas análises ───────────────────────────────────────────── #}

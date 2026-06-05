@@ -45,19 +45,19 @@ def test_ajuda_exige_analista(client, leitor):
     assert client.get(turl("triagem_ajuda")).status_code == 403
 
 
-def test_painel_ocioso_mostra_projetos_e_fluxo(client, analista):
-    # Sem tarefa pendente: em vez do "Próximo passo", orienta pelos projetos.
+def test_painel_mostra_projeto_e_etapas(client, analista):
+    # Sem tarefa pendente: o painel mostra a seção do projeto + as 7 etapas.
     client.force_login(analista)
     resp = client.get(reverse("painel"))
     assert resp.status_code == 200
-    assert b"O fluxo da triagem" in resp.content
-    assert b"Seus projetos" in resp.content
-    assert "Próximo passo".encode() not in resp.content
-    assert b"Importar base" in resp.content
+    assert b"Seu projeto" in resp.content              # seção do projeto (1 projeto)
+    assert b"Importar base" in resp.content             # etapa 1
+    assert b"Acompanhar (PRISMA)" in resp.content        # etapa 7
+    assert "Próximo passo".encode() not in resp.content  # ocioso → sem hero
 
 
-def test_painel_com_tarefa_mostra_proximo_passo(client, protocolo, analista):
-    # Com artigo a analisar, o "Próximo passo" volta a aparecer (não é o ocioso).
+def test_painel_com_tarefa_mostra_proximo_passo_e_projeto(client, protocolo, analista):
+    # Com artigo a analisar: "Próximo passo" aparece E a seção do projeto também.
     reg = RegistroTriagem.objects.create(
         protocolo=protocolo, titulo="Incluído", doi="10.9/p",
         status=RegistroTriagem.Status.INCLUIDO,
@@ -66,7 +66,7 @@ def test_painel_com_tarefa_mostra_proximo_passo(client, protocolo, analista):
     client.force_login(analista)
     resp = client.get(reverse("painel"))
     assert "Próximo passo".encode() in resp.content
-    assert b"Seus projetos" not in resp.content
+    assert b"Seu projeto" in resp.content
 
 
 def test_painel_conta_a_analisar(client, protocolo, analista):
@@ -77,8 +77,7 @@ def test_painel_conta_a_analisar(client, protocolo, analista):
     promover_para_acervo(reg)
     client.force_login(analista)
     resp = client.get(reverse("painel"))
-    assert resp.context["n_a_analisar"] == 1
-    # badge na etapa "A analisar" + hero apontando para análise
+    # etapa "A analisar" presente + hero apontando para análise
     assert b"A analisar" in resp.content
     assert resp.context["proxima"]["href"].endswith("/a-analisar/")
 
@@ -87,4 +86,5 @@ def test_painel_leitor_sem_secao_triagem(client, leitor):
     client.force_login(leitor)
     resp = client.get(reverse("painel"))
     assert resp.status_code == 200
-    assert b"O fluxo da triagem" not in resp.content
+    assert b"Seu projeto" not in resp.content
+    assert b"Seus projetos" not in resp.content
