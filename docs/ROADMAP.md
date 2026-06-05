@@ -21,6 +21,7 @@ adendo da v2.1.
 | 6 | Saúde de links, dashboard e JSON-LD (v2.2) | 1-2 dias | ✅ concluída | [fase-6.md](relatorios/fase-6.md) |
 | 7 | Polimento e produção | 2 dias | ✅ concluída | [fase-7.md](relatorios/fase-7.md) |
 | 8 | Busca semântica | 3-4 dias | ⬜ pendente (opcional v2.1) | — |
+| 13 | Revisão ANCO (modo simplificado + sorteio de análise) | — | ✅ concluída | [fase-13.md](relatorios/fase-13.md) |
 
 ---
 

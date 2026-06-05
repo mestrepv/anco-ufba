@@ -330,6 +330,23 @@ aceita `--projeto <slug>`. Testes usam `tests/conftest.py` (`turl`/`membro`). Ve
 `docs/relatorios/fase-12.md` e `docs/planos/fase-12-projetos.md`. Migrations triagem
 `0017`–`0019`.
 
+**Revisão ANCO — modo simplificado (Fase 13, app `apps/triagem`):**
+`ProtocoloTriagem.modo ∈ {rigoroso, anco}` (default `rigoroso`; `eh_anco`). Comuta
+o fluxo **sem remover** o PRISMA-ScR (Fases 9–12) — toggle **por projeto**, a
+triagem já é multi-projeto. No modo `anco`: **autotriagem** (`autotriagem.py`) — o
+dono da base tria a própria base (revisor único), reusa `aprovacao.consolidar` +
+promoção; gate = `importadores` (curador/admin resolve qualquer um). **Relevância
+por termos** (`relevancia.py`, **sem embeddings**) cacheada em
+`RegistroTriagem.relevancia_score` (comando `recalcular_relevancia`). **Sorteio da
+análise** (`sorteio_analise.py`, modelos `SorteioAnalise`/`AtribuicaoAnalise`):
+cota=5/analista, diversidade de base **preferida** (não bloqueia), prioriza
+relevância, `unica`/`dupla` (curador decide no sorteio); idempotente; faltas
+logadas. **Dupla = 2 análises independentes + `ConsensoAnalise`** (curador
+concilia → análise final). `a_analisar` mostra **só os atribuídos** quando há
+sorteio; painel oculta PRISMA/κ/checklist/calibração no modo `anco`. Rotas:
+`/triagem/p/<slug>/{autotriar,incluidos,sorteio-analise,consenso}/`. Migration
+triagem `0020`. Ver `docs/relatorios/fase-13.md` e `docs/planos/fase-13-revisao-anco.md`.
+
 **Gates de propriedade (servidor, não só UI):** excluir importação só pelo
 **importador** ou curador (`excluir_busca_view`); resolver/desfazer duplicata segue o
 gate `_pode_resolver_par`. O `/painel/` mostra **uma seção por projeto** (objetivo,
