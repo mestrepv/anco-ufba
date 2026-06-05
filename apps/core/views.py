@@ -139,8 +139,10 @@ def painel_view(request: HttpRequest) -> HttpResponse:
 
         from apps.acervo.models import Artigo
         from apps.triagem.aprovacao import registros_para_desempate
+        from apps.triagem.autotriagem import registros_para_autotriar
         from apps.triagem.duplicatas import contar_pares_do_usuario
         from apps.triagem.models import (
+            AtribuicaoAnalise,
             DecisaoTriagem,
             ProtocoloTriagem,
             RegistroTriagem,
@@ -163,20 +165,76 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         ja_minhas = Analise.objects.filter(analista=user).values_list(
             "artigo_id", flat=True
         )
-        n_a_analisar = (
-            Artigo.objects.filter(
-                registros_triagem__status=RegistroTriagem.Status.INCLUIDO
+        atribuidos_user = list(
+            AtribuicaoAnalise.objects.filter(analista=user).values_list(
+                "artigo_id", flat=True
             )
-            .exclude(pk__in=ja_minhas)
-            .distinct()
-            .count()
         )
+        if atribuidos_user:
+            # Revisão ANCO com sorteio: conta só os artigos atribuídos ao usuário.
+            n_a_analisar = (
+                Artigo.objects.filter(pk__in=atribuidos_user)
+                .exclude(pk__in=ja_minhas)
+                .distinct()
+                .count()
+            )
+        else:
+            n_a_analisar = (
+                Artigo.objects.filter(
+                    registros_triagem__status=RegistroTriagem.Status.INCLUIDO
+                )
+                .exclude(pk__in=ja_minhas)
+                .distinct()
+                .count()
+            )
 
         # Um bloco por projeto: objetivo, estratégia e as 7 etapas com OS
         # contadores do usuário NAQUELE projeto (painel consolidado).
         def _passos_projeto(p):
             eh_cur = p.eh_curador_no(user)
             n_dup = contar_pares_do_usuario(p, user, eh_cur)
+            n_analisar = (
+                Artigo.objects.filter(
+                    registros_triagem__status=RegistroTriagem.Status.INCLUIDO,
+                    registros_triagem__protocolo=p,
+                ).exclude(pk__in=ja_minhas).distinct().count()
+            )
+
+            if p.eh_anco:
+                # Revisão ANCO: autotriagem + relevância + sorteio de análise + consenso.
+                n_autotriar = registros_para_autotriar(p, user).count()
+                n_incluidos = p.registros.filter(
+                    status=RegistroTriagem.Status.INCLUIDO
+                ).count()
+                # "A analisar" deste projeto respeita as atribuições do usuário.
+                atribuidos_p = AtribuicaoAnalise.objects.filter(
+                    analista=user, sorteio__projeto=p
+                ).values_list("artigo_id", flat=True)
+                if atribuidos_p:
+                    n_analisar = (
+                        Artigo.objects.filter(pk__in=list(atribuidos_p))
+                        .exclude(pk__in=ja_minhas).distinct().count()
+                    )
+                passos = [
+                    {"num": 1, "titulo": "Importar base",
+                     "href": reverse("triagem_importar", args=[p.slug]), "count": None, "curador": False},
+                    {"num": 2, "titulo": "Revisar duplicatas",
+                     "href": reverse("triagem_duplicatas", args=[p.slug]), "count": n_dup or None, "curador": False},
+                    {"num": 3, "titulo": "Triar minha base",
+                     "href": reverse("triagem_autotriar", args=[p.slug]), "count": n_autotriar or None, "curador": False},
+                    {"num": 4, "titulo": "Incluídos por relevância",
+                     "href": reverse("triagem_incluidos", args=[p.slug]), "count": n_incluidos or None, "curador": False},
+                    {"num": 5, "titulo": "Sortear análise",
+                     "href": reverse("triagem_sorteio_analise", args=[p.slug]), "count": None, "curador": True},
+                    {"num": 6, "titulo": "A analisar",
+                     "href": reverse("triagem_a_analisar"), "count": n_analisar or None, "curador": False},
+                    {"num": 7, "titulo": "Consenso",
+                     "href": reverse("triagem_consenso", args=[p.slug]), "count": None, "curador": True},
+                ]
+                return {"projeto": p, "eh_curador": eh_cur, "eh_anco": True, "passos": passos,
+                        "n_dup": n_dup, "n_autotriar": n_autotriar, "n_incluidos": n_incluidos,
+                        "n_ident": 0, "n_desemp": 0}
+
             n_ident = (
                 p.registros.filter(
                     status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
@@ -187,12 +245,6 @@ def painel_view(request: HttpRequest) -> HttpResponse:
             n_triar = DecisaoTriagem.objects.filter(
                 revisor=user, concluido_em__isnull=True, registro__protocolo=p
             ).count()
-            n_analisar = (
-                Artigo.objects.filter(
-                    registros_triagem__status=RegistroTriagem.Status.INCLUIDO,
-                    registros_triagem__protocolo=p,
-                ).exclude(pk__in=ja_minhas).distinct().count()
-            )
             passos = [
                 {"num": 1, "titulo": "Importar base",
                  "href": reverse("triagem_importar", args=[p.slug]), "count": None, "curador": False},
@@ -209,7 +261,7 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                 {"num": 7, "titulo": "Acompanhar (PRISMA)",
                  "href": reverse("triagem_prisma", args=[p.slug]), "count": None, "curador": False},
             ]
-            return {"projeto": p, "eh_curador": eh_cur, "passos": passos,
+            return {"projeto": p, "eh_curador": eh_cur, "eh_anco": False, "passos": passos,
                     "n_dup": n_dup, "n_ident": n_ident, "n_desemp": n_desemp}
 
         projetos_painel = [_passos_projeto(p) for p in meus_projetos]
@@ -219,9 +271,11 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         ativo = projetos_painel[0] if projetos_painel else None
         sl = protocolo.slug if protocolo is not None else None
         eh_curador = ativo["eh_curador"] if ativo else False
+        eh_anco = ativo.get("eh_anco", False) if ativo else False
         n_duplicatas = ativo["n_dup"] if ativo else 0
         n_identificados = ativo["n_ident"] if ativo else 0
         n_desempates = ativo["n_desemp"] if ativo else 0
+        n_autotriar = ativo.get("n_autotriar", 0) if ativo else 0
 
         # Próximo passo: a única coisa óbvia a fazer agora (por prioridade).
         if n_triagens:
@@ -240,6 +294,10 @@ def painel_view(request: HttpRequest) -> HttpResponse:
             proxima = {"titulo": f"{n_duplicatas} possível(is) duplicata(s) para revisar",
                        "sub": "Confirme quais registros são o mesmo trabalho antes de triar.",
                        "href": reverse("triagem_duplicatas", args=[sl]), "label": "Revisar duplicatas"}
+        elif eh_anco and n_autotriar:
+            proxima = {"titulo": f"{n_autotriar} registro(s) da sua base para triar",
+                       "sub": "Decida incluir ou excluir cada artigo por título e resumo.",
+                       "href": reverse("triagem_autotriar", args=[sl]), "label": "Triar minha base"}
         elif eh_curador and n_identificados:
             proxima = {"titulo": f"{n_identificados} registro(s) prontos para a triagem",
                        "sub": "Feche a coleta e sorteie os revisores.",

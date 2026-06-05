@@ -106,7 +106,7 @@
   {% if projetos_painel %}
   <section class="painel-secao">
     <h2>{% if n_projetos > 1 %}Seus projetos{% else %}Seu projeto{% endif %}</h2>
-    <p class="secao-desc">A revisão de escopo em que você participa e onde você está em cada etapa. <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a></p>
+    <p class="secao-desc">O fluxo de triagem em que você participa e onde você está em cada etapa. <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a></p>
     {% for item in projetos_painel %}
     <div class="projeto-bloco">
       <div class="projeto-cab">
