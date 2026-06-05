@@ -313,6 +313,10 @@ def iniciar_analise_view(request: HttpRequest, artigo_id: int) -> HttpResponse:
     uma resenha crítica sem preencher a grade toda).
     """
     artigo = get_object_or_404(Artigo, pk=artigo_id)
+    if artigo.eh_legado and not _eh_admin(request.user):
+        return HttpResponseForbidden(
+            "O acervo histórico (legado) é pré-validado e não é analisável por analistas."
+        )
     analise, criada = Analise.objects.get_or_create(
         artigo=artigo,
         analista=request.user,
@@ -387,6 +391,11 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     if not eh_admin and analise.analista_id != user.id:
         return HttpResponseForbidden(
             "Apenas o analista autor (ou curador/admin) pode editar."
+        )
+
+    if analise.artigo.eh_legado and not eh_admin:
+        return HttpResponseForbidden(
+            "O acervo histórico (legado) é pré-validado e não é editável por analistas."
         )
 
     if not (eh_admin or analise.pode_ser_modificada):
@@ -574,6 +583,11 @@ def editar_resenha_view(request: HttpRequest, analise_id: int) -> HttpResponse:
         resenha = _get_resenha_editavel(request, analise_id)
     except PermissionError:
         return HttpResponseForbidden("Apenas o autor pode editar a resenha.")
+
+    if resenha.analise.artigo.eh_legado and not _eh_admin(request.user):
+        return HttpResponseForbidden(
+            "O acervo histórico (legado) não é editável por analistas."
+        )
 
     if resenha.status == Resenha.Status.EM_REVISAO:
         messages.info(request, "A resenha está em revisão cega e não pode ser editada agora.")
