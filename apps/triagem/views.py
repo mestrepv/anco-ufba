@@ -29,6 +29,7 @@ from django.views.decorators.http import require_POST
 from . import duplicatas as dup
 from . import prisma
 from .aprovacao import consolidar_registro, registros_para_desempate
+from .autotriagem import autotriar, pode_autotriar, registros_para_autotriar
 from .forms import DecisaoTriagemForm, DesempateForm, ImportarBuscaForm
 from .importacao import (
     busca_pode_excluir,
@@ -39,12 +40,17 @@ from .importacao import (
     parse_conteudo,
 )
 from .models import (
+    AtribuicaoAnalise,
     Busca,
+    ConsensoAnalise,
     DecisaoTriagem,
     ProjetoMembro,
     ProtocoloTriagem,
     RegistroTriagem,
+    SorteioAnalise,
 )
+from .relevancia import termos_do_protocolo
+from .sorteio_analise import analistas_do_projeto, executar_sorteio_analise
 from .tasks import avancar_apos_status, iniciar_triagem
 
 
@@ -211,6 +217,13 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
         "c": prisma.computar(projeto),
         "acordo": conc.calcular(projeto),
     }
+    if projeto.eh_anco:
+        contexto["n_para_autotriar"] = registros_para_autotriar(
+            projeto, request.user
+        ).count()
+        contexto["n_incluidos"] = projeto.registros.filter(
+            status=RegistroTriagem.Status.INCLUIDO
+        ).count()
     return render(request, "triagem/painel.html", contexto)
 
 
@@ -753,22 +766,32 @@ def ajuda_view(request: HttpRequest) -> HttpResponse:
 
 @_exige_analista
 def a_analisar_view(request: HttpRequest) -> HttpResponse:
-    """Artigos incluídos pela triagem que o usuário ainda não analisou."""
+    """Artigos a analisar. Se o usuário tem **atribuições** (Revisão ANCO), vê só
+    as suas; senão, o pool aberto de incluídos (modo rigoroso/compat)."""
     from apps.acervo.models import Analise, Artigo
 
     minhas = Analise.objects.filter(analista=request.user).values_list(
         "artigo_id", flat=True
     )
-    artigos = (
-        Artigo.objects.filter(
+    atribuidos = list(
+        AtribuicaoAnalise.objects.filter(analista=request.user).values_list(
+            "artigo_id", flat=True
+        )
+    )
+    por_atribuicao = bool(atribuidos)
+    if por_atribuicao:
+        artigos = Artigo.objects.filter(pk__in=atribuidos)
+    else:
+        artigos = Artigo.objects.filter(
             registros_triagem__status=RegistroTriagem.Status.INCLUIDO
         )
-        .exclude(pk__in=minhas)
-        .distinct()
-        .order_by("-ano", "titulo")
-    )
+    artigos = artigos.exclude(pk__in=minhas).distinct().order_by("-ano", "titulo")
     pagina = Paginator(artigos, 50).get_page(request.GET.get("page"))
-    return render(request, "triagem/a_analisar.html", {"pagina": pagina})
+    return render(
+        request,
+        "triagem/a_analisar.html",
+        {"pagina": pagina, "por_atribuicao": por_atribuicao},
+    )
 
 
 @_projeto_analista
@@ -807,5 +830,191 @@ def prisma_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
             "c": contagem,
             "acordo": acordo,
             "json": json.dumps(export),
+        },
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Revisão ANCO (Fase 13): autotriagem · pool por relevância · sorteio · consenso
+# --------------------------------------------------------------------------- #
+
+@_projeto_analista
+def autotriar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
+    """Autotriagem (modo ANCO): o dono da base tria a própria base, guiado."""
+    if not projeto.eh_anco:
+        messages.info(request, "Este projeto usa triagem por revisores independentes.")
+        return redirect("triagem_registros", slug=projeto.slug)
+
+    if request.method == "POST":
+        registro = get_object_or_404(
+            RegistroTriagem, pk=request.POST.get("registro_id"), protocolo=projeto
+        )
+        if not pode_autotriar(projeto, request.user, registro):
+            return HttpResponseForbidden("Você só tria registros de bases que importou.")
+        decisao = request.POST.get("decisao")
+        if decisao not in (RegistroTriagem.Decisao.INCLUIR, RegistroTriagem.Decisao.EXCLUIR):
+            messages.error(request, "Decisão inválida.")
+            return redirect("triagem_autotriar", slug=projeto.slug)
+        if registro.status != RegistroTriagem.Status.IDENTIFICADO or registro.ja_no_acervo:
+            messages.info(request, "Este registro já não está disponível para triagem.")
+            return redirect("triagem_autotriar", slug=projeto.slug)
+        novo = autotriar(
+            registro, decisao, por=request.user,
+            motivo=request.POST.get("motivo_exclusao", "").strip(),
+        )
+        rotulo = "incluído" if novo == RegistroTriagem.Status.INCLUIDO else "excluído"
+        messages.success(request, f"Registro {rotulo}.")
+        return redirect("triagem_autotriar", slug=projeto.slug)
+
+    pendentes = registros_para_autotriar(projeto, request.user)
+    restantes = pendentes.count()
+    registro = pendentes.first()
+    return render(
+        request,
+        "triagem/autotriar.html",
+        {
+            "projeto": projeto,
+            "protocolo": projeto,
+            "registro": registro,
+            "restantes": restantes,
+            "termos_realce": projeto.termos_realce,
+        },
+    )
+
+
+@_projeto_analista
+def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
+    """Pool de incluídos ordenado por relevância (correspondência de termos)."""
+    regs = (
+        projeto.registros.filter(status=RegistroTriagem.Status.INCLUIDO)
+        .select_related("artigo", "artigo__base_consulta")
+        .order_by("-relevancia_score", "-artigo__ano", "titulo")
+    )
+    pagina = Paginator(regs, 50).get_page(request.GET.get("page"))
+    return render(
+        request,
+        "triagem/incluidos.html",
+        {
+            "projeto": projeto,
+            "protocolo": projeto,
+            "pagina": pagina,
+            "n_termos": len(termos_do_protocolo(projeto)),
+            "pode_curar": projeto.eh_curador_no(request.user),
+        },
+    )
+
+
+@_projeto_curador
+def sorteio_analise_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
+    """Curador sorteia os incluídos entre os analistas (cota, única/dupla)."""
+    if request.method == "POST":
+        modo = request.POST.get("modo_revisao", SorteioAnalise.ModoRevisao.UNICA)
+        if modo not in dict(SorteioAnalise.ModoRevisao.choices):
+            modo = SorteioAnalise.ModoRevisao.UNICA
+        try:
+            cota = max(1, int(request.POST.get("cota") or 5))
+        except (TypeError, ValueError):
+            cota = 5
+        res = executar_sorteio_analise(
+            projeto, modo_revisao=modo, cota=cota, por=request.user,
+            observacoes=request.POST.get("observacoes", "").strip(),
+        )
+        if res.sorteio is not None:
+            msg = f"Sorteio criado: {res.atribuidas} atribuições para {res.analistas} analista(s)."
+            faltaram = sum(1 for v in res.faltas.values() if v)
+            if faltaram:
+                msg += f" {faltaram} analista(s) não completaram a cota (pool insuficiente)."
+            messages.success(request, msg)
+        else:
+            messages.info(request, res.motivo or "Nada a sortear.")
+        return redirect("triagem_sorteio_analise", slug=projeto.slug)
+
+    sorteios = projeto.sorteios_analise.prefetch_related("atribuicoes").all()
+    n_incluidos = projeto.registros.filter(
+        status=RegistroTriagem.Status.INCLUIDO
+    ).count()
+    ja_atribuidos = (
+        AtribuicaoAnalise.objects.filter(sorteio__projeto=projeto)
+        .values("artigo_id")
+        .distinct()
+        .count()
+    )
+    return render(
+        request,
+        "triagem/sorteio_analise.html",
+        {
+            "projeto": projeto,
+            "protocolo": projeto,
+            "sorteios": sorteios,
+            "n_incluidos": n_incluidos,
+            "n_disponiveis": n_incluidos - ja_atribuidos,
+            "n_analistas": len(analistas_do_projeto(projeto)),
+            "modos": SorteioAnalise.ModoRevisao.choices,
+        },
+    )
+
+
+def _artigos_para_consenso(projeto: ProtocoloTriagem):
+    """Artigos de sorteios `dupla` com ≥2 análises enviadas e sem consenso ainda."""
+    from apps.acervo.models import Analise
+
+    artigo_ids = set(
+        AtribuicaoAnalise.objects.filter(
+            sorteio__projeto=projeto,
+            sorteio__modo_revisao=SorteioAnalise.ModoRevisao.DUPLA,
+        ).values_list("artigo_id", flat=True)
+    )
+    ja_conciliados = set(
+        ConsensoAnalise.objects.filter(
+            artigo_id__in=artigo_ids, conciliado_em__isnull=False
+        ).values_list("artigo_id", flat=True)
+    )
+    pendentes = []
+    enviadas = (Analise.Status.SUBMETIDA, Analise.Status.PUBLICADA)
+    for aid in artigo_ids - ja_conciliados:
+        analises = list(
+            Analise.objects.filter(artigo_id=aid, status__in=enviadas).select_related(
+                "analista", "artigo"
+            )
+        )
+        if len(analises) >= 2:
+            pendentes.append({"artigo": analises[0].artigo, "analises": analises})
+    return pendentes
+
+
+@_projeto_curador
+def consenso_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
+    """Conciliação da revisão dupla (curador): registra a análise final."""
+    if request.method == "POST":
+        from apps.acervo.models import Analise
+
+        artigo_id = request.POST.get("artigo_id")
+        final_id = request.POST.get("analise_final")
+        analises = list(
+            Analise.objects.filter(
+                artigo_id=artigo_id,
+                status__in=(Analise.Status.SUBMETIDA, Analise.Status.PUBLICADA),
+            )
+        )
+        if len(analises) < 2 or str(final_id) not in {str(a.pk) for a in analises}:
+            messages.error(request, "Selecione a análise final entre as enviadas.")
+            return redirect("triagem_consenso", slug=projeto.slug)
+        consenso = ConsensoAnalise.objects.create(
+            artigo_id=artigo_id,
+            analise_final_id=final_id,
+            conciliado_por=request.user,
+            conciliado_em=timezone.now(),
+        )
+        consenso.analises.set(analises)
+        messages.success(request, "Consenso registrado.")
+        return redirect("triagem_consenso", slug=projeto.slug)
+
+    return render(
+        request,
+        "triagem/consenso.html",
+        {
+            "projeto": projeto,
+            "protocolo": projeto,
+            "pendentes": _artigos_para_consenso(projeto),
         },
     )

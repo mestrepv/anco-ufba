@@ -6,10 +6,14 @@
 {% block content %}
 <div class="tg-wrap">
   <a href="{% url 'triagem_projetos' %}" class="tg-back">&larr; Triagem</a>
-  <h1 class="tg-h1" style="margin-top:6px;">Incluídos a analisar</h1>
+  <h1 class="tg-h1" style="margin-top:6px;">{% if por_atribuicao %}Seus artigos para analisar{% else %}Incluídos a analisar{% endif %}</h1>
   <p class="tg-desc">
-    Artigos selecionados pela triagem (PRISMA-ScR) que você ainda não analisou.
-    Escolha um para preencher a Matriz AnCo.
+    {% if por_atribuicao %}
+      Artigos <strong>sorteados para você</strong>. Preencha a Matriz AnCo de cada um.
+    {% else %}
+      Artigos selecionados pela triagem que você ainda não analisou.
+      Escolha um para preencher a Matriz AnCo.
+    {% endif %}
   </p>
 
   {% if pagina.object_list %}

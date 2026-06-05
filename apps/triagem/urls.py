@@ -46,8 +46,12 @@ urlpatterns = [
     path("p/<slug:slug>/duplicatas/mescladas/", views.duplicatas_mescladas_view, name="triagem_duplicatas_mescladas"),
     path("p/<slug:slug>/duplicatas/desfazer/", views.desfazer_mescla_view, name="triagem_duplicata_desfazer"),
     path("p/<slug:slug>/iniciar/", views.iniciar_triagem_view, name="triagem_iniciar"),
+    path("p/<slug:slug>/autotriar/", views.autotriar_view, name="triagem_autotriar"),
     path("p/<slug:slug>/desempate/", views.fila_desempate_view, name="triagem_desempate"),
     path("p/<slug:slug>/desempate/<int:registro_id>/", views.desempatar_view, name="triagem_desempatar"),
+    path("p/<slug:slug>/incluidos/", views.incluidos_view, name="triagem_incluidos"),
+    path("p/<slug:slug>/sorteio-analise/", views.sorteio_analise_view, name="triagem_sorteio_analise"),
+    path("p/<slug:slug>/consenso/", views.consenso_view, name="triagem_consenso"),
     path("p/<slug:slug>/prisma/", views.prisma_view, name="triagem_prisma"),
 
     # ── Compat: caminhos antigos → projeto default ─────────────────────────

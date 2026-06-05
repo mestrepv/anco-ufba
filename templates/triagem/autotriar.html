@@ -1,0 +1,80 @@
+{% extends "_base_publico.html" %}
+{% load triagem_extras %}
+
+{% block title %}Triar minha base · Revisão ANCO{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}
+<style>
+  mark { background: #fbeec2; color: inherit; padding: 0 2px; border-radius: 2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tg-wrap narrow" x-data="{ d: '' }">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;">
+    <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome|default:projeto.titulo }}</a>
+    <span class="tg-meta"><strong>{{ restantes }}</strong> restante(s)</span>
+  </div>
+  <h1 class="tg-h1" style="margin:6px 0 4px;">Triar a sua base <span class="tg-meta">(Revisão ANCO)</span></h1>
+  <p class="tg-desc" style="margin-bottom:16px;">
+    Decida por título e resumo se o artigo tem potencial para a análise. Você tria
+    os registros das bases que importou; o que incluir entra no pool de análise.
+  </p>
+
+  {% if projeto.criterios_inclusao or projeto.criterios_exclusao %}
+    <div class="tg-card" style="margin-bottom:18px;background:var(--color-paper-2);">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div><div class="tg-meta" style="font-weight:700;color:var(--color-ok);">✔ Incluir se</div>
+          <pre style="white-space:pre-wrap;font-family:var(--font-sans);font-size:13px;color:var(--color-ink-2);margin:4px 0 0;">{{ projeto.criterios_inclusao }}</pre></div>
+        <div><div class="tg-meta" style="font-weight:700;color:var(--color-danger);">✗ Excluir se</div>
+          <pre style="white-space:pre-wrap;font-family:var(--font-sans);font-size:13px;color:var(--color-ink-2);margin:4px 0 0;">{{ projeto.criterios_exclusao }}</pre></div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if registro %}
+    <article class="tg-card" style="margin-bottom:20px;">
+      {% if registro.tipo %}<span class="tg-meta" style="display:inline-block;margin-bottom:6px;padding:2px 9px;border-radius:999px;border:1px solid var(--color-rule);background:var(--color-paper-2);font-weight:600;">{{ registro.tipo }}</span>{% endif %}
+      <h2 style="font-family:var(--font-serif);font-weight:500;font-size:19px;color:var(--color-ink);margin:0;line-height:1.3;">{{ registro.titulo|realce:termos_realce }}</h2>
+      <div class="tg-meta" style="margin-top:6px;">
+        {% if registro.ano %}{{ registro.ano }}{% endif %}{% if registro.titulo_periodico %} · {{ registro.titulo_periodico }}{% endif %}{% if registro.idioma %} · {{ registro.idioma }}{% endif %}
+      </div>
+      {% if registro.resumo %}
+        <p style="margin-top:12px;font-family:var(--font-sans);font-size:14.5px;line-height:1.6;color:var(--color-ink-2);max-height:320px;overflow:auto;">{{ registro.resumo|realce:termos_realce }}</p>
+      {% else %}
+        <p style="margin-top:12px;color:var(--color-ink-3);font-style:italic;">Sem resumo disponível.</p>
+      {% endif %}
+      {% if registro.palavras_chaves %}
+        <p class="tg-meta" style="margin-top:12px;"><strong>Palavras-chave:</strong> {{ registro.palavras_chaves|realce:termos_realce }}</p>
+      {% endif %}
+      {% if registro.link %}<a href="{{ registro.link }}" target="_blank" rel="noopener" style="display:inline-block;margin-top:12px;color:var(--color-gold-deep);font-size:14px;">Abrir fonte &nearr;</a>
+      {% elif registro.doi %}<a href="https://doi.org/{{ registro.doi }}" target="_blank" rel="noopener" style="display:inline-block;margin-top:12px;color:var(--color-gold-deep);font-size:14px;">Abrir pelo DOI &nearr;</a>{% endif %}
+    </article>
+
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="registro_id" value="{{ registro.pk }}">
+      <div class="tg-field">
+        <label>Sua decisão</label>
+        <div class="tg-radio">
+          <label :class="d === 'incluir' ? 'sel' : ''" :style="d === 'incluir' ? 'border-color:var(--color-gold-deep);background:var(--color-review-bg);' : ''">
+            <input type="radio" name="decisao" value="incluir" x-model="d"><span>Incluir</span>
+          </label>
+          <label :class="d === 'excluir' ? 'sel' : ''" :style="d === 'excluir' ? 'border-color:var(--color-gold-deep);background:var(--color-review-bg);' : ''">
+            <input type="radio" name="decisao" value="excluir" x-model="d"><span>Excluir</span>
+          </label>
+        </div>
+      </div>
+      <div class="tg-field" x-show="d === 'excluir'" x-cloak>
+        <label>Motivo da exclusão (opcional)</label>
+        <input type="text" name="motivo_exclusao" class="field-input" placeholder="ex.: sentido estreito de 'cognitive analysis'">
+      </div>
+      <div class="tg-actions">
+        <button type="submit" class="btn btn-primary" x-bind:disabled="!d">Registrar e avançar &rarr;</button>
+      </div>
+    </form>
+  {% else %}
+    <p class="tg-empty">Você triou todos os registros das suas bases. 🎉
+      Veja o <a href="{% url 'triagem_incluidos' projeto.slug %}">pool de incluídos por relevância</a>.</p>
+  {% endif %}
+</div>
+{% endblock %}

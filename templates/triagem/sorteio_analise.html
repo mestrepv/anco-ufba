@@ -1,0 +1,65 @@
+{% extends "_base_publico.html" %}
+
+{% block title %}Sorteio da análise · Revisão ANCO{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+
+{% block content %}
+<div class="tg-wrap narrow">
+  <a href="{% url 'triagem_incluidos' projeto.slug %}" class="tg-back">&larr; Incluídos</a>
+  <h1 class="tg-h1" style="margin-top:6px;">Sorteio da análise</h1>
+  <p class="tg-desc">
+    Distribui os incluídos entre os analistas: uma <strong>cota</strong> por pessoa,
+    preferindo <strong>bases diferentes</strong> e priorizando maior relevância.
+    Você decide aqui se cada artigo terá <strong>revisão única ou dupla</strong>.
+  </p>
+
+  <div class="tg-card" style="margin-bottom:18px;display:flex;gap:22px;flex-wrap:wrap;">
+    <div><div class="tg-meta">Incluídos</div><div style="font-size:22px;font-weight:700;">{{ n_incluidos }}</div></div>
+    <div><div class="tg-meta">Ainda não atribuídos</div><div style="font-size:22px;font-weight:700;">{{ n_disponiveis }}</div></div>
+    <div><div class="tg-meta">Analistas no projeto</div><div style="font-size:22px;font-weight:700;">{{ n_analistas }}</div></div>
+  </div>
+
+  {% if n_disponiveis and n_analistas %}
+    <form method="post" class="tg-card" style="margin-bottom:24px;">
+      {% csrf_token %}
+      <div class="tg-field">
+        <label>Modo de revisão</label>
+        <select name="modo_revisao" class="field-input">
+          {% for val, rotulo in modos %}<option value="{{ val }}">{{ rotulo }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="tg-field">
+        <label>Cota por analista</label>
+        <input type="number" name="cota" value="5" min="1" max="50" class="field-input" style="max-width:120px;">
+      </div>
+      <div class="tg-field">
+        <label>Observações (critério do sorteio — opcional)</label>
+        <input type="text" name="observacoes" class="field-input" placeholder="ex.: 1ª rodada, dupla para os mais relevantes">
+      </div>
+      <button type="submit" class="btn btn-primary">Sortear</button>
+    </form>
+  {% else %}
+    <p class="tg-note" style="margin-bottom:24px;">
+      {% if not n_analistas %}Nenhum analista neste projeto — designe membros antes de sortear.
+      {% else %}Não há incluídos disponíveis para sortear.{% endif %}
+    </p>
+  {% endif %}
+
+  <h2 class="tg-h2">Sorteios anteriores</h2>
+  {% if sorteios %}
+    <ul class="tg-list">
+      {% for s in sorteios %}
+        <li class="tg-card tg-row">
+          <div>
+            <div class="tg-item-title">{{ s.get_modo_revisao_display }} · cota {{ s.cota }}</div>
+            <div class="tg-meta">{{ s.criado_em|date:"d/m/Y H:i" }} · {{ s.atribuicoes.count }} atribuição(ões){% if s.observacoes %} · {{ s.observacoes }}{% endif %}</div>
+          </div>
+          {% if s.modo_revisao == 'dupla' %}<a href="{% url 'triagem_consenso' projeto.slug %}" class="btn btn-sm" style="flex-shrink:0;">Consenso</a>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="tg-empty">Nenhum sorteio feito ainda.</p>
+  {% endif %}
+</div>
+{% endblock %}
