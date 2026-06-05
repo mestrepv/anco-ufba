@@ -108,8 +108,6 @@ def painel_view(request: HttpRequest) -> HttpResponse:
 
     from apps.acervo.models import Analise, Revisao
 
-    from .models import SolicitacaoCadastro
-
     user = request.user
 
     minhas_analises = (
@@ -132,10 +130,6 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         Revisao.objects.filter(revisor=user, concluido_em__isnull=False)
         .select_related("resenha__analise__artigo")
         .order_by("-concluido_em")[:10]
-    )
-    solicitacoes = (
-        SolicitacaoCadastro.objects.filter(usuario=user)
-        .order_by("tipo", "-criado_em")
     )
 
     # ── Contexto da triagem (import lazy p/ evitar ciclo) ──────────────
@@ -271,7 +265,6 @@ def painel_view(request: HttpRequest) -> HttpResponse:
             "n_rascunhos": n_rascunhos,
             "revisoes_pendentes": revisoes_pendentes,
             "revisoes_concluidas": revisoes_concluidas,
-            "solicitacoes": solicitacoes,
             "agora": datetime.now(tz=UTC),
             **contexto_triagem,
         },

@@ -131,21 +131,6 @@
   {% endif %}{# passos #}
   {% endif %}{# eh_analista #}
 
-  {# ── Solicitações ──────────────────────────────────────────────── #}
-  {% if solicitacoes %}
-  <section class="painel-secao">
-    <h2>Minhas solicitações</h2>
-    <p class="secao-desc">Estado das solicitações enviadas para a curadoria. <a href="{% url 'perfil' %}" style="color:var(--color-gold-deep);">Gerenciar no perfil →</a></p>
-    {% for s in solicitacoes %}
-    <div class="lista-item" style="grid-template-columns: auto auto 1fr;">
-      <span class="status-chip" style="background:var(--color-paper-3);color:var(--color-ink-2);">{{ s.get_tipo_display }}</span>
-      <span class="status-chip status-{{ s.status }}">{{ s.get_status_display }}</span>
-      <div class="item-meta">enviada em {{ s.criado_em|date:"d/m/Y" }}{% if s.status == "rejeitada" and s.motivo_rejeicao %} · <span style="color:var(--color-danger);">{{ s.motivo_rejeicao }}</span>{% endif %}</div>
-    </div>
-    {% endfor %}
-  </section>
-  {% endif %}
-
   {# ── Minhas análises ───────────────────────────────────────────── #}
   <section class="painel-secao">
     <h2>Minhas análises</h2>
