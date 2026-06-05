@@ -30,7 +30,7 @@ facetada e busca semântica.
 5. [Aspectos metodológicos](#5-aspectos-metodológicos)
 6. [Busca semântica](#6-busca-semântica)
 7. [Stack tecnológica — vantagens, desvantagens e substitutos](#7-stack-tecnológica--vantagens-desvantagens-e-substitutos)
-8. [Triagem PRISMA-ScR (Fase 9) — seleção de fontes antes da análise](#8-triagem-prisma-scr-fase-9--seleção-de-fontes-antes-da-análise)
+8. [Triagem PRISMA-ScR (Fases 9–12) — seleção de fontes antes da análise, por projeto](#8-triagem-prisma-scr-fases-912--seleção-de-fontes-antes-da-análise-por-projeto)
 9. [Bootstrap local e comandos](#9-bootstrap-local-e-comandos)
 10. [Como citar, autoria e licença](#10-como-citar-autoria-e-licença)
 
@@ -130,6 +130,29 @@ Detalhes em [apps/acervo/models.py](apps/acervo/models.py),
 - **Auditoria**: toda Análise e Resenha é versionada via `django-simple-history`
   (exclui só campos derivados, como embeddings).
 
+**Camada de triagem (`apps/triagem`, aditiva — não toca o schema do acervo):**
+
+```
+  ProtocoloTriagem (= projeto) ──< ProjetoMembro >── User (papel por projeto)
+        │  │  │
+        │  │  └─< Busca (importação: base, arquivo, filtros, contagens, criado_por)
+        │  └────< RegistroTriagem ──< DecisaoTriagem >── User (revisor, por etapa)
+        │              └─ FK Artigo (proveniência: só os incluídos viram Artigo)
+        └─< SnapshotProtocolo · RodadaCalibracao
+```
+
+- **`ProtocoloTriagem`** = **o projeto** (revisão de escopo): `nome/slug`, pergunta,
+  `estrategia_busca`, critérios de inclusão/exclusão, `n_revisores`/prazo, `versao`/
+  `travado_em` (protocolo a priori), `registro_externo` (OSF), `usa_texto_completo`.
+- **`ProjetoMembro`** — vínculo usuário↔projeto com **papel por projeto** (analista/curador).
+- **`Busca`** — uma importação (base, arquivo cru, filtros, contagens de dedup, **`criado_por`**).
+- **`RegistroTriagem`** — candidato pré-`Artigo` (`identificado → em triagem → incluído/
+  excluído/duplicado`); dedup determinística + `pg_trgm`; proveniência em `artigo`.
+- **`DecisaoTriagem`** — parecer de um revisor por **etapa** (título/resumo, texto completo
+  ou calibração); concordância **κ de Fleiss**.
+- **`SnapshotProtocolo`**, **`RodadaCalibracao`**, **`ParDuplicataDescartado`** — versão a
+  priori congelada, piloto de calibração e pares marcados como **não**-duplicata.
+
 ---
 
 ## 4. Fluxo de uso
@@ -142,14 +165,31 @@ Detalhes em [apps/acervo/models.py](apps/acervo/models.py),
 3. **Curadoria aprova** a solicitação (admin) → o usuário vira `analista` e pode
    criar análises. (Habilitação como revisor é análoga.)
 
-### 4.2. Cadastro do artigo
+### 4.2. Entrada de artigos: importação + triagem (PRISMA-ScR)
 
-No `/acervo-analista/artigo/novo/`, o analista informa um **DOI/ISBN**; a interface
-(HTMX) faz *lookup* em tempo real no **Crossref** (cache 24h) ou **OpenLibrary**
-(cache 30d) e pré-preenche os metadados. O analista confirma e completa: **grande
-área** (menu CNPq/CAPES, obrigatório), **idioma**, **base de consulta**
-(vocabulário). Se o **DOI/ISBN já existe**, o sistema **reaproveita o artigo** e
-abre/retoma a análise do usuário (sem duplicar).
+O analista **não cadastra mais artigos um a um por DOI**. A entrada agora é por
+**importação de arquivo**, dentro de um **projeto** de revisão de escopo
+(`/triagem/p/<slug>/`):
+
+1. **Importa** o arquivo de exportação da base — **RIS / BibTeX / CSV** — ou, para
+   bases sem exportação direta (ex.: repositórios institucionais), usa o **Zotero**
+   como ponte e exporta em RIS.
+2. O sistema **deduplica** automaticamente (DOI > ISBN > hash) e lista **possíveis
+   duplicatas** por similaridade de título para confirmação humana (com trilha de
+   auditoria e reversão). Quem já casa com o acervo — inclusive o **legado** — é
+   marcado e **isento** de triagem.
+3. **Triagem PRISMA-ScR**: o **curador inicia a triagem**; cada registro é sorteado
+   para **≥2 revisores membros**, que decidem **incluir / excluir / dúvida** numa
+   interface **mascarada** (cega ao coletor e aos pares). **Consenso** resolve;
+   **divergência** vai a **desempate** do curador. (Opcional por projeto: 2 etapas,
+   título/resumo → texto completo.)
+4. Os **incluídos viram `Artigo`** e aparecem em **"A analisar"**, de onde o analista
+   abre a **análise pela Matriz AnCo** (§4.3).
+
+O **cadastro avulso** por DOI/ISBN (lookup **Crossref**/cache 24h e **OpenLibrary**/
+cache 30d, com reaproveitamento quando o identificador já existe) **continua existindo,
+mas restrito a curador/admin** — é exceção, não o caminho do analista. Detalhe completo
+da triagem, dos projetos e do rigor metodológico na **§8**.
 
 ### 4.3. Análise estruturada (4 abas)
 
