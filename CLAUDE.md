@@ -330,6 +330,21 @@ aceita `--projeto <slug>`. Testes usam `tests/conftest.py` (`turl`/`membro`). Ve
 `docs/relatorios/fase-12.md` e `docs/planos/fase-12-projetos.md`. Migrations triagem
 `0017`–`0019`.
 
+**Gates de propriedade (servidor, não só UI):** excluir importação só pelo
+**importador** ou curador (`excluir_busca_view`); resolver/desfazer duplicata segue o
+gate `_pode_resolver_par`. O `/painel/` mostra **uma seção por projeto** (objetivo,
+estratégia e as 7 etapas com os contadores do usuário); a home do projeto
+(`/triagem/p/<slug>/`) é o painel profundo (sobre + andamento PRISMA/κ + equipe +
+importações com **quem importou**).
+
+**Acervo legado é somente-leitura para analistas:** `iniciar_analise`/`editar_analise`/
+`editar_resenha` retornam **403** se `artigo.eh_legado` e o usuário não for curador/admin
+(o legado é pré-validado e isento de re-análise). Ver `apps/acervo/views.py`.
+
+**Admin de usuários** (`apps/core/admin.py`): ações em massa no `UserAdmin` — promover a
+curador/analista/leitor, aprovar como revisor, conceder/revogar admin (staff; não revoga
+o próprio). Superusuário continua na ficha individual.
+
 ### 9.3. Acervo público (Fase 5)
 URLs **estáveis e citáveis** desde o dia 1. Mudança de URL depois quebra
 citações. Padrão sugerido:

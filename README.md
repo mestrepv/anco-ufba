@@ -271,40 +271,51 @@ dependência de Alpine/CDN no cliente; (iv) Compose não cobre alta disponibilid
 
 ---
 
-## 8. Triagem PRISMA-ScR (Fase 9) — seleção de fontes antes da análise
+## 8. Triagem PRISMA-ScR (Fases 9–12) — seleção de fontes antes da análise, por projeto
 
 A AnCo inclui uma etapa de **triagem (screening) por ≥2 revisores independentes**,
 anterior à análise — tornando a **seleção do acervo equivalente ao PRISMA-ScR**
-(*PRISMA extension for Scoping Reviews*). É um app nativo **aditivo** (`apps/triagem`),
-sem alterar o schema do acervo: os candidatos vivem em tabelas próprias e **só os
+(*PRISMA extension for Scoping Reviews*). App nativo **aditivo** (`apps/triagem`),
+sem alterar o schema do acervo: candidatos vivem em tabelas próprias e **só os
 incluídos viram `Artigo`**.
 
-Fluxo dos novos analistas (`/triagem/`):
+**Projetos (Fase 12).** Cada **projeto** é uma revisão de escopo independente —
+pergunta, estratégia de busca, protocolo registrado, corpus, fluxograma e
+concordância próprios. O admin designa a **equipe** (membros com papel
+analista/curador *por projeto*). Rotas escopadas por URL: `/triagem/` lista os
+projetos do usuário e `/triagem/p/<slug>/` é a home do projeto. Acervo, análise,
+usuários e vocabulário permanecem **globais** (o mesmo artigo pode ser incluído por
+mais de um projeto, com uma única análise).
 
-1. **Busca em ≥9 bases** (reusa o vocabulário `base`) → **importação por arquivo**
-   (**RIS/BibTeX/CSV**) com **deduplicação** determinística (DOI > ISBN > hash).
-   Candidato que já casa com o acervo (inclusive o legado) é marcado e **não** é triado.
-2. **Triagem dupla** — cada registro é sorteado para **≥2 revisores independentes**,
-   que decidem **incluir/excluir/dúvida** (com motivo) numa interface **mascarada**
-   (cega ao coletor e às decisões dos pares).
+Fluxo de cada projeto:
+
+1. **Importação por arquivo** (**RIS/BibTeX/CSV**) com **dedup** determinística
+   (DOI > ISBN > hash) + revisão de **possíveis duplicatas** por similaridade de título
+   (`pg_trgm`), com **auditoria** (quem/quando), **procedência** (base + importador) e
+   **reversão**. Quem já casa com o acervo (inclusive o legado) é marcado e **não** é triado.
+2. **Triagem dupla, mascarada** — cada registro vai a **≥2 revisores membros**, que
+   decidem **incluir/excluir/dúvida** (com motivo), cegos ao coletor e aos pares.
+   Opcional **por projeto**: **2 etapas** (título/resumo → texto completo).
 3. **Consenso → incluído/excluído**; **divergência → desempate** por curador.
-4. **Promoção** — os incluídos viram `Artigo` (idempotente) e seguem para a **análise
-   pela Matriz AnCo** (fluxo de `Analise` já existente).
-5. **Fluxograma PRISMA-ScR** — contagens (identificados, duplicados, triados,
-   incluídos, excluídos por motivo) em `/triagem/prisma/`, com export **CSV/JSON**.
+4. **Promoção** dos incluídos a `Artigo` (idempotente) → **análise pela Matriz AnCo**.
+5. **Rigor metodológico (Fase 11):** **concordância κ de Fleiss** + % de acordo,
+   **checklist PRISMA-ScR** (22 itens), **protocolo a priori** versionado/travado com
+   **registro externo** (OSF) e **calibração (piloto)** com gate de κ. **Fluxograma
+   PRISMA-ScR** em `/triagem/p/<slug>/prisma/`, com export **CSV/JSON**.
 
-**Reuso de infraestrutura**: o sorteio de revisores, o mascaramento e os pareceres
-estruturados da revisão cega de resenha foram **espelhados** para a triagem (módulo
-isolado, sem desestabilizar o fluxo de resenha). O **acervo histórico (legado)**, base
-de fundação curada por Eneida Santana, **não passa por triagem** — por construção.
+**Permissões.** Acesso e ações exigem ser **membro** do projeto; o **curador** gerencia
+tudo (e o admin é curador de qualquer projeto). O **analista** resolve apenas duplicatas
+de bases que **ele importou** e exclui apenas as **próprias** importações; a autorização
+é no servidor (não só na UI). O **acervo histórico (legado)** — base de fundação curada
+por Eneida Santana — **não passa por triagem nem é editável por analistas**, por construção.
 
-Com isso, o acervo é não só uma base navegável, mas um **protocolo de revisão de
-escopo reprodutível e reportável** de ponta a ponta. Detalhes em
-[docs/relatorios/fase-9.md](docs/relatorios/fase-9.md) e no *addendum* da
-especificação.
+Com isso, o acervo é não só uma base navegável, mas um **protocolo de revisão de escopo
+reprodutível e reportável** de ponta a ponta. Detalhes em
+[docs/relatorios/fase-9.md](docs/relatorios/fase-9.md) … [fase-12.md](docs/relatorios/fase-12.md)
+e em [docs/planos/fase-12-projetos.md](docs/planos/fase-12-projetos.md).
 
-Demais frentes de roadmap: cálculo de concordância (kappa) entre revisores na triagem;
-calibração ativa da busca semântica; fusão de contas de analistas legado.
+Demais frentes de roadmap: calibração ativa da busca semântica; edição da estratégia de
+busca direto na página do protocolo; fusão de contas de analistas legado.
 
 ---
 
