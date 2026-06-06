@@ -88,7 +88,7 @@
         {% if not request.user.is_authenticated %}
           {% include "partials/_btn.html" with label="Entrar para contribuir" variant="secondary" href="/accounts/login/" %}
         {% elif request.user.eh_analista %}
-          {% include "partials/_btn.html" with label="Enviar contribuição" variant="secondary" href="/acervo-analista/artigo/novo/" %}
+          {% include "partials/_btn.html" with label="Ir para o meu painel →" variant="secondary" href="/painel/" %}
         {% else %}
           {% include "partials/_btn.html" with label="Solicitar acesso de analista" variant="secondary" href="/perfil/" %}
         {% endif %}
@@ -330,26 +330,29 @@
         margin: 0 0 16px;
         color: var(--color-ink);
       ">
-        Você lê o artigo. <em>Dois pares</em> revisam sua análise. O acervo cresce.
+        A contribuição passa pelo <em>painel</em>. A curadoria coordena. O acervo cresce.
       </h3>
       <ol style="margin:0; padding:0; list-style:none; display:grid; gap:10px;">
         <li style="display:grid; grid-template-columns:24px 1fr; gap:10px; font-family:var(--font-sans); font-size:14px; color:var(--color-ink-2);">
           <span style="font-family:var(--font-serif); font-style:italic; color:var(--color-ink-4);">1.</span>
-          <span>Identifique o artigo e seus metadados via DOI ou CrossRef.</span>
+          <span>Entre na plataforma e solicite acesso de analista; depois acesse o seu painel.</span>
         </li>
         <li style="display:grid; grid-template-columns:24px 1fr; gap:10px; font-family:var(--font-sans); font-size:14px; color:var(--color-ink-2);">
           <span style="font-family:var(--font-serif); font-style:italic; color:var(--color-ink-4);">2.</span>
-          <span>Preencha a grade estrutural — pertinência, objeto, foco, epistemologia.</span>
+          <span>No projeto (Revisão ANCO), importe a sua base e revise as duplicatas.</span>
         </li>
         <li style="display:grid; grid-template-columns:24px 1fr; gap:10px; font-family:var(--font-sans); font-size:14px; color:var(--color-ink-2);">
           <span style="font-family:var(--font-serif); font-style:italic; color:var(--color-ink-4);">3.</span>
-          <span>Opcionalmente, redija uma resenha crítica autoral.</span>
+          <span>Após o sorteio da curadoria, analise os artigos da sua cota pela Matriz AnCo (treze campos).</span>
         </li>
         <li style="display:grid; grid-template-columns:24px 1fr; gap:10px; font-family:var(--font-sans); font-size:14px; color:var(--color-ink-2);">
           <span style="font-family:var(--font-serif); font-style:italic; color:var(--color-ink-4);">4.</span>
-          <span>Submeta. Dois pares revisam estrutura; mais dois revisam a resenha às cegas.</span>
+          <span>A curadoria aprova a análise; a resenha crítica (opcional) passa por revisão cega por pares.</span>
         </li>
       </ol>
+      <p class="t-small" style="margin:14px 0 0; color:var(--color-ink-3);">
+        Não há envio direto de artigo: toda contribuição é mediada pelo painel, no protocolo de Revisão ANCO.
+      </p>
     </div>
 
   </div>
