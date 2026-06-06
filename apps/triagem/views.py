@@ -905,6 +905,7 @@ def autotriar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
             "projeto": projeto,
             "protocolo": projeto,
             "registro": registro,
+            "eh_curador": projeto.eh_curador_no(request.user),
             "lista": lista,
             "i": i,
             "pos": i + 1,

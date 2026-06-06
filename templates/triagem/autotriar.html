@@ -27,7 +27,12 @@
 {% block content %}
 <div class="tg-wrap">
   <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome|default:projeto.titulo }}</a>
-  <h1 class="tg-h1" style="margin:6px 0 2px;">Triar a sua base <span class="tg-meta">(Revisão ANCO)</span></h1>
+  <h1 class="tg-h1" style="margin:6px 0 2px;">{% if eh_curador %}Triar — todas as bases{% else %}Triar a sua base{% endif %} <span class="tg-meta">(Revisão ANCO)</span></h1>
+  {% if eh_curador %}
+    <p class="tg-meta" style="margin:2px 0 0;">Você é <strong>curador</strong> deste projeto — vê registros de <strong>todas as bases</strong> (de todos os analistas). Cada registro mostra de qual base veio.</p>
+  {% else %}
+    <p class="tg-meta" style="margin:2px 0 0;">Mostrando apenas registros das <strong>bases que você importou</strong>.</p>
+  {% endif %}
 
   <div class="at-tabs">
     <a class="at-tab {% if lista == 'pendentes' %}ativa{% endif %}" href="?lista=pendentes&i=0">A triar ({{ n_pendentes }})</a>
@@ -85,6 +90,14 @@
       <div class="tg-meta" style="margin-top:6px;">
         {% if registro.ano %}{{ registro.ano }}{% endif %}{% if registro.titulo_periodico %} · {{ registro.titulo_periodico }}{% endif %}{% if registro.idioma %} · {{ registro.idioma }}{% endif %}
       </div>
+      {% with proc=registro.procedencia %}
+      {% if proc %}
+        <p class="tg-meta" style="margin-top:6px;padding:3px 9px;border-radius:6px;background:var(--color-paper-2);display:inline-block;">
+          <strong>Base:</strong>
+          {% for p in proc %}{{ p.base }} <span style="color:var(--color-ink-3);">(importado por {{ p.por }})</span>{% if not forloop.last %} · {% endif %}{% endfor %}
+        </p>
+      {% endif %}
+      {% endwith %}
       {% if registro.autores %}
         <p class="tg-meta" style="margin-top:8px;"><strong>Autores:</strong> {{ registro.autores }}</p>
       {% endif %}
