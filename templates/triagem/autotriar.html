@@ -85,6 +85,9 @@
       <div class="tg-meta" style="margin-top:6px;">
         {% if registro.ano %}{{ registro.ano }}{% endif %}{% if registro.titulo_periodico %} · {{ registro.titulo_periodico }}{% endif %}{% if registro.idioma %} · {{ registro.idioma }}{% endif %}
       </div>
+      {% if registro.autores %}
+        <p class="tg-meta" style="margin-top:8px;"><strong>Autores:</strong> {{ registro.autores }}</p>
+      {% endif %}
       {% if registro.resumo %}
         <p style="margin-top:12px;font-family:var(--font-sans);font-size:14.5px;line-height:1.6;color:var(--color-ink-2);max-height:340px;overflow:auto;">{{ registro.resumo|realce:termos_realce }}</p>
       {% else %}
@@ -93,8 +96,11 @@
       {% if registro.palavras_chaves %}
         <p class="tg-meta" style="margin-top:12px;"><strong>Palavras-chave:</strong> {{ registro.palavras_chaves|realce:termos_realce }}</p>
       {% endif %}
-      {% if registro.link %}<a href="{{ registro.link }}" target="_blank" rel="noopener" style="display:inline-block;margin-top:12px;color:var(--color-gold-deep);font-size:14px;">Abrir fonte &nearr;</a>
-      {% elif registro.doi %}<a href="https://doi.org/{{ registro.doi }}" target="_blank" rel="noopener" style="display:inline-block;margin-top:12px;color:var(--color-gold-deep);font-size:14px;">Abrir pelo DOI &nearr;</a>{% endif %}
+      {% if registro.doi %}
+        <p class="tg-meta" style="margin-top:10px;"><strong>DOI:</strong>
+          <a href="https://doi.org/{{ registro.doi }}" target="_blank" rel="noopener" style="color:var(--color-gold-deep);">{{ registro.doi }}</a></p>
+      {% endif %}
+      {% if registro.link %}<a href="{{ registro.link }}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;color:var(--color-gold-deep);font-size:14px;">Abrir fonte &nearr;</a>{% endif %}
     </article>
 
   {% elif lista == 'incluidos' %}
