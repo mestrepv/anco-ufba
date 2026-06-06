@@ -43,7 +43,6 @@
     </div>
     <div class="tg-actions">
       <a href="{% url 'triagem_ajuda' %}" class="btn btn-secondary">Como funciona?</a>
-      <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-primary">Importar busca</a>
     </div>
   </div>
 
@@ -146,6 +145,7 @@
       {% endif %}
     {% endif %}
     <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">A analisar</a>
+    <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-secondary">Importar busca</a>
   </div>
 
   {# ── Importações ──────────────────────────────────────────────────── #}
