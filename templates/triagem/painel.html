@@ -64,8 +64,9 @@
     </div>
   </div>
 
-  {# ── Andamento (funil PRISMA + concordância) ──────────────────────── #}
+  {# ── Andamento ────────────────────────────────────────────────────── #}
   <h2 class="tg-h2">Andamento</h2>
+  {% if not projeto.eh_anco %}
   <div class="tg-card" style="margin-bottom:14px;">
     <div class="pj-funil">
       <span><b>{{ c.identificados_relatado }}</b> relatados</span><span class="seta">→</span>
@@ -73,11 +74,12 @@
       <span><b>{{ c.elegiveis }}</b> elegíveis</span><span class="seta">→</span>
       <span><b>{{ c.em_triagem }}</b> em triagem</span><span class="seta">→</span>
       <span style="color:var(--color-ok);"><b style="color:var(--color-ok);">{{ c.incluidos }}</b> incluídos</span>
-      {% if not projeto.eh_anco and acordo.kappa is not None %}<span class="seta">·</span><span>κ {{ acordo.kappa|floatformat:2 }} <span class="tg-meta">({{ acordo.interpretacao }})</span></span>{% endif %}
+      {% if acordo.kappa is not None %}<span class="seta">·</span><span>κ {{ acordo.kappa|floatformat:2 }} <span class="tg-meta">({{ acordo.interpretacao }})</span></span>{% endif %}
     </div>
     <p class="tg-meta" style="margin:10px 0 0;">{{ c.ja_no_acervo }} já no acervo (isentos) · {{ c.duplicados_entre_bases }} duplicados entre bases ·
       <a href="{% url 'triagem_prisma' projeto.slug %}" style="color:var(--color-gold-deep);">Fluxograma PRISMA completo →</a></p>
   </div>
+  {% endif %}
 
   {% if cards %}
   <div class="tg-grid-stats" style="margin-bottom:28px;">
