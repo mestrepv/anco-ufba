@@ -25,6 +25,23 @@
     {% csrf_token %}
     {% for erro in form.non_field_errors %}<p class="tg-err">{{ erro }}</p>{% endfor %}
 
+    <div class="tg-fieldset-title" style="margin-top:0;">Arquivo da base</div>
+    <div class="tg-field">
+      <label for="{{ form.arquivo.id_for_label }}">{{ form.arquivo.label }} <span style="color:var(--color-danger);">*</span></label>
+      {{ form.arquivo }}
+      {% for e in form.arquivo.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
+    </div>
+    <div class="tg-row-2">
+      <div class="tg-field">
+        <label for="{{ form.data_busca.id_for_label }}">{{ form.data_busca.label }}</label>
+        {{ form.data_busca }}
+      </div>
+      <div class="tg-field">
+        <label for="{{ form.formato.id_for_label }}">{{ form.formato.label }}</label>
+        {{ form.formato }}
+      </div>
+    </div>
+
     <div class="tg-fieldset-title">Origem</div>
     {% for campo in form %}{% if campo.name == "base_consulta" or campo.name == "outra_base" or campo.name == "n_identificados" %}
       <div class="tg-field">
@@ -100,23 +117,6 @@
       <label for="{{ form.filtros.id_for_label }}">{{ form.filtros.label }}</label>
       {{ form.filtros }}
       <p class="tg-help">{{ form.filtros.help_text }}</p>
-    </div>
-
-    <div class="tg-fieldset-title">Arquivo</div>
-    <div class="tg-row-2">
-      <div class="tg-field">
-        <label for="{{ form.data_busca.id_for_label }}">{{ form.data_busca.label }}</label>
-        {{ form.data_busca }}
-      </div>
-      <div class="tg-field">
-        <label for="{{ form.formato.id_for_label }}">{{ form.formato.label }}</label>
-        {{ form.formato }}
-      </div>
-    </div>
-    <div class="tg-field">
-      <label for="{{ form.arquivo.id_for_label }}">{{ form.arquivo.label }} <span style="color:var(--color-danger);">*</span></label>
-      {{ form.arquivo }}
-      {% for e in form.arquivo.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
     </div>
 
     <button type="submit" class="btn btn-primary">Importar</button>
