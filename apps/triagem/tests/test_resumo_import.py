@@ -36,9 +36,11 @@ def base_termo(db):
 
 @pytest.fixture
 def analista(db):
-    return membro(User.objects.create_user(
-        username="ana", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
-    ))
+    return membro(
+        User.objects.create_user(
+            username="ana", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
+        )
+    )
 
 
 def test_menu_base_sem_prefixo(base_termo):
@@ -70,8 +72,11 @@ def test_ja_no_acervo_contado(protocolo, base_termo):
 def _upload(client, base_termo, n_identificados, conteudo=RIS, **extra):
     arq = SimpleUploadedFile("scopus.ris", conteudo.encode("utf-8"))
     data = {
-        "base_consulta": base_termo.pk, "formato": "", "arquivo": arq,
-        "n_identificados": n_identificados, **extra,
+        "base_consulta": base_termo.pk,
+        "formato": "",
+        "arquivo": arq,
+        "n_identificados": n_identificados,
+        **extra,
     }
     return client.post(turl("triagem_importar"), data=data)
 
@@ -93,9 +98,16 @@ def test_upload_guarda_filtros_estruturados(client, analista, base_termo, settin
     settings.MEDIA_ROOT = str(tmp_path)
     client.force_login(analista)
     resp = _upload(
-        client, base_termo, 1, string_busca="cog", campos_busca=["topico", "resumo"],
-        ano_inicio=2017, ano_fim=2025, idiomas=["en", "pt"],
-        tipos_documento=["artigo", "revisao"], filtros="acesso aberto",
+        client,
+        base_termo,
+        1,
+        string_busca="cog",
+        campos_busca=["topico", "resumo"],
+        ano_inicio=2017,
+        ano_fim=2025,
+        idiomas=["en", "pt"],
+        tipos_documento=["artigo", "revisao"],
+        filtros="acesso aberto",
     )
     assert resp.status_code == 302
     busca = Busca.objects.latest("pk")
@@ -187,6 +199,7 @@ def test_excluir_busca_intocada(client, analista, base_termo, settings, tmp_path
     _upload(client, base_termo, 1)
     busca = Busca.objects.latest("pk")
     from apps.triagem.models import RegistroTriagem
+
     assert RegistroTriagem.objects.filter(doi="10.1/abc").exists()
     resp = client.post(turl("triagem_busca_excluir", args=[busca.pk]))
     assert resp.status_code == 302
@@ -195,7 +208,10 @@ def test_excluir_busca_intocada(client, analista, base_termo, settings, tmp_path
     assert not RegistroTriagem.objects.filter(doi="10.1/abc").exists()
 
 
-def test_excluir_bloqueado_se_ja_triado(client, analista, base_termo, settings, tmp_path):
+def test_excluir_bloqueado_para_nao_curador_apos_triagem(
+    client, analista, base_termo, settings, tmp_path
+):
+    """Após a triagem começar, o importador não-curador é bloqueado (403)."""
     from apps.triagem.models import RegistroTriagem
 
     settings.MEDIA_ROOT = str(tmp_path)
@@ -206,9 +222,38 @@ def test_excluir_bloqueado_se_ja_triado(client, analista, base_termo, settings, 
     reg.status = RegistroTriagem.Status.EM_TRIAGEM  # já entrou em triagem
     reg.save()
     resp = client.post(turl("triagem_busca_excluir", args=[busca.pk]))
-    assert resp.status_code == 302
+    assert resp.status_code == 403
     assert Busca.objects.filter(pk=busca.pk).exists()  # NÃO excluiu
     assert RegistroTriagem.objects.filter(pk=reg.pk).exists()
+
+
+def test_curador_exclui_apos_triagem_em_cascata(client, analista, base_termo, settings, tmp_path):
+    """Após a triagem, o curador pode excluir — e a triagem vai junto."""
+    from apps.triagem.models import RegistroTriagem
+
+    settings.MEDIA_ROOT = str(tmp_path)
+    client.force_login(analista)
+    _upload(client, base_termo, 1)
+    busca = Busca.objects.latest("pk")
+    reg = RegistroTriagem.objects.get(doi="10.1/abc")
+    reg.status = RegistroTriagem.Status.INCLUIDO
+    reg.save()
+
+    curador = membro(
+        User.objects.create_user(
+            username="cur",
+            email="cur@u.edu",
+            password="x",
+            papel=User.Papel.CURADOR,
+            is_staff=True,
+        ),
+        papel="curador",
+    )
+    client.force_login(curador)
+    resp = client.post(turl("triagem_busca_excluir", args=[busca.pk]))
+    assert resp.status_code == 302
+    assert not Busca.objects.filter(pk=busca.pk).exists()  # excluída
+    assert not RegistroTriagem.objects.filter(pk=reg.pk).exists()  # triagem junto
 
 
 def test_excluir_so_pelo_importador_ou_curador(client, analista, base_termo, settings, tmp_path):
@@ -218,9 +263,11 @@ def test_excluir_so_pelo_importador_ou_curador(client, analista, base_termo, set
     busca = Busca.objects.latest("pk")
 
     # outro membro (não importou) não vê o botão nem pode excluir
-    outro = membro(User.objects.create_user(
-        username="outro", email="outro@u.edu", password="x", papel=User.Papel.ANALISTA
-    ))
+    outro = membro(
+        User.objects.create_user(
+            username="outro", email="outro@u.edu", password="x", papel=User.Papel.ANALISTA
+        )
+    )
     client.force_login(outro)
     detalhe = client.get(turl("triagem_busca_resumo", args=[busca.pk]))
     assert b"Excluir importa" not in detalhe.content  # botão escondido

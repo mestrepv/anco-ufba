@@ -69,6 +69,17 @@
     <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">A analisar{% if minha_a_analisar %} ({{ minha_a_analisar }}){% endif %}</a>
     <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-secondary">Importar busca</a>
   </div>
+  {# ── Minhas importações ─────────────────────────────────────────── #}
+  <h2 class="tg-h2">Minhas importações <span class="tg-meta">({{ minhas_buscas|length }})</span></h2>
+  <p class="tg-meta" style="margin:-2px 0 12px;">As bases que <strong>você</strong> carregou. Você pode excluir uma importação <strong>enquanto a triagem dela não começou</strong>; depois, só o curador.</p>
+  <div style="margin-bottom:24px;">
+  {% if minhas_buscas %}
+    {% for b in minhas_buscas %}{% include "triagem/_busca_row.html" %}{% endfor %}
+  {% else %}
+    <p class="tg-empty">Você ainda não carregou nenhuma base. Comece em <a href="{% url 'triagem_importar' projeto.slug %}" style="color:var(--color-gold-deep);">Importar busca</a>.</p>
+  {% endif %}
+  </div>
+
   <p class="tg-meta" style="margin-bottom:8px;"><strong>Objetivo:</strong> {{ protocolo.pergunta_pesquisa|default:"(a definir)" }} · <a href="{% url 'triagem_protocolo' projeto.slug %}" style="color:var(--color-gold-deep);">ver protocolo →</a></p>
 
 {% else %}
@@ -142,20 +153,7 @@
   <p class="tg-meta" style="margin:-2px 0 12px;">Quem importou, quando e o resultado da deduplicação. Clique para ver a comparação com o acervo e gerenciar.</p>
   <div style="margin-bottom:28px;">
   {% if buscas %}
-    {% for b in buscas %}
-      <a href="{% url 'triagem_busca_resumo' projeto.slug b.pk %}" class="busca-row">
-        <div>
-          <div class="b-base">{{ b.base_nome|default:"Importação" }}</div>
-          <div class="b-meta">
-            {% if b.formato %}{{ b.get_formato_display }} · {% endif %}por <span class="b-por">{{ b.criado_por.nome_exibicao|default:b.criado_por.email|default:"—" }}</span> · {{ b.importado_em|date:"d/m/Y H:i"|default:"—" }}
-          </div>
-        </div>
-        <div class="b-nums">
-          <strong>{{ b.n_novos }}</strong> novos · {{ b.n_ja_no_acervo }} no acervo<br>
-          <span class="tg-meta">{{ b.n_lidos }} lidos{% if b.n_identificados %} / {{ b.n_identificados }} relatados{% if b.n_lidos != b.n_identificados %} <span style="color:var(--color-danger);">⚠</span>{% endif %}{% endif %}</span>
-        </div>
-      </a>
-    {% endfor %}
+    {% for b in buscas %}{% include "triagem/_busca_row.html" %}{% endfor %}
   {% else %}
     <p class="tg-empty">Nenhuma importação ainda. Comece em <a href="{% url 'triagem_importar' projeto.slug %}" style="color:var(--color-gold-deep);">Importar busca</a>.</p>
   {% endif %}

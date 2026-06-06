@@ -32,6 +32,7 @@ FORMATOS = {"ris", "bibtex", "csv"}
 # Normalização de campos brutos
 # --------------------------------------------------------------------------- #
 
+
 def _txt(valor) -> str:
     """Achata str|list|None em texto; listas viram 'a; b; c'."""
     if valor is None:
@@ -62,14 +63,21 @@ def _limpa_chaves(valor: str) -> str:
 
 # Códigos de tipo (RIS TY / BibTeX entrytype) → rótulo legível em pt-BR.
 _TIPO_MAP = {
-    "jour": "Artigo", "article": "Artigo",
+    "jour": "Artigo",
+    "article": "Artigo",
     "book": "Livro",
-    "chap": "Capítulo", "inbook": "Capítulo", "incollection": "Capítulo",
-    "cpaper": "Trabalho de evento", "conf": "Trabalho de evento",
-    "inproceedings": "Trabalho de evento", "conference": "Trabalho de evento",
-    "thes": "Tese/Dissertação", "phdthesis": "Tese/Dissertação",
+    "chap": "Capítulo",
+    "inbook": "Capítulo",
+    "incollection": "Capítulo",
+    "cpaper": "Trabalho de evento",
+    "conf": "Trabalho de evento",
+    "inproceedings": "Trabalho de evento",
+    "conference": "Trabalho de evento",
+    "thes": "Tese/Dissertação",
+    "phdthesis": "Tese/Dissertação",
     "mastersthesis": "Tese/Dissertação",
-    "rprt": "Relatório", "techreport": "Relatório",
+    "rprt": "Relatório",
+    "techreport": "Relatório",
     "review": "Resenha",
 }
 
@@ -85,6 +93,7 @@ def _tipo_legivel(codigo) -> str:
 # Saída padrão de cada parser: dicts com as chaves
 #   titulo, autores, ano, doi, isbn, resumo, palavras_chaves,
 #   titulo_periodico, idioma, link
+
 
 def parse_ris(conteudo: str) -> list[dict]:
     import rispy
@@ -149,7 +158,14 @@ _CSV_MAPA = {
     "isbn": ("isbn", "issn", "sn"),
     "resumo": ("resumo", "abstract", "ab"),
     "palavras_chaves": ("palavras_chaves", "palavras-chave", "keywords", "kw"),
-    "titulo_periodico": ("titulo_periodico", "periodico", "periódico", "journal", "source", "fonte"),
+    "titulo_periodico": (
+        "titulo_periodico",
+        "periodico",
+        "periódico",
+        "journal",
+        "source",
+        "fonte",
+    ),
     "idioma": ("idioma", "language", "la"),
     "link": ("link", "url", "ur", "link_acesso"),
     "tipo": ("tipo", "tipo_documento", "type", "document type", "dt", "ty"),
@@ -230,32 +246,60 @@ def decodificar(bytes_arquivo: bytes) -> str:
 _STATUS_TRIADOS = RegistroTriagem.TRIADOS
 
 
-def busca_pode_excluir(busca) -> tuple[bool, str]:
-    """Pode excluir? Só se nada dela já entrou em triagem (marcar duplicata, não).
+def triagem_iniciada(busca) -> bool:
+    """A triagem já começou para algum registro desta importação?"""
+    return busca.registros.filter(status__in=_STATUS_TRIADOS).exists()
 
-    `identificado` e `duplicado` são pré-triagem (refeitos no reimport); apagar é
-    seguro. `em_triagem`/`incluido`/`excluido` significam trabalho a preservar.
-    """
-    if busca.registros.filter(status__in=_STATUS_TRIADOS).exists():
+
+def busca_pode_excluir(busca) -> tuple[bool, str]:
+    """Pré-triagem? (compat) — True se nada dela entrou em triagem ainda."""
+    if triagem_iniciada(busca):
         return False, (
-            "Esta importação já entrou em triagem — não é possível excluí-la "
-            "para preservar o trabalho já feito."
+            "Esta importação já entrou em triagem — só o curador pode excluí-la "
+            "(a triagem correspondente é apagada junto)."
         )
     return True, ""
 
 
-def excluir_busca(busca) -> tuple[bool, str]:
-    """Exclui a importação e seus registros intocados (idempotente-seguro).
+def pode_excluir_busca(busca, user, projeto) -> tuple[bool, bool, str]:
+    """Permissão de exclusão para `user`. Retorna (pode, cascata, motivo).
 
-    Registros cuja única origem é esta busca (e ainda não triados) são apagados;
-    os compartilhados com outra busca são apenas desvinculados.
+    - **Antes** da triagem: importador **ou** curador pode excluir (cascata=False).
+    - **Depois** que a triagem começou: **só curador**, e a exclusão **apaga a
+      triagem junto** (cascata=True).
     """
-    ok, motivo = busca_pode_excluir(busca)
-    if not ok:
-        return False, motivo
+    eh_cur = projeto.eh_curador_no(user)
+    if not triagem_iniciada(busca):
+        if busca.criado_por_id == user.id or eh_cur:
+            return True, False, ""
+        return False, False, "Só quem importou (ou o curador) pode excluir esta importação."
+    if eh_cur:
+        return True, True, ""
+    return False, False, ("A triagem já começou — só o curador pode excluir esta importação.")
+
+
+def excluir_busca(busca, forcar: bool = False) -> tuple[bool, str]:
+    """Exclui a importação e seus registros.
+
+    Sem `forcar`, recusa se a triagem já começou (preserva o trabalho). Com
+    `forcar` (curador), apaga também os registros já triados e suas decisões — a
+    **triagem vai junto**. Registros compartilhados com outra busca são apenas
+    desvinculados. `Artigo` promovido órfão (não-legado, sem análises e sem outro
+    registro) é removido; o acervo curado nunca é tocado.
+    """
+    if not forcar and triagem_iniciada(busca):
+        return False, busca_pode_excluir(busca)[1]
     for reg in list(busca.registros.all()):
         if reg.origem_buscas.count() <= 1:
-            reg.delete()
+            artigo = reg.artigo
+            reg.delete()  # cascata: DecisaoTriagem
+            if (
+                artigo
+                and not artigo.eh_legado
+                and artigo.analises.count() == 0
+                and not artigo.registros_triagem.exists()
+            ):
+                artigo.delete()
         else:
             reg.origem_buscas.remove(busca)
     if busca.arquivo:
@@ -308,9 +352,7 @@ def importar_para_busca(busca: Busca, registros_brutos: list[dict]) -> Resultado
         periodico = _txt(bruto.get("titulo_periodico"))
         ident = chave_dedup(doi, isbn, titulo, ano, periodico)
 
-        existente = RegistroTriagem.objects.filter(
-            protocolo=protocolo, identificador=ident
-        ).first()
+        existente = RegistroTriagem.objects.filter(protocolo=protocolo, identificador=ident).first()
         if existente is not None:
             # Mesma referência já vista (possivelmente em outra base) → mescla origem.
             existente.origem_buscas.add(busca)
@@ -351,14 +393,23 @@ def importar_para_busca(busca: Busca, registros_brutos: list[dict]) -> Resultado
     busca.importado_em = timezone.now()
     busca.save(
         update_fields=[
-            "n_lidos", "n_novos", "n_duplicados", "n_ja_no_acervo",
-            "n_ignorados", "importado_em",
+            "n_lidos",
+            "n_novos",
+            "n_duplicados",
+            "n_ja_no_acervo",
+            "n_ignorados",
+            "importado_em",
         ]
     )
 
     logger.info(
         "Importação busca=%s base=%s total=%d criados=%d duplicados=%d ja_no_acervo=%d ignorados=%d",
-        busca.pk, busca.base_nome, res.total, res.criados, res.duplicados,
-        res.ja_no_acervo, res.ignorados,
+        busca.pk,
+        busca.base_nome,
+        res.total,
+        res.criados,
+        res.duplicados,
+        res.ja_no_acervo,
+        res.ignorados,
     )
     return res

@@ -1,0 +1,24 @@
+{% comment %}Linha de uma importação (Busca) com botão de excluir. Params: b, projeto.{% endcomment %}
+<div style="display:flex;align-items:stretch;gap:10px;">
+  <a href="{% url 'triagem_busca_resumo' projeto.slug b.pk %}" class="busca-row" style="flex:1;">
+    <div>
+      <div class="b-base">{{ b.base_nome|default:"Importação" }}</div>
+      <div class="b-meta">
+        {% if b.formato %}{{ b.get_formato_display }} · {% endif %}por <span class="b-por">{{ b.criado_por.nome_exibicao|default:b.criado_por.email|default:"—" }}</span> · {{ b.importado_em|date:"d/m/Y H:i"|default:"—" }}
+      </div>
+    </div>
+    <div class="b-nums">
+      <strong>{{ b.n_novos }}</strong> novos · {{ b.n_ja_no_acervo }} no acervo<br>
+      <span class="tg-meta">{{ b.n_lidos }} lidos{% if b.n_identificados %} / {{ b.n_identificados }} relatados{% if b.n_lidos != b.n_identificados %} <span style="color:var(--color-danger);">⚠</span>{% endif %}{% endif %}</span>
+    </div>
+  </a>
+  {% if b.pode_excluir %}
+    <form method="post" action="{% url 'triagem_busca_excluir' projeto.slug b.pk %}"
+          onsubmit="return confirm('{% if b.excluir_cascata %}A triagem desta importação será APAGADA junto. {% endif %}Excluir esta importação{% if b.base_nome %} “{{ b.base_nome|escapejs }}”{% endif %}?');"
+          style="display:flex;align-items:center;margin-bottom:8px;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm" title="{% if b.excluir_cascata %}A triagem é apagada junto{% else %}Excluir importação{% endif %}"
+              style="border-color:var(--color-danger);color:var(--color-danger);white-space:nowrap;">Excluir{% if b.excluir_cascata %} +triagem{% endif %}</button>
+    </form>
+  {% endif %}
+</div>

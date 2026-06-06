@@ -39,12 +39,12 @@ from .autotriagem import (
 )
 from .forms import DecisaoTriagemForm, DesempateForm, ImportarBuscaForm
 from .importacao import (
-    busca_pode_excluir,
     decodificar,
     detectar_formato,
     excluir_busca,
     importar_para_busca,
     parse_conteudo,
+    pode_excluir_busca,
 )
 from .models import (
     AtribuicaoAnalise,
@@ -200,14 +200,24 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
     _St = RegistroTriagem.Status
     eh_curador = projeto.eh_curador_no(request.user)
 
-    buscas = projeto.buscas.select_related("criado_por", "base_consulta").order_by(
-        "-importado_em", "-criado_em"
-    )[:50]
+    buscas = list(
+        projeto.buscas.select_related("criado_por", "base_consulta").order_by(
+            "-importado_em", "-criado_em"
+        )[:50]
+    )
+    # Anota permissão de exclusão por importação (regra: importador antes da
+    # triagem; só curador depois, apagando a triagem junto).
+    for b in buscas:
+        pode, cascata, _motivo = pode_excluir_busca(b, request.user, projeto)
+        b.pode_excluir = pode
+        b.excluir_cascata = cascata
+    minhas_buscas = [b for b in buscas if b.criado_por_id == request.user.id]
     membros = projeto.membros.select_related("usuario").order_by("-papel", "usuario__nome_exibicao")
     contexto = {
         "projeto": projeto,
         "protocolo": projeto,
         "buscas": buscas,
+        "minhas_buscas": minhas_buscas,
         "n_buscas": projeto.buscas.count(),
         "n_registros": projeto.registros.count(),
         "eh_curador": eh_curador,
@@ -289,9 +299,7 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
             ("Excluído", contagens.get(_St.EXCLUIDO, 0), f"{_reg_url}?status=excluido"),
         ]
         # Grid do painel de curadoria (o de "Meu trabalho" usa cards_trabalho).
-        contexto["cards"] = [
-            {"rotulo": r, "count": n, "href": h} for r, n, h in brutos if n
-        ]
+        contexto["cards"] = [{"rotulo": r, "count": n, "href": h} for r, n, h in brutos if n]
         contexto["aba"] = aba
         return render(request, "triagem/painel.html", contexto)
 
@@ -385,9 +393,9 @@ def busca_resumo_view(
         if r.ja_no_acervo
     ]
     novos = [r for r in registros if not r.ja_no_acervo]
-    pode_excluir, motivo_bloqueio = busca_pode_excluir(busca)
-    # Só o importador (ou o curador) gerencia/exclui a própria importação.
-    pode_gerenciar = busca.criado_por_id == request.user.id or projeto.eh_curador_no(request.user)
+    pode_excluir, excluir_cascata, motivo_bloqueio = pode_excluir_busca(
+        busca, request.user, projeto
+    )
     return render(
         request,
         "triagem/busca_resumo.html",
@@ -399,8 +407,9 @@ def busca_resumo_view(
             "n_ja_acervo": len(ja_acervo),
             "n_novos": len(novos),
             "pode_excluir": pode_excluir,
+            "excluir_cascata": excluir_cascata,
             "motivo_bloqueio": motivo_bloqueio,
-            "pode_gerenciar": pode_gerenciar,
+            "pode_gerenciar": pode_excluir,
         },
     )
 
@@ -410,18 +419,23 @@ def busca_resumo_view(
 def excluir_busca_view(
     request: HttpRequest, projeto: ProtocoloTriagem, busca_id: int
 ) -> HttpResponse:
-    """Exclui uma importação e seus registros intocados (para reimportar)."""
+    """Exclui uma importação. Antes da triagem: importador ou curador. Depois:
+    só curador, e a triagem é apagada junto."""
     busca = get_object_or_404(Busca, pk=busca_id, protocolo=projeto)
-    if not (busca.criado_por_id == request.user.id or projeto.eh_curador_no(request.user)):
-        return HttpResponseForbidden(
-            "Só quem importou (ou o curador) pode excluir esta importação."
-        )
-    ok, motivo = excluir_busca(busca)
+    pode, cascata, motivo = pode_excluir_busca(busca, request.user, projeto)
+    if not pode:
+        return HttpResponseForbidden(motivo)
+    ok, msg = excluir_busca(busca, forcar=cascata)
     if ok:
-        messages.success(request, "Importação excluída. Você pode importar de novo.")
+        messages.success(
+            request,
+            "Importação e a triagem correspondente excluídas."
+            if cascata
+            else "Importação excluída. Você pode importar de novo.",
+        )
         return redirect("triagem_painel", slug=projeto.slug)
-    messages.error(request, motivo)
-    return redirect("triagem_busca_resumo", slug=projeto.slug, busca_id=busca_id)
+    messages.error(request, msg)
+    return redirect("triagem_painel", slug=projeto.slug)
 
 
 @_projeto_analista
