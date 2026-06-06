@@ -39,7 +39,7 @@
     <div class="tg-field">
       <label for="id_arquivo">Arquivo exportado <span style="color:var(--color-danger);">*</span></label>
       <input type="file" name="arquivo" id="id_arquivo" class="imp-file"
-             accept=".ris,.nbib,.bib,.bibtex,.csv,.tsv,.txt,.enw,.ciw"
+             accept=".ris,.nbib,.bib,.bibtex,.csv,.tsv,.txt"
              hx-post="{% url 'triagem_importar_preview' projeto.slug %}"
              hx-trigger="change"
              hx-target="#arquivo-preview"
