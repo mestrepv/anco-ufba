@@ -196,11 +196,35 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
 
     # Só os status com registros (não polui com zeros).
     contagens = dict(projeto.registros.values_list("status").annotate(n=Count("id")))
-    cards = [
-        {"codigo": codigo, "rotulo": rotulo, "count": contagens.get(codigo, 0)}
-        for codigo, rotulo in RegistroTriagem.Status.choices
-        if contagens.get(codigo, 0)
-    ]
+    _reg_url = reverse("triagem_registros", args=[projeto.slug])
+    if projeto.eh_anco:
+        # Cards que reconciliam com o total importado: a-triar + isentos +
+        # incluídos + excluídos = total (o status IDENTIFICADO sozinho misturaria
+        # os já-no-acervo com os que faltam triar).
+        _St = RegistroTriagem.Status
+        a_triar = projeto.registros.filter(status=_St.IDENTIFICADO, ja_no_acervo=False).count()
+        isentos = projeto.registros.filter(ja_no_acervo=True).count()
+        brutos = [
+            ("A triar", a_triar, reverse("triagem_autotriar", args=[projeto.slug])),
+            ("Já no acervo (isentos)", isentos, f"{_reg_url}?status=identificado"),
+            ("Incluído", contagens.get(_St.INCLUIDO, 0), reverse("triagem_incluidos", args=[projeto.slug])),
+            ("Excluído", contagens.get(_St.EXCLUIDO, 0), f"{_reg_url}?status=excluido"),
+        ]
+        cards = [
+            {"rotulo": rotulo, "count": n, "href": href}
+            for rotulo, n, href in brutos
+            if n
+        ]
+    else:
+        cards = [
+            {
+                "rotulo": rotulo,
+                "count": contagens.get(codigo, 0),
+                "href": f"{_reg_url}?status={codigo}",
+            }
+            for codigo, rotulo in RegistroTriagem.Status.choices
+            if contagens.get(codigo, 0)
+        ]
     buscas = projeto.buscas.select_related("criado_por", "base_consulta").order_by(
         "-importado_em", "-criado_em"
     )[:50]

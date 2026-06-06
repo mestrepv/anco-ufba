@@ -84,7 +84,7 @@
   {% if cards %}
   <div class="tg-grid-stats" style="margin-bottom:28px;">
     {% for card in cards %}
-      <a class="tg-stat" href="{% url 'triagem_registros' projeto.slug %}?status={{ card.codigo }}">
+      <a class="tg-stat" href="{{ card.href }}">
         <div class="n">{{ card.count }}</div><div class="l">{{ card.rotulo }}</div>
       </a>
     {% endfor %}
