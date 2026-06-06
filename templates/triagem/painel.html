@@ -111,20 +111,10 @@
     <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">A analisar</a>
   </div>
 
-  {# ── Equipe ───────────────────────────────────────────────────────── #}
-  <h2 class="tg-h2">Equipe <span class="tg-meta">({{ n_membros }})</span></h2>
-  <div class="pj-membros" style="margin-bottom:28px;">
-    {% for m in membros %}
-      <span class="pj-membro">{{ m.usuario.nome_exibicao|default:m.usuario.email }}{% if m.papel == 'curador' %} <span class="papel">curador</span>{% endif %}</span>
-    {% empty %}
-      <span class="tg-meta">Sem membros designados.</span>
-    {% endfor %}
-    {% if eh_curador %}<a href="/admin/triagem/protocolotriagem/{{ projeto.pk }}/change/" class="pj-membro" style="border-style:dashed;color:var(--color-gold-deep);">+ gerenciar equipe</a>{% endif %}
-  </div>
-
   {# ── Importações ──────────────────────────────────────────────────── #}
   <h2 class="tg-h2">Importações <span class="tg-meta">({{ n_buscas }})</span></h2>
   <p class="tg-meta" style="margin:-2px 0 12px;">Quem importou, quando e o resultado da deduplicação. Clique para ver a comparação com o acervo e gerenciar.</p>
+  <div style="margin-bottom:28px;">
   {% if buscas %}
     {% for b in buscas %}
       <a href="{% url 'triagem_busca_resumo' projeto.slug b.pk %}" class="busca-row">
@@ -143,5 +133,17 @@
   {% else %}
     <p class="tg-empty">Nenhuma importação ainda. Comece em <a href="{% url 'triagem_importar' projeto.slug %}" style="color:var(--color-gold-deep);">Importar busca</a>.</p>
   {% endif %}
+  </div>
+
+  {# ── Equipe ───────────────────────────────────────────────────────── #}
+  <h2 class="tg-h2">Equipe <span class="tg-meta">({{ n_membros }})</span></h2>
+  <div class="pj-membros" style="margin-bottom:28px;">
+    {% for m in membros %}
+      <span class="pj-membro">{{ m.usuario.nome_exibicao|default:m.usuario.email }}{% if m.papel == 'curador' %} <span class="papel">curador</span>{% endif %}</span>
+    {% empty %}
+      <span class="tg-meta">Sem membros designados.</span>
+    {% endfor %}
+    {% if eh_curador %}<a href="/admin/triagem/protocolotriagem/{{ projeto.pk }}/change/" class="pj-membro" style="border-style:dashed;color:var(--color-gold-deep);">+ gerenciar equipe</a>{% endif %}
+  </div>
 </div>
 {% endblock %}
