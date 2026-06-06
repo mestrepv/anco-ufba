@@ -258,6 +258,16 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
             if atribuidos
             else 0
         )
+        # Itens incluídos de forma avulsa: análises suas sobre artigos que não
+        # vieram de triagem (entraram por "Importar avulso").
+        meus_avulsos = (
+            Analise.objects.filter(
+                analista=request.user, artigo__registros_triagem__isnull=True
+            )
+            .exclude(status=Analise.Status.LEGADO)
+            .distinct()
+            .count()
+        )
         contexto["cards_trabalho"] = [
             {
                 "rotulo": "A triar",
@@ -278,6 +288,11 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
                 "rotulo": "A analisar",
                 "count": minha_a_analisar,
                 "href": reverse("triagem_a_analisar"),
+            },
+            {
+                "rotulo": "Avulsos",
+                "count": meus_avulsos,
+                "href": reverse("minhas_analises"),
             },
         ]
         contexto["minha_dup"] = dup.contar_pares_do_usuario(projeto, request.user, False)
