@@ -89,7 +89,7 @@
         <p class="tg-meta" style="margin-top:8px;"><strong>Autores:</strong> {{ registro.autores }}</p>
       {% endif %}
       {% if registro.resumo %}
-        <p style="margin-top:12px;font-family:var(--font-sans);font-size:14.5px;line-height:1.6;color:var(--color-ink-2);max-height:340px;overflow:auto;">{{ registro.resumo|realce:termos_realce }}</p>
+        <p style="margin-top:12px;font-family:var(--font-sans);font-size:14.5px;line-height:1.6;color:var(--color-ink-2);">{{ registro.resumo|realce:termos_realce }}</p>
       {% else %}
         <p style="margin-top:12px;color:var(--color-ink-3);font-style:italic;">Sem resumo disponível.</p>
       {% endif %}

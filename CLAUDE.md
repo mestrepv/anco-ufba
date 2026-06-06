@@ -13,12 +13,12 @@ Leia este arquivo no início de cada sessão.
 - Estáticos servidos pelo Caddy em `/static/*` a partir de `staticfiles/` (após `collectstatic`).
 - Para validar mudanças de frontend em produção: rebuild da imagem → `collectstatic` → `docker compose --profile prod up -d --build`.
 - **Mudança só de template/view (sem novo estático nem dependência)**: não
-  precisa rebuild. Os fontes são bind-mount no container; basta recarregar os
-  workers do gunicorn para limpar o `cached.Loader` de templates e reimportar
-  o código Python:
-  `docker compose -f infra/docker-compose.yml kill -s HUP web`
-  (recarga graciosa, sem downtime). Use `kill -s HUP` via `docker compose` —
-  o binário `kill` não existe na imagem slim.
+  precisa rebuild. Os fontes são bind-mount no container. **Na prática, para
+  mudança de template use `docker compose -f infra/docker-compose.yml restart web`**
+  — o `kill -s HUP web` (recarga graciosa) **não está limpando o `cached.Loader`
+  de templates** de forma confiável aqui; só o `restart` garante o template novo.
+  Sempre **valide pelo HTTP real** (Caddy→gunicorn), não pelo `manage.py shell`,
+  que lê o template do disco e mascara o cache do gunicorn.
 - Para health check: `curl https://anco.paulovicente.pro.br/healthz` (não usar `localhost:8000`).
 - **Resumo da home** (`vitrine_view`): `analistas_count` = analistas
   cadastrados (mesma definição do diretório `/equipe`, cresce a cada cadastro);
