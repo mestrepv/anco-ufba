@@ -470,7 +470,13 @@ def duplicatas_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResp
     importou (Fase 12.4).
     """
     eh_curador = projeto.eh_curador_no(request.user)
-    pares = dup.pares_do_usuario(projeto, request.user, eh_curador)
+    # Escopo (espelha a autotriagem): 'minhas' (só as suas bases, padrão — mesmo
+    # p/ curador) ou 'todas' (curadoria, só curador).
+    escopo = request.GET.get("escopo", "minhas")
+    if escopo != "todas" or not eh_curador:
+        escopo = "minhas"
+    ver_todas = escopo == "todas"
+    pares = dup.pares_do_usuario(projeto, request.user, ver_todas)
     n = len(pares)
 
     try:
@@ -505,13 +511,15 @@ def duplicatas_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResp
             "tem_anterior": i > 0,
             "tem_proximo": i < n - 1,
             "eh_curador": eh_curador,
+            "escopo": escopo,
         },
     )
 
 
 def _voltar_duplicatas(request, projeto) -> str:
     i = request.POST.get("i", "0")
-    return f"{reverse('triagem_duplicatas', args=[projeto.slug])}?i={i}"
+    escopo = request.POST.get("escopo", "minhas")
+    return f"{reverse('triagem_duplicatas', args=[projeto.slug])}?escopo={escopo}&i={i}"
 
 
 @_projeto_analista

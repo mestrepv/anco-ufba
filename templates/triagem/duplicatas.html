@@ -17,7 +17,11 @@
     Pares com títulos muito parecidos que a deduplicação automática (DOI/ISBN) não
     juntou. Compare e <strong>selecione qual registro manter</strong>; o outro é marcado
     como duplicata. Você pode navegar sem decidir.
-    {% if not eh_curador %}<br><span class="tg-meta">Você vê os pares que tocam bases que <strong>você importou</strong>; pares entre bases de outros são resolvidos pelo curador.</span>{% endif %}
+    {% if eh_curador %}
+      <br>
+      {% if escopo == 'todas' %}<span class="tg-meta">Curadoria — <strong>todos os pares</strong> do projeto. <a href="?escopo=minhas&i=0" style="color:var(--color-gold-deep);">ver só os das minhas bases &rarr;</a></span>
+      {% else %}<span class="tg-meta">Mostrando os pares das <strong>bases que você importou</strong>. <a href="?escopo=todas&i=0" style="color:var(--color-gold-deep);">ver todos (curadoria) &rarr;</a></span>{% endif %}
+    {% else %}<br><span class="tg-meta">Você vê os pares que tocam bases que <strong>você importou</strong>; pares entre bases de outros são resolvidos pelo curador.</span>{% endif %}
   </p>
 
   {% if par %}
@@ -43,6 +47,7 @@
           <input type="hidden" name="manter" value="{{ par.a.pk }}">
           <input type="hidden" name="duplicado" value="{{ par.b.pk }}">
           <input type="hidden" name="i" value="{{ i }}">
+          <input type="hidden" name="escopo" value="{{ escopo }}">
           <button class="btn btn-manter" style="width:100%;">Selecionar este (manter)</button>
         </form>
         {% include "triagem/_registro_card.html" with r=par.a %}
@@ -53,6 +58,7 @@
           <input type="hidden" name="manter" value="{{ par.b.pk }}">
           <input type="hidden" name="duplicado" value="{{ par.a.pk }}">
           <input type="hidden" name="i" value="{{ i }}">
+          <input type="hidden" name="escopo" value="{{ escopo }}">
           <button class="btn btn-manter" style="width:100%;">Selecionar este (manter)</button>
         </form>
         {% include "triagem/_registro_card.html" with r=par.b %}
@@ -62,18 +68,19 @@
     <div class="tg-actions" style="justify-content:space-between;align-items:center;">
       <div class="tg-actions">
         {% if tem_anterior %}
-          <a href="?i={{ i|add:-1 }}" class="btn btn-secondary">&larr; Anterior</a>
+          <a href="?escopo={{ escopo }}&i={{ i|add:-1 }}" class="btn btn-secondary">&larr; Anterior</a>
         {% endif %}
         <form method="post" action="{% url 'triagem_duplicata_descartar' projeto.slug %}">
           {% csrf_token %}
           <input type="hidden" name="a" value="{{ par.a.pk }}">
           <input type="hidden" name="b" value="{{ par.b.pk }}">
           <input type="hidden" name="i" value="{{ i }}">
+          <input type="hidden" name="escopo" value="{{ escopo }}">
           <button class="btn btn-secondary">Não são duplicatas</button>
         </form>
       </div>
       {% if tem_proximo %}
-        <a href="?i={{ i|add:1 }}" class="btn btn-secondary">Pular &rarr;</a>
+        <a href="?escopo={{ escopo }}&i={{ i|add:1 }}" class="btn btn-secondary">Pular &rarr;</a>
       {% endif %}
     </div>
     <p class="tg-help" style="margin-top:12px;">

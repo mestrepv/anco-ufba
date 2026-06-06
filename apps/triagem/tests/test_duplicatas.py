@@ -118,12 +118,12 @@ def test_navegar_sem_decidir(client, protocolo, analista):
     _reg(protocolo, "Memória de trabalho e leitura", doi="10.3/a")
     _reg(protocolo, "Memória de trabalho e leitura!", doi="10.3/b")
     client.force_login(analista)
-    r0 = client.get(turl("triagem_duplicatas"))
+    r0 = client.get(turl("triagem_duplicatas"), {"escopo": "todas"})
     assert r0.context["total"] == 2
     assert r0.context["i"] == 0
     assert r0.context["tem_proximo"] is True
     # pular para o próximo sem decidir
-    r1 = client.get(turl("triagem_duplicatas"), {"i": 1})
+    r1 = client.get(turl("triagem_duplicatas"), {"i": 1, "escopo": "todas"})
     assert r1.context["i"] == 1
     assert r1.context["tem_proximo"] is False
     assert r1.context["tem_anterior"] is True
@@ -296,7 +296,7 @@ def test_dedup_gate_curador_resolve_qualquer_par(client, protocolo):
     a = _com_dono(protocolo, "Aprendizagem por descoberta guiada", "10.7/a", importador)
     b = _com_dono(protocolo, "Aprendizagem por descoberta guiada!", "10.7/b", importador)
     client.force_login(curador)
-    assert client.get(turl("triagem_duplicatas")).context["total"] == 1  # vê tudo
+    assert client.get(turl("triagem_duplicatas"), {"escopo": "todas"}).context["total"] == 1  # vê tudo
     resp = client.post(
         turl("triagem_duplicata_mesclar"),
         data={"manter": a.pk, "duplicado": b.pk, "i": 0},
@@ -316,7 +316,7 @@ def test_view_avisa_provavel_distinto(client, protocolo, analista):
         ano=2024, autores="Bowden, H",
     )
     client.force_login(analista)
-    resp = client.get(turl("triagem_duplicatas"))
+    resp = client.get(turl("triagem_duplicatas"), {"escopo": "todas"})
     assert resp.status_code == 200
     assert "Provavelmente NÃO são duplicatas".encode() in resp.content
     assert b"autores diferentes" in resp.content
