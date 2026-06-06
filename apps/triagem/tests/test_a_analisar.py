@@ -49,7 +49,8 @@ def _artigo_incluido(protocolo, doi="10.3/incl"):
     return promover_para_acervo(reg)
 
 
-def test_analista_nao_cria_artigo_avulso(client, analista, vocab):
+def test_analista_cria_artigo_avulso(client, analista, vocab):
+    """Inclusão avulsa (Revisão ANCO): o analista cria o próprio artigo."""
     client.force_login(analista)
     resp = client.post(
         reverse("cadastrar_artigo"),
@@ -58,8 +59,7 @@ def test_analista_nao_cria_artigo_avulso(client, analista, vocab):
               "link_acesso": "https://e.org/x"},
     )
     assert resp.status_code == 302
-    assert resp.headers["Location"] == turl("triagem_a_analisar")
-    assert not Artigo.objects.filter(doi="10.123/novo").exists()
+    assert Artigo.objects.filter(doi="10.123/novo").exists()
 
 
 def test_curador_cria_artigo_avulso(client, curador, vocab):

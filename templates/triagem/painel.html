@@ -63,10 +63,11 @@
     {% endfor %}
   </div>
   <div class="tg-actions" style="margin-bottom:24px;">
-    <a href="{% url 'triagem_autotriar' projeto.slug %}?escopo=minhas&lista=pendentes&i=0" class="btn btn-primary">Triar minha base{% if cards_trabalho.0.count %} ({{ cards_trabalho.0.count }}){% endif %}</a>
-    <a href="{% url 'triagem_duplicatas' projeto.slug %}?escopo=minhas&i=0" class="btn btn-secondary">Minhas duplicatas{% if minha_dup %} ({{ minha_dup }}){% endif %}</a>
-    <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">A analisar{% if minha_a_analisar %} ({{ minha_a_analisar }}){% endif %}</a>
-    <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-secondary">Importar busca</a>
+    <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-primary">Importar busca</a>
+    <a href="{% url 'cadastrar_artigo' %}" class="btn btn-secondary">Importar avulso</a>
+    <a href="{% url 'triagem_autotriar' projeto.slug %}?escopo=minhas&lista=pendentes&i=0" class="btn btn-secondary">Triar minha base{% if cards_trabalho.0.count %} ({{ cards_trabalho.0.count }}){% endif %}</a>
+    <a href="{% url 'triagem_duplicatas' projeto.slug %}?escopo=minhas&i=0" class="btn btn-secondary">Analisar duplicatas{% if minha_dup %} ({{ minha_dup }}){% endif %}</a>
+    <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">Análise cognitiva{% if minha_a_analisar %} ({{ minha_a_analisar }}){% endif %}</a>
   </div>
   {# ── Minhas importações ─────────────────────────────────────────── #}
   <h2 class="tg-h2">Minhas importações <span class="tg-meta">({{ minhas_buscas|length }})</span></h2>

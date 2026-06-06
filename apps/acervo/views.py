@@ -132,17 +132,9 @@ def cadastrar_artigo_view(request: HttpRequest) -> HttpResponse:
                 )
             return redirect("editar_analise", analise_id=analise.pk)
 
-        # Política (Fase 10): novos artigos entram pela triagem (PRISMA-ScR).
-        # Analista comum não cria Artigo avulso — só curador/admin. O analista
-        # reaproveita artigos já existentes (incluídos na triagem ou do acervo).
-        if not _eh_admin(request.user):
-            messages.warning(
-                request,
-                "Novos artigos entram pela triagem (PRISMA-ScR). Analise um artigo já "
-                "incluído ou peça à curadoria para cadastrar avulso.",
-            )
-            return redirect("triagem_a_analisar")
-
+        # Inclusão avulsa (Revisão ANCO): o analista pode cadastrar um artigo
+        # próprio, analisá-lo e enviar à curadoria — fora do sorteio de projeto.
+        # O acesso é pelo painel ANCO ("Importar avulso").
         form = ArtigoMetadadosForm(request.POST)
         if form.is_valid():
             artigo = form.save(commit=False)
