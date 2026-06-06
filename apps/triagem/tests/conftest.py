@@ -12,7 +12,7 @@ PROJETO_ROTAS = {
     "triagem_duplicata_descartar", "triagem_duplicata_desfazer", "triagem_iniciar",
     "triagem_desempate", "triagem_desempatar", "triagem_prisma", "triagem_protocolo",
     "triagem_checklist", "triagem_calibracao", "triagem_busca_resumo",
-    "triagem_busca_excluir",
+    "triagem_busca_excluir", "triagem_importar_preview",
 }
 
 

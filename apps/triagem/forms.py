@@ -31,11 +31,11 @@ class ImportarBuscaForm(forms.Form):
         required=False, label="Outra base (fora do vocabulário)", max_length=200
     )
     n_identificados = forms.IntegerField(
-        required=True, min_value=0,
-        label="Nº de registros que a base reportou",
+        required=False, min_value=0,
+        label="Nº de registros que a base reportou (opcional)",
         help_text=(
-            "Total que a busca retornou na base (ex.: 466 no WoS). O sistema "
-            "compara com o que vier no arquivo e avisa se houver divergência."
+            "Deixe em branco para usar a contagem do próprio arquivo. Preencha só "
+            "se quiser conferir contra o total relatado pela base (ex.: 466 no WoS)."
         ),
     )
     string_busca = forms.CharField(

@@ -81,7 +81,8 @@ def _upload(client, base_termo, n_identificados, conteudo=RIS, **extra):
     return client.post(turl("triagem_importar"), data=data)
 
 
-def test_n_identificados_obrigatorio(client, analista, base_termo, settings, tmp_path):
+def test_n_identificados_opcional_usa_contagem(client, analista, base_termo, settings, tmp_path):
+    """Sem o nº reportado, a importação usa a contagem do próprio arquivo."""
     settings.MEDIA_ROOT = str(tmp_path)
     client.force_login(analista)
     arq = SimpleUploadedFile("s.ris", RIS.encode("utf-8"))
@@ -89,9 +90,31 @@ def test_n_identificados_obrigatorio(client, analista, base_termo, settings, tmp
         turl("triagem_importar"),
         data={"base_consulta": base_termo.pk, "arquivo": arq},  # sem n_identificados
     )
-    assert resp.status_code == 200  # re-renderiza com erro
-    assert b"obrigat" in resp.content.lower() or b"required" in resp.content.lower()
-    assert not Busca.objects.exists()
+    assert resp.status_code == 302  # importa
+    busca = Busca.objects.latest("pk")
+    assert busca.n_identificados == 1  # auto = contagem do arquivo (RIS tem 1 registro)
+
+
+def test_preview_arquivo_bom(client, analista, base_termo, settings, tmp_path):
+    """Preview HTMX conta os registros de um arquivo válido."""
+    settings.MEDIA_ROOT = str(tmp_path)
+    client.force_login(analista)
+    arq = SimpleUploadedFile("s.ris", RIS.encode("utf-8"))
+    resp = client.post(turl("triagem_importar_preview"), data={"arquivo": arq})
+    assert resp.status_code == 200
+    assert b"1 registro" in resp.content
+    assert '"ok": true' in resp.headers.get("HX-Trigger", "")
+
+
+def test_preview_arquivo_ruim_pdf(client, analista, base_termo, settings, tmp_path):
+    """Preview rejeita um PDF (binário) com mensagem amigável e trava (ok=false)."""
+    settings.MEDIA_ROOT = str(tmp_path)
+    client.force_login(analista)
+    pdf = SimpleUploadedFile("doc.pdf", b"%PDF-1.7\n...", content_type="application/pdf")
+    resp = client.post(turl("triagem_importar_preview"), data={"arquivo": pdf})
+    assert resp.status_code == 200
+    assert b"PDF" in resp.content
+    assert '"ok": false' in resp.headers.get("HX-Trigger", "")
 
 
 def test_upload_guarda_filtros_estruturados(client, analista, base_termo, settings, tmp_path):

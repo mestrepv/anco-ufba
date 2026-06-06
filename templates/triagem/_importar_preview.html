@@ -1,0 +1,12 @@
+{% comment %}Resultado da validação imediata do arquivo (HTMX). Param: info.{% endcomment %}
+{% if info.ok %}
+  <div class="tg-note" style="border-color:var(--color-ok);background:#eef4ea;color:#2f5a32;">
+    ✓ <strong>{{ info.n }} registro{{ info.n|pluralize }}</strong> lido{{ info.n|pluralize }} no arquivo ({{ info.formato|upper }}). Pronto para importar.
+  </div>
+{% else %}
+  <div class="tg-note" style="border-color:var(--color-danger);background:#fdf2f0;color:var(--color-danger);">
+    ✗ <strong>{{ info.erro }}</strong>
+    {% if info.dica %}<br><span style="color:var(--color-ink-2);">{{ info.dica }}</span>{% endif %}
+    <a href="{% url 'triagem_ajuda' %}#zotero" style="color:var(--color-gold-deep);">Como exportar da base →</a>
+  </div>
+{% endif %}

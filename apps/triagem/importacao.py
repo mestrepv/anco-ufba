@@ -239,6 +239,77 @@ def decodificar(bytes_arquivo: bytes) -> str:
     return bytes_arquivo.decode("utf-8", errors="replace")
 
 
+# Assinaturas de arquivos binários comuns que NÃO são exports de referências.
+_BINARIOS = [
+    (b"%PDF", "PDF"),
+    (b"PK\x03\x04", "arquivo do Office (Word/Excel/ODF)"),
+    (b"\xd0\xcf\x11\xe0", "arquivo antigo do Office (.doc/.xls)"),
+    (b"{\\rtf", "documento RTF"),
+]
+
+
+def _tipo_binario(raw: bytes) -> str | None:
+    for assinatura, nome in _BINARIOS:
+        if raw[: len(assinatura)] == assinatura:
+            return nome
+    return None
+
+
+def detectar_formato_conteudo(texto: str) -> str | None:
+    """Detecta o formato pelo conteúdo, quando a extensão não resolve."""
+    t = texto.lstrip()[:4000]
+    if re.search(r"(^|\n)TY  - ", t) or re.search(r"(^|\n)ER  -", t):
+        return "ris"
+    if re.search(r"@\w+\s*\{", t):
+        return "bibtex"
+    primeira = t.splitlines()[0] if t.splitlines() else ""
+    if ("," in primeira or ";" in primeira) and re.search(
+        r"tit|doi|author|autor|ano|year", primeira, re.I
+    ):
+        return "csv"
+    return None
+
+
+def analisar_arquivo(nome: str, raw: bytes) -> dict:
+    """Valida o arquivo enviado e conta os registros, com dica amigável.
+
+    Retorna {ok, formato?, n?, erro?, dica?} — base do preview e do import.
+    """
+    if not raw:
+        return {"ok": False, "erro": "O arquivo está vazio.", "dica": "Exporte de novo da base."}
+    bin_ = _tipo_binario(raw)
+    if bin_:
+        return {
+            "ok": False,
+            "erro": f"Isso parece um {bin_}, não um export de referências.",
+            "dica": "Exporte os resultados da base em RIS, BibTeX ou CSV — nunca PDF/Word/Excel.",
+        }
+    texto = decodificar(raw)
+    formato = detectar_formato(nome) or detectar_formato_conteudo(texto)
+    if not formato:
+        return {
+            "ok": False,
+            "erro": "Não reconheci o formato do arquivo.",
+            "dica": "Aceitamos RIS (.ris/.nbib), BibTeX (.bib) e CSV (.csv).",
+        }
+    try:
+        registros = parse_conteudo(texto, formato)
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "ok": False, "formato": formato,
+            "erro": f"Não consegui ler o arquivo ({exc}).",
+            "dica": "Confira se o export saiu completo da base.",
+        }
+    n = len(registros)
+    if n == 0:
+        return {
+            "ok": False, "formato": formato, "n": 0,
+            "erro": "O arquivo foi lido, mas tem 0 registros.",
+            "dica": "Verifique se você exportou os resultados (não uma página vazia).",
+        }
+    return {"ok": True, "formato": formato, "n": n}
+
+
 # --------------------------------------------------------------------------- #
 # Importação + deduplicação
 # --------------------------------------------------------------------------- #

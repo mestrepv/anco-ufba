@@ -1,125 +1,156 @@
 {% extends "_base_publico.html" %}
 
 {% block title %}Importar busca · Triagem{% endblock %}
-{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}
+<style>
+  .imp-summary { cursor:pointer; font-family:var(--font-sans); font-size:12px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.04em; color:var(--color-ink-3);
+    padding:10px 0; border-top:1px solid var(--color-rule); }
+  input[type=file].imp-file { width:100%; font-family:var(--font-sans); font-size:14px;
+    padding:10px 11px; border:1px dashed var(--color-rule-strong); border-radius:8px;
+    background:var(--color-paper-2); color:var(--color-ink-2); box-sizing:border-box; cursor:pointer; }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="tg-wrap narrow">
   <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; Triagem</a>
   <h1 class="tg-h1" style="margin-top:6px;">Importar busca</h1>
   <p class="tg-desc">
-    Envie o arquivo exportado de uma base (RIS, BibTeX ou CSV). Registre também a
-    estratégia de busca — assim a seleção fica reprodutível (PRISMA-ScR) e o sistema
-    confere o nº de registros.
+    Envie o arquivo exportado de uma base (RIS, BibTeX ou CSV). Assim que você
+    escolher o arquivo, eu confiro e mostro <strong>quantos registros</strong> tem —
+    antes de importar.
   </p>
 
   <div class="tg-note" style="margin-bottom:22px;">
-    <strong>A base não exporta arquivo?</strong> (repositórios como Repositório UFBA,
-    RIAnCo, etc.) Use o <strong>Zotero</strong> como ponte: instale o Zotero + a extensão
-    <em>Zotero Connector</em>, capture os resultados na página de busca, exporte em
-    <strong>RIS</strong> e importe o arquivo aqui.
+    <strong>A base não exporta arquivo?</strong> (Repositório UFBA, RIAnCo, etc.)
+    Use o <strong>Zotero</strong> como ponte: capture os resultados e exporte em
+    <strong>RIS</strong>.
     <a href="{% url 'triagem_ajuda' %}#zotero" style="color:var(--color-gold-deep);">Passo a passo →</a>
   </div>
 
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data"
+        x-data="{ arquivoOk: false }" @arquivo-validado.window="arquivoOk = $event.detail.ok">
     {% csrf_token %}
     {% for erro in form.non_field_errors %}<p class="tg-err">{{ erro }}</p>{% endfor %}
 
-    <div class="tg-fieldset-title" style="margin-top:0;">Arquivo da base</div>
+    {# 1 · Arquivo (com conferência imediata) #}
+    <div class="tg-fieldset-title" style="margin-top:0;">1 · Arquivo da base</div>
     <div class="tg-field">
-      <label for="{{ form.arquivo.id_for_label }}">{{ form.arquivo.label }} <span style="color:var(--color-danger);">*</span></label>
-      {{ form.arquivo }}
+      <label for="id_arquivo">Arquivo exportado <span style="color:var(--color-danger);">*</span></label>
+      <input type="file" name="arquivo" id="id_arquivo" class="imp-file"
+             accept=".ris,.nbib,.bib,.bibtex,.csv,.tsv,.txt,.enw,.ciw"
+             hx-post="{% url 'triagem_importar_preview' projeto.slug %}"
+             hx-trigger="change"
+             hx-target="#arquivo-preview"
+             hx-swap="innerHTML"
+             hx-encoding="multipart/form-data"
+             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+      <p class="tg-help">RIS (.ris/.nbib), BibTeX (.bib) ou CSV (.csv). Nunca PDF, Word ou Excel.</p>
+      <div id="arquivo-preview" style="margin-top:10px;"></div>
       {% for e in form.arquivo.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
     </div>
-    <div class="tg-row-2">
-      <div class="tg-field">
-        <label for="{{ form.data_busca.id_for_label }}">{{ form.data_busca.label }}</label>
-        {{ form.data_busca }}
-      </div>
-      <div class="tg-field">
-        <label for="{{ form.formato.id_for_label }}">{{ form.formato.label }}</label>
-        {{ form.formato }}
-      </div>
-    </div>
 
-    <div class="tg-fieldset-title">Origem</div>
-    {% for campo in form %}{% if campo.name == "base_consulta" or campo.name == "outra_base" or campo.name == "n_identificados" %}
-      <div class="tg-field">
-        <label for="{{ campo.id_for_label }}">{{ campo.label }}{% if campo.field.required %} <span style="color:var(--color-danger);">*</span>{% endif %}</label>
-        {{ campo }}
-        {% if campo.help_text %}<p class="tg-help">{{ campo.help_text }}</p>{% endif %}
-        {% for e in campo.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
-      </div>
-    {% endif %}{% endfor %}
-
-    <div class="tg-fieldset-title">Estratégia de busca</div>
+    {# 2 · Base #}
+    <div class="tg-fieldset-title">2 · De qual base?</div>
     <div class="tg-field">
-      <label for="{{ form.string_busca.id_for_label }}">{{ form.string_busca.label }}</label>
-      {{ form.string_busca }}
-      <p class="tg-help">{{ form.string_busca.help_text }}</p>
+      <label for="{{ form.base_consulta.id_for_label }}">{{ form.base_consulta.label }}</label>
+      {{ form.base_consulta }}
+      {% for e in form.base_consulta.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
     </div>
     <div class="tg-field">
-      <label>{{ form.campos_busca.label }}</label>
-      <div class="tg-checkgrid">
-        {% for sub in form.campos_busca %}<label>{{ sub.tag }} <span>{{ sub.choice_label }}</span></label>{% endfor %}
-      </div>
-      <p class="tg-help">{{ form.campos_busca.help_text }}</p>
+      <label for="{{ form.outra_base.id_for_label }}">{{ form.outra_base.label }}</label>
+      {{ form.outra_base }}
+      <p class="tg-help">Use só se a base não estiver na lista acima.</p>
     </div>
 
-    <div class="tg-fieldset-title">Filtros aplicados</div>
-    <div class="tg-field"
-         x-data="{ de: {{ form.ano_inicio.value|default:ano_min }}, ate: {{ form.ano_fim.value|default:ano_max }} }">
-      <label>Período: <strong x-text="de"></strong> – <strong x-text="ate"></strong></label>
-      <div class="tg-range">
-        <div class="tg-range-track"></div>
-        <div class="tg-range-fill"
-             :style="'left:' + ((de - {{ ano_min }}) / {{ ano_range }} * 100) + '%; width:' + ((ate - de) / {{ ano_range }} * 100) + '%'"></div>
-        <input type="range" class="tg-range-input" name="ano_inicio"
-               min="{{ ano_min }}" max="{{ ano_max }}" step="1"
-               x-model.number="de" @input="if (de > ate) de = ate">
-        <input type="range" class="tg-range-input" name="ano_fim"
-               min="{{ ano_min }}" max="{{ ano_max }}" step="1"
-               x-model.number="ate" @input="if (ate < de) ate = de">
+    {# 3 · Detalhes da busca (opcional, PRISMA) #}
+    <details style="margin:18px 0;">
+      <summary class="imp-summary">Detalhes da busca (opcional)</summary>
+      <div style="padding-top:14px;">
+        <div class="tg-field">
+          <label for="{{ form.n_identificados.id_for_label }}">{{ form.n_identificados.label }}</label>
+          {{ form.n_identificados }}
+          <p class="tg-help">{{ form.n_identificados.help_text }}</p>
+          {% for e in form.n_identificados.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
+        </div>
+        <div class="tg-field">
+          <label for="{{ form.string_busca.id_for_label }}">{{ form.string_busca.label }}</label>
+          {{ form.string_busca }}
+          <p class="tg-help">{{ form.string_busca.help_text }}</p>
+        </div>
+        <div class="tg-field">
+          <label>{{ form.campos_busca.label }}</label>
+          <div class="tg-checkgrid">
+            {% for sub in form.campos_busca %}<label>{{ sub.tag }} <span>{{ sub.choice_label }}</span></label>{% endfor %}
+          </div>
+        </div>
+        <div class="tg-row-2">
+          <div class="tg-field">
+            <label for="{{ form.data_busca.id_for_label }}">{{ form.data_busca.label }}</label>
+            {{ form.data_busca }}
+          </div>
+          <div class="tg-field">
+            <label for="{{ form.formato.id_for_label }}">{{ form.formato.label }}</label>
+            {{ form.formato }}
+            <p class="tg-help">Deixe em "Inferir" — detecto automaticamente.</p>
+          </div>
+        </div>
+        <div class="tg-field"
+             x-data="{ de: {{ form.ano_inicio.value|default:ano_min }}, ate: {{ form.ano_fim.value|default:ano_max }} }">
+          <label>Período: <strong x-text="de"></strong> – <strong x-text="ate"></strong></label>
+          <div class="tg-range">
+            <div class="tg-range-track"></div>
+            <div class="tg-range-fill"
+                 :style="'left:' + ((de - {{ ano_min }}) / {{ ano_range }} * 100) + '%; width:' + ((ate - de) / {{ ano_range }} * 100) + '%'"></div>
+            <input type="range" class="tg-range-input" name="ano_inicio"
+                   min="{{ ano_min }}" max="{{ ano_max }}" step="1"
+                   x-model.number="de" @input="if (de > ate) de = ate">
+            <input type="range" class="tg-range-input" name="ano_fim"
+                   min="{{ ano_min }}" max="{{ ano_max }}" step="1"
+                   x-model.number="ate" @input="if (ate < de) ate = de">
+          </div>
+          <div class="tg-slider-lbl" style="display:flex;justify-content:space-between;">
+            <span>{{ ano_min }}</span><span>{{ ano_max }}</span>
+          </div>
+        </div>
+        <div class="tg-field"
+             x-data="{ outro: {% if form.idiomas.value and 'outro' in form.idiomas.value %}true{% else %}false{% endif %} }">
+          <label>{{ form.idiomas.label }}</label>
+          <div class="tg-checkgrid">
+            {% for sub in form.idiomas %}
+              <label>
+                <input type="checkbox" name="idiomas" value="{{ sub.data.value }}"
+                       {% if sub.data.selected %}checked{% endif %}
+                       {% if sub.data.value == 'outro' %}@change="outro = $event.target.checked"{% endif %}>
+                <span>{{ sub.choice_label }}</span>
+              </label>
+            {% endfor %}
+          </div>
+          <div x-show="outro" x-cloak style="margin-top:10px;">
+            <label for="{{ form.idioma_outro.id_for_label }}" style="display:block;font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--color-ink-2);margin-bottom:6px;">{{ form.idioma_outro.label }}</label>
+            {{ form.idioma_outro }}
+          </div>
+        </div>
+        <div class="tg-field">
+          <label>{{ form.tipos_documento.label }}</label>
+          <div class="tg-checkgrid">
+            {% for sub in form.tipos_documento %}<label>{{ sub.tag }} <span>{{ sub.choice_label }}</span></label>{% endfor %}
+          </div>
+        </div>
+        <div class="tg-field">
+          <label for="{{ form.filtros.id_for_label }}">{{ form.filtros.label }}</label>
+          {{ form.filtros }}
+          <p class="tg-help">{{ form.filtros.help_text }}</p>
+        </div>
       </div>
-      <div class="tg-slider-lbl" style="display:flex;justify-content:space-between;">
-        <span>{{ ano_min }}</span><span>{{ ano_max }}</span>
-      </div>
-      {% for e in form.ano_inicio.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
-      {% for e in form.ano_fim.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
-      <p class="tg-help">Arraste os dois pontos: um para o início, outro para o fim do período.</p>
-    </div>
-    <div class="tg-field"
-         x-data="{ outro: {% if form.idiomas.value and 'outro' in form.idiomas.value %}true{% else %}false{% endif %} }">
-      <label>{{ form.idiomas.label }}</label>
-      <div class="tg-checkgrid">
-        {% for sub in form.idiomas %}
-          <label>
-            <input type="checkbox" name="idiomas" value="{{ sub.data.value }}"
-                   {% if sub.data.selected %}checked{% endif %}
-                   {% if sub.data.value == 'outro' %}@change="outro = $event.target.checked"{% endif %}>
-            <span>{{ sub.choice_label }}</span>
-          </label>
-        {% endfor %}
-      </div>
-      <div x-show="outro" x-cloak style="margin-top:10px;">
-        <label for="{{ form.idioma_outro.id_for_label }}" style="display:block;font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--color-ink-2);margin-bottom:6px;">{{ form.idioma_outro.label }}</label>
-        {{ form.idioma_outro }}
-        {% for e in form.idioma_outro.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
-      </div>
-    </div>
-    <div class="tg-field">
-      <label>{{ form.tipos_documento.label }}</label>
-      <div class="tg-checkgrid">
-        {% for sub in form.tipos_documento %}<label>{{ sub.tag }} <span>{{ sub.choice_label }}</span></label>{% endfor %}
-      </div>
-    </div>
-    <div class="tg-field">
-      <label for="{{ form.filtros.id_for_label }}">{{ form.filtros.label }}</label>
-      {{ form.filtros }}
-      <p class="tg-help">{{ form.filtros.help_text }}</p>
-    </div>
+    </details>
 
-    <button type="submit" class="btn btn-primary">Importar</button>
+    <button type="submit" class="btn btn-primary"
+            :disabled="!arquivoOk" :style="!arquivoOk ? 'opacity:.5;cursor:not-allowed;' : ''">
+      Importar
+    </button>
+    <p class="tg-help" x-show="!arquivoOk" style="margin-top:8px;">Escolha um arquivo válido para habilitar o botão.</p>
   </form>
 </div>
 {% endblock %}

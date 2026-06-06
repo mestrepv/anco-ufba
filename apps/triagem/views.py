@@ -39,8 +39,8 @@ from .autotriagem import (
 )
 from .forms import DecisaoTriagemForm, DesempateForm, ImportarBuscaForm
 from .importacao import (
+    analisar_arquivo,
     decodificar,
-    detectar_formato,
     excluir_busca,
     importar_para_busca,
     parse_conteudo,
@@ -337,16 +337,14 @@ def importar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespon
         form = ImportarBuscaForm(request.POST, request.FILES)
         if form.is_valid():
             enviado = form.cleaned_data["arquivo"]
-            formato = form.cleaned_data["formato"] or detectar_formato(enviado.name)
-            if not formato:
-                form.add_error(
-                    "arquivo",
-                    "Não reconheci o formato pela extensão; escolha um em 'Formato'.",
-                )
+            raw = enviado.read()
+            enviado.seek(0)
+            info = analisar_arquivo(enviado.name, raw)  # valida + conta + dica
+            if not info["ok"]:
+                form.add_error("arquivo", f"{info['erro']} {info.get('dica', '')}".strip())
             else:
-                raw = enviado.read()
-                enviado.seek(0)
                 cd = form.cleaned_data
+                formato = cd["formato"] or info["formato"]
                 busca = Busca(
                     protocolo=projeto,
                     base_consulta=cd["base_consulta"],
@@ -359,21 +357,17 @@ def importar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespon
                     idioma_outro=cd["idioma_outro"],
                     tipos_documento=cd["tipos_documento"],
                     filtros=cd["filtros"],
-                    n_identificados=cd["n_identificados"] or 0,
+                    # Auto: usa a contagem do arquivo se o nº reportado ficou em branco.
+                    n_identificados=cd["n_identificados"] or info["n"],
                     data_busca=cd["data_busca"],
                     formato=formato,
                     arquivo=enviado,
                     criado_por=request.user,
                 )
                 busca.save()
-                try:
-                    registros = parse_conteudo(decodificar(raw), formato)
-                except Exception as exc:  # noqa: BLE001 — erro de parsing vira mensagem
-                    busca.delete()
-                    form.add_error("arquivo", f"Falha ao ler o arquivo: {exc}")
-                else:
-                    importar_para_busca(busca, registros)
-                    return redirect("triagem_busca_resumo", slug=projeto.slug, busca_id=busca.pk)
+                registros = parse_conteudo(decodificar(raw), formato)
+                importar_para_busca(busca, registros)
+                return redirect("triagem_busca_resumo", slug=projeto.slug, busca_id=busca.pk)
     else:
         form = ImportarBuscaForm()
 
@@ -391,6 +385,27 @@ def importar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespon
             "ano_range": datetime.date.today().year - 2000,
         },
     )
+
+
+@_projeto_analista
+@require_POST
+def importar_preview_view(
+    request: HttpRequest, projeto: ProtocoloTriagem
+) -> HttpResponse:
+    """Validação imediata do arquivo (HTMX, no `change` do input): conta os
+    registros ou explica o erro, e libera/trava o botão Importar via HX-Trigger."""
+    import json as _json
+
+    f = request.FILES.get("arquivo")
+    if f is None:
+        info = {"ok": False, "erro": "Escolha um arquivo.", "dica": ""}
+    else:
+        info = analisar_arquivo(f.name, f.read())
+    resp = render(request, "triagem/_importar_preview.html", {"info": info})
+    resp["HX-Trigger"] = _json.dumps(
+        {"arquivo-validado": {"ok": bool(info["ok"]), "n": info.get("n", 0)}}
+    )
+    return resp
 
 
 @_projeto_analista

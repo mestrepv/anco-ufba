@@ -37,6 +37,7 @@ urlpatterns = [
     path("p/<slug:slug>/checklist/", views.checklist_view, name="triagem_checklist"),
     path("p/<slug:slug>/calibracao/", views.calibracao_view, name="triagem_calibracao"),
     path("p/<slug:slug>/importar/", views.importar_view, name="triagem_importar"),
+    path("p/<slug:slug>/importar/preview/", views.importar_preview_view, name="triagem_importar_preview"),
     path("p/<slug:slug>/busca/<int:busca_id>/", views.busca_resumo_view, name="triagem_busca_resumo"),
     path("p/<slug:slug>/busca/<int:busca_id>/excluir/", views.excluir_busca_view, name="triagem_busca_excluir"),
     path("p/<slug:slug>/registros/", views.registros_view, name="triagem_registros"),
