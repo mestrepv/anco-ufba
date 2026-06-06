@@ -128,12 +128,12 @@
               <span class="passo-tag">curador</span>
             </div>
           {% else %}
-            <a href="{{ p.href }}" class="passo-card {% if p.count %}tem-tarefa{% endif %}">
+            <div class="passo-card {% if p.count %}tem-tarefa{% endif %}">
               <span class="passo-num">{{ p.num }}</span>
               <span class="passo-titulo">{{ p.titulo }}</span>
               {% if p.curador %}<span class="passo-tag">curador</span>{% endif %}
               {% if p.count %}<span class="passo-badge">{{ p.count }}</span>{% endif %}
-            </a>
+            </div>
           {% endif %}
         {% endfor %}
       </div>
