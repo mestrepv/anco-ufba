@@ -119,3 +119,39 @@ def test_lista_para_autotriar_so_minhas_bases(proj_anco, importador, outro):
     _reg_da_base(proj_anco, outro, doi="10/seu")
     ids = set(registros_para_autotriar(proj_anco, importador).values_list("pk", flat=True))
     assert ids == {meu.pk}
+
+
+def test_reverter_inclusao_exclui_e_apaga_artigo_orfao(proj_anco, importador):
+    from apps.acervo.models import Artigo
+    from apps.triagem.autotriagem import reverter_inclusao
+
+    reg = _reg_da_base(proj_anco, importador, doi="10/rev")
+    autotriar(reg, RegistroTriagem.Decisao.INCLUIR, por=importador)
+    reg.refresh_from_db()
+    art_pk = reg.artigo_id
+    assert art_pk is not None
+
+    ok = reverter_inclusao(reg, por=importador, motivo="erro de inclusão")
+    reg.refresh_from_db()
+    assert ok is True
+    assert reg.status == RegistroTriagem.Status.EXCLUIDO
+    assert reg.artigo_id is None
+    assert "erro de inclusão" in reg.motivo_exclusao
+    assert not Artigo.objects.filter(pk=art_pk).exists()  # artigo órfão removido
+
+
+def test_reverter_inclusao_preserva_artigo_com_analise(proj_anco, importador):
+    from apps.acervo.models import Analise, Artigo
+    from apps.triagem.autotriagem import reverter_inclusao
+
+    reg = _reg_da_base(proj_anco, importador, doi="10/rev2")
+    autotriar(reg, RegistroTriagem.Decisao.INCLUIR, por=importador)
+    reg.refresh_from_db()
+    art_pk = reg.artigo_id
+    Analise.objects.create(artigo_id=art_pk, analista=importador)  # já tem análise
+
+    reverter_inclusao(reg, por=importador)
+    reg.refresh_from_db()
+    assert reg.status == RegistroTriagem.Status.EXCLUIDO
+    assert reg.artigo_id is None  # desvinculado do registro
+    assert Artigo.objects.filter(pk=art_pk).exists()  # mas o artigo (com análise) fica

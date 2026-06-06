@@ -68,3 +68,42 @@ def autotriar(registro: RegistroTriagem, decisao: str, *, por, motivo: str = "")
         avancar_apos_status(registro)  # promove ao acervo se incluído
     atualizar_relevancia(registro)
     return registro.status
+
+
+@transaction.atomic
+def reverter_inclusao(registro: RegistroTriagem, *, por, motivo: str = "") -> bool:
+    """Exclui um registro **incluído** (Revisão ANCO): volta a `excluido` e sai do
+    pool de análise. Remove o `Artigo` promovido **somente** se foi criado por esta
+    triagem — não-legado, sem análises e sem outro registro o referenciando
+    (o acervo curado nunca é tocado). Retorna True se reverteu.
+    """
+    if registro.status != _St.INCLUIDO:
+        return False
+
+    artigo = registro.artigo
+    pode_apagar_artigo = bool(
+        artigo
+        and not artigo.eh_legado
+        and artigo.analises.count() == 0
+        and artigo.registros_triagem.exclude(pk=registro.pk).count() == 0
+    )
+
+    registro.status = _St.EXCLUIDO
+    registro.decisao_final = RegistroTriagem.Decisao.EXCLUIR
+    registro.motivo_exclusao = motivo
+    registro.decidida_por = por
+    registro.decidida_em = timezone.now()
+    registro.artigo = None
+    registro.save(
+        update_fields=[
+            "status",
+            "decisao_final",
+            "motivo_exclusao",
+            "decidida_por",
+            "decidida_em",
+            "artigo",
+        ]
+    )
+    if pode_apagar_artigo:
+        artigo.delete()
+    return True

@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from apps.triagem.models import (
     AtribuicaoAnalise,
+    Busca,
     ProtocoloTriagem,
     RegistroTriagem,
     SorteioAnalise,
@@ -92,6 +93,48 @@ def test_sorteio_view_cria_sorteio(client, proj_anco):
     )
     assert resp.status_code == 302
     assert SorteioAnalise.objects.filter(projeto=proj_anco).exists()
+
+
+def _incluido_de(proj, dono, doi):
+    reg = RegistroTriagem.objects.create(
+        protocolo=proj,
+        titulo=f"Inc {doi}",
+        doi=doi,
+        ano=2021,
+        status=RegistroTriagem.Status.INCLUIDO,
+    )
+    busca = Busca.objects.create(protocolo=proj, criado_por=dono)
+    reg.origem_buscas.add(busca)
+    promover_para_acervo(reg)
+    return reg
+
+
+def test_excluir_incluido_view(client, proj_anco):
+    cur = _analista("curx", papel=User.Papel.CURADOR, is_staff=True)
+    reg = _incluido_de(proj_anco, cur, "10/exc")
+    client.force_login(cur)
+    resp = client.post(
+        reverse("triagem_incluido_excluir", args=[proj_anco.slug]),
+        data={"registro_id": reg.pk, "motivo": "fora de escopo"},
+    )
+    assert resp.status_code == 302
+    reg.refresh_from_db()
+    assert reg.status == RegistroTriagem.Status.EXCLUIDO
+    assert reg.artigo_id is None
+
+
+def test_excluir_incluido_gate_nao_dono(client, proj_anco):
+    dono = _analista("dono")
+    intruso = _analista("intruso")
+    reg = _incluido_de(proj_anco, dono, "10/exc2")
+    client.force_login(intruso)
+    resp = client.post(
+        reverse("triagem_incluido_excluir", args=[proj_anco.slug]),
+        data={"registro_id": reg.pk},
+    )
+    assert resp.status_code == 403
+    reg.refresh_from_db()
+    assert reg.status == RegistroTriagem.Status.INCLUIDO  # intocado
 
 
 def test_autotriar_view_rejeita_modo_rigoroso(client):

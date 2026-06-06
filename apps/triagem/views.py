@@ -29,7 +29,12 @@ from django.views.decorators.http import require_POST
 from . import duplicatas as dup
 from . import prisma
 from .aprovacao import consolidar_registro, registros_para_desempate
-from .autotriagem import autotriar, pode_autotriar, registros_para_autotriar
+from .autotriagem import (
+    autotriar,
+    pode_autotriar,
+    registros_para_autotriar,
+    reverter_inclusao,
+)
 from .forms import DecisaoTriagemForm, DesempateForm, ImportarBuscaForm
 from .importacao import (
     busca_pode_excluir,
@@ -85,9 +90,7 @@ def _exige_analista(view):
     @login_required
     def wrapper(request: HttpRequest, *args, **kwargs):
         if not getattr(request.user, "eh_analista", False):
-            return HttpResponseForbidden(
-                "Apenas analistas ou curadores acessam a triagem."
-            )
+            return HttpResponseForbidden("Apenas analistas ou curadores acessam a triagem.")
         return view(request, *args, **kwargs)
 
     return wrapper
@@ -100,9 +103,7 @@ def _projeto_analista(view):
     @login_required
     def wrapper(request: HttpRequest, slug: str, *args, **kwargs):
         if not getattr(request.user, "eh_analista", False):
-            return HttpResponseForbidden(
-                "Apenas analistas ou curadores acessam a triagem."
-            )
+            return HttpResponseForbidden("Apenas analistas ou curadores acessam a triagem.")
         projeto = get_object_or_404(ProtocoloTriagem, slug=slug)
         if not (request.user.is_staff or projeto.eh_membro(request.user)):
             return HttpResponseForbidden("Você não é membro deste projeto.")
@@ -128,6 +129,7 @@ def _projeto_curador(view):
 # --------------------------------------------------------------------------- #
 # Projetos (lista + criação)
 # --------------------------------------------------------------------------- #
+
 
 @_exige_analista
 def projetos_view(request: HttpRequest) -> HttpResponse:
@@ -169,7 +171,8 @@ def novo_projeto_view(request: HttpRequest) -> HttpResponse:
         )
         # O criador entra como curador do projeto.
         ProjetoMembro.objects.get_or_create(
-            projeto=projeto, usuario=request.user,
+            projeto=projeto,
+            usuario=request.user,
             defaults={"papel": ProjetoMembro.Papel.CURADOR},
         )
         messages.success(request, f"Projeto “{projeto.nome}” criado.")
@@ -182,6 +185,7 @@ def novo_projeto_view(request: HttpRequest) -> HttpResponse:
 # Painel e fluxo do projeto
 # --------------------------------------------------------------------------- #
 
+
 @_projeto_analista
 def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
     from django.db.models import Count
@@ -189,21 +193,16 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
     from . import concordancia as conc
 
     # Só os status com registros (não polui com zeros).
-    contagens = dict(
-        projeto.registros.values_list("status").annotate(n=Count("id"))
-    )
+    contagens = dict(projeto.registros.values_list("status").annotate(n=Count("id")))
     cards = [
         {"codigo": codigo, "rotulo": rotulo, "count": contagens.get(codigo, 0)}
         for codigo, rotulo in RegistroTriagem.Status.choices
         if contagens.get(codigo, 0)
     ]
-    buscas = (
-        projeto.buscas.select_related("criado_por", "base_consulta")
-        .order_by("-importado_em", "-criado_em")[:50]
-    )
-    membros = (
-        projeto.membros.select_related("usuario").order_by("-papel", "usuario__nome_exibicao")
-    )
+    buscas = projeto.buscas.select_related("criado_por", "base_consulta").order_by(
+        "-importado_em", "-criado_em"
+    )[:50]
+    membros = projeto.membros.select_related("usuario").order_by("-papel", "usuario__nome_exibicao")
     contexto = {
         "projeto": projeto,
         "protocolo": projeto,
@@ -218,9 +217,7 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
         "acordo": conc.calcular(projeto),
     }
     if projeto.eh_anco:
-        contexto["n_para_autotriar"] = registros_para_autotriar(
-            projeto, request.user
-        ).count()
+        contexto["n_para_autotriar"] = registros_para_autotriar(projeto, request.user).count()
         contexto["n_incluidos"] = projeto.registros.filter(
             status=RegistroTriagem.Status.INCLUIDO
         ).count()
@@ -269,9 +266,7 @@ def importar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespon
                     form.add_error("arquivo", f"Falha ao ler o arquivo: {exc}")
                 else:
                     importar_para_busca(busca, registros)
-                    return redirect(
-                        "triagem_busca_resumo", slug=projeto.slug, busca_id=busca.pk
-                    )
+                    return redirect("triagem_busca_resumo", slug=projeto.slug, busca_id=busca.pk)
     else:
         form = ImportarBuscaForm()
 
@@ -302,15 +297,13 @@ def busca_resumo_view(
     registros = list(busca.registros.select_related("artigo").order_by("titulo"))
     ja_acervo = [
         {"reg": r, "slug": doi_to_slug(r.artigo.identificador_canonico) if r.artigo else ""}
-        for r in registros if r.ja_no_acervo
+        for r in registros
+        if r.ja_no_acervo
     ]
     novos = [r for r in registros if not r.ja_no_acervo]
     pode_excluir, motivo_bloqueio = busca_pode_excluir(busca)
     # Só o importador (ou o curador) gerencia/exclui a própria importação.
-    pode_gerenciar = (
-        busca.criado_por_id == request.user.id
-        or projeto.eh_curador_no(request.user)
-    )
+    pode_gerenciar = busca.criado_por_id == request.user.id or projeto.eh_curador_no(request.user)
     return render(
         request,
         "triagem/busca_resumo.html",
@@ -399,9 +392,7 @@ def duplicatas_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResp
             "mesmo_autor": mesmo_autor,
             "autor_a": dup.primeiro_autor(a.autores),
             "autor_b": dup.primeiro_autor(b.autores),
-            "provavel_distinto": (
-                a.ano and b.ano and not mesmo_ano and not mesmo_autor
-            ),
+            "provavel_distinto": (a.ano and b.ano and not mesmo_ano and not mesmo_autor),
         }
 
     return render(
@@ -409,8 +400,12 @@ def duplicatas_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResp
         "triagem/duplicatas.html",
         {
             "projeto": projeto,
-            "par": par, "comp": comparacao, "total": n,
-            "i": i, "tem_anterior": i > 0, "tem_proximo": i < n - 1,
+            "par": par,
+            "comp": comparacao,
+            "total": n,
+            "i": i,
+            "tem_anterior": i > 0,
+            "tem_proximo": i < n - 1,
             "eh_curador": eh_curador,
         },
     )
@@ -423,13 +418,9 @@ def _voltar_duplicatas(request, projeto) -> str:
 
 @_projeto_analista
 @require_POST
-def mesclar_duplicata_view(
-    request: HttpRequest, projeto: ProtocoloTriagem
-) -> HttpResponse:
+def mesclar_duplicata_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
     """'Selecionar este': mantém `manter`, marca o outro como duplicata dele."""
-    manter = get_object_or_404(
-        RegistroTriagem, pk=request.POST.get("manter"), protocolo=projeto
-    )
+    manter = get_object_or_404(RegistroTriagem, pk=request.POST.get("manter"), protocolo=projeto)
     duplicado = get_object_or_404(
         RegistroTriagem, pk=request.POST.get("duplicado"), protocolo=projeto
     )
@@ -444,9 +435,7 @@ def mesclar_duplicata_view(
 
 @_projeto_analista
 @require_POST
-def descartar_duplicata_view(
-    request: HttpRequest, projeto: ProtocoloTriagem
-) -> HttpResponse:
+def descartar_duplicata_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
     a = get_object_or_404(RegistroTriagem, pk=request.POST.get("a"), protocolo=projeto)
     b = get_object_or_404(RegistroTriagem, pk=request.POST.get("b"), protocolo=projeto)
     if not _pode_resolver_par(projeto, request.user, a, b):
@@ -459,9 +448,7 @@ def descartar_duplicata_view(
 
 
 @_projeto_analista
-def duplicatas_mescladas_view(
-    request: HttpRequest, projeto: ProtocoloTriagem
-) -> HttpResponse:
+def duplicatas_mescladas_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
     """Lista os registros já mesclados como duplicata (auditoria + desfazer)."""
     return render(
         request,
@@ -472,9 +459,7 @@ def duplicatas_mescladas_view(
 
 @_projeto_analista
 @require_POST
-def desfazer_mescla_view(
-    request: HttpRequest, projeto: ProtocoloTriagem
-) -> HttpResponse:
+def desfazer_mescla_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
     duplicado = get_object_or_404(
         RegistroTriagem, pk=request.POST.get("duplicado"), protocolo=projeto
     )
@@ -491,9 +476,7 @@ def desfazer_mescla_view(
 
 
 @_projeto_curador
-def iniciar_triagem_view(
-    request: HttpRequest, projeto: ProtocoloTriagem
-) -> HttpResponse:
+def iniciar_triagem_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
     """Curador fecha a coleta e dispara o sorteio dos identificados."""
     n_disponiveis = projeto.registros.filter(
         status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
@@ -565,9 +548,7 @@ def triar_view(request: HttpRequest, decisao_id: int) -> HttpResponse:
             decisao.save()  # signal dispara a avaliação
             # Auto-avançar: vai direto ao próximo pendente (fluxo guiado).
             prox = (
-                DecisaoTriagem.objects.filter(
-                    revisor=request.user, concluido_em__isnull=True
-                )
+                DecisaoTriagem.objects.filter(revisor=request.user, concluido_em__isnull=True)
                 .exclude(pk=decisao.pk)
                 .order_by("prazo_em")
                 .first()
@@ -583,9 +564,7 @@ def triar_view(request: HttpRequest, decisao_id: int) -> HttpResponse:
 
     # Progresso do revisor (X de Y) para o fluxo guiado.
     total = DecisaoTriagem.objects.filter(revisor=request.user).count()
-    feitas = DecisaoTriagem.objects.filter(
-        revisor=request.user, concluido_em__isnull=False
-    ).count()
+    feitas = DecisaoTriagem.objects.filter(revisor=request.user, concluido_em__isnull=False).count()
     pct = round(feitas * 100 / total) if total else 0
     proximo = (
         DecisaoTriagem.objects.filter(revisor=request.user, concluido_em__isnull=True)
@@ -612,12 +591,11 @@ def triar_view(request: HttpRequest, decisao_id: int) -> HttpResponse:
 
 
 @_projeto_curador
-def fila_desempate_view(
-    request: HttpRequest, projeto: ProtocoloTriagem
-) -> HttpResponse:
+def fila_desempate_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
     registros = registros_para_desempate(projeto)
     return render(
-        request, "triagem/desempate_fila.html",
+        request,
+        "triagem/desempate_fila.html",
         {"projeto": projeto, "registros": registros, "protocolo": projeto},
     )
 
@@ -694,9 +672,7 @@ def calibracao_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResp
                 tamanho = int(request.POST.get("tamanho", "10"))
             except ValueError:
                 tamanho = 10
-            rodada = cal.iniciar_calibracao(
-                projeto, max(1, tamanho), criada_por=request.user
-            )
+            rodada = cal.iniciar_calibracao(projeto, max(1, tamanho), criada_por=request.user)
             if rodada:
                 messages.success(
                     request,
@@ -770,21 +746,15 @@ def a_analisar_view(request: HttpRequest) -> HttpResponse:
     as suas; senão, o pool aberto de incluídos (modo rigoroso/compat)."""
     from apps.acervo.models import Analise, Artigo
 
-    minhas = Analise.objects.filter(analista=request.user).values_list(
-        "artigo_id", flat=True
-    )
+    minhas = Analise.objects.filter(analista=request.user).values_list("artigo_id", flat=True)
     atribuidos = list(
-        AtribuicaoAnalise.objects.filter(analista=request.user).values_list(
-            "artigo_id", flat=True
-        )
+        AtribuicaoAnalise.objects.filter(analista=request.user).values_list("artigo_id", flat=True)
     )
     por_atribuicao = bool(atribuidos)
     if por_atribuicao:
         artigos = Artigo.objects.filter(pk__in=atribuidos)
     else:
-        artigos = Artigo.objects.filter(
-            registros_triagem__status=RegistroTriagem.Status.INCLUIDO
-        )
+        artigos = Artigo.objects.filter(registros_triagem__status=RegistroTriagem.Status.INCLUIDO)
     artigos = artigos.exclude(pk__in=minhas).distinct().order_by("-ano", "titulo")
     pagina = Paginator(artigos, 50).get_page(request.GET.get("page"))
     return render(
@@ -838,6 +808,7 @@ def prisma_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
 # Revisão ANCO (Fase 13): autotriagem · pool por relevância · sorteio · consenso
 # --------------------------------------------------------------------------- #
 
+
 @_projeto_analista
 def autotriar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
     """Autotriagem (modo ANCO): o dono da base tria a própria base, guiado."""
@@ -859,7 +830,9 @@ def autotriar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
             messages.info(request, "Este registro já não está disponível para triagem.")
             return redirect("triagem_autotriar", slug=projeto.slug)
         novo = autotriar(
-            registro, decisao, por=request.user,
+            registro,
+            decisao,
+            por=request.user,
             motivo=request.POST.get("motivo_exclusao", "").strip(),
         )
         rotulo = "incluído" if novo == RegistroTriagem.Status.INCLUIDO else "excluído"
@@ -891,6 +864,17 @@ def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
         .order_by("-relevancia_score", "-artigo__ano", "titulo")
     )
     pagina = Paginator(regs, 50).get_page(request.GET.get("page"))
+    eh_cur = projeto.eh_curador_no(request.user)
+    # Quem pode excluir cada incluído: curador (todos) ou quem importou a base.
+    if eh_cur:
+        excluiveis_ids = {r.pk for r in pagina.object_list}
+    else:
+        excluiveis_ids = set(
+            projeto.registros.filter(
+                status=RegistroTriagem.Status.INCLUIDO,
+                origem_buscas__criado_por=request.user,
+            ).values_list("pk", flat=True)
+        )
     return render(
         request,
         "triagem/incluidos.html",
@@ -899,9 +883,28 @@ def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
             "protocolo": projeto,
             "pagina": pagina,
             "n_termos": len(termos_do_protocolo(projeto)),
-            "pode_curar": projeto.eh_curador_no(request.user),
+            "pode_curar": eh_cur,
+            "excluiveis_ids": excluiveis_ids,
         },
     )
+
+
+@_projeto_analista
+@require_POST
+def excluir_incluido_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
+    """Exclui um incluído do pool (Revisão ANCO): reverte a inclusão."""
+    if not projeto.eh_anco:
+        return HttpResponseForbidden("Disponível apenas na Revisão ANCO.")
+    registro = get_object_or_404(
+        RegistroTriagem, pk=request.POST.get("registro_id"), protocolo=projeto
+    )
+    if not pode_autotriar(projeto, request.user, registro):
+        return HttpResponseForbidden("Você só exclui incluídos de bases que importou.")
+    if reverter_inclusao(registro, por=request.user, motivo=request.POST.get("motivo", "").strip()):
+        messages.success(request, "Artigo excluído do pool de análise.")
+    else:
+        messages.info(request, "Este registro não estava incluído.")
+    return redirect("triagem_incluidos", slug=projeto.slug)
 
 
 @_projeto_curador
@@ -916,7 +919,10 @@ def sorteio_analise_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Htt
         except (TypeError, ValueError):
             cota = 5
         res = executar_sorteio_analise(
-            projeto, modo_revisao=modo, cota=cota, por=request.user,
+            projeto,
+            modo_revisao=modo,
+            cota=cota,
+            por=request.user,
             observacoes=request.POST.get("observacoes", "").strip(),
         )
         if res.sorteio is not None:
@@ -930,9 +936,7 @@ def sorteio_analise_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Htt
         return redirect("triagem_sorteio_analise", slug=projeto.slug)
 
     sorteios = projeto.sorteios_analise.prefetch_related("atribuicoes").all()
-    n_incluidos = projeto.registros.filter(
-        status=RegistroTriagem.Status.INCLUIDO
-    ).count()
+    n_incluidos = projeto.registros.filter(status=RegistroTriagem.Status.INCLUIDO).count()
     ja_atribuidos = (
         AtribuicaoAnalise.objects.filter(sorteio__projeto=projeto)
         .values("artigo_id")

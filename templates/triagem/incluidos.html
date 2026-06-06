@@ -1,7 +1,18 @@
 {% extends "_base_publico.html" %}
 
 {% block title %}Incluídos por relevância · Revisão ANCO{% endblock %}
-{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}
+<style>
+  .inc-card { cursor: default; }
+  .inc-head { display:flex; align-items:flex-start; gap:12px; cursor:pointer; }
+  .inc-head .chevron { transition: transform .15s; color: var(--color-ink-3); flex-shrink:0; margin-top:2px; }
+  .inc-head.aberto .chevron { transform: rotate(90deg); }
+  .inc-detalhe { margin-top:14px; padding-top:14px; border-top:1px solid var(--color-rule); }
+  .inc-detalhe p { font-family:var(--font-sans); font-size:14px; line-height:1.6; color:var(--color-ink-2); margin:0 0 10px; }
+  .inc-detalhe .rotulo { font-weight:700; color:var(--color-ink-2); }
+  .inc-score { flex-shrink:0; padding:3px 11px; border-radius:999px; border:1px solid var(--color-rule); background:var(--color-paper-2); font-weight:700; color:var(--color-gold-deep); font-size:12px; }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="tg-wrap">
@@ -12,24 +23,46 @@
   </div>
   <p class="tg-desc">
     Artigos incluídos na triagem, ordenados pela <strong>correspondência com os
-    {{ n_termos }} termo(s) da estratégia de busca</strong> no título/resumo/palavras-chave.
-    Quanto mais termos casam, mais provável a pertinência ao campo.
+    {{ n_termos }} termo(s) da estratégia de busca</strong>. Clique num artigo para
+    ver os detalhes; use <strong>Excluir</strong> para tirá-lo do pool de análise.
   </p>
 
   {% if pagina.object_list %}
     <ul class="tg-list">
       {% for r in pagina %}
-        <li class="tg-card tg-row">
-          <div>
-            <div class="tg-item-title">{{ r.titulo|truncatechars:120 }}</div>
-            <div class="tg-meta">
-              {{ r.ano|default:"s.d." }}{% if r.titulo_periodico %} · {{ r.titulo_periodico }}{% endif %}{% if r.artigo.base_consulta %} · {{ r.artigo.base_consulta.nome }}{% endif %}
+        <li class="tg-card inc-card" x-data="{ aberto: false }">
+          <div class="inc-head" :class="aberto && 'aberto'" @click="aberto = !aberto">
+            <span class="chevron" x-html="'&#9656;'"></span>
+            <div style="flex:1;">
+              <div class="tg-item-title">{{ r.titulo|truncatechars:140 }}</div>
+              <div class="tg-meta">
+                {{ r.ano|default:"s.d." }}{% if r.titulo_periodico %} · {{ r.titulo_periodico }}{% endif %}{% if r.artigo.base_consulta %} · {{ r.artigo.base_consulta.nome }}{% endif %}
+              </div>
             </div>
+            <span class="inc-score" title="termos da busca que casaram">{{ r.relevancia_score }} termo{{ r.relevancia_score|pluralize }}</span>
           </div>
-          <span class="tg-meta" title="termos da busca que casaram"
-                style="flex-shrink:0;padding:3px 11px;border-radius:999px;border:1px solid var(--color-rule);background:var(--color-paper-2);font-weight:700;color:var(--color-gold-deep);">
-            {{ r.relevancia_score }} termo{{ r.relevancia_score|pluralize }}
-          </span>
+
+          <div class="inc-detalhe" x-show="aberto" x-cloak>
+            {% if r.autores %}<p><span class="rotulo">Autores:</span> {{ r.autores }}</p>{% endif %}
+            {% if r.resumo %}<p><span class="rotulo">Resumo:</span> {{ r.resumo }}</p>
+            {% else %}<p style="color:var(--color-ink-3);font-style:italic;">Sem resumo disponível.</p>{% endif %}
+            {% if r.palavras_chaves %}<p><span class="rotulo">Palavras-chave:</span> {{ r.palavras_chaves }}</p>{% endif %}
+            <p>
+              {% if r.doi %}<span class="rotulo">DOI:</span> {{ r.doi }}{% endif %}
+              {% if r.link %} · <a href="{{ r.link }}" target="_blank" rel="noopener" style="color:var(--color-gold-deep);">Abrir fonte &nearr;</a>
+              {% elif r.doi %} · <a href="https://doi.org/{{ r.doi }}" target="_blank" rel="noopener" style="color:var(--color-gold-deep);">Abrir pelo DOI &nearr;</a>{% endif %}
+            </p>
+            {% if r.pk in excluiveis_ids %}
+              <form method="post" action="{% url 'triagem_incluido_excluir' projeto.slug %}"
+                    @submit="return confirm('Excluir “{{ r.titulo|truncatechars:60|escapejs }}” do pool de análise?')"
+                    style="margin-top:6px;">
+                {% csrf_token %}
+                <input type="hidden" name="registro_id" value="{{ r.pk }}">
+                <input type="text" name="motivo" placeholder="Motivo (opcional)" class="field-input" style="max-width:340px;margin-bottom:8px;">
+                <div><button type="submit" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Excluir do pool</button></div>
+              </form>
+            {% endif %}
+          </div>
         </li>
       {% endfor %}
     </ul>
