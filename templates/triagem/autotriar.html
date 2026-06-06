@@ -27,17 +27,19 @@
 {% block content %}
 <div class="tg-wrap">
   <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome|default:projeto.titulo }}</a>
-  <h1 class="tg-h1" style="margin:6px 0 2px;">{% if eh_curador %}Triar — todas as bases{% else %}Triar a sua base{% endif %} <span class="tg-meta">(Revisão ANCO)</span></h1>
-  {% if eh_curador %}
-    <p class="tg-meta" style="margin:2px 0 0;">Você é <strong>curador</strong> deste projeto — vê registros de <strong>todas as bases</strong> (de todos os analistas). Cada registro mostra de qual base veio.</p>
+  <h1 class="tg-h1" style="margin:6px 0 2px;">{% if escopo == 'todas' %}Triar — todas as bases <span class="tg-meta">(curadoria)</span>{% else %}Triar a sua base{% endif %} <span class="tg-meta">(Revisão ANCO)</span></h1>
+  {% if escopo == 'todas' %}
+    <p class="tg-meta" style="margin:2px 0 0;">Curadoria — registros de <strong>todas as bases</strong> do projeto (cada um mostra de qual base veio).
+      <a href="?escopo=minhas&lista={{ lista }}&i=0" style="color:var(--color-gold-deep);">ver só as minhas &rarr;</a></p>
   {% else %}
-    <p class="tg-meta" style="margin:2px 0 0;">Mostrando apenas registros das <strong>bases que você importou</strong>.</p>
+    <p class="tg-meta" style="margin:2px 0 0;">Mostrando apenas registros das <strong>bases que você importou</strong>.
+      {% if eh_curador %}<a href="?escopo=todas&lista={{ lista }}&i=0" style="color:var(--color-gold-deep);">ver todas as bases (curadoria) &rarr;</a>{% endif %}</p>
   {% endif %}
 
   <div class="at-tabs">
-    <a class="at-tab {% if lista == 'pendentes' %}ativa{% endif %}" href="?lista=pendentes&i=0">A triar ({{ n_pendentes }})</a>
-    <a class="at-tab {% if lista == 'incluidos' %}ativa{% endif %}" href="?lista=incluidos&i=0">Incluídos ({{ n_incluidos }})</a>
-    <a class="at-tab {% if lista == 'excluidos' %}ativa{% endif %}" href="?lista=excluidos&i=0">Excluídos ({{ n_excluidos }})</a>
+    <a class="at-tab {% if lista == 'pendentes' %}ativa{% endif %}" href="?escopo={{ escopo }}&lista=pendentes&i=0">A triar ({{ n_pendentes }})</a>
+    <a class="at-tab {% if lista == 'incluidos' %}ativa{% endif %}" href="?escopo={{ escopo }}&lista=incluidos&i=0">Incluídos ({{ n_incluidos }})</a>
+    <a class="at-tab {% if lista == 'excluidos' %}ativa{% endif %}" href="?escopo={{ escopo }}&lista=excluidos&i=0">Excluídos ({{ n_excluidos }})</a>
   </div>
 
   {% if registro %}
@@ -53,6 +55,7 @@
         {% csrf_token %}
         <input type="hidden" name="registro_id" value="{{ registro.pk }}">
         <input type="hidden" name="lista" value="{{ lista }}">
+        <input type="hidden" name="escopo" value="{{ escopo }}">
         <input type="hidden" name="i" value="{{ i }}">
         <button type="submit" name="acao" value="incluir" class="at-btn incluir">
           <div class="tit">✔ Incluir</div>
@@ -77,6 +80,7 @@
           {% csrf_token %}
           <input type="hidden" name="registro_id" value="{{ registro.pk }}">
           <input type="hidden" name="lista" value="{{ lista }}">
+        <input type="hidden" name="escopo" value="{{ escopo }}">
           <input type="hidden" name="i" value="{{ i }}">
           <button type="submit" name="acao" value="desfazer" class="btn btn-sm btn-secondary">↩ Desfazer</button>
         </form>

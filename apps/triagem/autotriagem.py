@@ -33,20 +33,24 @@ def pode_autotriar(projeto: ProtocoloTriagem, user, registro: RegistroTriagem) -
     return user.id in dup.importadores(registro)
 
 
-def registros_para_autotriar(projeto: ProtocoloTriagem, user):
-    """Identificados (não no acervo) que o usuário pode autotriar."""
+def registros_para_autotriar(projeto: ProtocoloTriagem, user, escopo="minhas"):
+    """Identificados (não no acervo) para autotriar.
+
+    `escopo="minhas"` (padrão): só as bases que o usuário importou — **inclusive
+    para curador** (visão de analista, sem misturar). `escopo="todas"`: todas as
+    bases, permitido apenas a curador (visão de curadoria)."""
     qs = projeto.registros.filter(status=_St.IDENTIFICADO, ja_no_acervo=False).order_by("criado_em")
-    if projeto.eh_curador_no(user):
+    if escopo == "todas" and projeto.eh_curador_no(user):
         return qs
     return qs.filter(origem_buscas__criado_por=user).distinct()
 
 
-def registros_decididos_do_usuario(projeto: ProtocoloTriagem, user, status=None):
-    """Decididos que o usuário pode rever/desfazer. `status` filtra (incluídos
-    e/ou excluídos); padrão = ambos."""
+def registros_decididos_do_usuario(projeto: ProtocoloTriagem, user, status=None, escopo="minhas"):
+    """Decididos (incluídos/excluídos) para rever/desfazer. `escopo` segue a mesma
+    regra de `registros_para_autotriar` (minhas vs. todas — curadoria)."""
     sts = status or (_St.INCLUIDO, _St.EXCLUIDO)
     qs = projeto.registros.filter(status__in=sts).order_by("-decidida_em", "-criado_em")
-    if projeto.eh_curador_no(user):
+    if escopo == "todas" and projeto.eh_curador_no(user):
         return qs
     return qs.filter(origem_buscas__criado_por=user).distinct()
 

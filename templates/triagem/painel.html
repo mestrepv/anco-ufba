@@ -16,6 +16,10 @@
   .crit-grid { display:grid; grid-template-columns:130px 1fr; gap:8px 14px; align-items:baseline; }
   .crit-grid .rotulo { font-family:var(--font-sans); font-size:12px; color:var(--color-ink-3); }
   .crit-grid pre { white-space:pre-wrap; font-family:var(--font-sans); font-size:13.5px; color:var(--color-ink-2); margin:0; line-height:1.5; }
+  .pj-tabs { display:flex; gap:8px; margin:18px 0 6px; }
+  .pj-tab { font-family:var(--font-sans); font-size:14px; padding:8px 16px; border-radius:999px;
+            border:1px solid var(--color-rule); color:var(--color-ink-2); background:var(--color-paper); text-decoration:none; }
+  .pj-tab.ativa { background:var(--color-ink); color:var(--color-paper); border-color:var(--color-ink); }
   @media (max-width:560px){ .crit-grid{ grid-template-columns:1fr; } }
 </style>
 {% endblock %}
@@ -28,11 +32,9 @@
       <p class="t-eyebrow" style="margin:0 0 4px;">{% if projeto.eh_anco %}Revisão ANCO · Análise Cognitiva{% else %}Revisão de escopo · PRISMA-ScR{% endif %}</p>
       <h1 class="tg-h1">{{ projeto.nome }}</h1>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
-        <a href="{% url 'triagem_protocolo' projeto.slug %}" class="pj-chip">{% if protocolo.travado_em %}🔒 Protocolo v{{ protocolo.versao }}{% else %}✎ Protocolo (rascunho){% endif %}</a>
-        {% if protocolo.registro_externo %}<a href="{{ protocolo.registro_externo }}" target="_blank" rel="noopener" class="pj-chip">Registro externo &nearr;</a>{% endif %}
-        {% if projeto.eh_anco %}
-          <span class="pj-chip">Modo simplificado (autotriagem)</span>
-        {% else %}
+        <a href="{% url 'triagem_protocolo' projeto.slug %}" class="pj-chip">{% if projeto.eh_anco %}Protocolo ANCO{% elif protocolo.travado_em %}🔒 Protocolo v{{ protocolo.versao }}{% else %}✎ Protocolo (rascunho){% endif %}</a>
+        {% if not projeto.eh_anco %}
+          {% if protocolo.registro_externo %}<a href="{{ protocolo.registro_externo }}" target="_blank" rel="noopener" class="pj-chip">Registro externo &nearr;</a>{% endif %}
           {% if protocolo.usa_texto_completo %}<span class="pj-chip">2 etapas (T/R → texto)</span>{% endif %}
           <span class="pj-chip">{{ protocolo.n_revisores }} revisores · prazo {{ protocolo.prazo_dias }}d</span>
         {% endif %}
@@ -45,8 +47,35 @@
     </div>
   </div>
 
+  {# ── Abas de painel (só Revisão ANCO; Curadoria só p/ curador) ──────── #}
+  {% if projeto.eh_anco %}
+  <div class="pj-tabs">
+    <a class="pj-tab {% if aba == 'trabalho' %}ativa{% endif %}" href="?aba=trabalho">Meu trabalho</a>
+    {% if eh_curador %}<a class="pj-tab {% if aba == 'curadoria' %}ativa{% endif %}" href="?aba=curadoria">Curadoria</a>{% endif %}
+  </div>
+  {% endif %}
+
+{% if projeto.eh_anco and aba == 'trabalho' %}
+  {# ═══════════════════ PAINEL DO ANALISTA (meu trabalho) ═══════════════════ #}
+  <p class="tg-desc" style="margin:8px 0 14px;">Apenas o que é <strong>seu</strong>: as bases que você importou e a sua cota de análise.</p>
+  <div class="tg-grid-stats" style="margin-bottom:22px;">
+    {% for card in cards_trabalho %}
+      <a class="tg-stat" href="{{ card.href }}"><div class="n">{{ card.count }}</div><div class="l">{{ card.rotulo }}</div></a>
+    {% endfor %}
+  </div>
+  <div class="tg-actions" style="margin-bottom:24px;">
+    <a href="{% url 'triagem_autotriar' projeto.slug %}?escopo=minhas&lista=pendentes&i=0" class="btn btn-primary">Triar minha base{% if cards_trabalho.0.count %} ({{ cards_trabalho.0.count }}){% endif %}</a>
+    <a href="{% url 'triagem_duplicatas' projeto.slug %}" class="btn btn-secondary">Minhas duplicatas{% if minha_dup %} ({{ minha_dup }}){% endif %}</a>
+    <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">A analisar{% if minha_a_analisar %} ({{ minha_a_analisar }}){% endif %}</a>
+    <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-secondary">Importar busca</a>
+  </div>
+  <p class="tg-meta" style="margin-bottom:8px;"><strong>Objetivo:</strong> {{ protocolo.pergunta_pesquisa|default:"(a definir)" }} · <a href="{% url 'triagem_protocolo' projeto.slug %}" style="color:var(--color-gold-deep);">ver protocolo →</a></p>
+
+{% else %}
+  {# ═══════════════ PAINEL DE CURADORIA (ANCO) / RIGOROSO ═══════════════ #}
+
   {# ── Sobre: objetivo, estratégia, critérios ───────────────────────── #}
-  <div class="tg-card" style="margin:18px 0;">
+  <div class="tg-card" style="margin:14px 0 18px;">
     <div class="crit-grid">
       <span class="rotulo">Objetivo</span>
       <span style="font-family:var(--font-serif);font-size:15px;color:var(--color-ink);line-height:1.4;">{{ protocolo.pergunta_pesquisa|default:"(a definir no protocolo)" }}</span>
@@ -84,24 +113,21 @@
   {% if cards %}
   <div class="tg-grid-stats" style="margin-bottom:28px;">
     {% for card in cards %}
-      <a class="tg-stat" href="{{ card.href }}">
-        <div class="n">{{ card.count }}</div><div class="l">{{ card.rotulo }}</div>
-      </a>
+      <a class="tg-stat" href="{{ card.href }}"><div class="n">{{ card.count }}</div><div class="l">{{ card.rotulo }}</div></a>
     {% endfor %}
   </div>
   {% endif %}
 
-  {# ── Ações rápidas ────────────────────────────────────────────────── #}
+  {# ── Ações ────────────────────────────────────────────────────────── #}
   <div class="tg-actions" style="margin-bottom:28px;">
-    <a href="{% url 'triagem_duplicatas' projeto.slug %}" class="btn btn-secondary">Possíveis duplicatas</a>
     {% if projeto.eh_anco %}
-      <a href="{% url 'triagem_autotriar' projeto.slug %}" class="btn btn-primary">Triar minha base{% if n_para_autotriar %} ({{ n_para_autotriar }}){% endif %}</a>
-      <a href="{% url 'triagem_incluidos' projeto.slug %}" class="btn btn-secondary">Incluídos por relevância{% if n_incluidos %} ({{ n_incluidos }}){% endif %}</a>
-      {% if eh_curador %}
-        <a href="{% url 'triagem_sorteio_analise' projeto.slug %}" class="btn btn-secondary">Sortear análise</a>
-        <a href="{% url 'triagem_consenso' projeto.slug %}" class="btn btn-secondary">Consenso</a>
-      {% endif %}
+      <a href="{% url 'triagem_sorteio_analise' projeto.slug %}" class="btn btn-primary">Sortear análise</a>
+      <a href="{% url 'triagem_consenso' projeto.slug %}" class="btn btn-secondary">Consenso</a>
+      <a href="{% url 'triagem_autotriar' projeto.slug %}?escopo=todas&lista=pendentes&i=0" class="btn btn-secondary">Revisar triagem (todas as bases)</a>
+      <a href="{% url 'triagem_duplicatas' projeto.slug %}" class="btn btn-secondary">Todas as duplicatas</a>
+      <a href="{% url 'triagem_registros' projeto.slug %}" class="btn btn-secondary">Registros</a>
     {% else %}
+      <a href="{% url 'triagem_duplicatas' projeto.slug %}" class="btn btn-secondary">Possíveis duplicatas</a>
       <a href="{% url 'triagem_minhas' %}" class="btn btn-secondary">Minhas triagens</a>
       {% if eh_curador %}
         <a href="{% url 'triagem_iniciar' projeto.slug %}" class="btn btn-secondary">Iniciar triagem</a>
@@ -145,5 +171,6 @@
     {% endfor %}
     {% if eh_curador %}<a href="/admin/triagem/protocolotriagem/{{ projeto.pk }}/change/" class="pj-membro" style="border-style:dashed;color:var(--color-gold-deep);">+ gerenciar equipe</a>{% endif %}
   </div>
+{% endif %}
 </div>
 {% endblock %}

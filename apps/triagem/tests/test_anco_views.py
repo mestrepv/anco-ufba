@@ -153,8 +153,9 @@ def test_autotriar_navega_sem_decidir(client, proj_anco):
     )
     client.force_login(cur)
     base = reverse("triagem_autotriar", args=[proj_anco.slug])
-    r0 = client.get(base + "?lista=pendentes&i=0")
-    r1 = client.get(base + "?lista=pendentes&i=1")
+    # curador vê todas as bases no escopo de curadoria.
+    r0 = client.get(base + "?escopo=todas&lista=pendentes&i=0")
+    r1 = client.get(base + "?escopo=todas&lista=pendentes&i=1")
     assert r0.context["total"] == 2 and r0.context["registro"].pk != r1.context["registro"].pk
     # navegar não decidiu nada
     assert proj_anco.registros.filter(status=RegistroTriagem.Status.IDENTIFICADO).count() == 2
@@ -177,18 +178,20 @@ def test_autotriar_lista_incluidos_e_excluidos_separadas(client, proj_anco):
     cur = _analista("curl", papel=User.Papel.CURADOR, is_staff=True)
     inc = _incluido_de(proj_anco, cur, "10/dec")
     exc = RegistroTriagem.objects.create(
-        protocolo=proj_anco, titulo="Exc", doi="10/decx",
+        protocolo=proj_anco,
+        titulo="Exc",
+        doi="10/decx",
         status=RegistroTriagem.Status.EXCLUIDO,
     )
     client.force_login(cur)
     base = reverse("triagem_autotriar", args=[proj_anco.slug])
 
-    ri = client.get(base + "?lista=incluidos&i=0")
+    ri = client.get(base + "?escopo=todas&lista=incluidos&i=0")
     assert ri.context["lista"] == "incluidos"
     assert ri.context["total"] == 1
     assert ri.context["registro"].pk == inc.pk
 
-    re_ = client.get(base + "?lista=excluidos&i=0")
+    re_ = client.get(base + "?escopo=todas&lista=excluidos&i=0")
     assert re_.context["lista"] == "excluidos"
     assert re_.context["total"] == 1
     assert re_.context["registro"].pk == exc.pk
