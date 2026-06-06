@@ -44,6 +44,9 @@
   .lista-item { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; padding: 16px 0;
                 border-bottom: 1px solid var(--color-rule); align-items: center; }
   .lista-item:last-child { border-bottom: 0; }
+  @media (max-width: 560px) {
+    .lista-item { grid-template-columns: 1fr; gap: 8px; align-items: start; }
+  }
   .btn-excluir { display: inline-flex; align-items: center; padding: 6px 12px; background: transparent;
                  border: 1px solid var(--color-rule-strong); border-radius: 4px; font-family: var(--font-sans);
                  font-size: 13px; color: var(--color-danger); cursor: pointer; }

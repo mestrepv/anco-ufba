@@ -42,9 +42,9 @@
 
   {% if busca.string_busca or busca.periodo or busca.idiomas or busca.tipos_documento or busca.filtros or busca.campos_busca %}
   <h2 class="tg-h2">Estratégia registrada</h2>
-  <div class="tg-card" style="margin-bottom:24px;">
+  <div class="tg-card tg-table-scroll" style="margin-bottom:24px;">
     <table class="tg-table">
-      {% if busca.string_busca %}<tr><td style="width:160px;color:var(--color-ink-3);">String de busca</td><td>{{ busca.string_busca }}</td></tr>{% endif %}
+      {% if busca.string_busca %}<tr><td style="white-space:nowrap;color:var(--color-ink-3);">String de busca</td><td style="overflow-wrap:anywhere;">{{ busca.string_busca }}</td></tr>{% endif %}
       {% if busca.campos_busca %}<tr><td style="color:var(--color-ink-3);">Campo(s) de busca</td><td>{{ busca.campos_busca_display }}</td></tr>{% endif %}
       {% if busca.periodo %}<tr><td style="color:var(--color-ink-3);">Período</td><td>{{ busca.periodo }}</td></tr>{% endif %}
       {% if busca.idiomas %}<tr><td style="color:var(--color-ink-3);">Idiomas</td><td>{{ busca.idiomas_display }}</td></tr>{% endif %}

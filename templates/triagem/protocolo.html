@@ -29,9 +29,9 @@
   </div>
 
   <h2 class="tg-h2">Objetivo e critérios</h2>
-  <div class="tg-card" style="margin-bottom:22px;">
+  <div class="tg-card tg-table-scroll" style="margin-bottom:22px;">
     <table class="tg-table">
-      <tr><td style="width:160px;color:var(--color-ink-3);">Objetivo</td><td>{{ protocolo.pergunta_pesquisa|default:"—" }}</td></tr>
+      <tr><td style="white-space:nowrap;color:var(--color-ink-3);">Objetivo</td><td style="overflow-wrap:anywhere;">{{ protocolo.pergunta_pesquisa|default:"—" }}</td></tr>
       <tr><td style="color:var(--color-ok);">✔ Incluir se</td><td><pre style="white-space:pre-wrap;font-family:var(--font-sans);margin:0;">{{ protocolo.criterios_inclusao|default:"—" }}</pre></td></tr>
       <tr><td style="color:var(--color-danger);">✗ Excluir se</td><td><pre style="white-space:pre-wrap;font-family:var(--font-sans);margin:0;">{{ protocolo.criterios_exclusao|default:"—" }}</pre></td></tr>
     </table>
@@ -85,9 +85,9 @@
   {% endif %}
 
   <h2 class="tg-h2">Critérios e parâmetros</h2>
-  <div class="tg-card" style="margin-bottom:18px;">
+  <div class="tg-card tg-table-scroll" style="margin-bottom:18px;">
     <table class="tg-table">
-      <tr><td style="width:200px;color:var(--color-ink-3);">Pergunta de pesquisa</td><td>{{ protocolo.pergunta_pesquisa|default:"—" }}</td></tr>
+      <tr><td style="white-space:nowrap;color:var(--color-ink-3);">Pergunta de pesquisa</td><td style="overflow-wrap:anywhere;">{{ protocolo.pergunta_pesquisa|default:"—" }}</td></tr>
       <tr><td style="color:var(--color-ink-3);">Critérios de inclusão</td><td><pre style="white-space:pre-wrap;font-family:var(--font-sans);margin:0;">{{ protocolo.criterios_inclusao|default:"—" }}</pre></td></tr>
       <tr><td style="color:var(--color-ink-3);">Critérios de exclusão</td><td><pre style="white-space:pre-wrap;font-family:var(--font-sans);margin:0;">{{ protocolo.criterios_exclusao|default:"—" }}</pre></td></tr>
       <tr><td style="color:var(--color-ink-3);">Revisores por registro</td><td>{{ protocolo.n_revisores }} · prazo {{ protocolo.prazo_dias }} dias</td></tr>

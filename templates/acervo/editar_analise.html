@@ -202,5 +202,12 @@
   .ts-control .item { background: var(--color-review-bg); border: 1px solid var(--color-review-rule); color: var(--color-ink); border-radius: 4px; }
   .ts-dropdown { font-family: var(--font-sans); border-color: var(--color-rule-strong); }
   .ts-dropdown .active { background: var(--color-review-bg); color: var(--color-ink); }
+  /* Responsivo: ficha de metadados empilha no celular */
+  @media (max-width: 560px) {
+    .meta-row { grid-template-columns: 1fr; gap: 2px 0; }
+    .meta-row dt { color: var(--color-ink-3); }
+    .meta-card { padding: 18px 16px; }
+    .mono { overflow-wrap: anywhere; }
+  }
 </style>
 {% endblock %}

@@ -98,7 +98,7 @@
                  x-text="modoManual ? 'Metadados do artigo' : 'Metadados detectados — clique para corrigir'"></summary>
 
         <div style="display: grid; gap: 14px; margin-top: 14px;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 14px;">
             <div>
               <label class="field-label" for="id_doi">DOI</label>
               <input type="text" name="doi" id="id_doi" class="field-input" :value="meta.doi || ''">
@@ -141,7 +141,7 @@
             {% if form.idioma.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ form.idioma.errors|join:" / " }}</p>{% endif %}
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit,minmax(110px,1fr)); gap: 14px;">
             <div>
               <label class="field-label" for="id_ano">Ano *</label>
               <input type="number" name="ano" id="id_ano" class="field-input" :value="meta.ano || ''" min="1900" max="2030">
@@ -157,7 +157,7 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 14px;">
             <div>
               <label class="field-label" for="id_pagina_inicial">Página inicial</label>
               <input type="text" name="pagina_inicial" id="id_pagina_inicial" class="field-input" :value="meta.pagina_inicial || ''">
@@ -220,7 +220,7 @@
         {{ form.vinculacao_institucional }}
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 18px;">
         <label style="display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--color-ink-2);">
           {{ form.acesso_aberto }} Acesso aberto
         </label>
@@ -243,6 +243,11 @@
 
 <style>
   [x-cloak] { display: none !important; }
+  @media (max-width: 560px) {
+    .meta-row { grid-template-columns: 1fr; gap: 2px 0; }
+    .meta-card { padding: 18px 16px; }
+    .mono { overflow-wrap: anywhere; }
+  }
 </style>
 
 <script>

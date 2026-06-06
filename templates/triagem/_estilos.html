@@ -69,4 +69,16 @@
   .busca-row .b-meta { font-family: var(--font-sans); font-size: 12px; color: var(--color-ink-3); margin-top: 3px; }
   .busca-row .b-nums { font-family: var(--font-sans); font-size: 13px; color: var(--color-ink-2); text-align: right; white-space: nowrap; }
   .busca-row .b-nums strong { color: var(--color-ink); }
+  /* Quebra de tokens longos (DOI, URLs) para não estourar a largura no celular */
+  .tg-meta, .tg-item-title, .busca-row .b-base, .busca-row .b-meta { overflow-wrap: anywhere; }
+  /* Tabelas roláveis em telas estreitas */
+  .tg-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* ── Responsivo (telas pequenas) ──────────────────────────────────── */
+  @media (max-width: 560px) {
+    .tg-row { flex-wrap: wrap; }
+    .tg-row-2 { grid-template-columns: 1fr; }
+    .busca-row { flex-wrap: wrap; }
+    .busca-row .b-nums { text-align: left; white-space: normal; }
+    .tg-card { padding: 14px; }
+  }
 </style>

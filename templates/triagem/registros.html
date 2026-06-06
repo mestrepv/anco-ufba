@@ -24,7 +24,8 @@
   </div>
 
   {% if pagina.object_list %}
-    <table class="tg-table">
+    <div class="tg-table-scroll">
+    <table class="tg-table" style="min-width:520px;">
       <thead><tr><th>Título</th><th>Ano</th><th>Status</th><th>Acervo</th></tr></thead>
       <tbody>
         {% for r in pagina %}
@@ -33,11 +34,12 @@
               {% if r.doi %}<div class="tg-meta">{{ r.doi }}</div>{% endif %}</td>
             <td>{{ r.ano|default:"—" }}</td>
             <td>{{ r.get_status_display }}</td>
-            <td>{% if r.ja_no_acervo %}<span style="color:var(--color-gold-deep);">já no acervo</span>{% else %}—{% endif %}</td>
+            <td style="white-space:nowrap;">{% if r.ja_no_acervo %}<span style="color:var(--color-gold-deep);">já no acervo</span>{% else %}—{% endif %}</td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
+    </div>
 
     {% if pagina.has_other_pages %}
       <div class="tg-actions" style="margin-top:18px;align-items:center;">

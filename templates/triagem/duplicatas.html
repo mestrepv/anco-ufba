@@ -40,7 +40,7 @@
         {% if comp.mesmo_autor %}✔ mesmo 1º autor{% else %}✗ autores diferentes{% endif %}</span>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:18px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px;margin-bottom:18px;">
       <div>
         <form method="post" action="{% url 'triagem_duplicata_mesclar' projeto.slug %}" style="margin-bottom:8px;">
           {% csrf_token %}
