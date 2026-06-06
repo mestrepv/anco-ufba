@@ -62,14 +62,16 @@ def test_a_analisar_mostra_so_atribuidos(client, proj_anco):
     assert artigos == [meu]  # só o atribuído
 
 
-def test_a_analisar_sem_atribuicao_mostra_pool(client, proj_anco):
+def test_a_analisar_anco_sem_sorteio_aguarda(client, proj_anco):
+    """No ANCO, sem sorteio para o usuário, não mostra o pool — aguarda o sorteio."""
     ana = _analista("ana2")
     _incluido(proj_anco, "10/a")
     _incluido(proj_anco, "10/b")
     client.force_login(ana)
     resp = client.get(reverse("triagem_a_analisar"))
     assert resp.context["por_atribuicao"] is False
-    assert len(resp.context["pagina"].object_list) == 2
+    assert len(resp.context["pagina"].object_list) == 0  # nada antes do sorteio
+    assert resp.context["aguardando_sorteio"] is True
 
 
 def test_painel_anco_mostra_acoes_anco(client, proj_anco):

@@ -848,8 +848,9 @@ def ajuda_view(request: HttpRequest) -> HttpResponse:
 
 @_exige_analista
 def a_analisar_view(request: HttpRequest) -> HttpResponse:
-    """Artigos a analisar. Se o usuário tem **atribuições** (Revisão ANCO), vê só
-    as suas; senão, o pool aberto de incluídos (modo rigoroso/compat)."""
+    """Artigos a analisar. Com **atribuições** (sorteio da Revisão ANCO): só as
+    suas. Sem atribuições: pool self-serve apenas dos projetos **rigorosos** — em
+    projeto ANCO a análise espera o **sorteio da curadoria** (nada aparece antes)."""
     from apps.acervo.models import Analise, Artigo
 
     minhas = Analise.objects.filter(analista=request.user).values_list("artigo_id", flat=True)
@@ -860,13 +861,27 @@ def a_analisar_view(request: HttpRequest) -> HttpResponse:
     if por_atribuicao:
         artigos = Artigo.objects.filter(pk__in=atribuidos)
     else:
-        artigos = Artigo.objects.filter(registros_triagem__status=RegistroTriagem.Status.INCLUIDO)
+        artigos = Artigo.objects.filter(
+            registros_triagem__status=RegistroTriagem.Status.INCLUIDO,
+            registros_triagem__protocolo__modo=ProtocoloTriagem.Modo.RIGOROSO,
+        )
     artigos = artigos.exclude(pk__in=minhas).distinct().order_by("-ano", "titulo")
     pagina = Paginator(artigos, 50).get_page(request.GET.get("page"))
+
+    # Em projeto ANCO com incluídos, mas sem sorteio para o usuário: aguardando.
+    aguardando_sorteio = not por_atribuicao and ProtocoloTriagem.objects.filter(
+        modo=ProtocoloTriagem.Modo.ANCO,
+        membros__usuario=request.user,
+        registros__status=RegistroTriagem.Status.INCLUIDO,
+    ).exists()
     return render(
         request,
         "triagem/a_analisar.html",
-        {"pagina": pagina, "por_atribuicao": por_atribuicao},
+        {
+            "pagina": pagina,
+            "por_atribuicao": por_atribuicao,
+            "aguardando_sorteio": aguardando_sorteio,
+        },
     )
 
 
