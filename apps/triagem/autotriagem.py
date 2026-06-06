@@ -41,11 +41,11 @@ def registros_para_autotriar(projeto: ProtocoloTriagem, user):
     return qs.filter(origem_buscas__criado_por=user).distinct()
 
 
-def registros_decididos_do_usuario(projeto: ProtocoloTriagem, user):
-    """Já decididos (incluídos/excluídos) que o usuário pode rever/desfazer."""
-    qs = projeto.registros.filter(status__in=(_St.INCLUIDO, _St.EXCLUIDO)).order_by(
-        "-decidida_em", "-criado_em"
-    )
+def registros_decididos_do_usuario(projeto: ProtocoloTriagem, user, status=None):
+    """Decididos que o usuário pode rever/desfazer. `status` filtra (incluídos
+    e/ou excluídos); padrão = ambos."""
+    sts = status or (_St.INCLUIDO, _St.EXCLUIDO)
+    qs = projeto.registros.filter(status__in=sts).order_by("-decidida_em", "-criado_em")
     if projeto.eh_curador_no(user):
         return qs
     return qs.filter(origem_buscas__criado_por=user).distinct()

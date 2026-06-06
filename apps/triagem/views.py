@@ -853,8 +853,14 @@ def autotriar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
         return redirect(_autotriar_url(projeto.slug, lista, i))
 
     lista = request.GET.get("lista", "pendentes")
-    if lista == "decididos":
-        qs = registros_decididos_do_usuario(projeto, request.user)
+    if lista == "incluidos":
+        qs = registros_decididos_do_usuario(
+            projeto, request.user, (RegistroTriagem.Status.INCLUIDO,)
+        )
+    elif lista == "excluidos":
+        qs = registros_decididos_do_usuario(
+            projeto, request.user, (RegistroTriagem.Status.EXCLUIDO,)
+        )
     else:
         lista = "pendentes"
         qs = registros_para_autotriar(projeto, request.user)
@@ -882,7 +888,12 @@ def autotriar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
             "url_anterior": _autotriar_url(projeto.slug, lista, i - 1) if i > 0 else "",
             "url_proximo": _autotriar_url(projeto.slug, lista, i + 1) if i < total - 1 else "",
             "n_pendentes": registros_para_autotriar(projeto, request.user).count(),
-            "n_decididos": registros_decididos_do_usuario(projeto, request.user).count(),
+            "n_incluidos": registros_decididos_do_usuario(
+                projeto, request.user, (RegistroTriagem.Status.INCLUIDO,)
+            ).count(),
+            "n_excluidos": registros_decididos_do_usuario(
+                projeto, request.user, (RegistroTriagem.Status.EXCLUIDO,)
+            ).count(),
             "termos_realce": projeto.termos_realce,
         },
     )

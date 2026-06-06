@@ -31,7 +31,8 @@
 
   <div class="at-tabs">
     <a class="at-tab {% if lista == 'pendentes' %}ativa{% endif %}" href="?lista=pendentes&i=0">A triar ({{ n_pendentes }})</a>
-    <a class="at-tab {% if lista == 'decididos' %}ativa{% endif %}" href="?lista=decididos&i=0">Incluídos / excluídos ({{ n_decididos }})</a>
+    <a class="at-tab {% if lista == 'incluidos' %}ativa{% endif %}" href="?lista=incluidos&i=0">Incluídos ({{ n_incluidos }})</a>
+    <a class="at-tab {% if lista == 'excluidos' %}ativa{% endif %}" href="?lista=excluidos&i=0">Excluídos ({{ n_excluidos }})</a>
   </div>
 
   {% if registro %}
@@ -96,12 +97,14 @@
       {% elif registro.doi %}<a href="https://doi.org/{{ registro.doi }}" target="_blank" rel="noopener" style="display:inline-block;margin-top:12px;color:var(--color-gold-deep);font-size:14px;">Abrir pelo DOI &nearr;</a>{% endif %}
     </article>
 
-  {% elif lista == 'decididos' %}
-    <p class="tg-empty">Você ainda não decidiu nenhum registro das suas bases.</p>
+  {% elif lista == 'incluidos' %}
+    <p class="tg-empty">Você ainda não incluiu nenhum registro das suas bases.</p>
+  {% elif lista == 'excluidos' %}
+    <p class="tg-empty">Você ainda não excluiu nenhum registro das suas bases.</p>
   {% else %}
     <p class="tg-empty">Você triou todos os registros das suas bases. 🎉
       Veja o <a href="{% url 'triagem_incluidos' projeto.slug %}">pool de incluídos por relevância</a>
-      ou os <a href="?lista=decididos&i=0">incluídos/excluídos</a>.</p>
+      ou os <a href="?lista=incluidos&i=0">já incluídos</a>.</p>
   {% endif %}
 </div>
 {% endblock %}

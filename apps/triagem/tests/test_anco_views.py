@@ -166,21 +166,32 @@ def test_autotriar_desfazer_via_post(client, proj_anco):
     client.force_login(cur)
     resp = client.post(
         reverse("triagem_autotriar", args=[proj_anco.slug]),
-        data={"acao": "desfazer", "registro_id": reg.pk, "lista": "decididos", "i": "0"},
+        data={"acao": "desfazer", "registro_id": reg.pk, "lista": "incluidos", "i": "0"},
     )
     assert resp.status_code == 302
     reg.refresh_from_db()
     assert reg.status == RegistroTriagem.Status.IDENTIFICADO
 
 
-def test_autotriar_decididos_lista_mostra_incluido(client, proj_anco):
+def test_autotriar_lista_incluidos_e_excluidos_separadas(client, proj_anco):
     cur = _analista("curl", papel=User.Papel.CURADOR, is_staff=True)
-    _incluido_de(proj_anco, cur, "10/dec")
+    inc = _incluido_de(proj_anco, cur, "10/dec")
+    exc = RegistroTriagem.objects.create(
+        protocolo=proj_anco, titulo="Exc", doi="10/decx",
+        status=RegistroTriagem.Status.EXCLUIDO,
+    )
     client.force_login(cur)
-    resp = client.get(reverse("triagem_autotriar", args=[proj_anco.slug]) + "?lista=decididos&i=0")
-    assert resp.status_code == 200
-    assert resp.context["lista"] == "decididos"
-    assert resp.context["registro"].status == RegistroTriagem.Status.INCLUIDO
+    base = reverse("triagem_autotriar", args=[proj_anco.slug])
+
+    ri = client.get(base + "?lista=incluidos&i=0")
+    assert ri.context["lista"] == "incluidos"
+    assert ri.context["total"] == 1
+    assert ri.context["registro"].pk == inc.pk
+
+    re_ = client.get(base + "?lista=excluidos&i=0")
+    assert re_.context["lista"] == "excluidos"
+    assert re_.context["total"] == 1
+    assert re_.context["registro"].pk == exc.pk
 
 
 def test_autotriar_view_rejeita_modo_rigoroso(client):
