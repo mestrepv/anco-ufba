@@ -5,41 +5,87 @@
 {% block extra_head %}{% include "triagem/_estilos.html" %}
 <style>
   mark { background: #fbeec2; color: inherit; padding: 0 2px; border-radius: 2px; }
+  .at-tabs { display:flex; gap:8px; margin:10px 0 4px; }
+  .at-tab { font-family:var(--font-sans); font-size:13px; padding:6px 14px; border-radius:999px;
+            border:1px solid var(--color-rule); color:var(--color-ink-2); background:var(--color-paper); text-decoration:none; }
+  .at-tab.ativa { background:var(--color-ink); color:var(--color-paper); border-color:var(--color-ink); }
+  .at-nav { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:14px 0; }
+  .at-nav a { font-family:var(--font-sans); font-size:14px; color:var(--color-gold-deep); text-decoration:none; }
+  .at-nav span.mudo { color:var(--color-ink-3); }
+  .at-acoes { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px; }
+  .at-btn { display:block; width:100%; text-align:left; padding:14px 16px; border-radius:8px; cursor:pointer;
+            font-family:var(--font-sans); border:1.5px solid var(--color-rule); background:var(--color-paper); }
+  .at-btn .tit { font-size:16px; font-weight:700; }
+  .at-btn .crit { font-size:12.5px; color:var(--color-ink-2); margin-top:6px; white-space:pre-wrap; line-height:1.45; }
+  .at-btn.incluir { border-color:var(--color-ok); } .at-btn.incluir .tit { color:var(--color-ok); }
+  .at-btn.excluir { border-color:var(--color-danger); } .at-btn.excluir .tit { color:var(--color-danger); }
+  .at-btn:hover { filter:brightness(.98); box-shadow:0 1px 0 var(--color-rule); }
+  @media (max-width:560px){ .at-acoes { grid-template-columns:1fr; } }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="tg-wrap narrow" x-data="{ d: '' }">
-  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;">
-    <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome|default:projeto.titulo }}</a>
-    <span class="tg-meta"><strong>{{ restantes }}</strong> restante(s)</span>
-  </div>
-  <h1 class="tg-h1" style="margin:6px 0 4px;">Triar a sua base <span class="tg-meta">(Revisão ANCO)</span></h1>
-  <p class="tg-desc" style="margin-bottom:16px;">
-    Decida por título e resumo se o artigo tem potencial para a análise. Você tria
-    os registros das bases que importou; o que incluir entra no pool de análise.
-  </p>
+<div class="tg-wrap narrow">
+  <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome|default:projeto.titulo }}</a>
+  <h1 class="tg-h1" style="margin:6px 0 2px;">Triar a sua base <span class="tg-meta">(Revisão ANCO)</span></h1>
 
-  {% if projeto.criterios_inclusao or projeto.criterios_exclusao %}
-    <div class="tg-card" style="margin-bottom:18px;background:var(--color-paper-2);">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-        <div><div class="tg-meta" style="font-weight:700;color:var(--color-ok);">✔ Incluir se</div>
-          <pre style="white-space:pre-wrap;font-family:var(--font-sans);font-size:13px;color:var(--color-ink-2);margin:4px 0 0;">{{ projeto.criterios_inclusao }}</pre></div>
-        <div><div class="tg-meta" style="font-weight:700;color:var(--color-danger);">✗ Excluir se</div>
-          <pre style="white-space:pre-wrap;font-family:var(--font-sans);font-size:13px;color:var(--color-ink-2);margin:4px 0 0;">{{ projeto.criterios_exclusao }}</pre></div>
-      </div>
-    </div>
-  {% endif %}
+  <div class="at-tabs">
+    <a class="at-tab {% if lista == 'pendentes' %}ativa{% endif %}" href="?lista=pendentes&i=0">A triar ({{ n_pendentes }})</a>
+    <a class="at-tab {% if lista == 'decididos' %}ativa{% endif %}" href="?lista=decididos&i=0">Incluídos / excluídos ({{ n_decididos }})</a>
+  </div>
 
   {% if registro %}
-    <article class="tg-card" style="margin-bottom:20px;">
+    <div class="at-nav">
+      {% if url_anterior %}<a href="{{ url_anterior }}">&larr; anterior</a>{% else %}<span class="mudo">&larr; anterior</span>{% endif %}
+      <span class="tg-meta"><strong>{{ pos }}</strong> de {{ total }}</span>
+      {% if url_proximo %}<a href="{{ url_proximo }}">próximo &rarr;</a>{% else %}<span class="mudo">próximo &rarr;</span>{% endif %}
+    </div>
+
+    {# ── Ações no topo ───────────────────────────────────────────────── #}
+    {% if lista == 'pendentes' %}
+      <form method="post" class="at-acoes">
+        {% csrf_token %}
+        <input type="hidden" name="registro_id" value="{{ registro.pk }}">
+        <input type="hidden" name="lista" value="{{ lista }}">
+        <input type="hidden" name="i" value="{{ i }}">
+        <button type="submit" name="acao" value="incluir" class="at-btn incluir">
+          <div class="tit">✔ Incluir</div>
+          {% if projeto.criterios_inclusao %}<div class="crit">{{ projeto.criterios_inclusao }}</div>{% endif %}
+        </button>
+        <button type="submit" name="acao" value="excluir" class="at-btn excluir">
+          <div class="tit">✗ Excluir</div>
+          {% if projeto.criterios_exclusao %}<div class="crit">{{ projeto.criterios_exclusao }}</div>{% endif %}
+        </button>
+      </form>
+    {% else %}
+      <div class="tg-card" style="margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div>
+          {% if registro.status == 'incluido' %}
+            <span class="tg-meta" style="font-weight:700;color:var(--color-ok);">✔ Incluído</span>
+          {% else %}
+            <span class="tg-meta" style="font-weight:700;color:var(--color-danger);">✗ Excluído</span>
+            {% if registro.motivo_exclusao %}<span class="tg-meta"> — {{ registro.motivo_exclusao }}</span>{% endif %}
+          {% endif %}
+        </div>
+        <form method="post" @submit="return confirm('Desfazer e mandar de volta para a fila?')">
+          {% csrf_token %}
+          <input type="hidden" name="registro_id" value="{{ registro.pk }}">
+          <input type="hidden" name="lista" value="{{ lista }}">
+          <input type="hidden" name="i" value="{{ i }}">
+          <button type="submit" name="acao" value="desfazer" class="btn btn-sm btn-secondary">↩ Desfazer</button>
+        </form>
+      </div>
+    {% endif %}
+
+    {# ── O artigo ────────────────────────────────────────────────────── #}
+    <article class="tg-card">
       {% if registro.tipo %}<span class="tg-meta" style="display:inline-block;margin-bottom:6px;padding:2px 9px;border-radius:999px;border:1px solid var(--color-rule);background:var(--color-paper-2);font-weight:600;">{{ registro.tipo }}</span>{% endif %}
       <h2 style="font-family:var(--font-serif);font-weight:500;font-size:19px;color:var(--color-ink);margin:0;line-height:1.3;">{{ registro.titulo|realce:termos_realce }}</h2>
       <div class="tg-meta" style="margin-top:6px;">
         {% if registro.ano %}{{ registro.ano }}{% endif %}{% if registro.titulo_periodico %} · {{ registro.titulo_periodico }}{% endif %}{% if registro.idioma %} · {{ registro.idioma }}{% endif %}
       </div>
       {% if registro.resumo %}
-        <p style="margin-top:12px;font-family:var(--font-sans);font-size:14.5px;line-height:1.6;color:var(--color-ink-2);max-height:320px;overflow:auto;">{{ registro.resumo|realce:termos_realce }}</p>
+        <p style="margin-top:12px;font-family:var(--font-sans);font-size:14.5px;line-height:1.6;color:var(--color-ink-2);max-height:340px;overflow:auto;">{{ registro.resumo|realce:termos_realce }}</p>
       {% else %}
         <p style="margin-top:12px;color:var(--color-ink-3);font-style:italic;">Sem resumo disponível.</p>
       {% endif %}
@@ -50,31 +96,12 @@
       {% elif registro.doi %}<a href="https://doi.org/{{ registro.doi }}" target="_blank" rel="noopener" style="display:inline-block;margin-top:12px;color:var(--color-gold-deep);font-size:14px;">Abrir pelo DOI &nearr;</a>{% endif %}
     </article>
 
-    <form method="post">
-      {% csrf_token %}
-      <input type="hidden" name="registro_id" value="{{ registro.pk }}">
-      <div class="tg-field">
-        <label>Sua decisão</label>
-        <div class="tg-radio">
-          <label :class="d === 'incluir' ? 'sel' : ''" :style="d === 'incluir' ? 'border-color:var(--color-gold-deep);background:var(--color-review-bg);' : ''">
-            <input type="radio" name="decisao" value="incluir" x-model="d"><span>Incluir</span>
-          </label>
-          <label :class="d === 'excluir' ? 'sel' : ''" :style="d === 'excluir' ? 'border-color:var(--color-gold-deep);background:var(--color-review-bg);' : ''">
-            <input type="radio" name="decisao" value="excluir" x-model="d"><span>Excluir</span>
-          </label>
-        </div>
-      </div>
-      <div class="tg-field" x-show="d === 'excluir'" x-cloak>
-        <label>Motivo da exclusão (opcional)</label>
-        <input type="text" name="motivo_exclusao" class="field-input" placeholder="ex.: sentido estreito de 'cognitive analysis'">
-      </div>
-      <div class="tg-actions">
-        <button type="submit" class="btn btn-primary" x-bind:disabled="!d">Registrar e avançar &rarr;</button>
-      </div>
-    </form>
+  {% elif lista == 'decididos' %}
+    <p class="tg-empty">Você ainda não decidiu nenhum registro das suas bases.</p>
   {% else %}
     <p class="tg-empty">Você triou todos os registros das suas bases. 🎉
-      Veja o <a href="{% url 'triagem_incluidos' projeto.slug %}">pool de incluídos por relevância</a>.</p>
+      Veja o <a href="{% url 'triagem_incluidos' projeto.slug %}">pool de incluídos por relevância</a>
+      ou os <a href="?lista=decididos&i=0">incluídos/excluídos</a>.</p>
   {% endif %}
 </div>
 {% endblock %}

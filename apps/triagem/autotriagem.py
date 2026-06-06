@@ -41,6 +41,16 @@ def registros_para_autotriar(projeto: ProtocoloTriagem, user):
     return qs.filter(origem_buscas__criado_por=user).distinct()
 
 
+def registros_decididos_do_usuario(projeto: ProtocoloTriagem, user):
+    """Já decididos (incluídos/excluídos) que o usuário pode rever/desfazer."""
+    qs = projeto.registros.filter(status__in=(_St.INCLUIDO, _St.EXCLUIDO)).order_by(
+        "-decidida_em", "-criado_em"
+    )
+    if projeto.eh_curador_no(user):
+        return qs
+    return qs.filter(origem_buscas__criado_por=user).distinct()
+
+
 @transaction.atomic
 def autotriar(registro: RegistroTriagem, decisao: str, *, por, motivo: str = "") -> str:
     """Aplica a decisão do dono e consolida (revisor único). Retorna o status.
@@ -104,6 +114,47 @@ def reverter_inclusao(registro: RegistroTriagem, *, por, motivo: str = "") -> bo
             "artigo",
         ]
     )
+    if pode_apagar_artigo:
+        artigo.delete()
+    return True
+
+
+@transaction.atomic
+def desfazer_autotriagem(registro: RegistroTriagem, *, por) -> bool:
+    """Desfaz a decisão de um registro decidido: volta a `identificado`.
+
+    Remove as decisões de triagem e o `Artigo` promovido órfão (não-legado, sem
+    análises, sem outro registro o referenciando). O acervo curado é preservado.
+    Retorna True se desfez.
+    """
+    if registro.status not in (_St.INCLUIDO, _St.EXCLUIDO):
+        return False
+
+    artigo = registro.artigo
+    pode_apagar_artigo = bool(
+        artigo
+        and not artigo.eh_legado
+        and artigo.analises.count() == 0
+        and artigo.registros_triagem.exclude(pk=registro.pk).count() == 0
+    )
+
+    registro.status = _St.IDENTIFICADO
+    registro.decisao_final = ""
+    registro.motivo_exclusao = ""
+    registro.decidida_por = None
+    registro.decidida_em = None
+    registro.artigo = None
+    registro.save(
+        update_fields=[
+            "status",
+            "decisao_final",
+            "motivo_exclusao",
+            "decidida_por",
+            "decidida_em",
+            "artigo",
+        ]
+    )
+    DecisaoTriagem.objects.filter(registro=registro).delete()
     if pode_apagar_artigo:
         artigo.delete()
     return True

@@ -31,7 +31,9 @@ from . import prisma
 from .aprovacao import consolidar_registro, registros_para_desempate
 from .autotriagem import (
     autotriar,
+    desfazer_autotriagem,
     pode_autotriar,
+    registros_decididos_do_usuario,
     registros_para_autotriar,
     reverter_inclusao,
 )
@@ -809,9 +811,17 @@ def prisma_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
 # --------------------------------------------------------------------------- #
 
 
+def _autotriar_url(slug: str, lista: str, i: int) -> str:
+    return f"{reverse('triagem_autotriar', args=[slug])}?lista={lista}&i={i}"
+
+
 @_projeto_analista
 def autotriar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
-    """Autotriagem (modo ANCO): o dono da base tria a própria base, guiado."""
+    """Autotriagem (modo ANCO): navega itens e decide com botões no topo.
+
+    Duas listas: `pendentes` (a triar) e `decididos` (incluídos/excluídos, com
+    desfazer). Navegação por índice `i` — pode avançar/voltar sem decidir.
+    """
     if not projeto.eh_anco:
         messages.info(request, "Este projeto usa triagem por revisores independentes.")
         return redirect("triagem_registros", slug=projeto.slug)
@@ -822,26 +832,40 @@ def autotriar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
         )
         if not pode_autotriar(projeto, request.user, registro):
             return HttpResponseForbidden("Você só tria registros de bases que importou.")
-        decisao = request.POST.get("decisao")
-        if decisao not in (RegistroTriagem.Decisao.INCLUIR, RegistroTriagem.Decisao.EXCLUIR):
-            messages.error(request, "Decisão inválida.")
-            return redirect("triagem_autotriar", slug=projeto.slug)
-        if registro.status != RegistroTriagem.Status.IDENTIFICADO or registro.ja_no_acervo:
-            messages.info(request, "Este registro já não está disponível para triagem.")
-            return redirect("triagem_autotriar", slug=projeto.slug)
-        novo = autotriar(
-            registro,
-            decisao,
-            por=request.user,
-            motivo=request.POST.get("motivo_exclusao", "").strip(),
-        )
-        rotulo = "incluído" if novo == RegistroTriagem.Status.INCLUIDO else "excluído"
-        messages.success(request, f"Registro {rotulo}.")
-        return redirect("triagem_autotriar", slug=projeto.slug)
+        acao = request.POST.get("acao")
+        lista = request.POST.get("lista", "pendentes")
+        try:
+            i = int(request.POST.get("i", 0))
+        except (TypeError, ValueError):
+            i = 0
+        if acao == "desfazer":
+            if desfazer_autotriagem(registro, por=request.user):
+                messages.success(request, "Decisão desfeita — voltou para a fila.")
+        elif acao in ("incluir", "excluir"):
+            if registro.status == RegistroTriagem.Status.IDENTIFICADO and not registro.ja_no_acervo:
+                novo = autotriar(registro, acao, por=request.user)
+                rotulo = "incluído" if novo == RegistroTriagem.Status.INCLUIDO else "excluído"
+                messages.success(request, f"Registro {rotulo}.")
+            else:
+                messages.info(request, "Este registro não está disponível para triagem.")
+        else:
+            messages.error(request, "Ação inválida.")
+        return redirect(_autotriar_url(projeto.slug, lista, i))
 
-    pendentes = registros_para_autotriar(projeto, request.user)
-    restantes = pendentes.count()
-    registro = pendentes.first()
+    lista = request.GET.get("lista", "pendentes")
+    if lista == "decididos":
+        qs = registros_decididos_do_usuario(projeto, request.user)
+    else:
+        lista = "pendentes"
+        qs = registros_para_autotriar(projeto, request.user)
+    ids = list(qs.values_list("pk", flat=True))
+    total = len(ids)
+    try:
+        i = int(request.GET.get("i", 0))
+    except (TypeError, ValueError):
+        i = 0
+    i = max(0, min(i, total - 1)) if total else 0
+    registro = RegistroTriagem.objects.select_related("artigo").get(pk=ids[i]) if total else None
     return render(
         request,
         "triagem/autotriar.html",
@@ -849,7 +873,16 @@ def autotriar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
             "projeto": projeto,
             "protocolo": projeto,
             "registro": registro,
-            "restantes": restantes,
+            "lista": lista,
+            "i": i,
+            "pos": i + 1,
+            "total": total,
+            "tem_anterior": i > 0,
+            "tem_proximo": i < total - 1,
+            "url_anterior": _autotriar_url(projeto.slug, lista, i - 1) if i > 0 else "",
+            "url_proximo": _autotriar_url(projeto.slug, lista, i + 1) if i < total - 1 else "",
+            "n_pendentes": registros_para_autotriar(projeto, request.user).count(),
+            "n_decididos": registros_decididos_do_usuario(projeto, request.user).count(),
             "termos_realce": projeto.termos_realce,
         },
     )

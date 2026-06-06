@@ -137,6 +137,52 @@ def test_excluir_incluido_gate_nao_dono(client, proj_anco):
     assert reg.status == RegistroTriagem.Status.INCLUIDO  # intocado
 
 
+def test_autotriar_navega_sem_decidir(client, proj_anco):
+    cur = _analista("curn", papel=User.Papel.CURADOR, is_staff=True)
+    RegistroTriagem.objects.create(
+        protocolo=proj_anco,
+        titulo="A",
+        doi="10/a1",
+        status=RegistroTriagem.Status.IDENTIFICADO,
+    )
+    RegistroTriagem.objects.create(
+        protocolo=proj_anco,
+        titulo="B",
+        doi="10/b1",
+        status=RegistroTriagem.Status.IDENTIFICADO,
+    )
+    client.force_login(cur)
+    base = reverse("triagem_autotriar", args=[proj_anco.slug])
+    r0 = client.get(base + "?lista=pendentes&i=0")
+    r1 = client.get(base + "?lista=pendentes&i=1")
+    assert r0.context["total"] == 2 and r0.context["registro"].pk != r1.context["registro"].pk
+    # navegar não decidiu nada
+    assert proj_anco.registros.filter(status=RegistroTriagem.Status.IDENTIFICADO).count() == 2
+
+
+def test_autotriar_desfazer_via_post(client, proj_anco):
+    cur = _analista("curd", papel=User.Papel.CURADOR, is_staff=True)
+    reg = _incluido_de(proj_anco, cur, "10/undoview")
+    client.force_login(cur)
+    resp = client.post(
+        reverse("triagem_autotriar", args=[proj_anco.slug]),
+        data={"acao": "desfazer", "registro_id": reg.pk, "lista": "decididos", "i": "0"},
+    )
+    assert resp.status_code == 302
+    reg.refresh_from_db()
+    assert reg.status == RegistroTriagem.Status.IDENTIFICADO
+
+
+def test_autotriar_decididos_lista_mostra_incluido(client, proj_anco):
+    cur = _analista("curl", papel=User.Papel.CURADOR, is_staff=True)
+    _incluido_de(proj_anco, cur, "10/dec")
+    client.force_login(cur)
+    resp = client.get(reverse("triagem_autotriar", args=[proj_anco.slug]) + "?lista=decididos&i=0")
+    assert resp.status_code == 200
+    assert resp.context["lista"] == "decididos"
+    assert resp.context["registro"].status == RegistroTriagem.Status.INCLUIDO
+
+
 def test_autotriar_view_rejeita_modo_rigoroso(client):
     rig = ProtocoloTriagem.objects.create(nome="rig")  # default RIGOROSO
     ana = membro(

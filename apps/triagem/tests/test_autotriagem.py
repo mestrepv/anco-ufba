@@ -140,6 +140,38 @@ def test_reverter_inclusao_exclui_e_apaga_artigo_orfao(proj_anco, importador):
     assert not Artigo.objects.filter(pk=art_pk).exists()  # artigo órfão removido
 
 
+def test_desfazer_volta_para_identificado(proj_anco, importador):
+    from apps.acervo.models import Artigo
+    from apps.triagem.autotriagem import desfazer_autotriagem
+
+    reg = _reg_da_base(proj_anco, importador, doi="10/undo")
+    autotriar(reg, RegistroTriagem.Decisao.INCLUIR, por=importador)
+    reg.refresh_from_db()
+    art_pk = reg.artigo_id
+
+    assert desfazer_autotriagem(reg, por=importador) is True
+    reg.refresh_from_db()
+    assert reg.status == RegistroTriagem.Status.IDENTIFICADO
+    assert reg.artigo_id is None
+    assert reg.decisao_final == ""
+    assert not Artigo.objects.filter(pk=art_pk).exists()  # artigo órfão removido
+    assert DecisaoTriagem.objects.filter(registro=reg).count() == 0  # decisões limpas
+
+
+def test_desfazer_excluido_volta_para_fila(proj_anco, importador):
+    from apps.triagem.autotriagem import desfazer_autotriagem
+
+    reg = _reg_da_base(proj_anco, importador, doi="10/undo-x")
+    autotriar(reg, RegistroTriagem.Decisao.EXCLUIR, por=importador, motivo="x")
+    reg.refresh_from_db()
+    assert reg.status == RegistroTriagem.Status.EXCLUIDO
+
+    assert desfazer_autotriagem(reg, por=importador) is True
+    reg.refresh_from_db()
+    assert reg.status == RegistroTriagem.Status.IDENTIFICADO
+    assert reg.motivo_exclusao == ""
+
+
 def test_reverter_inclusao_preserva_artigo_com_analise(proj_anco, importador):
     from apps.acervo.models import Analise, Artigo
     from apps.triagem.autotriagem import reverter_inclusao
