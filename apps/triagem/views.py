@@ -204,7 +204,9 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
         _St = RegistroTriagem.Status
         a_triar = projeto.registros.filter(status=_St.IDENTIFICADO, ja_no_acervo=False).count()
         isentos = projeto.registros.filter(ja_no_acervo=True).count()
+        total = projeto.registros.count()
         brutos = [
+            ("Importados", total, _reg_url),
             ("A triar", a_triar, reverse("triagem_autotriar", args=[projeto.slug])),
             ("Já no acervo (isentos)", isentos, f"{_reg_url}?status=identificado"),
             ("Incluído", contagens.get(_St.INCLUIDO, 0), reverse("triagem_incluidos", args=[projeto.slug])),
