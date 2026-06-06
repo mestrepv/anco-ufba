@@ -1,9 +1,22 @@
 {% load static %}
 {# Uso: {% include "partials/_footer.html" with compact=True %} #}
 {# compact=True reduz a 1 coluna (para páginas internas) #}
+<style>
+  .ft-pad { padding: 40px 56px; }
+  .ft-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; }
+  .ft-pad.compact { padding: 24px 20px; }
+  .ft-grid.compact { grid-template-columns: 1fr; gap: 20px; }
+  @media (max-width: 760px) {
+    .ft-pad { padding: 28px 20px; }
+    .ft-grid { grid-template-columns: 1fr 1fr; gap: 22px 20px; }
+  }
+  @media (max-width: 460px) {
+    .ft-grid { grid-template-columns: 1fr; }
+  }
+</style>
 <footer style="border-top:1px solid var(--color-rule);background:var(--color-paper-2);color:var(--color-ink-3);font-family:var(--font-sans);font-size:12px;line-height:1.55;">
-  <div style="padding:{% if compact %}24px 20px{% else %}40px 56px{% endif %};">
-    <div style="display:grid;grid-template-columns:{% if compact %}1fr{% else %}2fr 1fr 1fr 1fr{% endif %};gap:{% if compact %}20px{% else %}48px{% endif %};">
+  <div class="ft-pad{% if compact %} compact{% endif %}">
+    <div class="ft-grid{% if compact %} compact{% endif %}">
 
       {# Bloco de marca #}
       <div>
