@@ -441,3 +441,62 @@ docker compose -f infra/docker-compose.yml exec web python manage.py reindexar_e
 > (o que você, conhecendo o acervo, sabe ser pertinente a cada conceito de Fróes)
 > e só depois rode as buscas. Caso contrário a tendência é julgar pertinente o que
 > o modelo trouxe — exatamente o viés que queremos medir, não herdar.
+
+---
+
+## Apêndice — Vizinhança semântica de "análise cognitiva" (sonda diagnóstica)
+
+> **O que é.** Uma **sonda** da geometria do modelo: embutimos o termo "análise
+> cognitiva" e uma lista de termos candidatos, e ordenamos por similaridade do
+> cosseno. Não lê o banco vetorial (que guarda **documentos**, não termos) — usa o
+> **mesmo modelo** para vetorizar termos soltos. Mede **o que o modelo pré-treinado
+> "pensa"**, não o corpus. Coletado em 2026-06 com `paraphrase-multilingual-MiniLM-L12-v2`.
+
+| Sim. | Termo | | Sim. | Termo |
+|------|-------|---|------|-------|
+| **98%** | cognitive analysis | | 56% | pensamento |
+| 90% | cognitivo | | 52% | Neuroconstrutivismo |
+| 90% | ciências cognitivas | | 50% | metacognição |
+| 87% | cognição | | 49% | conhecimento |
+| 85% | cognição incorporada | | 49% | análise do discurso |
+| 85% | psicologia cognitiva | | 48% | **difusão do conhecimento** |
+| 83% | neurociência cognitiva | | 47% | revisão sistemática |
+| 74% | linguística cognitiva | | 39% | epistemologia |
+| 71% | cognição distribuída | | **36%** | **tradução do conhecimento** |
+| 68% | mente | | **34%** | **multirreferencialidade** |
+| 66% | análise | | 33% | 🟥 futebol (controle) |
+| 63% | cérebro | | 32% | Empirismo |
+| 62% | inteligência artificial | | 26% | 🟥 gastronomia (controle) |
+| | | | 16% | 🟥 economia agrícola (controle) |
+
+**Leitura:**
+
+1. **Multilíngue robusto** — "cognitive analysis" = 98% (PT≈EN no mesmo ponto).
+2. **Ancoragem lexical** — o topo é todo da família "cognit-" (ciências/psicologia/
+   neurociência cognitiva). O modelo mede muito a **semelhança de superfície** com o
+   sentido de **ciência cognitiva anglo-saxã**.
+3. **Evidência do viés de canonicidade** — os conceitos centrais da AnCo-Fróes ficam
+   no rodapé: *tradução do conhecimento* (36%) e *multirreferencialidade* (34%) estão
+   **à mesma distância que "futebol" (33%)**. Para o modelo, os pilares de Fróes são
+   tão próximos de "análise cognitiva" quanto um esporte aleatório.
+
+**Implicação.** Reforça que a busca semântica deve ser **descoberta, não gate de
+pertinência**, no horizonte da AnCo. E define uma **métrica de progresso** para um
+eventual fine-tuning: a meta seria ver "tradução do conhecimento"/"multirreferencialidade"
+**subirem** do rodapé (34–36%) para perto do topo, sem que isso seja só reforço do
+cluster "cognit-".
+
+**Como reproduzir** (ajustar a lista `cands` conforme necessário):
+
+```python
+# manage.py shell
+from apps.busca_semantica.embeddings import embed_texts
+alvo = "análise cognitiva"
+cands = ["cognição", "tradução do conhecimento", "multirreferencialidade",
+         "difusão do conhecimento", "cognitive analysis", "futebol"]  # etc.
+vecs = embed_texts([alvo] + cands)
+av = vecs[0]
+cos = lambda a, b: sum(x * y for x, y in zip(a, b))  # vetores normalizados
+for sim, c in sorted(((cos(av, vecs[i + 1]), c) for i, c in enumerate(cands)), reverse=True):
+    print(f"{round(sim * 100):3d}%  {c}")
+```
