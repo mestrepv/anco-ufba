@@ -99,6 +99,62 @@ Um modelo de IA lê um texto e devolve uma **lista de números** — um ponto nu
 
 ---
 
+## Slide 4a — O modelo por dentro (e por que escolhemos ele)
+
+```
+   MiniLM                versão multilíngue           O NOSSO MODELO
+   (Microsoft)     ──►   de frases (SBERT /     ──►   paraphrase-multilingual-
+   "cérebro"             grupo de Darmstadt)          MiniLM-L12-v2
+    compacto,            ensinou ~50 idiomas          • ~118 milhões de parâmetros
+    destilado de         (incl. português)            • vetor de 384 dimensões
+    modelos grandes      "entender frases"            • ~420 MB de memória
+```
+
+**Por que este modelo:** aberto e **gratuito** · roda **no nosso servidor** (sem
+nuvem paga, sem enviar dados para fora) · **multilíngue** (PT+EN) · **leve** o
+bastante para rodar em CPU comum.
+
+> 🎤 **Apresentador:** Desça um nível, sem assustar. O modelo tem duas heranças:
+> a **arquitetura** compacta vem da Microsoft (MiniLM — um "cérebro" enxuto,
+> destilado de modelos maiores para caber em máquinas modestas); e a **habilidade
+> de entender frases em vários idiomas** vem de um grupo acadêmico alemão (SBERT).
+> Frise os adjetivos do meio do slide — **aberto, local, gratuito, leve** — porque
+> é o que justifica a escolha num projeto acadêmico self-hosted. As "384 dimensões"
+> são as 384 coordenadas do mapa do Slide 3.
+
+---
+
+## Slide 4b — Tokenização: como o texto vira números (e o limite de 128)
+
+Antes de virar vetor, o texto é quebrado em **tokens** (pedaços de palavra):
+
+```
+   "Análise cognitiva de tarefas"
+            │  tokenização (sub-palavras)
+            ▼
+   [Análise] [cogn] [##itiva] [de] [tarefas]   ← tokens
+
+   O modelo lê uma JANELA de 128 tokens (~90-100 palavras):
+   [tok 1][tok 2] … [tok 128] │ [tok 129 …]  ✂  cortado (não é lido)
+                              └─ limite ─┘
+```
+
+**No acervo hoje isto não dói** — análises têm mediana de **49 palavras** e quase
+não há resumos (base bibliográfica): **0% é truncado**. **Dívida adormecida:**
+acorda quando entrarem **abstracts importados** (RIS, 200+ palavras) e **resenhas
+longas** — aí o modelo leria só o começo.
+
+> 🎤 **Apresentador:** "Token" é o conceito novo aqui — explique com a analogia de
+> **sílabas/pedaços**: o modelo não lê letras nem palavras inteiras, mas pedaços
+> ("cognitiva" vira "cogn"+"itiva"). Ele lê no máximo **128 desses pedaços** de uma
+> vez; o que passa disso é **descartado em silêncio**. Seja honesto: hoje os nossos
+> textos são curtos e nada se perde (mostre os números reais). Mas quando as
+> resenhas críticas e os resumos completos chegarem, o fim do texto ficará invisível
+> ao modelo — é uma limitação **conhecida**, registrada, não uma surpresa. Isso
+> prepara o terreno para as opções de melhoria (Slide 10a).
+
+---
+
 ## Slide 5 — Como uma busca acontece
 
 ```
@@ -230,6 +286,40 @@ produção de análise***.
 > nunca recebe poder de decisão. Ele ilumina a sala; quem reconhece o valor de cada
 > obra é o pesquisador, pela Matriz. A tecnologia serve à metodologia, não o
 > contrário — e isso protege a pluralidade que a AnCo defende.
+
+---
+
+## Slide 10a — Opções de melhoria do modelo
+
+Conhecidos os dois limites — **128 tokens** (Slide 4b) e o **viés** (Slide 9) —, há
+um cardápio técnico, do mais simples ao mais profundo:
+
+```
+   melhoria                  resolve                       custo / trade-off
+   ───────────────────       ─────────────────────         ───────────────────
+   ① Chunking                limite de 128 tokens          obra de engenharia;
+     (quebrar textos          (cobre resenhas longas)       mais vetores por obra
+      longos em pedaços)
+   ② Modelo de contexto      cobre abstracts/resenhas      modelo maior = mais
+     maior (512 tokens)       inteiros                      RAM/CPU
+   ③ Modelo português        entende melhor o PT;          monolíngue: PERDE o
+     (BERTimbau/Serafim)      talvez aproxime Fróes         inglês do acervo
+   ④ Ajuste fino (fine-       aproxima conceitos de         risco de REFORÇAR o
+     tuning) à AnCo           Fróes do centro               viés se mal feito
+```
+
+**Regra de ouro:** nenhuma troca sem **medir antes** (protocolo em `avaliacao.md`).
+Trocar-e-medir, não trocar-e-torcer.
+
+> 🎤 **Apresentador:** Este slide mostra que os limites têm **saída** e que a equipe
+> sabe o caminho — sem prometer mágica. Explique cada linha em uma frase: ① quebrar
+> o texto em pedaços de ~100 palavras resolve o corte dos 128 tokens; ② um modelo
+> maior lê textos inteiros, mas pesa mais; ③ um modelo **português** (UNICAMP/
+> BERTimbau, ou Serafim, de Lisboa) entende melhor o nosso idioma — mas é monolíngue
+> e perderíamos a busca em inglês (Slide 7); ④ o ajuste fino poderia ensinar a AnCo
+> ao modelo, com o cuidado de **não** reforçar o viés do Slide 9. Termine na "regra
+> de ouro": toda mudança passa primeiro pela avaliação medida — é o que separa
+> engenharia de palpite, e fala a língua do rigor científico da Profa. Fróes.
 
 ---
 
