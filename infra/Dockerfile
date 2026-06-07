@@ -15,13 +15,16 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY pyproject.toml ./
+COPY pyproject.toml requirements.lock ./
 
-# Cria stub do pacote `config` para o setuptools achar durante a instalacao
-# editavel; o codigo real entra via COPY abaixo (e via bind-mount em dev).
+# Instala dependencias a partir do lockfile (versoes fixas, build reproduzivel)
+# e o proprio pacote em modo editavel sem re-resolver as deps. O stub de
+# `config` deixa o setuptools achar o pacote; o codigo real entra via COPY
+# abaixo (e via bind-mount em dev). Regenerar o lock: ver docs/DEPLOY.md.
 RUN mkdir -p config && touch config/__init__.py \
     && pip install --upgrade pip \
-    && pip install -e .[dev]
+    && pip install -r requirements.lock \
+    && pip install -e . --no-deps
 
 COPY . .
 

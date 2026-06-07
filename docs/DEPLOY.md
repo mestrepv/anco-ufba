@@ -107,6 +107,28 @@ docker compose -f infra/docker-compose.yml --profile worker --profile prod \
 docker compose -f infra/docker-compose.yml --profile worker --profile prod up -d
 ```
 
+## 3-bis. Dependências e lockfile (build reproduzível)
+
+As dependências estão declaradas em `pyproject.toml` (com ranges, ex.: `django>=5.0,<5.2`),
+mas **a instalação usa o `requirements.lock`** — versões 100% fixas, geradas com
+`pip-compile`. Isso garante que cada build instale exatamente os mesmos pacotes
+(o Dockerfile e o CI instalam `-r requirements.lock` e depois `pip install -e . --no-deps`).
+
+**Quando regenerar o lock** (após editar dependências no `pyproject.toml`, ou para
+atualizar versões de segurança), rode dentro do mesmo Python da imagem (3.12):
+
+```bash
+docker run --rm -v "$PWD":/app -w /app python:3.12-slim bash -c "
+  apt-get update -qq && apt-get install -y -qq build-essential libpq-dev
+  pip install -q pip-tools
+  pip-compile --extra dev --output-file requirements.lock pyproject.toml
+"
+```
+
+Depois rebuilde a imagem e rode os testes (CI valida). Se o `ruff` mudar de versão
+no lock, atualize o pin em `.github/workflows/ci.yml` (job *Lint*) e rode
+`ruff format .` para reformatar o repositório com a nova versão.
+
 ## 4. Backup automatizado
 
 Cron do host (não do container) executa o script:

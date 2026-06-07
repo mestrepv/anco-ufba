@@ -22,7 +22,7 @@ jobs:
           cache: pip
 
       - name: Install ruff
-        run: pip install "ruff>=0.5"
+        run: pip install "ruff==0.15.16"  # pin do requirements.lock (formatacao determinista)
 
       - name: Ruff check
         run: ruff check .
@@ -88,7 +88,8 @@ jobs:
       - name: Install project (dev)
         run: |
           pip install --upgrade pip
-          pip install -e .[dev]
+          pip install -r requirements.lock
+          pip install -e . --no-deps
 
       - name: Run tests with coverage
         run: pytest --cov --cov-report=term-missing --cov-fail-under=70
