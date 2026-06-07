@@ -22,7 +22,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from verificar_dois import classificar
 
-
 ARQUIVO_PADRAO = "docs/base_referencial_analise_cognitiva (1).json"
 
 
@@ -33,11 +32,13 @@ def main() -> None:
     )
     parser.add_argument("arquivo", nargs="?", default=ARQUIVO_PADRAO)
     parser.add_argument(
-        "--aplicar", action="store_true",
+        "--aplicar",
+        action="store_true",
         help="Grava as correções (sem esta flag, só exibe o diff)",
     )
     parser.add_argument(
-        "--saida", metavar="ARQUIVO.json",
+        "--saida",
+        metavar="ARQUIVO.json",
         help="Destino do JSON corrigido (padrão: sobrescreve o original)",
     )
     args = parser.parse_args()
@@ -55,13 +56,15 @@ def main() -> None:
         doi_original = registro.get("Numero_DOI", "") or ""
         categoria, doi_norm, obs = classificar(doi_original)
         if categoria == "prefixo_doi":
-            correcoes.append({
-                "linha": registro.get("_linha"),
-                "titulo": registro.get("Titulo_do_artigo", "")[:60],
-                "de": doi_original,
-                "para": doi_norm,
-                "motivo": obs,
-            })
+            correcoes.append(
+                {
+                    "linha": registro.get("_linha"),
+                    "titulo": registro.get("Titulo_do_artigo", "")[:60],
+                    "de": doi_original,
+                    "para": doi_norm,
+                    "motivo": obs,
+                }
+            )
 
     print(f"Correções automáticas disponíveis: {len(correcoes)}\n")
     for c in correcoes:

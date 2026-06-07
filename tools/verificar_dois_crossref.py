@@ -28,8 +28,8 @@ import time
 import unicodedata
 from difflib import SequenceMatcher
 from pathlib import Path
-from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 USER_AGENT = "anco-importer/0.1 (mailto:paulovicente@ifba.edu.br)"
 SLEEP_ENTRE_REQ = 0.05  # 20 req/s — polite pool da Crossref
@@ -68,7 +68,8 @@ def comparar_titulos(esperado: str, recebido: str) -> float:
 
 
 def main(entrada: str, saida: str, max_n: int | None = None) -> None:
-    mapping = json.load(open(entrada))
+    with open(entrada) as f:
+        mapping = json.load(f)
     matches = mapping["resultados"]
 
     # Deduplica por DOI: se 2 entradas apontam para o mesmo DOI, valida uma vez.
@@ -122,6 +123,7 @@ def main(entrada: str, saida: str, max_n: int | None = None) -> None:
 
     # Estatísticas
     from collections import Counter
+
     estat = Counter(v["status"] for v in verificados.values())
     print("\n=== Resultado da verificação ===")
     for s, n in estat.most_common():
@@ -142,7 +144,9 @@ def main(entrada: str, saida: str, max_n: int | None = None) -> None:
 
 if __name__ == "__main__":
     if len(sys.argv) not in (3, 4):
-        print("Uso: verificar_dois_crossref.py <entrada.json> <saida.json> [max_n]", file=sys.stderr)
+        print(
+            "Uso: verificar_dois_crossref.py <entrada.json> <saida.json> [max_n]", file=sys.stderr
+        )
         sys.exit(2)
     max_n = int(sys.argv[3]) if len(sys.argv) == 4 else None
     main(sys.argv[1], sys.argv[2], max_n)

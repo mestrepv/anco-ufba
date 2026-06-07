@@ -92,14 +92,10 @@ class TestFluxoCompletoComDoi:
                 "tipo": "Artigo de periódico",
             },
         )
-        mock_validar.return_value = LinkCheckResultado(
-            status="ok", codigo_http=200, url_final=None
-        )
+        mock_validar.return_value = LinkCheckResultado(status="ok", codigo_http=200, url_final=None)
 
         # Passo 1: lookup
-        resp = cliente.get(
-            reverse("lookup_identificador") + "?id=10.1016/j.test.2024.01"
-        )
+        resp = cliente.get(reverse("lookup_identificador") + "?id=10.1016/j.test.2024.01")
         assert resp.status_code == 200
         assert b"Estudo de cogni" in resp.content
         mock_lookup.assert_called_once()
@@ -155,9 +151,7 @@ class TestFluxoCompletoComDoi:
         v_epist, _ = Vocabulario.objects.get_or_create(
             codigo="epistemologia", defaults={"nome": "Epistemologia"}
         )
-        v_teor, _ = Vocabulario.objects.get_or_create(
-            codigo="teoria", defaults={"nome": "Teoria"}
-        )
+        v_teor, _ = Vocabulario.objects.get_or_create(codigo="teoria", defaults={"nome": "Teoria"})
         t_epist = TermoVocabulario.objects.create(vocabulario=v_epist, nome="Empirismo")
         t_teor = TermoVocabulario.objects.create(vocabulario=v_teor, nome="Cognição")
 
@@ -199,9 +193,7 @@ class TestFluxoCompletoComIsbn:
     @override_settings(WAYBACK_API_ENABLED=False)
     @patch("apps.acervo.views.validar_link")
     @patch("apps.acervo.views.lookup_isbn")
-    def test_fluxo_isbn_cria_livro(
-        self, mock_lookup, mock_validar, cliente, vocab_base, autor
-    ):
+    def test_fluxo_isbn_cria_livro(self, mock_lookup, mock_validar, cliente, vocab_base, autor):
         mock_lookup.return_value = LookupResultado(
             encontrado=True,
             dados={
@@ -215,9 +207,7 @@ class TestFluxoCompletoComIsbn:
                 "resumo": "",
             },
         )
-        mock_validar.return_value = LinkCheckResultado(
-            status="ok", codigo_http=200, url_final=None
-        )
+        mock_validar.return_value = LinkCheckResultado(status="ok", codigo_http=200, url_final=None)
 
         # Lookup
         resp = cliente.get(reverse("lookup_identificador") + "?id=9780128038031")
@@ -267,9 +257,7 @@ class TestFluxoSemIdentificador:
     def test_fluxo_sem_doi_nem_isbn_gera_identificador_interno(
         self, mock_validar, cliente, vocab_base
     ):
-        mock_validar.return_value = LinkCheckResultado(
-            status="ok", codigo_http=200, url_final=None
-        )
+        mock_validar.return_value = LinkCheckResultado(status="ok", codigo_http=200, url_final=None)
 
         resp = cliente.post(
             reverse("cadastrar_artigo"),

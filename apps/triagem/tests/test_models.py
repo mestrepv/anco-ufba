@@ -32,6 +32,7 @@ def base_termo(db):
 
 # ---- chave_dedup -----------------------------------------------------------
 
+
 def test_chave_dedup_prioriza_doi():
     assert chave_dedup("10.1/ABC", "123", "T", 2020, "P") == "doi:10.1/abc"
 
@@ -46,6 +47,7 @@ def test_chave_dedup_hash_sem_doi_nem_isbn():
 
 
 # ---- ProtocoloTriagem.ativo (singleton) ------------------------------------
+
 
 def test_seed_da_migracao_cria_singleton(db):
     # A migração 0002_seed_protocolo cria o protocolo único.
@@ -68,6 +70,7 @@ def test_ativo_reusa_o_de_menor_id(db):
 
 
 # ---- RegistroTriagem -------------------------------------------------------
+
 
 def test_registro_gera_identificador_no_save(protocolo):
     r = RegistroTriagem.objects.create(protocolo=protocolo, titulo="T", doi="10.5/XY")
@@ -97,6 +100,7 @@ def test_origem_buscas_m2m(protocolo, base_termo):
 
 
 # ---- DecisaoTriagem --------------------------------------------------------
+
 
 def test_decisao_unica_por_revisor_registro(protocolo):
     rev = User.objects.create_user(username="r", email="r@u.edu", password="x")

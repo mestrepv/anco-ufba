@@ -114,14 +114,10 @@ class TestListagem:
         assert resp.status_code == 200
         assert b"Cogni" in resp.content
 
-    def test_busca_multipalavra_inexistente_nao_retorna_tudo(
-        self, client, analise_publicada
-    ):
+    def test_busca_multipalavra_inexistente_nao_retorna_tudo(self, client, analise_publicada):
         # Regresso: ts_rank pode retornar 1e-20 (não-zero) para não-matches
         # multi-palavra, fazendo `rank > 0` deixar passar tudo. O fix usa @@.
-        resp = client.get(
-            reverse("acervo_publico"), {"q": "termoxyzqueñexiste outro"}
-        )
+        resp = client.get(reverse("acervo_publico"), {"q": "termoxyzqueñexiste outro"})
         assert resp.status_code == 200
         assert analise_publicada.artigo.titulo.encode() not in resp.content
         assert b"Nenhuma" in resp.content
@@ -147,18 +143,14 @@ class TestListagem:
                 publicada_em=datetime(ano, 1, 1, tzinfo=UTC),
             )
 
-        resp = client.get(
-            reverse("acervo_publico"), {"ano_min": "2020", "ano_max": "2020"}
-        )
+        resp = client.get(reverse("acervo_publico"), {"ano_min": "2020", "ano_max": "2020"})
         assert resp.status_code == 200
         assert b"Art 2020" in resp.content
         assert b"Art 2018" not in resp.content
         assert b"Art 2022" not in resp.content
 
         # Range que cobre 2018 e 2020 mas não 2022
-        resp = client.get(
-            reverse("acervo_publico"), {"ano_min": "2018", "ano_max": "2020"}
-        )
+        resp = client.get(reverse("acervo_publico"), {"ano_min": "2018", "ano_max": "2020"})
         assert resp.status_code == 200
         assert b"Art 2018" in resp.content
         assert b"Art 2020" in resp.content
@@ -192,7 +184,8 @@ class TestListagem:
             status=Analise.Status.PUBLICADA,
         )
         Resenha.objects.create(
-            analise=analise_com, texto="Resenha autoral.",
+            analise=analise_com,
+            texto="Resenha autoral.",
             status=Resenha.Status.PUBLICADA,
         )
 
@@ -298,7 +291,9 @@ class TestPaginaAnalise:
         from apps.acervo.models import Resenha
 
         analise = Analise.objects.create(
-            artigo=artigo_publicado, analista=autor, status=Analise.Status.PUBLICADA,
+            artigo=artigo_publicado,
+            analista=autor,
+            status=Analise.Status.PUBLICADA,
         )
         resenha = Resenha.objects.create(
             analise=analise, texto="X", status=Resenha.Status.PUBLICADA
@@ -306,8 +301,11 @@ class TestPaginaAnalise:
         prazo = timezone.now() + timedelta(days=21)
         for i in (0, 1):
             Revisao.objects.create(
-                resenha=resenha, revisor=revisores[i], prazo_em=prazo,
-                parecer="aprovar", concluido_em=timezone.now(),
+                resenha=resenha,
+                revisor=revisores[i],
+                prazo_em=prazo,
+                parecer="aprovar",
+                concluido_em=timezone.now(),
             )
 
         resp = client.get(reverse("pagina_analise", args=[analise.pk]))
@@ -324,10 +322,13 @@ class TestPaginaAnalise:
         from apps.acervo.models import Resenha
 
         analise = Analise.objects.create(
-            artigo=artigo_publicado, analista=autor, status=Analise.Status.PUBLICADA,
+            artigo=artigo_publicado,
+            analista=autor,
+            status=Analise.Status.PUBLICADA,
         )
         Resenha.objects.create(
-            analise=analise, texto="Texto critico autoral substantivo.",
+            analise=analise,
+            texto="Texto critico autoral substantivo.",
             status=Resenha.Status.PUBLICADA,
         )
         resp = client.get(reverse("pagina_analise", args=[analise.pk]))

@@ -19,10 +19,16 @@ pytestmark = pytest.mark.django_db
 
 
 def _revisor(n):
-    return membro(User.objects.create_user(
-        username=f"rev{n}", email=f"rev{n}@u.edu", password="x",
-        papel=User.Papel.ANALISTA, revisor_aprovado=True, aceita_revisoes=True,
-    ))
+    return membro(
+        User.objects.create_user(
+            username=f"rev{n}",
+            email=f"rev{n}@u.edu",
+            password="x",
+            papel=User.Papel.ANALISTA,
+            revisor_aprovado=True,
+            aceita_revisoes=True,
+        )
+    )
 
 
 @pytest.fixture
@@ -37,9 +43,12 @@ def revisores(db):
 
 @pytest.fixture
 def curador(db):
-    return membro(User.objects.create_user(
-        username="cur", email="cur@u.edu", password="x", papel=User.Papel.CURADOR
-    ), papel="curador")
+    return membro(
+        User.objects.create_user(
+            username="cur", email="cur@u.edu", password="x", papel=User.Papel.CURADOR
+        ),
+        papel="curador",
+    )
 
 
 @pytest.fixture
@@ -50,6 +59,7 @@ def leitor(db):
 
 
 # ---- iniciar triagem -------------------------------------------------------
+
 
 def test_iniciar_triagem_sorteia(client, protocolo, revisores, curador):
     RegistroTriagem.objects.create(protocolo=protocolo, titulo="A", doi="10.1/a")
@@ -68,9 +78,7 @@ def test_iniciar_exige_curador(client, protocolo, revisores):
 
 
 def test_iniciar_ignora_ja_no_acervo(client, protocolo, revisores, curador):
-    RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="B", doi="10.1/b", ja_no_acervo=True
-    )
+    RegistroTriagem.objects.create(protocolo=protocolo, titulo="B", doi="10.1/b", ja_no_acervo=True)
     client.force_login(curador)
     client.post(turl("triagem_iniciar"))
     reg = RegistroTriagem.objects.get(doi="10.1/b")
@@ -80,10 +88,14 @@ def test_iniciar_ignora_ja_no_acervo(client, protocolo, revisores, curador):
 
 # ---- triar (mascarado) -----------------------------------------------------
 
+
 def test_triar_mascara_coletor_e_outros(client, protocolo, revisores):
     coletor = User.objects.create_user(
-        username="col", email="coletor@secreto.edu", password="x",
-        papel=User.Papel.ANALISTA, revisor_aprovado=True,
+        username="col",
+        email="coletor@secreto.edu",
+        password="x",
+        papel=User.Papel.ANALISTA,
+        revisor_aprovado=True,
     )
     b = Busca.objects.create(protocolo=protocolo, criado_por=coletor)
     reg = RegistroTriagem.objects.create(protocolo=protocolo, titulo="Sigiloso", doi="10.1/c")
@@ -148,7 +160,9 @@ def test_triar_mostra_progresso_e_realce(client, protocolo, revisores):
     protocolo.termos_realce = "cognição"
     protocolo.save()
     reg = RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="Estudo de cognição", doi="10.4/c",
+        protocolo=protocolo,
+        titulo="Estudo de cognição",
+        doi="10.4/c",
         resumo="A cognição humana.",
     )
     executar_sorteio(reg)
@@ -175,6 +189,7 @@ def test_triar_excluir_exige_motivo(client, protocolo, revisores):
 
 
 # ---- desempate (curador) ---------------------------------------------------
+
 
 def _divergir(reg):
     executar_sorteio(reg)

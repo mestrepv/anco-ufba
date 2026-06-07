@@ -113,9 +113,7 @@ class TestRevisao:
         prazo = djtz.now() + timedelta(days=21)
         Revisao.objects.create(resenha=resenha, revisor=outro_analista, prazo_em=prazo)
         with pytest.raises(IntegrityError):
-            Revisao.objects.create(
-                resenha=resenha, revisor=outro_analista, prazo_em=prazo
-            )
+            Revisao.objects.create(resenha=resenha, revisor=outro_analista, prazo_em=prazo)
 
 
 class TestUser:

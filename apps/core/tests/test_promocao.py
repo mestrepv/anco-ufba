@@ -13,7 +13,9 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def leitor(db):
     return User.objects.create_user(
-        username="leitor1", email="leitor@usp.edu.br", password="senha-teste",
+        username="leitor1",
+        email="leitor@usp.edu.br",
+        password="senha-teste",
         papel=User.Papel.LEITOR,
     )
 

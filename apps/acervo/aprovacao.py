@@ -31,9 +31,7 @@ class ResultadoAvaliacao:
 
 
 def _todas_concluidas(resenha: Resenha) -> bool:
-    return not Revisao.objects.filter(
-        resenha=resenha, concluido_em__isnull=True
-    ).exists()
+    return not Revisao.objects.filter(resenha=resenha, concluido_em__isnull=True).exists()
 
 
 def _pareceres(resenha: Resenha) -> list[str]:

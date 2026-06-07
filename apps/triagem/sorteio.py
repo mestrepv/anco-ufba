@@ -118,9 +118,7 @@ def executar_sorteio(
         logger.warning(
             "Faltam revisores para registro %s (%d de %d)", registro.pk, len(sorteados), n
         )
-        return ResultadoSorteio(
-            0, True, f"Revisores insuficientes ({len(sorteados)} de {n})."
-        )
+        return ResultadoSorteio(0, True, f"Revisores insuficientes ({len(sorteados)} de {n}).")
 
     agora = timezone.now()
     prazo = agora + timedelta(days=registro.protocolo.prazo_dias)
@@ -144,9 +142,9 @@ def re_sortear_triagem_expirada(decisao: DecisaoTriagem) -> DecisaoTriagem | Non
 
     registro = decisao.registro
     ja_designados = set(
-        DecisaoTriagem.objects.filter(
-            registro=registro, etapa=decisao.etapa
-        ).values_list("revisor_id", flat=True)
+        DecisaoTriagem.objects.filter(registro=registro, etapa=decisao.etapa).values_list(
+            "revisor_id", flat=True
+        )
     )
     novos = _sortear_n(revisores_elegiveis(registro, excluir_ids=ja_designados), 1)
     if not novos:
@@ -160,6 +158,4 @@ def re_sortear_triagem_expirada(decisao: DecisaoTriagem) -> DecisaoTriagem | Non
 
 
 def triagens_expiradas():
-    return DecisaoTriagem.objects.filter(
-        prazo_em__lt=timezone.now(), concluido_em__isnull=True
-    )
+    return DecisaoTriagem.objects.filter(prazo_em__lt=timezone.now(), concluido_em__isnull=True)

@@ -33,7 +33,9 @@ def vocab(db):
 @pytest.fixture
 def autor(db):
     return User.objects.create_user(
-        username="autor", email="autor@u.edu.br", password="x",
+        username="autor",
+        email="autor@u.edu.br",
+        password="x",
         papel=User.Papel.ANALISTA,
     )
 
@@ -42,8 +44,11 @@ def autor(db):
 def cinco_revisores(db):
     return [
         User.objects.create_user(
-            username=f"rev{i}", email=f"rev{i}@u.edu.br", password="x",
-            papel=User.Papel.ANALISTA, revisor_aprovado=True,
+            username=f"rev{i}",
+            email=f"rev{i}@u.edu.br",
+            password="x",
+            papel=User.Papel.ANALISTA,
+            revisor_aprovado=True,
         )
         for i in range(5)
     ]
@@ -52,22 +57,29 @@ def cinco_revisores(db):
 @pytest.fixture
 def artigo(db, vocab):
     return Artigo.objects.create(
-        doi="10.x/teste", titulo="Artigo teste", ano=2020,
-        base_consulta=vocab, link_acesso="https://example.org/t",
+        doi="10.x/teste",
+        titulo="Artigo teste",
+        ano=2020,
+        base_consulta=vocab,
+        link_acesso="https://example.org/t",
     )
 
 
 @pytest.fixture
 def analise(db, artigo, autor):
     return Analise.objects.create(
-        artigo=artigo, analista=autor, status=Analise.Status.PUBLICADA,
+        artigo=artigo,
+        analista=autor,
+        status=Analise.Status.PUBLICADA,
     )
 
 
 @pytest.fixture
 def resenha(db, analise):
     return Resenha.objects.create(
-        analise=analise, texto="Resenha crítica.", status=Resenha.Status.SUBMETIDA,
+        analise=analise,
+        texto="Resenha crítica.",
+        status=Resenha.Status.SUBMETIDA,
     )
 
 
@@ -107,8 +119,11 @@ class TestExclusoes:
     def test_exclui_revisor_nao_aprovado(self, resenha, db, artigo):
         # Só revisores aprovados elegíveis; sem aprovados → fila de espera.
         User.objects.create_user(
-            username="naoaprovado", email="n@u.edu.br", password="x",
-            papel=User.Papel.ANALISTA, revisor_aprovado=False,
+            username="naoaprovado",
+            email="n@u.edu.br",
+            password="x",
+            papel=User.Papel.ANALISTA,
+            revisor_aprovado=False,
         )
         resultado = executar_sorteio(resenha)
         assert resultado.fila_de_espera is True
@@ -118,8 +133,11 @@ class TestExclusoes:
 class TestRevisoresInsuficientes:
     def test_um_revisor_vai_para_fila_de_espera(self, resenha, db):
         User.objects.create_user(
-            username="unico", email="u@u.edu.br", password="x",
-            papel=User.Papel.ANALISTA, revisor_aprovado=True,
+            username="unico",
+            email="u@u.edu.br",
+            password="x",
+            papel=User.Papel.ANALISTA,
+            revisor_aprovado=True,
         )
         resultado = executar_sorteio(resenha)
         assert resultado.fila_de_espera is True
@@ -150,7 +168,5 @@ class TestReSorteio:
 
     def test_revisoes_expiradas_lista_so_pendentes_vencidas(self, resenha, cinco_revisores):
         executar_sorteio(resenha)
-        Revisao.objects.filter(resenha=resenha).update(
-            prazo_em=timezone.now() - timedelta(days=1)
-        )
+        Revisao.objects.filter(resenha=resenha).update(prazo_em=timezone.now() - timedelta(days=1))
         assert revisoes_expiradas().count() == 2

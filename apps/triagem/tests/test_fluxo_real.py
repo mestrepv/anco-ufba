@@ -42,11 +42,17 @@ pytestmark = [
 
 
 def _revisor(n):
-    return membro(User.objects.create_user(
-        username=f"rv{n}", email=f"rv{n}@u.edu", password="x",
-        papel=User.Papel.ANALISTA, revisor_aprovado=True, aceita_revisoes=True,
-        limite_revisoes_simultaneas=500,
-    ))
+    return membro(
+        User.objects.create_user(
+            username=f"rv{n}",
+            email=f"rv{n}@u.edu",
+            password="x",
+            papel=User.Papel.ANALISTA,
+            revisor_aprovado=True,
+            aceita_revisoes=True,
+            limite_revisoes_simultaneas=500,
+        )
+    )
 
 
 def _decide(registro, revisor, decisao):
@@ -64,8 +70,11 @@ def test_fluxo_completo_com_ris_real(capsys):
         username="coletor", email="col@u.edu", password="x", papel=User.Papel.ANALISTA
     )
     curador = User.objects.create_user(
-        username="cur", email="cur@u.edu", password="x",
-        papel=User.Papel.CURADOR, is_staff=True,
+        username="cur",
+        email="cur@u.edu",
+        password="x",
+        papel=User.Papel.CURADOR,
+        is_staff=True,
     )
     for i in range(3):  # pool de revisores aprovados para o sorteio
         _revisor(i)
@@ -78,8 +87,10 @@ def test_fluxo_completo_com_ris_real(capsys):
     assert brutos[0]["titulo_periodico"]
 
     busca = Busca.objects.create(
-        protocolo=protocolo, outra_base="Web of Science",
-        formato="ris", criado_por=coletor,
+        protocolo=protocolo,
+        outra_base="Web of Science",
+        formato="ris",
+        criado_por=coletor,
     )
     res = importar_para_busca(busca, brutos)
     assert res.total == len(brutos)
@@ -144,9 +155,12 @@ def test_fluxo_completo_com_ris_real(capsys):
         protocolo=protocolo, status=RegistroTriagem.Status.INCLUIDO
     ).count()
     # todo incluído tem Artigo; nenhum em triagem sobrou
-    assert RegistroTriagem.objects.filter(
-        protocolo=protocolo, status=RegistroTriagem.Status.EM_TRIAGEM
-    ).count() == 0
+    assert (
+        RegistroTriagem.objects.filter(
+            protocolo=protocolo, status=RegistroTriagem.Status.EM_TRIAGEM
+        ).count()
+        == 0
+    )
     artigos_promovidos = Artigo.objects.filter(registros_triagem__isnull=False).distinct().count()
     assert artigos_promovidos == total_incluidos
 
@@ -160,8 +174,7 @@ def test_fluxo_completo_com_ris_real(capsys):
     with capsys.disabled():
         print("\n──────── FLUXO DE TRIAGEM (RIS real, banco de teste) ────────")
         print(f"  lidos do RIS .......... {res.total}")
-        print(f"  registros únicos ...... {n_registros} "
-              f"(duplicados mesclados: {res.duplicados})")
+        print(f"  registros únicos ...... {n_registros} (duplicados mesclados: {res.duplicados})")
         print(f"  sem DOI (hash) ........ {sum(1 for b in brutos if not b['doi'])}")
         print(f"  sorteados p/ triagem .. {enfileirados} (×{protocolo.n_revisores} revisores)")
         print(f"  consenso incluir ...... {n_inc}")

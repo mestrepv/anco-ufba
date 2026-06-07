@@ -296,14 +296,17 @@ def analisar_arquivo(nome: str, raw: bytes) -> dict:
         registros = parse_conteudo(texto, formato)
     except Exception as exc:  # noqa: BLE001
         return {
-            "ok": False, "formato": formato,
+            "ok": False,
+            "formato": formato,
             "erro": f"Não consegui ler o arquivo ({exc}).",
             "dica": "Confira se o export saiu completo da base.",
         }
     n = len(registros)
     if n == 0:
         return {
-            "ok": False, "formato": formato, "n": 0,
+            "ok": False,
+            "formato": formato,
+            "n": 0,
             "erro": "O arquivo foi lido, mas tem 0 registros.",
             "dica": "Verifique se você exportou os resultados (não uma página vazia).",
         }

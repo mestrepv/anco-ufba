@@ -74,8 +74,7 @@ class UserAdmin(DjangoUserAdmin, UnfoldModelAdmin):
         n = queryset.update(is_staff=True)
         self.message_user(
             request,
-            f"{n} usuário(s) com acesso de admin. Para superusuário, marque na "
-            "ficha do usuário.",
+            f"{n} usuário(s) com acesso de admin. Para superusuário, marque na ficha do usuário.",
         )
 
     @admin.action(description="Revogar acesso de admin do site (staff)")
@@ -106,7 +105,15 @@ class UserAdmin(DjangoUserAdmin, UnfoldModelAdmin):
 
 @admin.register(SolicitacaoCadastro)
 class SolicitacaoCadastroAdmin(UnfoldModelAdmin):
-    list_display = ("usuario", "tipo", "vinculo", "status", "revisado_por", "revisado_em", "criado_em")
+    list_display = (
+        "usuario",
+        "tipo",
+        "vinculo",
+        "status",
+        "revisado_por",
+        "revisado_em",
+        "criado_em",
+    )
     list_filter = ("tipo", "status")
     search_fields = (
         "usuario__username",

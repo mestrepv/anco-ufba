@@ -138,9 +138,7 @@ class ArtigoMetadadosForm(forms.ModelForm):
             return ""
         doi_norm = normalizar_doi(doi)
         if not _DOI_CANONICO_RE.match(doi_norm):
-            raise forms.ValidationError(
-                "DOI deve seguir o formato 10.xxxx/yyy."
-            )
+            raise forms.ValidationError("DOI deve seguir o formato 10.xxxx/yyy.")
         return doi_norm
 
     def clean_isbn(self) -> str:

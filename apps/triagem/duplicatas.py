@@ -33,9 +33,9 @@ LIMIT %s
 
 
 def _pares_descartados(protocolo) -> set[frozenset]:
-    pares = ParDuplicataDescartado.objects.filter(
-        registro_a__protocolo=protocolo
-    ).values_list("registro_a_id", "registro_b_id")
+    pares = ParDuplicataDescartado.objects.filter(registro_a__protocolo=protocolo).values_list(
+        "registro_a_id", "registro_b_id"
+    )
     return {frozenset(p) for p in pares}
 
 
@@ -73,8 +73,17 @@ def _concordancia(par: dict) -> int:
 
 # Campos exibidos na revisão de duplicatas (decidir não só pelo título).
 _CAMPOS = (
-    "id", "titulo", "doi", "ano", "identificador", "tipo", "link",
-    "autores", "resumo", "palavras_chaves", "titulo_periodico",
+    "id",
+    "titulo",
+    "doi",
+    "ano",
+    "identificador",
+    "tipo",
+    "link",
+    "autores",
+    "resumo",
+    "palavras_chaves",
+    "titulo_periodico",
 )
 
 
@@ -109,17 +118,15 @@ def pares_possiveis(protocolo, limiar: float = LIMIAR, max_pares: int = 200) -> 
     return pares
 
 
-def pares_do_usuario(projeto, user, eh_curador: bool, limiar: float = LIMIAR,
-                     max_pares: int = 200) -> list[dict]:
+def pares_do_usuario(
+    projeto, user, eh_curador: bool, limiar: float = LIMIAR, max_pares: int = 200
+) -> list[dict]:
     """Pares que o usuário pode resolver: curador vê todos; analista só os que
     tocam bases que ele importou (Fase 12.4)."""
     pares = pares_possiveis(projeto, limiar, max_pares)
     if eh_curador:
         return pares
-    return [
-        p for p in pares
-        if user.id in (importadores(p["a"]) | importadores(p["b"]))
-    ]
+    return [p for p in pares if user.id in (importadores(p["a"]) | importadores(p["b"]))]
 
 
 def contar_pares_do_usuario(projeto, user, eh_curador: bool, limiar: float = LIMIAR) -> int:
@@ -156,9 +163,7 @@ def mesclar(canonico: RegistroTriagem, duplicado: RegistroTriagem, por=None) -> 
     duplicado.duplicado_de = canonico
     duplicado.duplicado_por = por
     duplicado.duplicado_em = timezone.now()
-    duplicado.save(
-        update_fields=["status", "duplicado_de", "duplicado_por", "duplicado_em"]
-    )
+    duplicado.save(update_fields=["status", "duplicado_de", "duplicado_por", "duplicado_em"])
 
 
 @transaction.atomic
@@ -178,18 +183,14 @@ def desfazer_mescla(duplicado: RegistroTriagem) -> bool:
     duplicado.duplicado_de = None
     duplicado.duplicado_por = None
     duplicado.duplicado_em = None
-    duplicado.save(
-        update_fields=["status", "duplicado_de", "duplicado_por", "duplicado_em"]
-    )
+    duplicado.save(update_fields=["status", "duplicado_de", "duplicado_por", "duplicado_em"])
     return True
 
 
 def mescladas(protocolo):
     """Registros marcados como duplicata neste protocolo (para auditoria/undo)."""
     return (
-        RegistroTriagem.objects.filter(
-            protocolo=protocolo, status=RegistroTriagem.Status.DUPLICADO
-        )
+        RegistroTriagem.objects.filter(protocolo=protocolo, status=RegistroTriagem.Status.DUPLICADO)
         .select_related("duplicado_de", "duplicado_por")
         .order_by("-duplicado_em")
     )

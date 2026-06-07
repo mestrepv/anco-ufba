@@ -22,10 +22,17 @@ Et = DecisaoTriagem.Etapa
 
 
 def _revisor(n, **kw):
-    return membro(User.objects.create_user(
-        username=f"rev{n}", email=f"rev{n}@u.edu", password="x",
-        papel=User.Papel.ANALISTA, revisor_aprovado=True, aceita_revisoes=True, **kw
-    ))
+    return membro(
+        User.objects.create_user(
+            username=f"rev{n}",
+            email=f"rev{n}@u.edu",
+            password="x",
+            papel=User.Papel.ANALISTA,
+            revisor_aprovado=True,
+            aceita_revisoes=True,
+            **kw,
+        )
+    )
 
 
 @pytest.fixture
@@ -122,10 +129,17 @@ def test_fechar_congela_resultado(protocolo, equipe, registros):
 
 
 def test_view_curador_inicia(client, protocolo, registros):
-    curador = membro(User.objects.create_user(
-        username="cur", email="cur@u.edu", password="x",
-        papel=User.Papel.CURADOR, revisor_aprovado=True, aceita_revisoes=True,
-    ), papel="curador")
+    curador = membro(
+        User.objects.create_user(
+            username="cur",
+            email="cur@u.edu",
+            password="x",
+            papel=User.Papel.CURADOR,
+            revisor_aprovado=True,
+            aceita_revisoes=True,
+        ),
+        papel="curador",
+    )
     _revisor(1)
     _revisor(2)
     client.force_login(curador)

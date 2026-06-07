@@ -35,7 +35,6 @@ from pathlib import Path
 
 import openpyxl
 
-
 SIM_NAO_TRUE = {"sim", "sim (geralmente)"}
 SIM_NAO_FALSE = {"não", "nao"}
 
@@ -167,18 +166,44 @@ def ano(v) -> int | None:
 def converter_linha(row: tuple, linha_xlsx: int) -> dict:
     row_norm, corrigido = detectar_e_corrigir_alinhamento(row)
     (
-        titulo, titulo_traduzido, base, ano_val, periodico, area, palavras_chaves,
-        autores, pres_t, pres_r, pres_pc, pres_ref, pres_corpo, pertinencia, define,
-        objeto, objetivo, metodologia, resultados, foco, epistemologia, teoria,
-        link, universidade, pago, outra_base,
+        titulo,
+        titulo_traduzido,
+        base,
+        ano_val,
+        periodico,
+        area,
+        palavras_chaves,
+        autores,
+        pres_t,
+        pres_r,
+        pres_pc,
+        pres_ref,
+        pres_corpo,
+        pertinencia,
+        define,
+        objeto,
+        objetivo,
+        metodologia,
+        resultados,
+        foco,
+        epistemologia,
+        teoria,
+        link,
+        universidade,
+        pago,
+        outra_base,
     ) = row_norm[:26]
 
     alertas = []
     # Sim/Não esperado nas colunas I..O (presença×5, pertinência, define)
     for col_letra, valor in [
-        ("I", pres_t), ("J", pres_r), ("K", pres_pc),
-        ("L", pres_ref), ("M", pres_corpo),
-        ("N", pertinencia), ("O", define),
+        ("I", pres_t),
+        ("J", pres_r),
+        ("K", pres_pc),
+        ("L", pres_ref),
+        ("M", pres_corpo),
+        ("N", pertinencia),
+        ("O", define),
     ]:
         if sim_nao(valor) is None and texto(valor):
             alertas.append(f"col {col_letra} esperava Sim/Não, recebeu {valor!r}")
@@ -186,21 +211,28 @@ def converter_linha(row: tuple, linha_xlsx: int) -> dict:
     # provavelmente a linha está deslocada
     SIM_NAO_LITERAIS = {"Sim", "Não", "Sim (Geralmente)"}
     for col_letra, valor in [
-        ("P", objeto), ("Q", objetivo), ("R", metodologia),
-        ("S", resultados), ("T", foco),
+        ("P", objeto),
+        ("Q", objetivo),
+        ("R", metodologia),
+        ("S", resultados),
+        ("T", foco),
     ]:
         if texto(valor) in SIM_NAO_LITERAIS:
-            alertas.append(f"col {col_letra} esperava texto descritivo, recebeu {valor!r} (provável deslocamento)")
+            alertas.append(
+                f"col {col_letra} esperava texto descritivo, recebeu {valor!r} (provável deslocamento)"
+            )
 
     link_limpo = limpar_link(link)
     doi = extrair_doi(link_limpo)
     # Sentinelas viram string vazia nos campos do modelo (mas listadas em _origem)
     sentinelas_zeradas = []
+
     def campo_texto(rotulo, valor):
         if eh_sentinela(valor):
             sentinelas_zeradas.append(rotulo)
             return ""
         return texto(valor)
+
     # Epistemologia/teoria: lista vazia se sentinela
     epis_norm = texto(epistemologia)
     epis_lista = [] if eh_sentinela(epis_norm) else [epis_norm] if epis_norm else []
@@ -256,7 +288,9 @@ def main(entrada: str, saida: str) -> None:
     data = rows[2:]  # pula linha "VOLTAR" e cabeçalho
 
     registros = [converter_linha(r, i + 3) for i, r in enumerate(data)]
-    corrigidos = [r["_origem"]["linha_xlsx"] for r in registros if r["_origem"]["alinhamento_corrigido"]]
+    corrigidos = [
+        r["_origem"]["linha_xlsx"] for r in registros if r["_origem"]["alinhamento_corrigido"]
+    ]
     com_alertas = [r["_origem"]["linha_xlsx"] for r in registros if r["_origem"]["alertas"]]
     com_doi = sum(1 for r in registros if r["artigo"]["doi"])
 

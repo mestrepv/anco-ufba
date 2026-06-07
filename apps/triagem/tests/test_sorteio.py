@@ -26,8 +26,12 @@ def protocolo(db):
 
 def _revisor(n):
     return User.objects.create_user(
-        username=f"rev{n}", email=f"rev{n}@u.edu", password="x",
-        papel=User.Papel.ANALISTA, revisor_aprovado=True, aceita_revisoes=True,
+        username=f"rev{n}",
+        email=f"rev{n}@u.edu",
+        password="x",
+        papel=User.Papel.ANALISTA,
+        revisor_aprovado=True,
+        aceita_revisoes=True,
     )
 
 
@@ -44,6 +48,7 @@ def registro(db, protocolo):
 
 
 # ---- elegibilidade / sorteio ----------------------------------------------
+
 
 def test_sorteia_n_revisores(protocolo, registro, revisores):
     res = executar_sorteio(registro)
@@ -89,6 +94,7 @@ def test_revisores_insuficientes_fila(protocolo, registro):
 
 
 # ---- avaliação: consenso / divergência ------------------------------------
+
 
 def _decidir(registro, revisor, decisao, motivo=""):
     d = DecisaoTriagem.objects.get(registro=registro, revisor=revisor)

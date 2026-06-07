@@ -5,11 +5,10 @@ from __future__ import annotations
 import hashlib
 from datetime import UTC, datetime, timedelta
 
-from django.utils import timezone
-
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils import timezone
 from pgvector.django import VectorField
 from simple_history.models import HistoricalRecords
 
@@ -387,7 +386,9 @@ class Analise(models.Model):
     embedding_atualizado_em = models.DateTimeField(null=True, blank=True)
 
     # Embeddings excluídos do histórico: são dados derivados, não autoria.
-    history = HistoricalRecords(excluded_fields=["embedding", "embedding_resenha", "embedding_atualizado_em"])
+    history = HistoricalRecords(
+        excluded_fields=["embedding", "embedding_resenha", "embedding_atualizado_em"]
+    )
 
     class Meta:
         verbose_name = "análise"

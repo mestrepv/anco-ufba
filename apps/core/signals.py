@@ -189,8 +189,10 @@ def _reatribuir_trabalho_para_equipe(user) -> dict:
     equipe = _equipe_anco_user()
     if equipe.pk == user.pk:
         return {
-            "analises_movidas": 0, "analises_descartadas_conflito": 0,
-            "revisoes_canceladas": 0, "revisoes_movidas": 0,
+            "analises_movidas": 0,
+            "analises_descartadas_conflito": 0,
+            "revisoes_canceladas": 0,
+            "revisoes_movidas": 0,
         }
 
     # Análises: reatribui uma a uma, respeitando UniqueConstraint(artigo, analista).
@@ -204,7 +206,8 @@ def _reatribuir_trabalho_para_equipe(user) -> dict:
             # Equipe já tem análise desse artigo → descarta a duplicada
             logger.warning(
                 "Análise %s (artigo %s) descartada: Equipe AnCo já tem análise do mesmo artigo.",
-                analise.pk, analise.artigo_id,
+                analise.pk,
+                analise.artigo_id,
             )
             analise.delete()
             descartadas += 1
@@ -215,9 +218,7 @@ def _reatribuir_trabalho_para_equipe(user) -> dict:
             movidas += 1
 
     # Revisões pendentes: cancela (não há parecer ainda).
-    canceladas, _ = Revisao.objects.filter(
-        revisor=user, concluido_em__isnull=True
-    ).delete()
+    canceladas, _ = Revisao.objects.filter(revisor=user, concluido_em__isnull=True).delete()
 
     # Revisões concluídas: move (preserva histórico).
     # UniqueConstraint(resenha, revisor): se equipe já tem revisão da mesma
@@ -225,12 +226,11 @@ def _reatribuir_trabalho_para_equipe(user) -> dict:
     movidas_rev = 0
     descartadas_rev = 0
     for rev in Revisao.objects.filter(revisor=user):
-        if Revisao.objects.filter(
-            resenha=rev.resenha, revisor=equipe
-        ).exists():
+        if Revisao.objects.filter(resenha=rev.resenha, revisor=equipe).exists():
             logger.warning(
                 "Revisão %s (resenha %s) descartada: Equipe AnCo já tem revisão.",
-                rev.pk, rev.resenha_id,
+                rev.pk,
+                rev.resenha_id,
             )
             rev.delete()
             descartadas_rev += 1
@@ -287,7 +287,8 @@ def _apagar_user_ao_apagar_email_primary(sender, instance: EmailAddress, **kwarg
             user.delete()
         logger.info(
             "Usuário %s apagado por remoção de EmailAddress primary. Stats: %s",
-            user.email, stats,
+            user.email,
+            stats,
         )
     finally:
         _em_cascata.ativo = False
@@ -316,6 +317,7 @@ def reatribuir_trabalho_antes_de_apagar_user(user) -> dict | None:
     stats = _reatribuir_trabalho_para_equipe(user)
     logger.info(
         "Usuário %s será apagado: trabalho reatribuído à Equipe AnCo. Stats: %s",
-        user.email, stats,
+        user.email,
+        stats,
     )
     return stats

@@ -33,7 +33,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from apps.acervo.models import Artigo, _gerar_identificador_interno
+from apps.acervo.models import Artigo
 
 LIMIAR_DUVIDOSO = 0.3
 
@@ -49,16 +49,26 @@ class Command(BaseCommand):
     help = "Aplica DOIs recuperados e verificados na Crossref aos Artigos eh_legado."
 
     def add_arguments(self, parser) -> None:
-        parser.add_argument("--mapping", required=True,
-            help="JSON gerado por tools/recuperar_dois_referencial.py")
-        parser.add_argument("--verificacao", required=True,
-            help="JSON gerado por tools/verificar_dois_crossref.py")
-        parser.add_argument("--dry-run", action="store_true",
-            help="Roda em transação com rollback.")
-        parser.add_argument("--incluir-duvidosos", action="store_true",
-            help="Aplica também DOIs com status=duvidoso (sim >= 0.3).")
-        parser.add_argument("--csv-conflitos", type=str, default=None,
-            help="Caminho do CSV com os conflitos (artigo já tem DOI diferente).")
+        parser.add_argument(
+            "--mapping", required=True, help="JSON gerado por tools/recuperar_dois_referencial.py"
+        )
+        parser.add_argument(
+            "--verificacao", required=True, help="JSON gerado por tools/verificar_dois_crossref.py"
+        )
+        parser.add_argument(
+            "--dry-run", action="store_true", help="Roda em transação com rollback."
+        )
+        parser.add_argument(
+            "--incluir-duvidosos",
+            action="store_true",
+            help="Aplica também DOIs com status=duvidoso (sim >= 0.3).",
+        )
+        parser.add_argument(
+            "--csv-conflitos",
+            type=str,
+            default=None,
+            help="Caminho do CSV com os conflitos (artigo já tem DOI diferente).",
+        )
 
     def handle(self, *args, **options):
         mapping_path = Path(options["mapping"])
@@ -72,8 +82,10 @@ class Command(BaseCommand):
         if not verif_path.exists():
             raise CommandError(f"Verificação não encontrada: {verif_path}")
 
-        mapping = json.load(open(mapping_path, encoding="utf-8"))
-        verificacao = json.load(open(verif_path, encoding="utf-8"))["verificados"]
+        with open(mapping_path, encoding="utf-8") as f:
+            mapping = json.load(f)
+        with open(verif_path, encoding="utf-8") as f:
+            verificacao = json.load(f)["verificados"]
 
         log = Counter()
         conflitos: list[dict] = []
@@ -88,10 +100,19 @@ class Command(BaseCommand):
 
         if csv_conflitos and conflitos:
             import csv
+
             with open(csv_conflitos, "w", encoding="utf-8", newline="") as f:
-                w = csv.DictWriter(f, fieldnames=[
-                    "artigo_id", "titulo", "ano", "doi_atual", "doi_sugerido", "fonte_match"
-                ])
+                w = csv.DictWriter(
+                    f,
+                    fieldnames=[
+                        "artigo_id",
+                        "titulo",
+                        "ano",
+                        "doi_atual",
+                        "doi_sugerido",
+                        "fonte_match",
+                    ],
+                )
                 w.writeheader()
                 for c in conflitos:
                     w.writerow(c)
@@ -158,14 +179,16 @@ class Command(BaseCommand):
                     log["ja_tinha_mesmo_doi"] += 1
                 else:
                     log["conflito_doi_diferente"] += 1
-                    conflitos.append({
-                        "artigo_id": candidato.id,
-                        "titulo": candidato.titulo,
-                        "ano": candidato.ano,
-                        "doi_atual": candidato.doi,
-                        "doi_sugerido": doi,
-                        "fonte_match": match.get("confianca", ""),
-                    })
+                    conflitos.append(
+                        {
+                            "artigo_id": candidato.id,
+                            "titulo": candidato.titulo,
+                            "ano": candidato.ano,
+                            "doi_atual": candidato.doi,
+                            "doi_sugerido": doi,
+                            "fonte_match": match.get("confianca", ""),
+                        }
+                    )
                 continue
 
             # DOI já foi aplicado a outro artigo nesta sessão? (mapping com duplicatas)
@@ -190,9 +213,9 @@ class Command(BaseCommand):
                 log[f"aplicado:{status}"] += 1
             except Exception as e:  # noqa: BLE001
                 log["erro_save"] += 1
-                self.stdout.write(self.style.ERROR(
-                    f"  erro salvando artigo {candidato.id} (doi={doi}): {e}"
-                ))
+                self.stdout.write(
+                    self.style.ERROR(f"  erro salvando artigo {candidato.id} (doi={doi}): {e}")
+                )
 
     def _reportar(self, log: Counter) -> None:
         self.stdout.write("")

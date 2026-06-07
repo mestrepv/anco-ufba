@@ -130,16 +130,11 @@ class TestCadastrarArtigo:
         # mock foi chamado
         mock_validar.assert_called_once()
 
-
-    def test_post_doi_existente_reaproveita_artigo(
-        self, cliente_analista, artigo, analista
-    ):
+    def test_post_doi_existente_reaproveita_artigo(self, cliente_analista, artigo, analista):
         # Reenviar um DOI já cadastrado não cria artigo duplicado nem dá erro:
         # reaproveita o artigo e abre/recupera a análise do usuário.
         n_artigos = Artigo.objects.count()
-        resp = cliente_analista.post(
-            reverse("cadastrar_artigo"), data={"doi": artigo.doi}
-        )
+        resp = cliente_analista.post(reverse("cadastrar_artigo"), data={"doi": artigo.doi})
         assert resp.status_code == 302
         assert Artigo.objects.count() == n_artigos  # não duplicou
         analise = Analise.objects.get(artigo=artigo, analista=analista)
@@ -174,20 +169,36 @@ def analise_completa(db, analista, vocab):
     from apps.vocabulario.models import TermoVocabulario, Vocabulario
 
     artigo = Artigo.objects.create(
-        doi="10.x/completa", titulo="Completa", ano=2020,
-        base_consulta=vocab, link_acesso="https://example.org/c",
+        doi="10.x/completa",
+        titulo="Completa",
+        ano=2020,
+        base_consulta=vocab,
+        link_acesso="https://example.org/c",
         area="Ciências Humanas",
     )
     a = Analise.objects.create(
-        artigo=artigo, analista=analista,
-        presenca_titulo=True, presenca_resumo=True, presenca_palavras_chave=True,
-        presenca_referencias=True, presenca_corpo=True, pertinencia=True,
+        artigo=artigo,
+        analista=analista,
+        presenca_titulo=True,
+        presenca_resumo=True,
+        presenca_palavras_chave=True,
+        presenca_referencias=True,
+        presenca_corpo=True,
+        pertinencia=True,
         define_conceito=False,
-        aspectos_relevantes="x", objeto="x", objetivo="x", foco="x",
-        metodologia="x", referenciais="x", resultados="x",
-        contexto_producao="x", observacoes="x",
+        aspectos_relevantes="x",
+        objeto="x",
+        objetivo="x",
+        foco="x",
+        metodologia="x",
+        referenciais="x",
+        resultados="x",
+        contexto_producao="x",
+        observacoes="x",
     )
-    ve, _ = Vocabulario.objects.get_or_create(codigo="epistemologia", defaults={"nome": "Epistemologia"})
+    ve, _ = Vocabulario.objects.get_or_create(
+        codigo="epistemologia", defaults={"nome": "Epistemologia"}
+    )
     vt, _ = Vocabulario.objects.get_or_create(codigo="teoria", defaults={"nome": "Teoria"})
     a.epistemologia.add(TermoVocabulario.objects.create(vocabulario=ve, nome="Empirismo"))
     a.teoria.add(TermoVocabulario.objects.create(vocabulario=vt, nome="Cognição"))
@@ -377,7 +388,9 @@ class TestMinhasAnalises:
 @pytest.fixture
 def curador(db):
     return User.objects.create_user(
-        username="cur", email="cur@usp.edu.br", password="x",
+        username="cur",
+        email="cur@usp.edu.br",
+        password="x",
         papel=User.Papel.CURADOR,
     )
 
@@ -385,15 +398,16 @@ def curador(db):
 @pytest.fixture
 def artigo_legado(db, vocab):
     return Artigo.objects.create(
-        doi="10.1234/legado", titulo="Artigo legado", ano=2015,
-        base_consulta=vocab, eh_legado=True,
+        doi="10.1234/legado",
+        titulo="Artigo legado",
+        ano=2015,
+        base_consulta=vocab,
+        eh_legado=True,
     )
 
 
 def test_analista_nao_inicia_analise_em_legado(cliente_analista, artigo_legado):
-    resp = cliente_analista.get(
-        reverse("iniciar_analise", args=[artigo_legado.pk])
-    )
+    resp = cliente_analista.get(reverse("iniciar_analise", args=[artigo_legado.pk]))
     assert resp.status_code == 403
     assert not Analise.objects.filter(artigo=artigo_legado).exists()
 
@@ -406,9 +420,7 @@ def test_analista_nao_edita_analise_de_legado(client, analista, artigo_legado):
     client.force_login(analista)
     resp = client.get(reverse("editar_analise", args=[analise.pk]))
     assert resp.status_code == 403
-    resp2 = client.get(
-        reverse("editar_analise", args=[analise.pk]), {"passo": "presenca"}
-    )
+    resp2 = client.get(reverse("editar_analise", args=[analise.pk]), {"passo": "presenca"})
     assert resp2.status_code == 403
 
 

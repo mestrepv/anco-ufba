@@ -94,13 +94,15 @@ def carregar_revisada(path: Path) -> list[dict]:
     for i, r in enumerate(rows[2:], start=3):  # pula VOLTAR + cabeçalho
         if not r or r[0] is None:
             continue
-        out.append({
-            "linha_xlsx": i,
-            "titulo_orig": r[0] or "",
-            "titulo": normalizar_titulo(r[0]),
-            "ano": normalizar_ano(r[3]),
-            "periodico": normalizar_periodico(r[4]),
-        })
+        out.append(
+            {
+                "linha_xlsx": i,
+                "titulo_orig": r[0] or "",
+                "titulo": normalizar_titulo(r[0]),
+                "ano": normalizar_ano(r[3]),
+                "periodico": normalizar_periodico(r[4]),
+            }
+        )
     return out
 
 
@@ -118,14 +120,16 @@ def carregar_referencial(path: Path) -> list[dict]:
         titulo = normalizar_titulo(r[3])
         if not titulo:
             continue
-        out.append({
-            "linha_xlsx": i,
-            "titulo_orig": r[3] or "",
-            "titulo": titulo,
-            "ano": normalizar_ano(r[4]),
-            "periodico": normalizar_periodico(r[9]),
-            "doi": doi,
-        })
+        out.append(
+            {
+                "linha_xlsx": i,
+                "titulo_orig": r[3] or "",
+                "titulo": titulo,
+                "ano": normalizar_ano(r[4]),
+                "periodico": normalizar_periodico(r[9]),
+                "doi": doi,
+            }
+        )
     return out
 
 
@@ -175,7 +179,8 @@ def cruzar(revisada: list[dict], refs: list[dict]) -> dict:
         if candidatos_com_doi:
             # Refina por ano + periódico
             por_ano_periodico = [
-                c for c in candidatos_com_doi
+                c
+                for c in candidatos_com_doi
                 if c["ano"] == rev["ano"] and c["periodico"] == rev["periodico"]
             ]
             por_ano = [c for c in candidatos_com_doi if c["ano"] == rev["ano"]]
@@ -203,16 +208,18 @@ def cruzar(revisada: list[dict], refs: list[dict]) -> dict:
 
         if match:
             log[f"match:{confianca}"] += 1
-            resultados.append({
-                "linha_xlsx_revisada": rev["linha_xlsx"],
-                "titulo_revisada": rev["titulo_orig"],
-                "ano_revisada": rev["ano"],
-                "periodico_revisada": rev["periodico"],
-                "doi_recuperado": match["doi"],
-                "confianca": confianca,
-                "titulo_referencial": match["titulo_orig"],
-                "linha_xlsx_referencial": match["linha_xlsx"],
-            })
+            resultados.append(
+                {
+                    "linha_xlsx_revisada": rev["linha_xlsx"],
+                    "titulo_revisada": rev["titulo_orig"],
+                    "ano_revisada": rev["ano"],
+                    "periodico_revisada": rev["periodico"],
+                    "doi_recuperado": match["doi"],
+                    "confianca": confianca,
+                    "titulo_referencial": match["titulo_orig"],
+                    "linha_xlsx_referencial": match["linha_xlsx"],
+                }
+            )
         else:
             log["sem_match"] += 1
 
@@ -258,6 +265,9 @@ def main(revisada_path: str, referencial_path: str, saida: str) -> None:
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        print("Uso: recuperar_dois_referencial.py <revisada.xlsx> <referencial.xlsx> <saida.json>", file=sys.stderr)
+        print(
+            "Uso: recuperar_dois_referencial.py <revisada.xlsx> <referencial.xlsx> <saida.json>",
+            file=sys.stderr,
+        )
         sys.exit(2)
     main(sys.argv[1], sys.argv[2], sys.argv[3])

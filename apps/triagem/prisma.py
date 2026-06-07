@@ -42,14 +42,11 @@ def computar(protocolo) -> ContagemPrisma:
     S = RegistroTriagem.Status
 
     identificados = (
-        Busca.objects.filter(protocolo=protocolo).aggregate(t=Sum("n_identificados"))["t"]
-        or 0
+        Busca.objects.filter(protocolo=protocolo).aggregate(t=Sum("n_identificados"))["t"] or 0
     )
     importados = regs.count()
     # Duplicados entre bases: Σ(origens-1) = total de vínculos M2M - nº de registros.
-    total_vinculos = (
-        regs.aggregate(t=Count("origem_buscas"))["t"] or 0
-    )
+    total_vinculos = regs.aggregate(t=Count("origem_buscas"))["t"] or 0
     duplicados_entre_bases = max(total_vinculos - importados, 0)
 
     ja_no_acervo = regs.filter(ja_no_acervo=True).count()

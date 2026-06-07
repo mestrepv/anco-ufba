@@ -22,9 +22,7 @@ logger = logging.getLogger(__name__)
 def _capturar_concluida(sender, instance: DecisaoTriagem, **kwargs):
     if instance.pk:
         try:
-            instance._concluido_anterior = DecisaoTriagem.objects.get(
-                pk=instance.pk
-            ).concluido_em
+            instance._concluido_anterior = DecisaoTriagem.objects.get(pk=instance.pk).concluido_em
         except DecisaoTriagem.DoesNotExist:
             instance._concluido_anterior = None
     else:

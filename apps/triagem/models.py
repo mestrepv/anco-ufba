@@ -48,14 +48,14 @@ class ProtocoloTriagem(models.Model):
     globais. Fase 12.
     """
 
-    titulo = models.CharField(
-        max_length=300, default="Revisão de escopo — Análise Cognitiva"
-    )
+    titulo = models.CharField(max_length=300, default="Revisão de escopo — Análise Cognitiva")
     nome = models.CharField(
         max_length=120, blank=True, help_text="Nome curto do projeto (para a interface)."
     )
     slug = models.SlugField(
-        max_length=140, unique=True, blank=True,
+        max_length=140,
+        unique=True,
+        blank=True,
         help_text="Identificador do projeto na URL (/triagem/p/<slug>/).",
     )
     estrategia_busca = models.TextField(
@@ -102,7 +102,8 @@ class ProtocoloTriagem(models.Model):
         ),
     )
     registro_externo = models.URLField(
-        max_length=300, blank=True,
+        max_length=300,
+        blank=True,
         help_text="Registro público do protocolo (ex.: OSF) — a priori.",
     )
     versao = models.PositiveSmallIntegerField(default=1)
@@ -123,9 +124,7 @@ class ProtocoloTriagem(models.Model):
         if not self.slug:
             base = slugify(self.nome or self.titulo or "projeto") or "projeto"
             slug, i = base, 2
-            while (
-                ProtocoloTriagem.objects.exclude(pk=self.pk).filter(slug=slug).exists()
-            ):
+            while ProtocoloTriagem.objects.exclude(pk=self.pk).filter(slug=slug).exists():
                 slug, i = f"{base}-{i}", i + 1
             self.slug = slug
         super().save(*args, **kwargs)
@@ -184,7 +183,8 @@ class ProtocoloTriagem(models.Model):
         from django.utils import timezone
 
         SnapshotProtocolo.objects.get_or_create(
-            protocolo=self, versao=self.versao,
+            protocolo=self,
+            versao=self.versao,
             defaults={"dados": self.snapshot_dados(), "travado_por": user},
         )
         self.travado_em = timezone.now()
@@ -206,7 +206,10 @@ class SnapshotProtocolo(models.Model):
     versao = models.PositiveSmallIntegerField()
     dados = models.JSONField(default=dict)
     travado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="+",
     )
     criado_em = models.DateTimeField(auto_now_add=True)
@@ -236,15 +239,11 @@ class ProjetoMembro(models.Model):
         ANALISTA = "analista", "Analista"
         CURADOR = "curador", "Curador"
 
-    projeto = models.ForeignKey(
-        ProtocoloTriagem, on_delete=models.CASCADE, related_name="membros"
-    )
+    projeto = models.ForeignKey(ProtocoloTriagem, on_delete=models.CASCADE, related_name="membros")
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="projetos_triagem"
     )
-    papel = models.CharField(
-        max_length=10, choices=Papel.choices, default=Papel.ANALISTA
-    )
+    papel = models.CharField(max_length=10, choices=Papel.choices, default=Papel.ANALISTA)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -252,9 +251,7 @@ class ProjetoMembro(models.Model):
         verbose_name_plural = "membros do projeto"
         ordering = ["projeto", "usuario"]
         constraints = [
-            models.UniqueConstraint(
-                fields=["projeto", "usuario"], name="uniq_membro_por_projeto"
-            ),
+            models.UniqueConstraint(fields=["projeto", "usuario"], name="uniq_membro_por_projeto"),
         ]
 
     def __str__(self) -> str:
@@ -284,9 +281,7 @@ class Busca(models.Model):
         TESE = "tese_dissertacao", "Tese/Dissertação"
         OUTRO = "outro", "Outro"
 
-    protocolo = models.ForeignKey(
-        ProtocoloTriagem, on_delete=models.CASCADE, related_name="buscas"
-    )
+    protocolo = models.ForeignKey(ProtocoloTriagem, on_delete=models.CASCADE, related_name="buscas")
     base_consulta = models.ForeignKey(
         TermoVocabulario,
         on_delete=models.PROTECT,
@@ -306,19 +301,26 @@ class Busca(models.Model):
     ano_inicio = models.PositiveSmallIntegerField(null=True, blank=True)
     ano_fim = models.PositiveSmallIntegerField(null=True, blank=True)
     idiomas = ArrayField(
-        models.CharField(max_length=10), default=list, blank=True,
+        models.CharField(max_length=10),
+        default=list,
+        blank=True,
         help_text="Idiomas filtrados na base.",
     )
     idioma_outro = models.CharField(
-        max_length=100, blank=True,
+        max_length=100,
+        blank=True,
         help_text="Especificação quando 'Outro' é escolhido em idiomas.",
     )
     tipos_documento = ArrayField(
-        models.CharField(max_length=20), default=list, blank=True,
+        models.CharField(max_length=20),
+        default=list,
+        blank=True,
         help_text="Tipos de documento filtrados na base.",
     )
     campos_busca = ArrayField(
-        models.CharField(max_length=20), default=list, blank=True,
+        models.CharField(max_length=20),
+        default=list,
+        blank=True,
         help_text="Em que campo(s) a query foi aplicada.",
     )
     filtros = models.TextField(
@@ -337,7 +339,9 @@ class Busca(models.Model):
     n_ignorados = models.PositiveIntegerField(default=0)
     importado_em = models.DateTimeField(null=True, blank=True)
     arquivo = models.FileField(
-        upload_to="triagem/buscas/", null=True, blank=True,
+        upload_to="triagem/buscas/",
+        null=True,
+        blank=True,
         help_text="Export cru (RIS/BibTeX/CSV), guardado para auditoria.",
     )
     formato = models.CharField(max_length=10, choices=Formato.choices, blank=True)
@@ -429,7 +433,9 @@ class RegistroTriagem(models.Model):
         ProtocoloTriagem, on_delete=models.CASCADE, related_name="registros"
     )
     origem_buscas = models.ManyToManyField(
-        Busca, blank=True, related_name="registros",
+        Busca,
+        blank=True,
+        related_name="registros",
         help_text="Buscas em que este registro apareceu (uma ou mais bases).",
     )
 
@@ -443,11 +449,14 @@ class RegistroTriagem(models.Model):
     palavras_chaves = models.TextField(blank=True)
     titulo_periodico = models.TextField(blank=True)
     idioma = models.CharField(max_length=20, blank=True)
-    tipo = models.CharField(max_length=40, blank=True, help_text="Tipo de documento (Artigo, Livro…).")
+    tipo = models.CharField(
+        max_length=40, blank=True, help_text="Tipo de documento (Artigo, Livro…)."
+    )
     link = models.URLField(max_length=600, blank=True)
 
     identificador = models.CharField(
-        max_length=80, db_index=True,
+        max_length=80,
+        db_index=True,
         help_text="Chave determinística de dedup (DOI>ISBN>hash).",
     )
     status = models.CharField(
@@ -468,13 +477,17 @@ class RegistroTriagem(models.Model):
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="duplicatas"
     )
     duplicado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="duplicatas_resolvidas",
         help_text="Quem resolveu este registro como duplicata (auditoria).",
     )
     duplicado_em = models.DateTimeField(null=True, blank=True)
     ja_no_acervo = models.BooleanField(
-        default=False, db_index=True,
+        default=False,
+        db_index=True,
         help_text="Casa com Artigo já existente (inclusive legado): não re-triar.",
     )
     artigo = models.ForeignKey(
@@ -486,7 +499,9 @@ class RegistroTriagem(models.Model):
         help_text="Artigo correspondente: por promoção (incluído) ou por casar com o acervo.",
     )
     decisao_final = models.CharField(
-        max_length=10, choices=Decisao.choices, blank=True,
+        max_length=10,
+        choices=Decisao.choices,
+        blank=True,
         help_text="Decisão consolidada (consenso ou desempate).",
     )
     decidida_por = models.ForeignKey(
@@ -552,14 +567,15 @@ class DecisaoTriagem(models.Model):
         TEXTO_COMPLETO = "tc", "Texto completo"
         CALIBRACAO = "ca", "Calibração (piloto)"
 
-    registro = models.ForeignKey(
-        RegistroTriagem, on_delete=models.CASCADE, related_name="decisoes"
-    )
+    registro = models.ForeignKey(RegistroTriagem, on_delete=models.CASCADE, related_name="decisoes")
     revisor = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="triagens_feitas"
     )
     etapa = models.CharField(
-        max_length=2, choices=Etapa.choices, default=Etapa.TITULO_RESUMO, db_index=True,
+        max_length=2,
+        choices=Etapa.choices,
+        default=Etapa.TITULO_RESUMO,
+        db_index=True,
         help_text="Etapa da triagem (título/resumo ou texto completo).",
     )
     decisao = models.CharField(
@@ -593,14 +609,13 @@ class ParDuplicataDescartado(models.Model):
     `registro_a_id < registro_b_id`.
     """
 
-    registro_a = models.ForeignKey(
-        RegistroTriagem, on_delete=models.CASCADE, related_name="+"
-    )
-    registro_b = models.ForeignKey(
-        RegistroTriagem, on_delete=models.CASCADE, related_name="+"
-    )
+    registro_a = models.ForeignKey(RegistroTriagem, on_delete=models.CASCADE, related_name="+")
+    registro_b = models.ForeignKey(RegistroTriagem, on_delete=models.CASCADE, related_name="+")
     criado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="pares_descartados",
     )
     criado_em = models.DateTimeField(auto_now_add=True)
@@ -631,11 +646,15 @@ class RodadaCalibracao(models.Model):
         ProtocoloTriagem, on_delete=models.CASCADE, related_name="calibracoes"
     )
     registros = models.ManyToManyField(
-        RegistroTriagem, related_name="calibracoes",
+        RegistroTriagem,
+        related_name="calibracoes",
         help_text="Amostra comum triada por toda a equipe.",
     )
     criada_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="calibracoes_criadas",
     )
     criada_em = models.DateTimeField(auto_now_add=True)
@@ -673,14 +692,19 @@ class SorteioAnalise(models.Model):
         ProtocoloTriagem, on_delete=models.CASCADE, related_name="sorteios_analise"
     )
     modo_revisao = models.CharField(
-        max_length=10, choices=ModoRevisao.choices, default=ModoRevisao.UNICA,
+        max_length=10,
+        choices=ModoRevisao.choices,
+        default=ModoRevisao.UNICA,
         help_text="Decidido pelo curador no momento do sorteio.",
     )
     cota = models.PositiveSmallIntegerField(
         default=5, help_text="Artigos atribuídos a cada analista."
     )
     criado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="sorteios_analise_criados",
     )
     criado_em = models.DateTimeField(auto_now_add=True)
@@ -708,7 +732,8 @@ class AtribuicaoAnalise(models.Model):
         SorteioAnalise, on_delete=models.CASCADE, related_name="atribuicoes"
     )
     analista = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
         related_name="atribuicoes_analise",
     )
     artigo = models.ForeignKey(
@@ -740,23 +765,32 @@ class ConsensoAnalise(models.Model):
     artigo+analista). As de origem são preservadas como insumo. Fase 13.
     """
 
-    artigo = models.ForeignKey(
-        "acervo.Artigo", on_delete=models.CASCADE, related_name="consensos"
-    )
+    artigo = models.ForeignKey("acervo.Artigo", on_delete=models.CASCADE, related_name="consensos")
     sorteio = models.ForeignKey(
-        SorteioAnalise, on_delete=models.SET_NULL, null=True, blank=True,
+        SorteioAnalise,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="consensos",
     )
     analises = models.ManyToManyField(
-        "acervo.Analise", blank=True, related_name="consensos_origem",
+        "acervo.Analise",
+        blank=True,
+        related_name="consensos_origem",
         help_text="As análises independentes que entraram na conciliação.",
     )
     analise_final = models.ForeignKey(
-        "acervo.Analise", on_delete=models.SET_NULL, null=True, blank=True,
+        "acervo.Analise",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="consenso_final",
     )
     conciliado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="consensos_conciliados",
     )
     conciliado_em = models.DateTimeField(null=True, blank=True)

@@ -265,9 +265,7 @@ def lookup_identificador_view(request: HttpRequest) -> HttpResponse:
     elif contexto["tipo"] == "isbn":
         resultado = lookup_isbn(valor or contexto["identificador_raw"])
     else:
-        contexto["erro"] = (
-            "Não reconheci o formato. Digite um DOI (10.xxxx/yyy) ou ISBN."
-        )
+        contexto["erro"] = "Não reconheci o formato. Digite um DOI (10.xxxx/yyy) ou ISBN."
         return render(request, "acervo/_preview_metadados.html", contexto)
 
     contexto["encontrado"] = resultado.encontrado
@@ -342,20 +340,20 @@ PASSOS = [
     ("estrutura", "Análise do artigo"),
 ]
 
+
 # Abas do stepper: os 3 passos da análise + a resenha (entidade própria, em
 # página dedicada). Hrefs absolutos para o stepper funcionar igual nas duas
 # páginas (editar_analise e editar_resenha).
 def _tabs(analise_pk: int) -> list[dict]:
     base = reverse("editar_analise", args=[analise_pk])
-    tabs = [
-        {"codigo": c, "label": label, "href": f"{base}?passo={c}"}
-        for c, label in PASSOS
-    ]
-    tabs.append({
-        "codigo": "resenha",
-        "label": "Resenha crítica (opcional)",
-        "href": reverse("editar_resenha", args=[analise_pk]),
-    })
+    tabs = [{"codigo": c, "label": label, "href": f"{base}?passo={c}"} for c, label in PASSOS]
+    tabs.append(
+        {
+            "codigo": "resenha",
+            "label": "Resenha crítica (opcional)",
+            "href": reverse("editar_resenha", args=[analise_pk]),
+        }
+    )
     return tabs
 
 
@@ -381,9 +379,7 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     eh_admin = _eh_admin(user)
 
     if not eh_admin and analise.analista_id != user.id:
-        return HttpResponseForbidden(
-            "Apenas o analista autor (ou curador/admin) pode editar."
-        )
+        return HttpResponseForbidden("Apenas o analista autor (ou curador/admin) pode editar.")
 
     if analise.artigo.eh_legado and not eh_admin:
         return HttpResponseForbidden(
@@ -398,8 +394,8 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     if passo not in dict(PASSOS):
         passo = "identificacao"
 
-    form = None             # form da Análise (presença/estrutura)
-    artigo_form = None      # form do Artigo (identificação: grande área)
+    form = None  # form da Análise (presença/estrutura)
+    artigo_form = None  # form do Artigo (identificação: grande área)
     if passo == "identificacao":
         artigo_form = ArtigoAreaForm(request.POST or None, instance=analise.artigo)
     elif passo == "presenca":
@@ -499,8 +495,7 @@ def submeter_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse
     if faltam:
         messages.error(
             request,
-            "Preencha todos os campos antes de submeter. Faltam: "
-            + ", ".join(faltam) + ".",
+            "Preencha todos os campos antes de submeter. Faltam: " + ", ".join(faltam) + ".",
         )
         return redirect("editar_analise", analise_id=analise.pk)
 
@@ -513,8 +508,7 @@ def submeter_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse
         notificar_analise_submetida(analise)
         messages.success(
             request,
-            "Análise submetida. Aguardando aprovação da curadoria para entrar "
-            "no acervo.",
+            "Análise submetida. Aguardando aprovação da curadoria para entrar no acervo.",
         )
         return redirect("minhas_analises")
 
@@ -543,7 +537,7 @@ def excluir_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
 
     titulo = analise.artigo.titulo[:80]
     analise.delete()
-    messages.success(request, f"Análise excluída: \"{titulo}…\"")
+    messages.success(request, f'Análise excluída: "{titulo}…"')
     return redirect("painel")
 
 
@@ -561,9 +555,7 @@ def _get_resenha_editavel(request: HttpRequest, analise_id: int) -> Resenha:
     usuário não seja o autor.
     """
     analise = _get_analise_do_autor(request, analise_id)
-    resenha, _ = Resenha.objects.get_or_create(
-        analise=analise, defaults={"texto": ""}
-    )
+    resenha, _ = Resenha.objects.get_or_create(analise=analise, defaults={"texto": ""})
     return resenha
 
 
@@ -577,9 +569,7 @@ def editar_resenha_view(request: HttpRequest, analise_id: int) -> HttpResponse:
         return HttpResponseForbidden("Apenas o autor pode editar a resenha.")
 
     if resenha.analise.artigo.eh_legado and not _eh_admin(request.user):
-        return HttpResponseForbidden(
-            "O acervo histórico (legado) não é editável por analistas."
-        )
+        return HttpResponseForbidden("O acervo histórico (legado) não é editável por analistas.")
 
     if resenha.status == Resenha.Status.EM_REVISAO:
         messages.info(request, "A resenha está em revisão cega e não pode ser editada agora.")
@@ -825,9 +815,7 @@ def devolver_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse
         return redirect("fila_curadoria")
     motivo = (request.POST.get("motivo") or "").strip()
     rejeitar = request.POST.get("acao") == "rejeitar"
-    analise.status = (
-        Analise.Status.REJEITADA if rejeitar else Analise.Status.RASCUNHO
-    )
+    analise.status = Analise.Status.REJEITADA if rejeitar else Analise.Status.RASCUNHO
     analise.motivo_curadoria = motivo
     analise.save()
     notificar_analise_devolvida(analise, motivo, rejeitada=rejeitar)
@@ -890,9 +878,14 @@ def despublicar_analise_view(request: HttpRequest, analise_id: int) -> HttpRespo
     analise.status = Analise.Status.DESPUBLICADA
     analise.despublicada_em = timezone.now()
     analise.despublicada_por = request.user
-    analise.save(update_fields=[
-        "status", "status_pre_despublicacao", "despublicada_em", "despublicada_por",
-    ])
+    analise.save(
+        update_fields=[
+            "status",
+            "status_pre_despublicacao",
+            "despublicada_em",
+            "despublicada_por",
+        ]
+    )
     messages.success(
         request,
         "Análise despublicada — invisível no acervo público, mas preservada no "
@@ -913,8 +906,13 @@ def restaurar_analise_view(request: HttpRequest, analise_id: int) -> HttpRespons
     analise.status_pre_despublicacao = ""
     analise.despublicada_em = None
     analise.despublicada_por = None
-    analise.save(update_fields=[
-        "status", "status_pre_despublicacao", "despublicada_em", "despublicada_por",
-    ])
+    analise.save(
+        update_fields=[
+            "status",
+            "status_pre_despublicacao",
+            "despublicada_em",
+            "despublicada_por",
+        ]
+    )
     messages.success(request, "Análise restaurada ao acervo público.")
     return redirect("pagina_analise", analise_id=analise.pk)

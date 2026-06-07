@@ -99,9 +99,7 @@ class RegistroTriagemAdmin(SimpleHistoryAdmin, UnfoldModelAdmin):
     list_display = ("titulo_curto", "status", "ano", "ja_no_acervo", "criado_em")
     list_filter = ("status", "ja_no_acervo", "protocolo")
     search_fields = ("titulo", "doi", "isbn", "autores")
-    autocomplete_fields = (
-        "protocolo", "artigo", "duplicado_de", "duplicado_por", "decidida_por"
-    )
+    autocomplete_fields = ("protocolo", "artigo", "duplicado_de", "duplicado_por", "decidida_por")
     readonly_fields = ("identificador", "criado_em", "duplicado_em")
     inlines = [DecisaoTriagemInline]
 
@@ -121,9 +119,7 @@ class DecisaoTriagemAdmin(UnfoldModelAdmin):
 
 @admin.register(RodadaCalibracao)
 class RodadaCalibracaoAdmin(UnfoldModelAdmin):
-    list_display = (
-        "pk", "protocolo", "n_itens", "n_revisores", "kappa", "fechada_em", "criada_em"
-    )
+    list_display = ("pk", "protocolo", "n_itens", "n_revisores", "kappa", "fechada_em", "criada_em")
     list_filter = ("protocolo",)
     readonly_fields = ("criada_em", "fechada_em", "n_itens", "n_revisores", "perc_acordo", "kappa")
     filter_horizontal = ("registros",)

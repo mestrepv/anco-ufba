@@ -20,9 +20,11 @@ def protocolo(db):
 
 @pytest.fixture
 def analista(db):
-    return membro(User.objects.create_user(
-        username="ana", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
-    ))
+    return membro(
+        User.objects.create_user(
+            username="ana", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
+        )
+    )
 
 
 @pytest.fixture
@@ -50,16 +52,18 @@ def test_painel_mostra_projeto_e_etapas(client, analista):
     client.force_login(analista)
     resp = client.get(reverse("painel"))
     assert resp.status_code == 200
-    assert b"Seu projeto" in resp.content              # seção do projeto (1 projeto)
-    assert b"Importar base" in resp.content             # etapa 1
-    assert b"Acompanhar (PRISMA)" in resp.content        # etapa 7
+    assert b"Seu projeto" in resp.content  # seção do projeto (1 projeto)
+    assert b"Importar base" in resp.content  # etapa 1
+    assert b"Acompanhar (PRISMA)" in resp.content  # etapa 7
     assert "Próximo passo".encode() not in resp.content  # ocioso → sem hero
 
 
 def test_painel_com_tarefa_mostra_proximo_passo_e_projeto(client, protocolo, analista):
     # Com artigo a analisar: "Próximo passo" aparece E a seção do projeto também.
     reg = RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="Incluído", doi="10.9/p",
+        protocolo=protocolo,
+        titulo="Incluído",
+        doi="10.9/p",
         status=RegistroTriagem.Status.INCLUIDO,
     )
     promover_para_acervo(reg)
@@ -71,7 +75,9 @@ def test_painel_com_tarefa_mostra_proximo_passo_e_projeto(client, protocolo, ana
 
 def test_painel_conta_a_analisar(client, protocolo, analista):
     reg = RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="Incluído", doi="10.9/x",
+        protocolo=protocolo,
+        titulo="Incluído",
+        doi="10.9/x",
         status=RegistroTriagem.Status.INCLUIDO,
     )
     promover_para_acervo(reg)

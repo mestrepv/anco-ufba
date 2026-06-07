@@ -14,16 +14,21 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def analista(db):
-    return membro(User.objects.create_user(
-        username="ana", email="ana@x.org", password="x", papel=User.Papel.ANALISTA
-    ))
+    return membro(
+        User.objects.create_user(
+            username="ana", email="ana@x.org", password="x", papel=User.Papel.ANALISTA
+        )
+    )
 
 
 @pytest.fixture
 def curador(db):
-    return membro(User.objects.create_user(
-        username="cur", email="cur@x.org", password="x", papel=User.Papel.CURADOR
-    ), papel="curador")
+    return membro(
+        User.objects.create_user(
+            username="cur", email="cur@x.org", password="x", papel=User.Papel.CURADOR
+        ),
+        papel="curador",
+    )
 
 
 # ── checklist ────────────────────────────────────────────────────────────

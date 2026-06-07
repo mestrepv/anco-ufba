@@ -22,12 +22,33 @@ logger = logging.getLogger(__name__)
 
 # Mapa de idiomas livres → choices de Artigo.Idioma.
 _IDIOMAS = {
-    "pt": "pt", "por": "pt", "português": "pt", "portugues": "pt", "pt-br": "pt",
-    "en": "en", "eng": "en", "english": "en", "inglês": "en", "ingles": "en",
-    "es": "es", "spa": "es", "español": "es", "espanhol": "es",
-    "fr": "fr", "fra": "fr", "fre": "fr", "français": "fr", "frances": "fr",
-    "de": "de", "ger": "de", "deu": "de", "alemão": "de", "alemao": "de",
-    "it": "it", "ita": "it", "italiano": "it",
+    "pt": "pt",
+    "por": "pt",
+    "português": "pt",
+    "portugues": "pt",
+    "pt-br": "pt",
+    "en": "en",
+    "eng": "en",
+    "english": "en",
+    "inglês": "en",
+    "ingles": "en",
+    "es": "es",
+    "spa": "es",
+    "español": "es",
+    "espanhol": "es",
+    "fr": "fr",
+    "fra": "fr",
+    "fre": "fr",
+    "français": "fr",
+    "frances": "fr",
+    "de": "de",
+    "ger": "de",
+    "deu": "de",
+    "alemão": "de",
+    "alemao": "de",
+    "it": "it",
+    "ita": "it",
+    "italiano": "it",
 }
 
 
@@ -49,7 +70,10 @@ def promover_para_acervo(registro: RegistroTriagem) -> Artigo | None:
 
     # Segurança: se casar com Artigo existente, reusa (não cria/altera).
     artigo = _artigo_no_acervo(
-        registro.doi, registro.isbn, registro.titulo, registro.ano,
+        registro.doi,
+        registro.isbn,
+        registro.titulo,
+        registro.ano,
         registro.titulo_periodico,
     )
     if artigo is None:

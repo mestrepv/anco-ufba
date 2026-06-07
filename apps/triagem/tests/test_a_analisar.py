@@ -36,14 +36,20 @@ def analista(db):
 @pytest.fixture
 def curador(db):
     return User.objects.create_user(
-        username="cur", email="c@u.edu", password="x",
-        papel=User.Papel.CURADOR, is_staff=True,
+        username="cur",
+        email="c@u.edu",
+        password="x",
+        papel=User.Papel.CURADOR,
+        is_staff=True,
     )
 
 
 def _artigo_incluido(protocolo, doi="10.3/incl"):
     reg = RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="Incluído", doi=doi, ano=2022,
+        protocolo=protocolo,
+        titulo="Incluído",
+        doi=doi,
+        ano=2022,
         status=RegistroTriagem.Status.INCLUIDO,
     )
     return promover_para_acervo(reg)
@@ -54,9 +60,14 @@ def test_analista_cria_artigo_avulso(client, analista, vocab):
     client.force_login(analista)
     resp = client.post(
         reverse("cadastrar_artigo"),
-        data={"doi": "10.123/novo", "titulo": "Tentativa", "ano": "2023",
-              "area": "Ciências Humanas", "base_consulta": vocab.pk,
-              "link_acesso": "https://e.org/x"},
+        data={
+            "doi": "10.123/novo",
+            "titulo": "Tentativa",
+            "ano": "2023",
+            "area": "Ciências Humanas",
+            "base_consulta": vocab.pk,
+            "link_acesso": "https://e.org/x",
+        },
     )
     assert resp.status_code == 302
     assert Artigo.objects.filter(doi="10.123/novo").exists()
@@ -66,9 +77,14 @@ def test_curador_cria_artigo_avulso(client, curador, vocab):
     client.force_login(curador)
     resp = client.post(
         reverse("cadastrar_artigo"),
-        data={"doi": "10.123/cur", "titulo": "Avulso curador", "ano": "2023",
-              "area": "Ciências Humanas", "base_consulta": vocab.pk,
-              "link_acesso": "https://e.org/c"},
+        data={
+            "doi": "10.123/cur",
+            "titulo": "Avulso curador",
+            "ano": "2023",
+            "area": "Ciências Humanas",
+            "base_consulta": vocab.pk,
+            "link_acesso": "https://e.org/c",
+        },
     )
     assert resp.status_code == 302
     assert Artigo.objects.filter(doi="10.123/cur").exists()

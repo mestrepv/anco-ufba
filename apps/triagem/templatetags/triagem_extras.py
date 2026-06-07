@@ -23,7 +23,5 @@ def realce(texto: str, termos_str: str):
         return mark_safe(texto_esc)
     termos.sort(key=len, reverse=True)  # frases antes de palavras
     padrao = "|".join(re.escape(escape(t)) for t in termos)
-    resultado = re.sub(
-        f"({padrao})", r"<mark>\1</mark>", texto_esc, flags=re.IGNORECASE
-    )
+    resultado = re.sub(f"({padrao})", r"<mark>\1</mark>", texto_esc, flags=re.IGNORECASE)
     return mark_safe(resultado)

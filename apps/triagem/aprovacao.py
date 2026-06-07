@@ -125,27 +125,24 @@ def avaliar_apos_triagem(registro: RegistroTriagem) -> ResultadoAvaliacao:
         novo = consolidar_registro(registro, _Dec.INCLUIR)
         return ResultadoAvaliacao(True, novo, "Consenso: incluir.")
     if decisoes and all(d == _Dec.EXCLUIR for d in decisoes):
-        novo = consolidar_registro(
-            registro, _Dec.EXCLUIR, motivo=_motivos(registro, etapa)
-        )
+        novo = consolidar_registro(registro, _Dec.EXCLUIR, motivo=_motivos(registro, etapa))
         return ResultadoAvaliacao(True, novo, "Consenso: excluir.")
 
     # Divergência ou dúvida → aguarda desempate (não muda o status).
     logger.info("Registro %s divergente — aguarda desempate: %s", registro.pk, decisoes)
     return ResultadoAvaliacao(
-        False, None, "Divergência entre revisores — aguarda desempate.",
+        False,
+        None,
+        "Divergência entre revisores — aguarda desempate.",
         precisa_desempate=True,
     )
 
 
 def registros_para_desempate(protocolo):
     """Registros em triagem (qualquer etapa), com decisões concluídas e divergentes."""
-    candidatos = (
-        RegistroTriagem.objects.filter(
-            protocolo=protocolo, status__in=[_St.EM_TRIAGEM, _St.EM_TEXTO]
-        )
-        .prefetch_related("decisoes")
-    )
+    candidatos = RegistroTriagem.objects.filter(
+        protocolo=protocolo, status__in=[_St.EM_TRIAGEM, _St.EM_TEXTO]
+    ).prefetch_related("decisoes")
     pendentes = []
     for r in candidatos:
         etapa = etapa_atual(r)

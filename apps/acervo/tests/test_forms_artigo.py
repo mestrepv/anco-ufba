@@ -22,9 +22,7 @@ class TestIdentificadorLookupForm:
         }
 
     def test_doi_com_url_normaliza(self):
-        f = IdentificadorLookupForm(
-            data={"identificador": "https://doi.org/10.1016/x"}
-        )
+        f = IdentificadorLookupForm(data={"identificador": "https://doi.org/10.1016/x"})
         assert f.is_valid()
         assert f.cleaned_data["identificador"] == {"tipo": "doi", "valor": "10.1016/x"}
 
@@ -56,9 +54,7 @@ class TestIdentificadorLookupForm:
         assert f.cleaned_data["identificador"]["tipo"] == "doi"
 
     def test_url_generica_eh_url(self):
-        f = IdentificadorLookupForm(
-            data={"identificador": "https://example.org/livro/123"}
-        )
+        f = IdentificadorLookupForm(data={"identificador": "https://example.org/livro/123"})
         assert f.is_valid()
         assert f.cleaned_data["identificador"] == {
             "tipo": "url",
@@ -106,16 +102,12 @@ def _payload_minimo(base_consulta_id, **overrides):
 
 class TestArtigoMetadadosForm:
     def test_valido_com_doi(self, db, base_consulta):
-        f = ArtigoMetadadosForm(
-            data=_payload_minimo(base_consulta.pk, doi="10.1016/x")
-        )
+        f = ArtigoMetadadosForm(data=_payload_minimo(base_consulta.pk, doi="10.1016/x"))
         assert f.is_valid(), f.errors
         assert f.cleaned_data["doi"] == "10.1016/x"
 
     def test_area_obrigatoria(self, db, base_consulta):
-        f = ArtigoMetadadosForm(
-            data=_payload_minimo(base_consulta.pk, doi="10.1016/x", area="")
-        )
+        f = ArtigoMetadadosForm(data=_payload_minimo(base_consulta.pk, doi="10.1016/x", area=""))
         assert not f.is_valid()
         assert "area" in f.errors
 
@@ -159,24 +151,18 @@ class TestArtigoMetadadosForm:
         assert f.cleaned_data["isbn"] == "9780128038031"
 
     def test_isbn_invalido_rejeitado(self, db, base_consulta):
-        f = ArtigoMetadadosForm(
-            data=_payload_minimo(base_consulta.pk, isbn="9780128038032")
-        )
+        f = ArtigoMetadadosForm(data=_payload_minimo(base_consulta.pk, isbn="9780128038032"))
         assert not f.is_valid()
         assert "isbn" in f.errors
 
     def test_doi_em_formato_errado_rejeitado(self, db, base_consulta):
-        f = ArtigoMetadadosForm(
-            data=_payload_minimo(base_consulta.pk, doi="apenas-texto")
-        )
+        f = ArtigoMetadadosForm(data=_payload_minimo(base_consulta.pk, doi="apenas-texto"))
         assert not f.is_valid()
         assert "doi" in f.errors
 
     def test_doi_com_prefixo_url_normalizado(self, db, base_consulta):
         f = ArtigoMetadadosForm(
-            data=_payload_minimo(
-                base_consulta.pk, doi="https://doi.org/10.1016/x"
-            )
+            data=_payload_minimo(base_consulta.pk, doi="https://doi.org/10.1016/x")
         )
         assert f.is_valid(), f.errors
         assert f.cleaned_data["doi"] == "10.1016/x"
@@ -187,15 +173,11 @@ class TestArtigoMetadadosForm:
         assert f.is_valid(), f.errors
 
     def test_invalido_sem_titulo(self, db, base_consulta):
-        f = ArtigoMetadadosForm(
-            data=_payload_minimo(base_consulta.pk, titulo="")
-        )
+        f = ArtigoMetadadosForm(data=_payload_minimo(base_consulta.pk, titulo=""))
         assert not f.is_valid()
 
     def test_invalido_sem_link(self, db, base_consulta):
-        f = ArtigoMetadadosForm(
-            data=_payload_minimo(base_consulta.pk, link_acesso="")
-        )
+        f = ArtigoMetadadosForm(data=_payload_minimo(base_consulta.pk, link_acesso=""))
         assert not f.is_valid()
         assert "link_acesso" in f.errors
 

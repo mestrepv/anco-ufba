@@ -35,9 +35,7 @@ class Concordancia:
             "concordancia_perc_acordo": (
                 round(self.perc_acordo, 3) if self.perc_acordo is not None else None
             ),
-            "concordancia_fleiss_kappa": (
-                round(self.kappa, 3) if self.kappa is not None else None
-            ),
+            "concordancia_fleiss_kappa": (round(self.kappa, 3) if self.kappa is not None else None),
             "concordancia_interpretacao": self.interpretacao,
         }
 

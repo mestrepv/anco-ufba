@@ -26,23 +26,35 @@ def resenha_em_revisao(db):
     v = Vocabulario.objects.create(codigo="base", nome="Base")
     termo = TermoVocabulario.objects.create(vocabulario=v, nome="WoS")
     autor = User.objects.create_user(
-        username="autor", email="a@u.edu.br", password="x",
+        username="autor",
+        email="a@u.edu.br",
+        password="x",
         papel=User.Papel.ANALISTA,
     )
     artigo = Artigo.objects.create(
-        doi="10.x/t", titulo="T", ano=2020, base_consulta=termo,
+        doi="10.x/t",
+        titulo="T",
+        ano=2020,
+        base_consulta=termo,
         link_acesso="https://e.org/t",
     )
     analise = Analise.objects.create(
-        artigo=artigo, analista=autor, status=Analise.Status.PUBLICADA,
+        artigo=artigo,
+        analista=autor,
+        status=Analise.Status.PUBLICADA,
     )
     resenha = Resenha.objects.create(
-        analise=analise, texto="R", status=Resenha.Status.EM_REVISAO,
+        analise=analise,
+        texto="R",
+        status=Resenha.Status.EM_REVISAO,
     )
     revisores = [
         User.objects.create_user(
-            username=f"r{i}", email=f"r{i}@u.edu.br", password="x",
-            papel=User.Papel.ANALISTA, revisor_aprovado=True,
+            username=f"r{i}",
+            email=f"r{i}@u.edu.br",
+            password="x",
+            papel=User.Papel.ANALISTA,
+            revisor_aprovado=True,
         )
         for i in range(2)
     ]
@@ -58,9 +70,7 @@ def _concluir(rev, parecer):
     # .update() evita disparar o signal de avaliação automática — aqui testamos
     # a função avaliar_apos_revisao_cega isoladamente (o disparo via signal é
     # coberto no fluxo e2e).
-    Revisao.objects.filter(pk=rev.pk).update(
-        parecer=parecer, concluido_em=timezone.now()
-    )
+    Revisao.objects.filter(pk=rev.pk).update(parecer=parecer, concluido_em=timezone.now())
 
 
 def test_todas_aprovar_marca_revisada(resenha_em_revisao):

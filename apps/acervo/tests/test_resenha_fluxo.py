@@ -29,8 +29,11 @@ def autor(db):
 def revisores(db):
     return [
         User.objects.create_user(
-            username=f"r{i}", email=f"r{i}@u.edu.br", password="x",
-            papel=User.Papel.ANALISTA, revisor_aprovado=True,
+            username=f"r{i}",
+            email=f"r{i}@u.edu.br",
+            password="x",
+            papel=User.Papel.ANALISTA,
+            revisor_aprovado=True,
         )
         for i in range(3)
     ]
@@ -39,12 +42,13 @@ def revisores(db):
 @pytest.fixture
 def analise(db, vocab, autor):
     artigo = Artigo.objects.create(
-        doi="10.x/t", titulo="T", ano=2020, base_consulta=vocab,
+        doi="10.x/t",
+        titulo="T",
+        ano=2020,
+        base_consulta=vocab,
         link_acesso="https://e.org/t",
     )
-    return Analise.objects.create(
-        artigo=artigo, analista=autor, status=Analise.Status.PUBLICADA
-    )
+    return Analise.objects.create(artigo=artigo, analista=autor, status=Analise.Status.PUBLICADA)
 
 
 def test_editar_resenha_cria_e_salva(client, autor, analise):
@@ -70,9 +74,7 @@ def test_submeter_resenha_dispara_sorteio(client, autor, analise, revisores):
 
 def test_revisao_cega_completa_marca_revisada(client, autor, analise, revisores):
     """Concluir todas as cegas com 'aprovar' leva a resenha a REVISADA (signal)."""
-    resenha = Resenha.objects.create(
-        analise=analise, texto="R", status=Resenha.Status.SUBMETIDA
-    )
+    resenha = Resenha.objects.create(analise=analise, texto="R", status=Resenha.Status.SUBMETIDA)
     from apps.acervo.sorteio import executar_sorteio
 
     executar_sorteio(resenha)
@@ -94,9 +96,7 @@ def test_revisao_cega_completa_marca_revisada(client, autor, analise, revisores)
 
 def test_resubmeter_resenha_publicada_reabre_revisao(client, autor, analise, revisores):
     client.force_login(autor)
-    Resenha.objects.create(
-        analise=analise, texto="R publicada", status=Resenha.Status.PUBLICADA
-    )
+    Resenha.objects.create(analise=analise, texto="R publicada", status=Resenha.Status.PUBLICADA)
     resp = client.post(reverse("submeter_resenha", args=[analise.pk]))
     assert resp.status_code == 302
     resenha = Resenha.objects.get(analise=analise)
@@ -109,6 +109,6 @@ def test_resubmeter_resenha_publicada_reabre_revisao(client, autor, analise, rev
 def test_submeter_resenha_vazia_recusa(client, autor, analise):
     client.force_login(autor)
     Resenha.objects.create(analise=analise, texto="", status=Resenha.Status.RASCUNHO)
-    resp = client.post(reverse("submeter_resenha", args=[analise.pk]), follow=True)
+    client.post(reverse("submeter_resenha", args=[analise.pk]), follow=True)
     resenha = Resenha.objects.get(analise=analise)
     assert resenha.status == Resenha.Status.RASCUNHO  # não submeteu

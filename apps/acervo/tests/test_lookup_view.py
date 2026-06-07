@@ -37,8 +37,11 @@ def vocab_base(db):
 def analista(db):
     # is_staff: cadastro avulso é ação de curador/admin (política da Fase 10).
     return User.objects.create_user(
-        username="ana", email="ana@usp.edu.br", password="x",
-        is_staff=True, papel=User.Papel.ANALISTA,
+        username="ana",
+        email="ana@usp.edu.br",
+        password="x",
+        is_staff=True,
+        papel=User.Papel.ANALISTA,
     )
 
 
@@ -80,9 +83,7 @@ class TestLookupView:
             },
         )
         with patch("apps.acervo.views.lookup_doi", return_value=fake):
-            resp = cliente_analista.get(
-                reverse("lookup_identificador") + "?id=10.1016/x"
-            )
+            resp = cliente_analista.get(reverse("lookup_identificador") + "?id=10.1016/x")
         assert resp.status_code == 200
         assert b"Estudo de teste" in resp.content
         assert b"Ana Silva" in resp.content
@@ -100,11 +101,11 @@ class TestLookupView:
                 "resumo": "",
             },
         )
-        with patch("apps.acervo.views.lookup_isbn", return_value=fake) as mock_isbn, \
-             patch("apps.acervo.views.lookup_doi") as mock_doi:
-            resp = cliente_analista.get(
-                reverse("lookup_identificador") + "?id=9780128038031"
-            )
+        with (
+            patch("apps.acervo.views.lookup_isbn", return_value=fake) as mock_isbn,
+            patch("apps.acervo.views.lookup_doi") as mock_doi,
+        ):
+            resp = cliente_analista.get(reverse("lookup_identificador") + "?id=9780128038031")
         assert resp.status_code == 200
         assert b"Livro X" in resp.content
         mock_isbn.assert_called_once()
@@ -113,9 +114,7 @@ class TestLookupView:
     def test_doi_inexistente_renderiza_aviso(self, cliente_analista):
         fake = LookupResultado(encontrado=False, erro="DOI não encontrado")
         with patch("apps.acervo.views.lookup_doi", return_value=fake):
-            resp = cliente_analista.get(
-                reverse("lookup_identificador") + "?id=10.9999/inexistente"
-            )
+            resp = cliente_analista.get(reverse("lookup_identificador") + "?id=10.9999/inexistente")
         assert resp.status_code == 200
         # Mensagem de fallback do template editorial
         assert b"manualmente" in resp.content
@@ -129,12 +128,16 @@ class TestLookupView:
         )
         fake = LookupResultado(
             encontrado=True,
-            dados={"doi": "10.1016/jaexiste", "titulo": "Já existe", "autores_str": "", "ano": 2023, "resumo": ""},
+            dados={
+                "doi": "10.1016/jaexiste",
+                "titulo": "Já existe",
+                "autores_str": "",
+                "ano": 2023,
+                "resumo": "",
+            },
         )
         with patch("apps.acervo.views.lookup_doi", return_value=fake):
-            resp = cliente_analista.get(
-                reverse("lookup_identificador") + "?id=10.1016/jaexiste"
-            )
+            resp = cliente_analista.get(reverse("lookup_identificador") + "?id=10.1016/jaexiste")
         assert resp.status_code == 200
         # Banner "arquivo existente" + flag em dados.ja_no_acervo para o Alpine
         assert b"arquivo existente" in resp.content
@@ -143,9 +146,7 @@ class TestLookupView:
 
     def test_lixo_textual_retorna_erro_amigavel(self, cliente_analista):
         # "Não consta" não é DOI nem ISBN → tipo desconhecido
-        resp = cliente_analista.get(
-            reverse("lookup_identificador") + "?id=Não consta"
-        )
+        resp = cliente_analista.get(reverse("lookup_identificador") + "?id=Não consta")
         assert resp.status_code == 200
         assert b"reconheci" in resp.content or b"manualmente" in resp.content
 
@@ -172,9 +173,7 @@ class TestCadastrarArtigoSemDoi:
     ):
         from apps.acervo.services.links import LinkCheckResultado
 
-        mock_validar.return_value = LinkCheckResultado(
-            status="ok", codigo_http=200, url_final=None
-        )
+        mock_validar.return_value = LinkCheckResultado(status="ok", codigo_http=200, url_final=None)
         resp = cliente_analista.post(
             reverse("cadastrar_artigo"),
             data={
@@ -211,9 +210,7 @@ class TestCadastrarArtigoSemDoi:
     ):
         from apps.acervo.services.links import LinkCheckResultado
 
-        mock_validar.return_value = LinkCheckResultado(
-            status="ok", codigo_http=200, url_final=None
-        )
+        mock_validar.return_value = LinkCheckResultado(status="ok", codigo_http=200, url_final=None)
         resp = cliente_analista.post(
             reverse("cadastrar_artigo"),
             data={

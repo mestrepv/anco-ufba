@@ -22,8 +22,11 @@ def vocab(db):
 @pytest.fixture
 def autor(db):
     return User.objects.create_user(
-        username="ana-distinta", email="autor@u.edu.br", password="x",
-        papel=User.Papel.ANALISTA, nome_exibicao="Maria da Análise",
+        username="ana-distinta",
+        email="autor@u.edu.br",
+        password="x",
+        papel=User.Papel.ANALISTA,
+        nome_exibicao="Maria da Análise",
     )
 
 
@@ -31,8 +34,11 @@ def autor(db):
 def revisores(db):
     return [
         User.objects.create_user(
-            username=f"r{i}", email=f"r{i}@u.edu.br", password="x",
-            papel=User.Papel.ANALISTA, revisor_aprovado=True,
+            username=f"r{i}",
+            email=f"r{i}@u.edu.br",
+            password="x",
+            papel=User.Papel.ANALISTA,
+            revisor_aprovado=True,
         )
         for i in range(5)
     ]
@@ -41,18 +47,24 @@ def revisores(db):
 @pytest.fixture
 def artigo(db, vocab):
     return Artigo.objects.create(
-        doi="10.x/teste", titulo="Artigo teste", ano=2020,
-        base_consulta=vocab, link_acesso="https://example.org/t",
+        doi="10.x/teste",
+        titulo="Artigo teste",
+        ano=2020,
+        base_consulta=vocab,
+        link_acesso="https://example.org/t",
     )
 
 
 @pytest.fixture
 def resenha_em_revisao(db, artigo, autor, revisores):
     analise = Analise.objects.create(
-        artigo=artigo, analista=autor, status=Analise.Status.PUBLICADA,
+        artigo=artigo,
+        analista=autor,
+        status=Analise.Status.PUBLICADA,
     )
     resenha = Resenha.objects.create(
-        analise=analise, texto="Texto crítico autoral.",
+        analise=analise,
+        texto="Texto crítico autoral.",
         status=Resenha.Status.SUBMETIDA,
     )
     executar_sorteio(resenha)
@@ -78,9 +90,7 @@ class TestMinhasRevisoes:
 class TestAcessoRevisar:
     def test_outro_user_recebe_403(self, client, resenha_em_revisao, revisores):
         sorteados = set(
-            Revisao.objects.filter(resenha=resenha_em_revisao).values_list(
-                "revisor_id", flat=True
-            )
+            Revisao.objects.filter(resenha=resenha_em_revisao).values_list("revisor_id", flat=True)
         )
         rev = Revisao.objects.filter(resenha=resenha_em_revisao).first()
         outsider = next(u for u in revisores if u.pk not in sorteados)

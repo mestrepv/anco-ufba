@@ -40,12 +40,22 @@ def home_view(request: HttpRequest) -> HttpResponse:
 def teste_design_view(request: HttpRequest) -> HttpResponse:
     """Página de teste do design system — remover antes de ir para produção."""
     colors = [
-        ("paper", "#FBF9F4"), ("paper-2", "#F5F1E8"), ("paper-3", "#EDE7DA"),
-        ("rule", "#E5DFCF"), ("rule-strong", "#D4CCB8"),
-        ("ink", "#1A1816"), ("ink-2", "#3A352E"), ("ink-3", "#6B655B"), ("ink-4", "#948D80"),
-        ("gold", "#B8862C"), ("gold-deep", "#8C6520"),
-        ("review-bg", "#FBF7E8"), ("review-rule", "#E8DCA8"),
-        ("danger", "#A03A2A"), ("ok", "#4A6B3A"), ("info", "#3A5A7A"),
+        ("paper", "#FBF9F4"),
+        ("paper-2", "#F5F1E8"),
+        ("paper-3", "#EDE7DA"),
+        ("rule", "#E5DFCF"),
+        ("rule-strong", "#D4CCB8"),
+        ("ink", "#1A1816"),
+        ("ink-2", "#3A352E"),
+        ("ink-3", "#6B655B"),
+        ("ink-4", "#948D80"),
+        ("gold", "#B8862C"),
+        ("gold-deep", "#8C6520"),
+        ("review-bg", "#FBF7E8"),
+        ("review-rule", "#E8DCA8"),
+        ("danger", "#A03A2A"),
+        ("ok", "#4A6B3A"),
+        ("info", "#3A5A7A"),
     ]
     return render(request, "_teste_design.html", {"colors": colors})
 
@@ -111,9 +121,7 @@ def painel_view(request: HttpRequest) -> HttpResponse:
     user = request.user
 
     minhas_analises = (
-        Analise.objects.filter(analista=user)
-        .select_related("artigo")
-        .order_by("-criado_em")
+        Analise.objects.filter(analista=user).select_related("artigo").order_by("-criado_em")
     )
     n_rascunhos = sum(
         1
@@ -162,13 +170,9 @@ def painel_view(request: HttpRequest) -> HttpResponse:
             .order_by("prazo_em")
         )
         n_triagens = triagens_pendentes.count()
-        ja_minhas = Analise.objects.filter(analista=user).values_list(
-            "artigo_id", flat=True
-        )
+        ja_minhas = Analise.objects.filter(analista=user).values_list("artigo_id", flat=True)
         atribuidos_user = list(
-            AtribuicaoAnalise.objects.filter(analista=user).values_list(
-                "artigo_id", flat=True
-            )
+            AtribuicaoAnalise.objects.filter(analista=user).values_list("artigo_id", flat=True)
         )
         if atribuidos_user:
             # Revisão ANCO com sorteio: conta só os artigos atribuídos ao usuário.
@@ -180,9 +184,7 @@ def painel_view(request: HttpRequest) -> HttpResponse:
             )
         else:
             n_a_analisar = (
-                Artigo.objects.filter(
-                    registros_triagem__status=RegistroTriagem.Status.INCLUIDO
-                )
+                Artigo.objects.filter(registros_triagem__status=RegistroTriagem.Status.INCLUIDO)
                 .exclude(pk__in=ja_minhas)
                 .distinct()
                 .count()
@@ -197,15 +199,16 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                 Artigo.objects.filter(
                     registros_triagem__status=RegistroTriagem.Status.INCLUIDO,
                     registros_triagem__protocolo=p,
-                ).exclude(pk__in=ja_minhas).distinct().count()
+                )
+                .exclude(pk__in=ja_minhas)
+                .distinct()
+                .count()
             )
 
             if p.eh_anco:
                 # Revisão ANCO: autotriagem + relevância + sorteio de análise + consenso.
                 n_autotriar = registros_para_autotriar(p, user).count()
-                n_incluidos = p.registros.filter(
-                    status=RegistroTriagem.Status.INCLUIDO
-                ).count()
+                n_incluidos = p.registros.filter(status=RegistroTriagem.Status.INCLUIDO).count()
                 # "A analisar" deste projeto respeita as atribuições do usuário.
                 atribuidos_p = AtribuicaoAnalise.objects.filter(
                     analista=user, sorteio__projeto=p
@@ -213,56 +216,144 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                 if atribuidos_p:
                     n_analisar = (
                         Artigo.objects.filter(pk__in=list(atribuidos_p))
-                        .exclude(pk__in=ja_minhas).distinct().count()
+                        .exclude(pk__in=ja_minhas)
+                        .distinct()
+                        .count()
                     )
                 passos = [
-                    {"num": 1, "titulo": "Importar base",
-                     "href": reverse("triagem_importar", args=[p.slug]), "count": None, "curador": False},
-                    {"num": 2, "titulo": "Revisar duplicatas",
-                     "href": reverse("triagem_duplicatas", args=[p.slug]), "count": n_dup or None, "curador": False},
-                    {"num": 3, "titulo": "Triar minha base",
-                     "href": reverse("triagem_autotriar", args=[p.slug]), "count": n_autotriar or None, "curador": False},
-                    {"num": 4, "titulo": "Incluídos por relevância",
-                     "href": reverse("triagem_incluidos", args=[p.slug]), "count": n_incluidos or None, "curador": False},
-                    {"num": 5, "titulo": "Sortear análise",
-                     "href": reverse("triagem_sorteio_analise", args=[p.slug]), "count": None, "curador": True},
-                    {"num": 6, "titulo": "A analisar",
-                     "href": reverse("triagem_a_analisar"), "count": n_analisar or None, "curador": False},
-                    {"num": 7, "titulo": "Consenso",
-                     "href": reverse("triagem_consenso", args=[p.slug]), "count": None, "curador": True},
+                    {
+                        "num": 1,
+                        "titulo": "Importar base",
+                        "href": reverse("triagem_importar", args=[p.slug]),
+                        "count": None,
+                        "curador": False,
+                    },
+                    {
+                        "num": 2,
+                        "titulo": "Revisar duplicatas",
+                        "href": reverse("triagem_duplicatas", args=[p.slug]),
+                        "count": n_dup or None,
+                        "curador": False,
+                    },
+                    {
+                        "num": 3,
+                        "titulo": "Triar minha base",
+                        "href": reverse("triagem_autotriar", args=[p.slug]),
+                        "count": n_autotriar or None,
+                        "curador": False,
+                    },
+                    {
+                        "num": 4,
+                        "titulo": "Incluídos por relevância",
+                        "href": reverse("triagem_incluidos", args=[p.slug]),
+                        "count": n_incluidos or None,
+                        "curador": False,
+                    },
+                    {
+                        "num": 5,
+                        "titulo": "Sortear análise",
+                        "href": reverse("triagem_sorteio_analise", args=[p.slug]),
+                        "count": None,
+                        "curador": True,
+                    },
+                    {
+                        "num": 6,
+                        "titulo": "A analisar",
+                        "href": reverse("triagem_a_analisar"),
+                        "count": n_analisar or None,
+                        "curador": False,
+                    },
+                    {
+                        "num": 7,
+                        "titulo": "Consenso",
+                        "href": reverse("triagem_consenso", args=[p.slug]),
+                        "count": None,
+                        "curador": True,
+                    },
                 ]
-                return {"projeto": p, "eh_curador": eh_cur, "eh_anco": True, "passos": passos,
-                        "n_dup": n_dup, "n_autotriar": n_autotriar, "n_incluidos": n_incluidos,
-                        "n_ident": 0, "n_desemp": 0}
+                return {
+                    "projeto": p,
+                    "eh_curador": eh_cur,
+                    "eh_anco": True,
+                    "passos": passos,
+                    "n_dup": n_dup,
+                    "n_autotriar": n_autotriar,
+                    "n_incluidos": n_incluidos,
+                    "n_ident": 0,
+                    "n_desemp": 0,
+                }
 
             n_ident = (
                 p.registros.filter(
                     status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
                 ).count()
-                if eh_cur else 0
+                if eh_cur
+                else 0
             )
             n_desemp = len(registros_para_desempate(p)) if eh_cur else 0
             n_triar = DecisaoTriagem.objects.filter(
                 revisor=user, concluido_em__isnull=True, registro__protocolo=p
             ).count()
             passos = [
-                {"num": 1, "titulo": "Importar base",
-                 "href": reverse("triagem_importar", args=[p.slug]), "count": None, "curador": False},
-                {"num": 2, "titulo": "Revisar duplicatas",
-                 "href": reverse("triagem_duplicatas", args=[p.slug]), "count": n_dup or None, "curador": False},
-                {"num": 3, "titulo": "Iniciar triagem",
-                 "href": reverse("triagem_iniciar", args=[p.slug]), "count": n_ident or None, "curador": True},
-                {"num": 4, "titulo": "Triar",
-                 "href": reverse("triagem_minhas"), "count": n_triar or None, "curador": False},
-                {"num": 5, "titulo": "Desempates",
-                 "href": reverse("triagem_desempate", args=[p.slug]), "count": n_desemp or None, "curador": True},
-                {"num": 6, "titulo": "A analisar",
-                 "href": reverse("triagem_a_analisar"), "count": n_analisar or None, "curador": False},
-                {"num": 7, "titulo": "Acompanhar (PRISMA)",
-                 "href": reverse("triagem_prisma", args=[p.slug]), "count": None, "curador": False},
+                {
+                    "num": 1,
+                    "titulo": "Importar base",
+                    "href": reverse("triagem_importar", args=[p.slug]),
+                    "count": None,
+                    "curador": False,
+                },
+                {
+                    "num": 2,
+                    "titulo": "Revisar duplicatas",
+                    "href": reverse("triagem_duplicatas", args=[p.slug]),
+                    "count": n_dup or None,
+                    "curador": False,
+                },
+                {
+                    "num": 3,
+                    "titulo": "Iniciar triagem",
+                    "href": reverse("triagem_iniciar", args=[p.slug]),
+                    "count": n_ident or None,
+                    "curador": True,
+                },
+                {
+                    "num": 4,
+                    "titulo": "Triar",
+                    "href": reverse("triagem_minhas"),
+                    "count": n_triar or None,
+                    "curador": False,
+                },
+                {
+                    "num": 5,
+                    "titulo": "Desempates",
+                    "href": reverse("triagem_desempate", args=[p.slug]),
+                    "count": n_desemp or None,
+                    "curador": True,
+                },
+                {
+                    "num": 6,
+                    "titulo": "A analisar",
+                    "href": reverse("triagem_a_analisar"),
+                    "count": n_analisar or None,
+                    "curador": False,
+                },
+                {
+                    "num": 7,
+                    "titulo": "Acompanhar (PRISMA)",
+                    "href": reverse("triagem_prisma", args=[p.slug]),
+                    "count": None,
+                    "curador": False,
+                },
             ]
-            return {"projeto": p, "eh_curador": eh_cur, "eh_anco": False, "passos": passos,
-                    "n_dup": n_dup, "n_ident": n_ident, "n_desemp": n_desemp}
+            return {
+                "projeto": p,
+                "eh_curador": eh_cur,
+                "eh_anco": False,
+                "passos": passos,
+                "n_dup": n_dup,
+                "n_ident": n_ident,
+                "n_desemp": n_desemp,
+            }
 
         projetos_painel = [_passos_projeto(p) for p in meus_projetos]
 
@@ -279,40 +370,64 @@ def painel_view(request: HttpRequest) -> HttpResponse:
 
         # Próximo passo: a única coisa óbvia a fazer agora (por prioridade).
         if n_triagens:
-            proxima = {"titulo": f"Você tem {n_triagens} triagem(ns) para fazer",
-                       "sub": "Decida incluir ou excluir cada registro sorteado para você.",
-                       "href": reverse("triagem_minhas"), "label": "Triar agora"}
+            proxima = {
+                "titulo": f"Você tem {n_triagens} triagem(ns) para fazer",
+                "sub": "Decida incluir ou excluir cada registro sorteado para você.",
+                "href": reverse("triagem_minhas"),
+                "label": "Triar agora",
+            }
         elif eh_curador and n_desempates:
-            proxima = {"titulo": f"{n_desempates} desempate(s) aguardando você",
-                       "sub": "Revisores divergiram — defina a decisão final.",
-                       "href": reverse("triagem_desempate", args=[sl]), "label": "Resolver desempates"}
+            proxima = {
+                "titulo": f"{n_desempates} desempate(s) aguardando você",
+                "sub": "Revisores divergiram — defina a decisão final.",
+                "href": reverse("triagem_desempate", args=[sl]),
+                "label": "Resolver desempates",
+            }
         elif n_a_analisar:
-            proxima = {"titulo": f"{n_a_analisar} artigo(s) prontos para análise",
-                       "sub": "Preencha a Matriz AnCo dos artigos selecionados pela triagem.",
-                       "href": reverse("triagem_a_analisar"), "label": "Analisar"}
+            proxima = {
+                "titulo": f"{n_a_analisar} artigo(s) prontos para análise",
+                "sub": "Preencha a Matriz AnCo dos artigos selecionados pela triagem.",
+                "href": reverse("triagem_a_analisar"),
+                "label": "Analisar",
+            }
         elif protocolo is not None and n_duplicatas:
-            proxima = {"titulo": f"{n_duplicatas} possível(is) duplicata(s) para revisar",
-                       "sub": "Confirme quais registros são o mesmo trabalho antes de triar.",
-                       "href": reverse("triagem_duplicatas", args=[sl]), "label": "Revisar duplicatas"}
+            proxima = {
+                "titulo": f"{n_duplicatas} possível(is) duplicata(s) para revisar",
+                "sub": "Confirme quais registros são o mesmo trabalho antes de triar.",
+                "href": reverse("triagem_duplicatas", args=[sl]),
+                "label": "Revisar duplicatas",
+            }
         elif eh_anco and n_autotriar:
-            proxima = {"titulo": f"{n_autotriar} registro(s) da sua base para triar",
-                       "sub": "Decida incluir ou excluir cada artigo por título e resumo.",
-                       "href": reverse("triagem_autotriar", args=[sl]), "label": "Triar minha base"}
+            proxima = {
+                "titulo": f"{n_autotriar} registro(s) da sua base para triar",
+                "sub": "Decida incluir ou excluir cada artigo por título e resumo.",
+                "href": reverse("triagem_autotriar", args=[sl]),
+                "label": "Triar minha base",
+            }
         elif eh_curador and n_identificados:
-            proxima = {"titulo": f"{n_identificados} registro(s) prontos para a triagem",
-                       "sub": "Feche a coleta e sorteie os revisores.",
-                       "href": reverse("triagem_iniciar", args=[sl]), "label": "Iniciar triagem"}
+            proxima = {
+                "titulo": f"{n_identificados} registro(s) prontos para a triagem",
+                "sub": "Feche a coleta e sorteie os revisores.",
+                "href": reverse("triagem_iniciar", args=[sl]),
+                "label": "Iniciar triagem",
+            }
         elif n_rascunhos:
-            proxima = {"titulo": f"{n_rascunhos} análise(s) em andamento",
-                       "sub": "Continue de onde parou.",
-                       "href": reverse("minhas_analises"), "label": "Continuar"}
+            proxima = {
+                "titulo": f"{n_rascunhos} análise(s) em andamento",
+                "sub": "Continue de onde parou.",
+                "href": reverse("minhas_analises"),
+                "label": "Continuar",
+            }
         elif protocolo is not None:
             # Sem tarefa pendente: em vez de um card vazio, o painel mostra os
             # projetos do analista (objetivo + instruções). Ver core/painel.html.
-            proxima = {"titulo": "Tudo em dia 🎉",
-                       "sub": "Importe uma nova base para começar uma rodada de triagem.",
-                       "href": reverse("triagem_importar", args=[sl]),
-                       "label": "Importar busca", "ocioso": True}
+            proxima = {
+                "titulo": "Tudo em dia 🎉",
+                "sub": "Importe uma nova base para começar uma rodada de triagem.",
+                "href": reverse("triagem_importar", args=[sl]),
+                "label": "Importar busca",
+                "ocioso": True,
+            }
         else:
             proxima = None
 

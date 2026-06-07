@@ -30,9 +30,12 @@ def _reg(protocolo, titulo, doi=""):
 @pytest.fixture
 def analista(db):
     # Curador do projeto: resolve qualquer par (testes de mecânica da dedup).
-    return membro(User.objects.create_user(
-        username="ana", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
-    ), papel="curador")
+    return membro(
+        User.objects.create_user(
+            username="ana", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
+        ),
+        papel="curador",
+    )
 
 
 def _com_dono(protocolo, titulo, doi, dono):
@@ -46,9 +49,11 @@ def _com_dono(protocolo, titulo, doi, dono):
 
 
 def _analista(nome):
-    return membro(User.objects.create_user(
-        username=nome, email=f"{nome}@u.edu", password="x", papel=User.Papel.ANALISTA
-    ))
+    return membro(
+        User.objects.create_user(
+            username=nome, email=f"{nome}@u.edu", password="x", papel=User.Papel.ANALISTA
+        )
+    )
 
 
 def test_detecta_titulos_semelhantes_sem_doi(protocolo):
@@ -77,8 +82,12 @@ def test_duplicado_nao_e_sorteado(protocolo):
     # revisores aprovados suficientes
     for i in range(2):
         User.objects.create_user(
-            username=f"r{i}", email=f"r{i}@u.edu", password="x",
-            papel=User.Papel.ANALISTA, revisor_aprovado=True, aceita_revisoes=True,
+            username=f"r{i}",
+            email=f"r{i}@u.edu",
+            password="x",
+            papel=User.Papel.ANALISTA,
+            revisor_aprovado=True,
+            aceita_revisoes=True,
         )
     res = executar_sorteio(b)
     assert res.criadas == 0
@@ -129,6 +138,7 @@ def test_navegar_sem_decidir(client, protocolo, analista):
     assert r1.context["tem_anterior"] is True
     # nenhuma decisão foi tomada
     from apps.triagem.models import RegistroTriagem as RT
+
     assert not RT.objects.filter(status=RT.Status.DUPLICADO).exists()
 
 
@@ -150,21 +160,33 @@ def test_primeiro_autor():
 def test_ordena_provaveis_duplicatas_primeiro(protocolo):
     # par forte: mesmo título, ano e autor (DOIs diferentes → não casou na chave)
     f1 = RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="Cognição e cultura na Antiguidade", doi="10.1/a",
-        ano=2020, autores="Silva, J",
+        protocolo=protocolo,
+        titulo="Cognição e cultura na Antiguidade",
+        doi="10.1/a",
+        ano=2020,
+        autores="Silva, J",
     )
     f2 = RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="Cognição e cultura na Antiguidade", doi="10.1/b",
-        ano=2020, autores="Silva, J",
+        protocolo=protocolo,
+        titulo="Cognição e cultura na Antiguidade",
+        doi="10.1/b",
+        ano=2020,
+        autores="Silva, J",
     )
     # par fraco: mesmo título, anos e autores diferentes (obra × resenha)
     RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="Divinação e mente no mundo grego", doi="10.2/c",
-        ano=2019, autores="Souza, M",
+        protocolo=protocolo,
+        titulo="Divinação e mente no mundo grego",
+        doi="10.2/c",
+        ano=2019,
+        autores="Souza, M",
     )
     RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="Divinação e mente no mundo grego", doi="10.2/d",
-        ano=2024, autores="Lima, P",
+        protocolo=protocolo,
+        titulo="Divinação e mente no mundo grego",
+        doi="10.2/d",
+        ano=2024,
+        autores="Lima, P",
     )
     pares = dup.pares_possiveis(protocolo, limiar=0.5)
     assert len(pares) == 2
@@ -225,9 +247,7 @@ def test_mescladas_lista_e_view(client, protocolo, analista):
     resp = client.get(turl("triagem_duplicatas_mescladas"))
     assert resp.status_code == 200
     # desfazer pela view
-    resp2 = client.post(
-        turl("triagem_duplicata_desfazer"), data={"duplicado": b.pk}
-    )
+    resp2 = client.post(turl("triagem_duplicata_desfazer"), data={"duplicado": b.pk})
     assert resp2.status_code == 302
     b.refresh_from_db()
     assert b.status == RegistroTriagem.Status.IDENTIFICADO
@@ -237,12 +257,13 @@ def test_procedencia_mostra_base_e_importador(protocolo):
     from apps.triagem.models import Busca
 
     importador = User.objects.create_user(
-        username="imp", email="imp@u.edu", password="x",
-        papel=User.Papel.ANALISTA, nome_exibicao="Importador Teste",
+        username="imp",
+        email="imp@u.edu",
+        password="x",
+        papel=User.Papel.ANALISTA,
+        nome_exibicao="Importador Teste",
     )
-    busca = Busca.objects.create(
-        protocolo=protocolo, outra_base="Scopus", criado_por=importador
-    )
+    busca = Busca.objects.create(protocolo=protocolo, outra_base="Scopus", criado_por=importador)
     r = _reg(protocolo, "Artigo com procedência")
     r.origem_buscas.add(busca)
     proc = r.procedencia
@@ -290,13 +311,18 @@ def test_contar_pares_do_usuario_respeita_o_gate(protocolo):
 
 def test_dedup_gate_curador_resolve_qualquer_par(client, protocolo):
     importador = _analista("imp")
-    curador = membro(User.objects.create_user(
-        username="cur", email="cur@u.edu", password="x", papel=User.Papel.CURADOR
-    ), papel="curador")
+    curador = membro(
+        User.objects.create_user(
+            username="cur", email="cur@u.edu", password="x", papel=User.Papel.CURADOR
+        ),
+        papel="curador",
+    )
     a = _com_dono(protocolo, "Aprendizagem por descoberta guiada", "10.7/a", importador)
     b = _com_dono(protocolo, "Aprendizagem por descoberta guiada!", "10.7/b", importador)
     client.force_login(curador)
-    assert client.get(turl("triagem_duplicatas"), {"escopo": "todas"}).context["total"] == 1  # vê tudo
+    assert (
+        client.get(turl("triagem_duplicatas"), {"escopo": "todas"}).context["total"] == 1
+    )  # vê tudo
     resp = client.post(
         turl("triagem_duplicata_mesclar"),
         data={"manter": a.pk, "duplicado": b.pk, "i": 0},
@@ -308,12 +334,18 @@ def test_dedup_gate_curador_resolve_qualquer_par(client, protocolo):
 
 def test_view_avisa_provavel_distinto(client, protocolo, analista):
     RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="A Cognitive Analysis of Divination", doi="10.3/a",
-        ano=2025, autores="Roubekas, NP",
+        protocolo=protocolo,
+        titulo="A Cognitive Analysis of Divination",
+        doi="10.3/a",
+        ano=2025,
+        autores="Roubekas, NP",
     )
     RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="A Cognitive Analysis of Divination", doi="10.3/b",
-        ano=2024, autores="Bowden, H",
+        protocolo=protocolo,
+        titulo="A Cognitive Analysis of Divination",
+        doi="10.3/b",
+        ano=2024,
+        autores="Bowden, H",
     )
     client.force_login(analista)
     resp = client.get(turl("triagem_duplicatas"), {"escopo": "todas"})

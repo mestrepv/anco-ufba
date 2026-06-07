@@ -39,10 +39,7 @@ def avatar(user, size: int = 28):
     """Renderiza o avatar inline. `size` em pixels (default 28)."""
     foto_url = ""
     if user.is_authenticated:
-        if user.foto:
-            foto_url = user.foto.url
-        else:
-            foto_url = _foto_google(user)
+        foto_url = user.foto.url if user.foto else _foto_google(user)
     iniciais = user.iniciais if user.is_authenticated else "?"
     # Fonte das iniciais proporcional ao avatar
     font_size = max(10, int(size * 0.42))

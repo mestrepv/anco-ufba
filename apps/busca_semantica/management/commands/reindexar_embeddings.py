@@ -37,10 +37,12 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options) -> None:  # type: ignore[no-untyped-def]
         if not service_available():
-            self.stderr.write(self.style.ERROR(
-                "Serviço de embeddings indisponível. Verifique se o container "
-                "está rodando: docker compose --profile embeddings up -d embeddings"
-            ))
+            self.stderr.write(
+                self.style.ERROR(
+                    "Serviço de embeddings indisponível. Verifique se o container "
+                    "está rodando: docker compose --profile embeddings up -d embeddings"
+                )
+            )
             return
 
         forca_tudo = options["tudo"]
@@ -71,7 +73,7 @@ class Command(BaseCommand):
             results = embed_texts([t if t.strip() else "vazio" for t in textos])
 
             now = datetime.now(tz=UTC)
-            for artigo, texto, vec in zip(lote, textos, results):
+            for artigo, texto, vec in zip(lote, textos, results, strict=True):
                 if vec is None or not texto.strip():
                     erros += 1
                     continue
@@ -100,9 +102,7 @@ class Command(BaseCommand):
 
         for i in range(0, len(ids), batch):
             lote_ids = ids[i : i + batch]
-            lote = list(
-                Analise.objects.filter(pk__in=lote_ids).select_related("resenha")
-            )
+            lote = list(Analise.objects.filter(pk__in=lote_ids).select_related("resenha"))
 
             textos_estruturais = [_texto_analise(a) for a in lote]
             textos_resenha = [

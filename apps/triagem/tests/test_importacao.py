@@ -67,6 +67,7 @@ def base_termo(db):
 
 # ---- parsers ---------------------------------------------------------------
 
+
 def test_parse_extrai_tipo():
     assert parse_ris(RIS)[0]["tipo"] == "Artigo"  # TY - JOUR
     assert parse_bibtex(BIBTEX)[0]["tipo"] == "Artigo"  # @article
@@ -109,6 +110,7 @@ def test_parse_csv_mapeia_campos():
 
 # ---- dedup -----------------------------------------------------------------
 
+
 def test_dedup_mescla_mesma_referencia_em_buscas_distintas(protocolo, base_termo):
     b1 = Busca.objects.create(protocolo=protocolo, base_consulta=base_termo)
     b2 = Busca.objects.create(protocolo=protocolo, outra_base="Outra")
@@ -140,9 +142,13 @@ def test_registro_sem_titulo_e_ignorado(protocolo, base_termo):
 
 # ---- isenção do legado -----------------------------------------------------
 
+
 def test_candidato_ja_no_acervo_nao_vira_novo(protocolo, base_termo):
     artigo = Artigo.objects.create(
-        doi="10.1000/abc123", titulo="X", ano=2020, base_consulta=base_termo,
+        doi="10.1000/abc123",
+        titulo="X",
+        ano=2020,
+        base_consulta=base_termo,
         eh_legado=True,
     )
     b = Busca.objects.create(protocolo=protocolo, base_consulta=base_termo)
@@ -155,11 +161,14 @@ def test_candidato_ja_no_acervo_nao_vira_novo(protocolo, base_termo):
 
 # ---- upload view -----------------------------------------------------------
 
+
 @pytest.fixture
 def analista(db):
-    return membro(User.objects.create_user(
-        username="ana", email="a@u.edu.br", password="x", papel=User.Papel.ANALISTA
-    ))
+    return membro(
+        User.objects.create_user(
+            username="ana", email="a@u.edu.br", password="x", papel=User.Papel.ANALISTA
+        )
+    )
 
 
 @pytest.fixture
@@ -180,8 +189,14 @@ def test_upload_ris_cria_registro(client, analista, base_termo, settings, tmp_pa
     arquivo = SimpleUploadedFile("scopus.ris", RIS.encode("utf-8"), content_type="text/plain")
     resp = client.post(
         turl("triagem_importar"),
-        data={"base_consulta": base_termo.pk, "outra_base": "", "formato": "",
-              "string_busca": "cog", "n_identificados": 1, "arquivo": arquivo},
+        data={
+            "base_consulta": base_termo.pk,
+            "outra_base": "",
+            "formato": "",
+            "string_busca": "cog",
+            "n_identificados": 1,
+            "arquivo": arquivo,
+        },
     )
     assert resp.status_code == 302
     busca = Busca.objects.filter(base_consulta=base_termo).latest("pk")

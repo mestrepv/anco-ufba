@@ -30,15 +30,21 @@ class Command(BaseCommand):
     def add_arguments(self, parser) -> None:
         parser.add_argument("arquivo", type=str)
         parser.add_argument("--formato", choices=["ris", "bibtex", "csv"], default=None)
-        parser.add_argument("--base", type=str, default=None,
-                            help="Nome do termo do vocabulário `base` (ex.: Scopus).")
-        parser.add_argument("--outra-base", type=str, default=None,
-                            help="Base fora do vocabulário controlado.")
+        parser.add_argument(
+            "--base",
+            type=str,
+            default=None,
+            help="Nome do termo do vocabulário `base` (ex.: Scopus).",
+        )
+        parser.add_argument(
+            "--outra-base", type=str, default=None, help="Base fora do vocabulário controlado."
+        )
         parser.add_argument("--string-busca", type=str, default="")
         parser.add_argument("--n-identificados", type=int, default=0)
         parser.add_argument("--data", type=str, default=None, help="YYYY-MM-DD")
-        parser.add_argument("--projeto", type=str, default=None,
-                            help="Slug do projeto (default: projeto ativo).")
+        parser.add_argument(
+            "--projeto", type=str, default=None, help="Slug do projeto (default: projeto ativo)."
+        )
 
     def handle(self, *args, **opts) -> None:
         caminho = Path(opts["arquivo"])
@@ -47,9 +53,7 @@ class Command(BaseCommand):
 
         formato = opts["formato"] or detectar_formato(caminho.name)
         if not formato:
-            raise CommandError(
-                "Não consegui inferir o formato pela extensão; use --formato."
-            )
+            raise CommandError("Não consegui inferir o formato pela extensão; use --formato.")
 
         base_termo = None
         if opts["base"]:
@@ -82,8 +86,10 @@ class Command(BaseCommand):
         registros = parse_conteudo(conteudo, formato)
         res = importar_para_busca(busca, registros)
 
-        self.stdout.write(self.style.SUCCESS(
-            f"Busca #{busca.pk} ({busca.base_nome}): "
-            f"{res.total} lidos · {res.criados} novos · {res.duplicados} duplicados · "
-            f"{res.ja_no_acervo} já no acervo · {res.ignorados} ignorados."
-        ))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Busca #{busca.pk} ({busca.base_nome}): "
+                f"{res.total} lidos · {res.criados} novos · {res.duplicados} duplicados · "
+                f"{res.ja_no_acervo} já no acervo · {res.ignorados} ignorados."
+            )
+        )

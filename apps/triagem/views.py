@@ -261,9 +261,7 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
         # Itens incluídos de forma avulsa: análises suas sobre artigos que não
         # vieram de triagem (entraram por "Importar avulso").
         meus_avulsos = (
-            Analise.objects.filter(
-                analista=request.user, artigo__registros_triagem__isnull=True
-            )
+            Analise.objects.filter(analista=request.user, artigo__registros_triagem__isnull=True)
             .exclude(status=Analise.Status.LEGADO)
             .distinct()
             .count()
@@ -389,9 +387,7 @@ def importar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespon
 
 @_projeto_analista
 @require_POST
-def importar_preview_view(
-    request: HttpRequest, projeto: ProtocoloTriagem
-) -> HttpResponse:
+def importar_preview_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
     """Validação imediata do arquivo (HTMX, no `change` do input): conta os
     registros ou explica o erro, e libera/trava o botão Importar via HX-Trigger."""
     import json as _json
@@ -899,11 +895,14 @@ def a_analisar_view(request: HttpRequest) -> HttpResponse:
     pagina = Paginator(artigos, 50).get_page(request.GET.get("page"))
 
     # Em projeto ANCO com incluídos, mas sem sorteio para o usuário: aguardando.
-    aguardando_sorteio = not por_atribuicao and ProtocoloTriagem.objects.filter(
-        modo=ProtocoloTriagem.Modo.ANCO,
-        membros__usuario=request.user,
-        registros__status=RegistroTriagem.Status.INCLUIDO,
-    ).exists()
+    aguardando_sorteio = (
+        not por_atribuicao
+        and ProtocoloTriagem.objects.filter(
+            modo=ProtocoloTriagem.Modo.ANCO,
+            membros__usuario=request.user,
+            registros__status=RegistroTriagem.Status.INCLUIDO,
+        ).exists()
+    )
     return render(
         request,
         "triagem/a_analisar.html",

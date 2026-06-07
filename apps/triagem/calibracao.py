@@ -65,12 +65,12 @@ def iniciar_calibracao(protocolo, tamanho: int, criada_por=None) -> RodadaCalibr
     for rid in amostra_ids:
         for revisor in equipe:
             DecisaoTriagem.objects.get_or_create(
-                registro_id=rid, revisor=revisor, etapa=_Et.CALIBRACAO,
+                registro_id=rid,
+                revisor=revisor,
+                etapa=_Et.CALIBRACAO,
                 defaults={"prazo_em": prazo},
             )
-    logger.info(
-        "Calibração %s: %d itens × %d revisores", rodada.pk, len(amostra_ids), len(equipe)
-    )
+    logger.info("Calibração %s: %d itens × %d revisores", rodada.pk, len(amostra_ids), len(equipe))
     return rodada
 
 
@@ -107,9 +107,7 @@ def calcular(rodada: RodadaCalibracao) -> ResultadoCalibracao:
         if len(v) == n and all(c is not None for _d, c in v)
     ]
     if not itens:
-        return ResultadoCalibracao(
-            n_itens=rodada.registros.count(), n_revisores=n
-        )
+        return ResultadoCalibracao(n_itens=rodada.registros.count(), n_revisores=n)
 
     perc, kappa, distribuicao = fleiss_e_acordo(itens, n)
     rotulos = dict(DecisaoTriagem._meta.get_field("decisao").choices or [])

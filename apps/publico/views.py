@@ -12,20 +12,6 @@ from __future__ import annotations
 
 import datetime
 from collections import Counter
-
-_MESES_PT = {
-    1: "jan.", 2: "fev.", 3: "mar.", 4: "abr.",
-    5: "mai.", 6: "jun.", 7: "jul.", 8: "ago.",
-    9: "set.", 10: "out.", 11: "nov.", 12: "dez.",
-}
-
-
-def _fmt_data(d: datetime.date | datetime.datetime | None) -> str:
-    if d is None:
-        return ""
-    if isinstance(d, datetime.datetime):
-        d = d.date()
-    return f"{d.day} {_MESES_PT[d.month]} {d.year}"
 from string import ascii_uppercase
 
 from django.contrib.auth import get_user_model
@@ -51,6 +37,29 @@ User = get_user_model()
 
 # Status que aparecem no acervo publico
 STATUS_PUBLICOS = (Analise.Status.PUBLICADA, Analise.Status.LEGADO)
+
+_MESES_PT = {
+    1: "jan.",
+    2: "fev.",
+    3: "mar.",
+    4: "abr.",
+    5: "mai.",
+    6: "jun.",
+    7: "jul.",
+    8: "ago.",
+    9: "set.",
+    10: "out.",
+    11: "nov.",
+    12: "dez.",
+}
+
+
+def _fmt_data(d: datetime.date | datetime.datetime | None) -> str:
+    if d is None:
+        return ""
+    if isinstance(d, datetime.datetime):
+        d = d.date()
+    return f"{d.day} {_MESES_PT[d.month]} {d.year}"
 
 
 # ---------------------------------------------------------------------------
@@ -145,10 +154,7 @@ def _aplicar_facetas(qs: QuerySet, params) -> QuerySet:
         if codigo == "resenha":
             # "true" => tem resenha pública; só "false" => não tem.
             quer = [v.lower() in ("true", "1", "sim", "s") for v in valores]
-            if any(quer):
-                qs = qs.filter(RESENHA_PUBLICA_Q)
-            else:
-                qs = qs.exclude(RESENHA_PUBLICA_Q)
+            qs = qs.filter(RESENHA_PUBLICA_Q) if any(quer) else qs.exclude(RESENHA_PUBLICA_Q)
             continue
         if codigo == "acesso_aberto":
             valores = [v.lower() in ("true", "1", "sim", "s") for v in valores]
@@ -190,9 +196,7 @@ def _calcular_facetas(qs_base: QuerySet) -> dict[str, list[tuple[str, int]]]:
     _status_labels = dict(Analise.Status.choices)
     facetas["status"] = [
         (codigo, _status_labels.get(codigo, codigo), n)
-        for codigo, n in Counter(
-            qs_base.values_list("status", flat=True)
-        ).most_common()
+        for codigo, n in Counter(qs_base.values_list("status", flat=True)).most_common()
     ]
     facetas["resenha_count"] = qs_base.filter(RESENHA_PUBLICA_Q).count()
     facetas["acesso_aberto_count"] = qs_base.filter(artigo__acesso_aberto=True).count()
@@ -260,9 +264,7 @@ def listagem_view(request: HttpRequest) -> HttpResponse:
     if ano_min_global is not None:
         for n_anos in (5, 10):
             lo = max(ano_min_global, ano_max_global - n_anos + 1)
-            ano_presets.append(
-                {"label": f"{n_anos} anos", "lo": lo, "hi": ano_max_global}
-            )
+            ano_presets.append({"label": f"{n_anos} anos", "lo": lo, "hi": ano_max_global})
 
     resultados_semanticos: list[dict] = []
     servico_indisponivel = False
@@ -313,9 +315,7 @@ def listagem_view(request: HttpRequest) -> HttpResponse:
     querystring = qs_dict.urlencode()
 
     facetas_aplicadas = {k: request.GET.getlist(k) for k in _FACETAS}
-    n_filtros_ativos = sum(len(v) for v in facetas_aplicadas.values()) + (
-        1 if ano_filtrado else 0
-    )
+    n_filtros_ativos = sum(len(v) for v in facetas_aplicadas.values()) + (1 if ano_filtrado else 0)
     ordenar_label = "relevância" if consulta else "ano de publicação"
 
     # Universo da busca semântica (análises com vetor estrutural).
@@ -374,9 +374,7 @@ def _linha_planilha(a: Analise) -> dict:
         "epistemologia": epistemologia,
         "teoria": teoria,
         "analista": (a.analista.nome_exibicao or a.analista.username),
-        "tem_resenha": bool(
-            getattr(a, "resenha", None) and a.resenha.status in Resenha.PUBLICAS
-        ),
+        "tem_resenha": bool(getattr(a, "resenha", None) and a.resenha.status in Resenha.PUBLICAS),
         "acesso_aberto": bool(artigo.acesso_aberto),
         "status": a.get_status_display(),
         "publicada_em": (a.publicada_em or a.criado_em).date().isoformat(),
@@ -420,9 +418,7 @@ def pagina_artigo_view(request: HttpRequest, doi_slug: str) -> HttpResponse:
     # decidir entre "Escrever resenha" vs "Continuar minha análise".
     minha_analise = None
     if request.user.is_authenticated and request.user.eh_analista:
-        minha_analise = Analise.objects.filter(
-            artigo=artigo, analista=request.user
-        ).first()
+        minha_analise = Analise.objects.filter(artigo=artigo, analista=request.user).first()
 
     return render(
         request,
@@ -449,9 +445,7 @@ def _revisoes_para_publico(resenha) -> list[dict]:
     """
     if resenha is None:
         return []
-    qs = list(
-        Revisao.objects.filter(resenha=resenha, concluido_em__isnull=False).order_by("id")
-    )
+    qs = list(Revisao.objects.filter(resenha=resenha, concluido_em__isnull=False).order_by("id"))
     resultado = []
     for idx, r in enumerate(qs):
         resultado.append(
@@ -506,9 +500,7 @@ def pagina_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
 
     # Proveniência: o artigo foi selecionado via triagem PRISMA-ScR?
     # (reverse de apps.triagem.RegistroTriagem.artigo; "incluido" = status incluído)
-    proveniencia_triagem = analise.artigo.registros_triagem.filter(
-        status="incluido"
-    ).exists()
+    proveniencia_triagem = analise.artigo.registros_triagem.filter(status="incluido").exists()
 
     # Sinaliza se há resenha pública em outras análises do mesmo artigo.
     outras_com_resenha = (
@@ -610,11 +602,7 @@ def _distribuicao(base_qs: QuerySet, campo: str, rotulo_fn, ordem) -> dict:
     `ordem` é a chave de `.order_by()` aplicada ao agregado.
     Retorna {"itens": [{rotulo, n, pct}], "total", "maximo"}.
     """
-    linhas = (
-        base_qs.values(campo)
-        .annotate(n=Count("id", distinct=True))
-        .order_by(ordem)
-    )
+    linhas = base_qs.values(campo).annotate(n=Count("id", distinct=True)).order_by(ordem)
     total = sum(linha["n"] for linha in linhas)
     maximo = max((linha["n"] for linha in linhas), default=0)
     itens = [

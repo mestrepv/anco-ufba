@@ -29,24 +29,29 @@ def base_termo(db):
 
 @pytest.fixture
 def analista(db):
-    return membro(User.objects.create_user(
-        username="ana", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
-    ))
+    return membro(
+        User.objects.create_user(
+            username="ana", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
+        )
+    )
 
 
 def test_contagem_prisma(protocolo, base_termo):
     Busca.objects.create(protocolo=protocolo, base_consulta=base_termo, n_identificados=100)
     RegistroTriagem.objects.create(protocolo=protocolo, titulo="A", doi="10.1/a")
+    RegistroTriagem.objects.create(protocolo=protocolo, titulo="B", doi="10.1/b", ja_no_acervo=True)
     RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="B", doi="10.1/b", ja_no_acervo=True
-    )
-    RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="C", doi="10.1/c",
+        protocolo=protocolo,
+        titulo="C",
+        doi="10.1/c",
         status=RegistroTriagem.Status.INCLUIDO,
     )
     RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="D", doi="10.1/d",
-        status=RegistroTriagem.Status.EXCLUIDO, motivo_exclusao="fora de escopo",
+        protocolo=protocolo,
+        titulo="D",
+        doi="10.1/d",
+        status=RegistroTriagem.Status.EXCLUIDO,
+        motivo_exclusao="fora de escopo",
     )
     c = prisma.computar(protocolo)
     assert c.identificados_relatado == 100
@@ -80,13 +85,13 @@ def test_proveniencia_triagem_na_pagina_publica(client, protocolo, base_termo):
         username="au", email="au@u.edu", password="x", papel=User.Papel.ANALISTA
     )
     reg = RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="Selecionado", doi="10.7/sel",
+        protocolo=protocolo,
+        titulo="Selecionado",
+        doi="10.7/sel",
         status=RegistroTriagem.Status.INCLUIDO,
     )
     artigo = promover_para_acervo(reg)
-    analise = Analise.objects.create(
-        artigo=artigo, analista=autor, status=Analise.Status.PUBLICADA
-    )
+    analise = Analise.objects.create(artigo=artigo, analista=autor, status=Analise.Status.PUBLICADA)
     resp = client.get(reverse("pagina_analise", args=[analise.pk]))
     assert resp.status_code == 200
     assert b"Selecionado por triagem" in resp.content
@@ -99,9 +104,7 @@ def test_sem_triagem_sem_selo(client, base_termo):
     artigo = Artigo.objects.create(
         doi="10.7/normal", titulo="Comum", ano=2020, base_consulta=base_termo
     )
-    analise = Analise.objects.create(
-        artigo=artigo, analista=autor, status=Analise.Status.PUBLICADA
-    )
+    analise = Analise.objects.create(artigo=artigo, analista=autor, status=Analise.Status.PUBLICADA)
     resp = client.get(reverse("pagina_analise", args=[analise.pk]))
     assert resp.status_code == 200
     assert b"Selecionado por triagem" not in resp.content

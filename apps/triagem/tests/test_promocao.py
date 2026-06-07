@@ -34,10 +34,16 @@ def base_termo(db):
 
 def _revisores(n=2):
     return [
-        membro(User.objects.create_user(
-            username=f"rv{i}", email=f"rv{i}@u.edu", password="x",
-            papel=User.Papel.ANALISTA, revisor_aprovado=True, aceita_revisoes=True,
-        ))
+        membro(
+            User.objects.create_user(
+                username=f"rv{i}",
+                email=f"rv{i}@u.edu",
+                password="x",
+                papel=User.Papel.ANALISTA,
+                revisor_aprovado=True,
+                aceita_revisoes=True,
+            )
+        )
         for i in range(n)
     ]
 
@@ -45,8 +51,12 @@ def _revisores(n=2):
 def test_promove_incluido_cria_artigo(protocolo, base_termo):
     b = Busca.objects.create(protocolo=protocolo, base_consulta=base_termo)
     reg = RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="Novo artigo", doi="10.55/novo", ano=2021,
-        idioma="english", status=RegistroTriagem.Status.INCLUIDO,
+        protocolo=protocolo,
+        titulo="Novo artigo",
+        doi="10.55/novo",
+        ano=2021,
+        idioma="english",
+        status=RegistroTriagem.Status.INCLUIDO,
     )
     reg.origem_buscas.add(b)
     artigo = promover_para_acervo(reg)
@@ -61,7 +71,9 @@ def test_promove_incluido_cria_artigo(protocolo, base_termo):
 
 def test_promocao_idempotente(protocolo):
     reg = RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="X", doi="10.55/x",
+        protocolo=protocolo,
+        titulo="X",
+        doi="10.55/x",
         status=RegistroTriagem.Status.INCLUIDO,
     )
     a1 = promover_para_acervo(reg)
@@ -72,7 +84,9 @@ def test_promocao_idempotente(protocolo):
 
 def test_so_promove_incluido(protocolo):
     reg = RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="Y", doi="10.55/y",
+        protocolo=protocolo,
+        titulo="Y",
+        doi="10.55/y",
         status=RegistroTriagem.Status.EM_TRIAGEM,
     )
     assert promover_para_acervo(reg) is None
@@ -96,8 +110,11 @@ def test_consenso_incluir_promove_via_signal(protocolo, base_termo):
 
 def test_legado_intocado(protocolo, base_termo):
     legado = Artigo.objects.create(
-        doi="10.99/legado", titulo="Obra legada", ano=2010,
-        base_consulta=base_termo, eh_legado=True,
+        doi="10.99/legado",
+        titulo="Obra legada",
+        ano=2010,
+        base_consulta=base_termo,
+        eh_legado=True,
     )
     leitor = User.objects.create_user(
         username="leg", email="leg@u.edu", password="x", papel=User.Papel.ANALISTA
@@ -106,7 +123,9 @@ def test_legado_intocado(protocolo, base_termo):
     antes_total = Artigo.objects.count()
 
     reg = RegistroTriagem.objects.create(
-        protocolo=protocolo, titulo="Outro", doi="10.99/outro",
+        protocolo=protocolo,
+        titulo="Outro",
+        doi="10.99/outro",
         status=RegistroTriagem.Status.INCLUIDO,
     )
     novo = promover_para_acervo(reg)

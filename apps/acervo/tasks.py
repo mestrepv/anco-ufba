@@ -115,9 +115,7 @@ def task_verificar_links(limite: int = 0) -> dict:
 
 def _emails_curadores() -> list[str]:
     return list(
-        User.objects.filter(
-            papel=User.Papel.CURADOR, is_active=True
-        )
+        User.objects.filter(papel=User.Papel.CURADOR, is_active=True)
         .exclude(email="")
         .values_list("email", flat=True)
     )
@@ -128,17 +126,16 @@ def _enviar(assunto: str, corpo: str, destinatarios: list[str]) -> None:
     if not destinatarios:
         return
     try:
-        send_mail(assunto, corpo, from_email=None, recipient_list=destinatarios,
-                  fail_silently=True)
+        send_mail(assunto, corpo, from_email=None, recipient_list=destinatarios, fail_silently=True)
     except Exception:  # noqa: BLE001
         logger.exception("Falha ao enviar e-mail: %s", assunto)
 
 
 def _notificar_revisores_cegos(resenha: Resenha) -> None:
     """E-mail aos revisores cegos sorteados (autoria sempre oculta)."""
-    for r in Revisao.objects.filter(
-        resenha=resenha, concluido_em__isnull=True
-    ).select_related("revisor"):
+    for r in Revisao.objects.filter(resenha=resenha, concluido_em__isnull=True).select_related(
+        "revisor"
+    ):
         corpo = (
             "Olá!\n\n"
             "Você foi sorteado para uma revisão CEGA de uma resenha crítica. "
@@ -146,8 +143,7 @@ def _notificar_revisores_cegos(resenha: Resenha) -> None:
             f"Prazo: {r.prazo_em.strftime('%d/%m/%Y')}.\n\n"
             "Acesse 'Minhas revisões' na plataforma."
         )
-        _enviar("[AnCo] Você foi sorteado para uma revisão cega", corpo,
-                [r.revisor.email])
+        _enviar("[AnCo] Você foi sorteado para uma revisão cega", corpo, [r.revisor.email])
 
 
 def _notificar_curadores_resenha_revisada(resenha: Resenha) -> None:
@@ -158,8 +154,7 @@ def _notificar_curadores_resenha_revisada(resenha: Resenha) -> None:
         f"Artigo: {resenha.analise.artigo.titulo[:120]}\n\n"
         "Acesse a fila de curadoria na plataforma."
     )
-    _enviar("[AnCo] Resenha revisada — aguardando confirmação", corpo,
-            _emails_curadores())
+    _enviar("[AnCo] Resenha revisada — aguardando confirmação", corpo, _emails_curadores())
 
 
 def _notificar_resenha_volta_rascunho(resenha: Resenha, motivo: str) -> None:

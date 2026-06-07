@@ -23,7 +23,9 @@ def protocolo(db):
 def revs(db):
     return [
         User.objects.create_user(
-            username=f"rv{i}", email=f"rv{i}@u.edu", password="x",
+            username=f"rv{i}",
+            email=f"rv{i}@u.edu",
+            password="x",
             papel=User.Papel.ANALISTA,
         )
         for i in range(2)
@@ -65,8 +67,11 @@ def test_ignora_itens_incompletos(protocolo, revs):
     # registro com só 1 decisão concluída → não entra no cálculo
     reg = RegistroTriagem.objects.create(protocolo=protocolo, titulo="X", doi="10.2/x")
     DecisaoTriagem.objects.create(
-        registro=reg, revisor=revs[0], decisao=DEC.INCLUIR,
-        prazo_em=timezone.now(), concluido_em=timezone.now(),
+        registro=reg,
+        revisor=revs[0],
+        decisao=DEC.INCLUIR,
+        prazo_em=timezone.now(),
+        concluido_em=timezone.now(),
     )
     DecisaoTriagem.objects.create(
         registro=reg, revisor=revs[1], prazo_em=timezone.now()
@@ -76,9 +81,11 @@ def test_ignora_itens_incompletos(protocolo, revs):
 
 @pytest.fixture
 def analista(db):
-    return membro(User.objects.create_user(
-        username="ana", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
-    ))
+    return membro(
+        User.objects.create_user(
+            username="ana", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
+        )
+    )
 
 
 def test_prisma_exibe_e_exporta_concordancia(client, protocolo, revs, analista):

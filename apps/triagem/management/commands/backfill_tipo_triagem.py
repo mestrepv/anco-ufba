@@ -36,8 +36,11 @@ class Command(BaseCommand):
                 if not tipo:
                     continue
                 ident = chave_dedup(
-                    bruto.get("doi"), bruto.get("isbn"), bruto.get("titulo") or "",
-                    bruto.get("ano"), bruto.get("titulo_periodico") or "",
+                    bruto.get("doi"),
+                    bruto.get("isbn"),
+                    bruto.get("titulo") or "",
+                    bruto.get("ano"),
+                    bruto.get("titulo_periodico") or "",
                 )
                 reg = RegistroTriagem.objects.filter(
                     protocolo=busca.protocolo, identificador=ident, tipo=""

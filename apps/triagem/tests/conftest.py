@@ -7,12 +7,24 @@ from apps.triagem.models import ProjetoMembro, ProtocoloTriagem
 
 # Rotas escopadas por projeto (precisam do slug como 1º argumento).
 PROJETO_ROTAS = {
-    "triagem_painel", "triagem_importar", "triagem_registros", "triagem_duplicatas",
-    "triagem_duplicatas_mescladas", "triagem_duplicata_mesclar",
-    "triagem_duplicata_descartar", "triagem_duplicata_desfazer", "triagem_iniciar",
-    "triagem_desempate", "triagem_desempatar", "triagem_prisma", "triagem_protocolo",
-    "triagem_checklist", "triagem_calibracao", "triagem_busca_resumo",
-    "triagem_busca_excluir", "triagem_importar_preview",
+    "triagem_painel",
+    "triagem_importar",
+    "triagem_registros",
+    "triagem_duplicatas",
+    "triagem_duplicatas_mescladas",
+    "triagem_duplicata_mesclar",
+    "triagem_duplicata_descartar",
+    "triagem_duplicata_desfazer",
+    "triagem_iniciar",
+    "triagem_desempate",
+    "triagem_desempatar",
+    "triagem_prisma",
+    "triagem_protocolo",
+    "triagem_checklist",
+    "triagem_calibracao",
+    "triagem_busca_resumo",
+    "triagem_busca_excluir",
+    "triagem_importar_preview",
 }
 
 
@@ -33,9 +45,7 @@ def proj(db):
 def inscrever(projeto, *usuarios, papel=ProjetoMembro.Papel.ANALISTA):
     """Inscreve usuários como membros do projeto (necessário p/ acesso e sorteio)."""
     for u in usuarios:
-        ProjetoMembro.objects.get_or_create(
-            projeto=projeto, usuario=u, defaults={"papel": papel}
-        )
+        ProjetoMembro.objects.get_or_create(projeto=projeto, usuario=u, defaults={"papel": papel})
 
 
 def membro(usuario, papel=ProjetoMembro.Papel.ANALISTA):

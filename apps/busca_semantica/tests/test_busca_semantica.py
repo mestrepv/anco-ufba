@@ -8,7 +8,6 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
-
 # ---------------------------------------------------------------------------
 # Fixtures helpers
 # ---------------------------------------------------------------------------
@@ -54,7 +53,9 @@ class TestEmbeddingsWrapper:
     def test_embed_query_retorna_none_quando_servico_falha(self):
         from apps.busca_semantica.embeddings import embed_query
 
-        with patch("apps.busca_semantica.embeddings._post_with_retry", side_effect=Exception("off")):
+        with patch(
+            "apps.busca_semantica.embeddings._post_with_retry", side_effect=Exception("off")
+        ):
             result = embed_query("cognição em redes")
         assert result is None
 
@@ -65,6 +66,7 @@ class TestEmbeddingsWrapper:
         with patch("apps.busca_semantica.embeddings._post_with_retry", return_value=[vec]):
             # Limpa o cache LRU antes de testar
             from apps.busca_semantica.embeddings import _embed_cached
+
             _embed_cached.cache_clear()
             result = embed_query("cognição")
         assert isinstance(result, list)
@@ -73,7 +75,9 @@ class TestEmbeddingsWrapper:
     def test_embed_texts_retorna_none_por_item_em_falha(self):
         from apps.busca_semantica.embeddings import embed_texts
 
-        with patch("apps.busca_semantica.embeddings._post_with_retry", side_effect=Exception("off")):
+        with patch(
+            "apps.busca_semantica.embeddings._post_with_retry", side_effect=Exception("off")
+        ):
             result = embed_texts(["texto 1", "texto 2"])
         assert result == [None, None]
 
@@ -128,7 +132,9 @@ class TestEmbeddingTasks:
         # executou a task com o serviço real. Zeramos o embedding antes de
         # reexecutar a task com o mock offline.
         Artigo.objects.filter(pk=a.pk).update(embedding=None)
-        with patch("apps.busca_semantica.embeddings._post_with_retry", side_effect=Exception("off")):
+        with patch(
+            "apps.busca_semantica.embeddings._post_with_retry", side_effect=Exception("off")
+        ):
             task_embedding_artigo(a.pk)  # não deve lançar exceção
 
         a.refresh_from_db()
@@ -140,7 +146,9 @@ class TestEmbeddingTasks:
 
         # Mesmo motivo do teste anterior: zerar embedding antes do mock offline.
         Analise.objects.filter(pk=analise_publicada.pk).update(embedding=None)
-        with patch("apps.busca_semantica.embeddings._post_with_retry", side_effect=Exception("off")):
+        with patch(
+            "apps.busca_semantica.embeddings._post_with_retry", side_effect=Exception("off")
+        ):
             task_embedding_analise(analise_publicada.pk)
 
         analise_publicada.refresh_from_db()
@@ -151,7 +159,9 @@ class TestEmbeddingTasks:
         from apps.busca_semantica.tasks import task_embedding_artigo
 
         vec = [0.1] * 384
-        a = Artigo.objects.create(doi="10.1234/task-ok", titulo="Artigo com embedding", resumo="bom")
+        a = Artigo.objects.create(
+            doi="10.1234/task-ok", titulo="Artigo com embedding", resumo="bom"
+        )
         with patch("apps.busca_semantica.embeddings._post_with_retry", return_value=[vec]):
             task_embedding_artigo(a.pk)
 
@@ -180,8 +190,10 @@ class TestListagemModoSemantico:
 
     def test_modo_semantico_preservado_na_url(self, client: Client):
         vec = [0.1] * 384
-        with patch("apps.busca_semantica.embeddings.service_available", return_value=True), \
-             patch("apps.busca_semantica.embeddings.embed_query", return_value=vec):
+        with (
+            patch("apps.busca_semantica.embeddings.service_available", return_value=True),
+            patch("apps.busca_semantica.embeddings.embed_query", return_value=vec),
+        ):
             resp = client.get(reverse("acervo_publico") + "?q=cognição&modo=semantico")
         assert resp.status_code == 200
         assert resp.context["modo"] == "semantico"
@@ -203,8 +215,10 @@ class TestListagemModoSemantico:
         analise_publicada.embedding = vec
         analise_publicada.save(update_fields=["embedding"])
 
-        with patch("apps.busca_semantica.embeddings.service_available", return_value=True), \
-             patch("apps.busca_semantica.embeddings.embed_query", return_value=vec):
+        with (
+            patch("apps.busca_semantica.embeddings.service_available", return_value=True),
+            patch("apps.busca_semantica.embeddings.embed_query", return_value=vec),
+        ):
             resp = client.get(reverse("acervo_publico") + "?q=cognição&modo=semantico")
 
         assert resp.status_code == 200

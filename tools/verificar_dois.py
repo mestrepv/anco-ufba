@@ -22,24 +22,21 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 DOI_RE = re.compile(r"^10\.\d{4,}/.+$")
 CROSSREF_API = "https://api.crossref.org/works/{doi}"
-CROSSREF_HEADERS = {
-    "User-Agent": "AnCo-DOI-Checker/1.0 (mailto:paulovicente.ifba@gmail.com)"
-}
+CROSSREF_HEADERS = {"User-Agent": "AnCo-DOI-Checker/1.0 (mailto:paulovicente.ifba@gmail.com)"}
 
 
 @dataclass
 class ResultadoDOI:
     linha: int
     doi_original: str
-    categoria: str          # valido | prefixo_doi | invalido | vazio
+    categoria: str  # valido | prefixo_doi | invalido | vazio
     doi_normalizado: str = ""
-    online_ok: Optional[bool] = None   # None = não verificado
+    online_ok: bool | None = None  # None = não verificado
     online_titulo: str = ""
     observacao: str = ""
 
@@ -140,13 +137,14 @@ def processar(caminho: Path, verificar_online: bool) -> list[ResultadoDOI]:
 
         resultados.append(r)
         if (i + 1) % 100 == 0:
-            print(f"  {i+1}/{total}...", file=sys.stderr)
+            print(f"  {i + 1}/{total}...", file=sys.stderr)
 
     return resultados
 
 
 def imprimir_resumo(resultados: list[ResultadoDOI]) -> None:
     from collections import Counter
+
     contagem = Counter(r.categoria for r in resultados)
     total = len(resultados)
     print("\n=== RESUMO ===")
@@ -179,30 +177,38 @@ def imprimir_resumo(resultados: list[ResultadoDOI]) -> None:
 
 def exportar_csv(resultados: list[ResultadoDOI], destino: Path) -> None:
     campos = [
-        "linha", "categoria", "doi_original", "doi_normalizado",
-        "online_ok", "online_titulo", "observacao",
+        "linha",
+        "categoria",
+        "doi_original",
+        "doi_normalizado",
+        "online_ok",
+        "online_titulo",
+        "observacao",
     ]
     with destino.open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=campos)
         w.writeheader()
         for r in resultados:
-            w.writerow({
-                "linha": r.linha,
-                "categoria": r.categoria,
-                "doi_original": r.doi_original,
-                "doi_normalizado": r.doi_normalizado,
-                "online_ok": "" if r.online_ok is None else r.online_ok,
-                "online_titulo": r.online_titulo,
-                "observacao": r.observacao,
-            })
+            w.writerow(
+                {
+                    "linha": r.linha,
+                    "categoria": r.categoria,
+                    "doi_original": r.doi_original,
+                    "doi_normalizado": r.doi_normalizado,
+                    "online_ok": "" if r.online_ok is None else r.online_ok,
+                    "online_titulo": r.online_titulo,
+                    "observacao": r.observacao,
+                }
+            )
     print(f"\nCSV exportado: {destino}")
 
 
 def main() -> None:
     import urllib.parse  # noqa: F401 — garantir import para verificar_crossref
 
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument(
         "arquivo",
         nargs="?",
@@ -210,11 +216,13 @@ def main() -> None:
         help="Caminho para o JSON da base (padrão: %(default)s)",
     )
     parser.add_argument(
-        "--verificar-online", action="store_true",
+        "--verificar-online",
+        action="store_true",
         help="Consulta CrossRef para cada DOI de formato válido (lento ~1 min/100 DOIs)",
     )
     parser.add_argument(
-        "--saida", metavar="ARQUIVO.csv",
+        "--saida",
+        metavar="ARQUIVO.csv",
         help="Exporta resultado detalhado como CSV",
     )
     args = parser.parse_args()
@@ -234,4 +242,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     import urllib.parse
+
     main()

@@ -144,9 +144,7 @@ class TestLookupDoi:
         assert r.dados["citacoes_crossref"] == 42
 
     def test_doi_inexistente_retorna_404(self):
-        erro_404 = urllib.error.HTTPError(
-            url="x", code=404, msg="Not Found", hdrs=None, fp=None
-        )
+        erro_404 = urllib.error.HTTPError(url="x", code=404, msg="Not Found", hdrs=None, fp=None)
         with patch(
             "apps.acervo.services.crossref.urllib.request.urlopen",
             side_effect=erro_404,

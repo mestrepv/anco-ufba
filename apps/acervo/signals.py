@@ -58,9 +58,7 @@ def _disparar_sorteio_resenha(sender, instance: Resenha, created: bool, **kwargs
 def _capturar_concluida_revisao(sender, instance: Revisao, **kwargs):
     if instance.pk:
         try:
-            instance._concluido_anterior = Revisao.objects.get(
-                pk=instance.pk
-            ).concluido_em
+            instance._concluido_anterior = Revisao.objects.get(pk=instance.pk).concluido_em
         except Revisao.DoesNotExist:
             instance._concluido_anterior = None
     else:
@@ -74,6 +72,4 @@ def _disparar_avaliacao_ao_concluir(sender, instance: Revisao, created: bool, **
     if getattr(instance, "_concluido_anterior", None) is not None:
         return  # já estava concluída
     if instance.concluido_em is not None and instance.resenha_id is not None:
-        async_task(
-            "apps.acervo.tasks.task_avaliar_apos_revisao_cega", instance.resenha_id
-        )
+        async_task("apps.acervo.tasks.task_avaliar_apos_revisao_cega", instance.resenha_id)

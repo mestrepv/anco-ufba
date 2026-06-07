@@ -20,9 +20,9 @@ class ImportarBuscaForm(forms.Form):
     """Upload de um export (RIS/BibTeX/CSV) como uma `Busca` de uma base."""
 
     base_consulta = forms.ModelChoiceField(
-        queryset=TermoVocabulario.objects.filter(
-            vocabulario__codigo="base", ativo=True
-        ).order_by("nome"),
+        queryset=TermoVocabulario.objects.filter(vocabulario__codigo="base", ativo=True).order_by(
+            "nome"
+        ),
         required=False,
         empty_label="— selecione a base —",
         label="Base de consulta",
@@ -31,7 +31,8 @@ class ImportarBuscaForm(forms.Form):
         required=False, label="Outra base (fora do vocabulário)", max_length=200
     )
     n_identificados = forms.IntegerField(
-        required=False, min_value=0,
+        required=False,
+        min_value=0,
         label="Nº de registros que a base reportou (opcional)",
         help_text=(
             "Deixe em branco para usar a contagem do próprio arquivo. Preencha só "
@@ -39,39 +40,54 @@ class ImportarBuscaForm(forms.Form):
         ),
     )
     string_busca = forms.CharField(
-        required=False, label="String de busca",
+        required=False,
+        label="String de busca",
         widget=forms.Textarea(attrs={"rows": 2}),
         help_text="A query usada na base (para reprodutibilidade).",
     )
     campos_busca = forms.MultipleChoiceField(
-        required=False, label="Campo(s) de busca",
-        choices=Busca.CampoBusca.choices, widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Campo(s) de busca",
+        choices=Busca.CampoBusca.choices,
+        widget=forms.CheckboxSelectMultiple,
         help_text="Onde a query foi aplicada na base (pode marcar mais de um).",
     )
     ano_inicio = forms.IntegerField(
-        required=False, min_value=1900, widget=forms.HiddenInput,
+        required=False,
+        min_value=1900,
+        widget=forms.HiddenInput,
     )
     ano_fim = forms.IntegerField(
-        required=False, min_value=1900, widget=forms.HiddenInput,
+        required=False,
+        min_value=1900,
+        widget=forms.HiddenInput,
     )
     idiomas = forms.MultipleChoiceField(
-        required=False, label="Idiomas filtrados",
-        choices=Artigo.Idioma.choices, widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Idiomas filtrados",
+        choices=Artigo.Idioma.choices,
+        widget=forms.CheckboxSelectMultiple,
     )
     idioma_outro = forms.CharField(
-        required=False, max_length=100, label="Especifique o outro idioma",
+        required=False,
+        max_length=100,
+        label="Especifique o outro idioma",
     )
     tipos_documento = forms.MultipleChoiceField(
-        required=False, label="Tipos de documento filtrados",
-        choices=Busca.TipoDocumento.choices, widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Tipos de documento filtrados",
+        choices=Busca.TipoDocumento.choices,
+        widget=forms.CheckboxSelectMultiple,
     )
     filtros = forms.CharField(
-        required=False, label="Outros filtros",
+        required=False,
+        label="Outros filtros",
         widget=forms.Textarea(attrs={"rows": 2}),
         help_text="Só o que não couber nos campos acima (ex.: área da base, acesso aberto).",
     )
     data_busca = forms.DateField(
-        required=False, label="Data da busca",
+        required=False,
+        label="Data da busca",
         widget=forms.DateInput(attrs={"type": "date"}),
     )
     formato = forms.ChoiceField(
@@ -108,9 +124,10 @@ class ImportarBuscaForm(forms.Form):
                 self.add_error(campo, f"Ano não pode ser maior que {ano_max}.")
         if ai and af and ai > af:
             self.add_error("ano_fim", "O ano final deve ser ≥ ao ano inicial.")
-        if "outro" in (dados.get("idiomas") or []) and not (
-            dados.get("idioma_outro") or ""
-        ).strip():
+        if (
+            "outro" in (dados.get("idiomas") or [])
+            and not (dados.get("idioma_outro") or "").strip()
+        ):
             self.add_error("idioma_outro", "Especifique o outro idioma.")
         return dados
 
@@ -124,20 +141,23 @@ class DecisaoTriagemForm(forms.Form):
         label="Sua decisão",
     )
     motivo_exclusao = forms.CharField(
-        required=False, label="Motivo da exclusão",
+        required=False,
+        label="Motivo da exclusão",
         widget=forms.Textarea(attrs={"rows": 2, "class": _CSS}),
         help_text="Obrigatório se você excluir o registro.",
     )
     comentario = forms.CharField(
-        required=False, label="Comentário (opcional)",
+        required=False,
+        label="Comentário (opcional)",
         widget=forms.Textarea(attrs={"rows": 2, "class": _CSS}),
     )
 
     def clean(self) -> dict:
         dados = super().clean()
-        if dados.get("decisao") == RegistroTriagem.Decisao.EXCLUIR and not (
-            dados.get("motivo_exclusao") or ""
-        ).strip():
+        if (
+            dados.get("decisao") == RegistroTriagem.Decisao.EXCLUIR
+            and not (dados.get("motivo_exclusao") or "").strip()
+        ):
             self.add_error("motivo_exclusao", "Informe o motivo da exclusão.")
         return dados
 
@@ -154,14 +174,16 @@ class DesempateForm(forms.Form):
         label="Decisão final",
     )
     motivo_exclusao = forms.CharField(
-        required=False, label="Motivo da exclusão",
+        required=False,
+        label="Motivo da exclusão",
         widget=forms.Textarea(attrs={"rows": 2, "class": _CSS}),
     )
 
     def clean(self) -> dict:
         dados = super().clean()
-        if dados.get("decisao") == RegistroTriagem.Decisao.EXCLUIR and not (
-            dados.get("motivo_exclusao") or ""
-        ).strip():
+        if (
+            dados.get("decisao") == RegistroTriagem.Decisao.EXCLUIR
+            and not (dados.get("motivo_exclusao") or "").strip()
+        ):
             self.add_error("motivo_exclusao", "Informe o motivo da exclusão.")
         return dados

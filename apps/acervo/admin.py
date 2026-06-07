@@ -170,7 +170,11 @@ class ResenhaAdmin(SimpleHistoryAdmin, UnfoldModelAdmin):
     search_fields = ("analise__artigo__titulo", "texto")
     autocomplete_fields = ("analise",)
     readonly_fields = (
-        "criado_em", "submetida_em", "publicada_em", "confirmada_por", "confirmada_em",
+        "criado_em",
+        "submetida_em",
+        "publicada_em",
+        "confirmada_por",
+        "confirmada_em",
     )
     inlines = [RevisaoInline]
 
@@ -182,7 +186,11 @@ class AnaliseAdmin(SimpleHistoryAdmin, UnfoldModelAdmin):
     search_fields = ("artigo__titulo", "analista__username", "objeto", "objetivo")
     autocomplete_fields = ("artigo", "analista", "aprovada_por")
     readonly_fields = (
-        "criado_em", "submetida_em", "publicada_em", "aprovada_por", "aprovada_em",
+        "criado_em",
+        "submetida_em",
+        "publicada_em",
+        "aprovada_por",
+        "aprovada_em",
     )
     filter_horizontal = ("epistemologia", "teoria")
     list_per_page = 50

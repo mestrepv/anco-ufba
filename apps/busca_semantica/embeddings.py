@@ -35,7 +35,9 @@ def _post_with_retry(texts: list[str]) -> list[list[float]]:
         except Exception as exc:
             if attempt == _MAX_RETRIES - 1:
                 raise
-            logger.warning("Embeddings tentativa %d falhou: %s. Aguardando %.1fs…", attempt + 1, exc, delay)
+            logger.warning(
+                "Embeddings tentativa %d falhou: %s. Aguardando %.1fs…", attempt + 1, exc, delay
+            )
             time.sleep(delay)
             delay *= 2
     return []  # nunca alcançado

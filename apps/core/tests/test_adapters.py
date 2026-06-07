@@ -38,9 +38,7 @@ class TestPreSocialLogin:
         sl.connect.assert_not_called()
 
     def test_vincula_a_user_existente_por_email(self, request_obj, db):
-        User.objects.create_user(
-            username="maria", email="maria@usp.edu.br", password="x"
-        )
+        User.objects.create_user(username="maria", email="maria@usp.edu.br", password="x")
         adapter = AnCoSocialAccountAdapter()
         sl = _sociallogin("maria@usp.edu.br")
         adapter.pre_social_login(request_obj, sl)

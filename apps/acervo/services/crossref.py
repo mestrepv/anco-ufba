@@ -84,14 +84,13 @@ def _normaliza_dados(message: dict, doi: str) -> dict:
         if nome:
             autores.append(nome)
 
-    parts = ((message.get("published") or message.get("published-print") or {}).get(
-        "date-parts", [[]]
-    ) or [[]])[0]
+    parts = (
+        (message.get("published") or message.get("published-print") or {}).get("date-parts", [[]])
+        or [[]]
+    )[0]
     ano = parts[0] if parts else ""
 
-    issn_types = {
-        i.get("type"): i.get("value") for i in message.get("issn-type") or []
-    }
+    issn_types = {i.get("type"): i.get("value") for i in message.get("issn-type") or []}
     licenca = ((message.get("license") or [{}])[0]).get("URL", "")
 
     return {

@@ -17,10 +17,8 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from collections import Counter
 from pathlib import Path
-from typing import Any
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
@@ -229,13 +227,12 @@ class Command(BaseCommand):
 
         artigo: Artigo
         if doi:
-            artigo, criado_art = Artigo.objects.update_or_create(
-                doi=doi, defaults=defaults
-            )
+            artigo, criado_art = Artigo.objects.update_or_create(doi=doi, defaults=defaults)
             log["artigo:com_doi"] += 1
         else:
             # Gera identificador determinístico para casar com mesma chave em re-runs.
             from apps.acervo.models import _gerar_identificador_interno
+
             ident = _gerar_identificador_interno(
                 defaults["titulo"], defaults["ano"], defaults["titulo_periodico"]
             )
@@ -298,7 +295,11 @@ class Command(BaseCommand):
             self.stdout.write(f"  {chave:42s} {log[chave]}")
         self.stdout.write("")
         self.stdout.write(f"  Total Artigo:                              {Artigo.objects.count()}")
-        self.stdout.write(f"    eh_legado=True:                          {Artigo.objects.filter(eh_legado=True).count()}")
+        self.stdout.write(
+            f"    eh_legado=True:                          {Artigo.objects.filter(eh_legado=True).count()}"
+        )
         self.stdout.write(f"  Total Analise:                             {Analise.objects.count()}")
-        self.stdout.write(f"    status=legado:                           {Analise.objects.filter(status=Analise.Status.LEGADO).count()}")
+        self.stdout.write(
+            f"    status=legado:                           {Analise.objects.filter(status=Analise.Status.LEGADO).count()}"
+        )
         self.stdout.write(f"  Total User:                                {User.objects.count()}")

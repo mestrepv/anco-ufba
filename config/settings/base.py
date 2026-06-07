@@ -208,7 +208,9 @@ ACCOUNT_LOGIN_METHODS = {"email"}
 # Signup publico esta fechado em apps.core.adapters.AnCoAccountAdapter, entao
 # este campo so afeta o LoginForm.
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*"]
-ACCOUNT_EMAIL_VERIFICATION = "optional"  # cria EmailAddress (já verificado p/ OAuth) sem exigir confirmação
+ACCOUNT_EMAIL_VERIFICATION = (
+    "optional"  # cria EmailAddress (já verificado p/ OAuth) sem exigir confirmação
+)
 ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"
 ACCOUNT_LOGOUT_ON_GET = False
 
@@ -256,17 +258,17 @@ UNFOLD = {
     "COLORS": {
         # Paleta extraída do design system (var(--color-gold-deep) = #8C6520)
         "primary": {
-            "50":  "250 247 232",   # review-bg
-            "100": "245 241 232",   # paper-2
-            "200": "232 220 168",   # review-rule
-            "300": "212 204 184",   # rule-strong
-            "400": "184 134 44",    # gold
-            "500": "140 101 32",    # gold-deep (principal)
+            "50": "250 247 232",  # review-bg
+            "100": "245 241 232",  # paper-2
+            "200": "232 220 168",  # review-rule
+            "300": "212 204 184",  # rule-strong
+            "400": "184 134 44",  # gold
+            "500": "140 101 32",  # gold-deep (principal)
             "600": "120 86 24",
             "700": "96 69 18",
             "800": "72 52 14",
             "900": "48 34 9",
-            "950": "26 24 22",      # ink
+            "950": "26 24 22",  # ink
         },
     },
     "SIDEBAR": {

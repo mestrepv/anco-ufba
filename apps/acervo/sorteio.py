@@ -111,9 +111,7 @@ def executar_sorteio(resenha: Resenha) -> ResultadoSorteio:
         logger.info("Ciclo cego já pendente para resenha %s — skip", resenha.pk)
         return ResultadoSorteio(0, False, "Já existe ciclo cego pendente.")
 
-    ja_revisaram = set(
-        Revisao.objects.filter(resenha=resenha).values_list("revisor_id", flat=True)
-    )
+    ja_revisaram = set(Revisao.objects.filter(resenha=resenha).values_list("revisor_id", flat=True))
     elegiveis = revisores_elegiveis(resenha, excluir_ids=ja_revisaram)
     cegos = _sortear_n(elegiveis, N_REVISORES_CEGOS)
 
@@ -158,9 +156,7 @@ def re_sortear_revisao_expirada(revisao: Revisao) -> Revisao | None:
         return None
 
     ja_designados = set(
-        Revisao.objects.filter(resenha=revisao.resenha).values_list(
-            "revisor_id", flat=True
-        )
+        Revisao.objects.filter(resenha=revisao.resenha).values_list("revisor_id", flat=True)
     )
     elegiveis = revisores_elegiveis(revisao.resenha, excluir_ids=ja_designados)
     novos = _sortear_n(elegiveis, 1)

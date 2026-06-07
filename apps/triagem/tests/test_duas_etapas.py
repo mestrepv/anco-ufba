@@ -26,10 +26,16 @@ Et = DecisaoTriagem.Etapa
 
 
 def _revisor(n):
-    return membro(User.objects.create_user(
-        username=f"rev{n}", email=f"rev{n}@u.edu", password="x",
-        papel=User.Papel.ANALISTA, revisor_aprovado=True, aceita_revisoes=True,
-    ))
+    return membro(
+        User.objects.create_user(
+            username=f"rev{n}",
+            email=f"rev{n}@u.edu",
+            password="x",
+            papel=User.Papel.ANALISTA,
+            revisor_aprovado=True,
+            aceita_revisoes=True,
+        )
+    )
 
 
 @pytest.fixture
@@ -79,9 +85,7 @@ def test_destino_duas_etapas(protocolo_2etapas):
 
 
 def test_consenso_ta_dispara_texto_completo(protocolo_2etapas, revisores):
-    reg = RegistroTriagem.objects.create(
-        protocolo=protocolo_2etapas, titulo="T", doi="10.1/a"
-    )
+    reg = RegistroTriagem.objects.create(protocolo=protocolo_2etapas, titulo="T", doi="10.1/a")
     executar_sorteio(reg, Et.TITULO_RESUMO)
     assert DecisaoTriagem.objects.filter(registro=reg, etapa=Et.TITULO_RESUMO).count() == 2
 
@@ -94,9 +98,7 @@ def test_consenso_ta_dispara_texto_completo(protocolo_2etapas, revisores):
 
 
 def test_fluxo_completo_incluido_promove(protocolo_2etapas, revisores):
-    reg = RegistroTriagem.objects.create(
-        protocolo=protocolo_2etapas, titulo="T", doi="10.1/b"
-    )
+    reg = RegistroTriagem.objects.create(protocolo=protocolo_2etapas, titulo="T", doi="10.1/b")
     executar_sorteio(reg, Et.TITULO_RESUMO)
     _decidir_etapa(reg, Et.TITULO_RESUMO, Dec.INCLUIR)
     _decidir_etapa(reg, Et.TEXTO_COMPLETO, Dec.INCLUIR)
@@ -107,9 +109,7 @@ def test_fluxo_completo_incluido_promove(protocolo_2etapas, revisores):
 
 
 def test_excluido_no_texto_completo_guarda_motivo(protocolo_2etapas, revisores):
-    reg = RegistroTriagem.objects.create(
-        protocolo=protocolo_2etapas, titulo="T", doi="10.1/c"
-    )
+    reg = RegistroTriagem.objects.create(protocolo=protocolo_2etapas, titulo="T", doi="10.1/c")
     executar_sorteio(reg, Et.TITULO_RESUMO)
     _decidir_etapa(reg, Et.TITULO_RESUMO, Dec.INCLUIR)
     _decidir_etapa(reg, Et.TEXTO_COMPLETO, Dec.EXCLUIR, motivo="sem dados de cognição")
@@ -120,9 +120,7 @@ def test_excluido_no_texto_completo_guarda_motivo(protocolo_2etapas, revisores):
 
 
 def test_excluido_no_ta_nao_vai_ao_texto(protocolo_2etapas, revisores):
-    reg = RegistroTriagem.objects.create(
-        protocolo=protocolo_2etapas, titulo="T", doi="10.1/d"
-    )
+    reg = RegistroTriagem.objects.create(protocolo=protocolo_2etapas, titulo="T", doi="10.1/d")
     executar_sorteio(reg, Et.TITULO_RESUMO)
     _decidir_etapa(reg, Et.TITULO_RESUMO, Dec.EXCLUIR, motivo="fora de escopo")
     reg.refresh_from_db()
@@ -145,9 +143,7 @@ def test_etapa_unica_inalterada(revisores):
 
 
 def test_desempate_texto_completo(protocolo_2etapas, revisores):
-    reg = RegistroTriagem.objects.create(
-        protocolo=protocolo_2etapas, titulo="T", doi="10.1/f"
-    )
+    reg = RegistroTriagem.objects.create(protocolo=protocolo_2etapas, titulo="T", doi="10.1/f")
     executar_sorteio(reg, Et.TITULO_RESUMO)
     _decidir_etapa(reg, Et.TITULO_RESUMO, Dec.INCLUIR)
     reg.refresh_from_db()
@@ -183,9 +179,7 @@ def test_etapa_atual(protocolo_2etapas):
 
 
 def test_prisma_conta_segundo_estagio(protocolo_2etapas, revisores):
-    incluido = RegistroTriagem.objects.create(
-        protocolo=protocolo_2etapas, titulo="A", doi="10.1/g"
-    )
+    incluido = RegistroTriagem.objects.create(protocolo=protocolo_2etapas, titulo="A", doi="10.1/g")
     executar_sorteio(incluido, Et.TITULO_RESUMO)
     _decidir_etapa(incluido, Et.TITULO_RESUMO, Dec.INCLUIR)
     _decidir_etapa(incluido, Et.TEXTO_COMPLETO, Dec.EXCLUIR, motivo="texto não elegível")

@@ -41,16 +41,17 @@ def leitor(db):
 @pytest.fixture
 def artigo(db, vocab):
     return Artigo.objects.create(
-        doi="10.x/t", titulo="T", ano=2020, base_consulta=vocab,
+        doi="10.x/t",
+        titulo="T",
+        ano=2020,
+        base_consulta=vocab,
         link_acesso="https://e.org/t",
     )
 
 
 @pytest.fixture
 def analise_submetida(db, artigo, autor):
-    return Analise.objects.create(
-        artigo=artigo, analista=autor, status=Analise.Status.SUBMETIDA
-    )
+    return Analise.objects.create(artigo=artigo, analista=autor, status=Analise.Status.SUBMETIDA)
 
 
 @pytest.fixture
@@ -130,9 +131,7 @@ class TestConfirmacaoResenha:
 
 @pytest.fixture
 def analise_publicada(db, artigo, autor):
-    return Analise.objects.create(
-        artigo=artigo, analista=autor, status=Analise.Status.PUBLICADA
-    )
+    return Analise.objects.create(artigo=artigo, analista=autor, status=Analise.Status.PUBLICADA)
 
 
 class TestDespublicacao:
@@ -162,8 +161,9 @@ class TestDespublicacao:
         assert analise_publicada.despublicada_em is None
 
     def test_restaura_preserva_legado(self, client, curador, artigo):
-        u = User.objects.create_user(username="leg", email="leg@u.edu.br", password="x",
-                                     papel=User.Papel.ANALISTA)
+        u = User.objects.create_user(
+            username="leg", email="leg@u.edu.br", password="x", papel=User.Papel.ANALISTA
+        )
         a = Analise.objects.create(artigo=artigo, analista=u, status=Analise.Status.LEGADO)
         client.force_login(curador)
         client.post(reverse("despublicar_analise", args=[a.pk]))

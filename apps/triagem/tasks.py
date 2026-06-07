@@ -41,9 +41,7 @@ def avancar_apos_status(registro: RegistroTriagem) -> None:
         )
 
 
-def task_sortear_triagem(
-    registro_id: int, etapa: str = DecisaoTriagem.Etapa.TITULO_RESUMO
-) -> dict:
+def task_sortear_triagem(registro_id: int, etapa: str = DecisaoTriagem.Etapa.TITULO_RESUMO) -> dict:
     """Sorteia revisores para uma etapa de triagem de um registro."""
     try:
         registro = RegistroTriagem.objects.select_related("protocolo").get(pk=registro_id)
@@ -102,9 +100,7 @@ def iniciar_triagem(protocolo: ProtocoloTriagem, registro_ids: list[int] | None 
     """
     from django_q.tasks import async_task
 
-    qs = protocolo.registros.filter(
-        status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
-    )
+    qs = protocolo.registros.filter(status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False)
     if registro_ids is not None:
         qs = qs.filter(pk__in=registro_ids)
     ids = list(qs.values_list("pk", flat=True))
@@ -116,6 +112,7 @@ def iniciar_triagem(protocolo: ProtocoloTriagem, registro_ids: list[int] | None 
 # --------------------------------------------------------------------------- #
 # Notificações (best-effort; falham silenciosamente)
 # --------------------------------------------------------------------------- #
+
 
 def _enviar(assunto: str, corpo: str, destinatarios: list[str]) -> None:
     destinatarios = [e for e in destinatarios if e]
@@ -130,11 +127,7 @@ def _enviar(assunto: str, corpo: str, destinatarios: list[str]) -> None:
 def _notificar_revisores_triagem(
     registro: RegistroTriagem, etapa: str = DecisaoTriagem.Etapa.TITULO_RESUMO
 ) -> None:
-    base = (
-        "texto completo"
-        if etapa == DecisaoTriagem.Etapa.TEXTO_COMPLETO
-        else "título e resumo"
-    )
+    base = "texto completo" if etapa == DecisaoTriagem.Etapa.TEXTO_COMPLETO else "título e resumo"
     pendentes = DecisaoTriagem.objects.filter(
         registro=registro, etapa=etapa, concluido_em__isnull=True
     ).select_related("revisor")
