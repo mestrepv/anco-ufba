@@ -56,11 +56,11 @@ que a busca textual perde por divergência de vocabulário.
 
 | Rank | Modo textual | Pertinência | Modo semântico | Score | Pertinência |
 |------|-------------|-------------|---------------|-------|-------------|
-| 1 | — | | — | | |
-| 2 | — | | — | | |
-| 3 | — | | — | | |
-| 4 | — | | — | | |
-| 5 | — | | — | | |
+| 1 | APHORISMS AS MEANS OF INTERPRETING OF LINGUISTIC TERMS: PE | | APHORISMS AS MEANS OF INTERPRETING OF LINGUISTIC TERMS: PE | 64% | |
+| 2 | — | | The ubiquity of epistemics: A rebuttal to the 'epistemics | 63% | |
+| 3 | — | | Análise discursiva sobre promoção da saúde no programa aca | 62% | |
+| 4 | — | | Scientific popularization and media coverage of science Te | 61% | |
+| 5 | — | | Thematic Scientific Bibliography as a Discourse: Modern Yo | 61% | |
 
 **Análise**: _a preencher_
 
@@ -75,11 +75,11 @@ cognição e literatura científica mesmo que estejam escritas em português.
 
 | Rank | Modo textual | Pertinência | Modo semântico | Score | Pertinência |
 |------|-------------|-------------|---------------|-------|-------------|
-| 1 | — | | — | | |
-| 2 | — | | — | | |
-| 3 | — | | — | | |
-| 4 | — | | — | | |
-| 5 | — | | — | | |
+| 1 | — | | Cognitive literary studies: Theory, experiments, analyses | 82% | |
+| 2 | — | | TRANSIÇÃO, PLASTICIDADE DE FRONTEIRAS E IDENTIDADE CIENTÍF | 75% | |
+| 3 | — | | Thematic Scientific Bibliography as a Discourse: Modern Yo | 71% | |
+| 4 | — | | On the rationality of decision-aiding processes | 69% | |
+| 5 | — | | Teoría y metodología de investigación sobre libros de text | 69% | |
 
 **Análise**: _a preencher_
 
@@ -95,11 +95,11 @@ cognição distribuída, cocriação científica, etc.
 
 | Rank | Modo textual | Pertinência | Modo semântico | Score | Pertinência |
 |------|-------------|-------------|---------------|-------|-------------|
-| 1 | — | | — | | |
-| 2 | — | | — | | |
-| 3 | — | | — | | |
-| 4 | — | | — | | |
-| 5 | — | | — | | |
+| 1 | — | | Didactic-Pedagogical Approaches in e-Learning: Teaching Au | 66% | |
+| 2 | — | | TESE: Análise conceitual e cognitiva: Modac - um modelo di | 63% | |
+| 3 | — | | A relação entre a memória social e sociocognição: busca do | 63% | |
+| 4 | — | | A REDE COMO ESPAÇO MULTIRREFERENCIAL DE APRENDIZAGEM. | 63% | |
+| 5 | — | | TESE: ENCRUZILHADAS E LINHAS DE FUGA DA INTERATIVIDADE | 58% | |
 
 **Análise**: _a preencher_
 
@@ -114,11 +114,11 @@ semântico pega variantes como "mapeamento bibliométrico", "scoping review".
 
 | Rank | Modo textual | Pertinência | Modo semântico | Score | Pertinência |
 |------|-------------|-------------|---------------|-------|-------------|
-| 1 | — | | — | | |
-| 2 | — | | — | | |
-| 3 | — | | — | | |
-| 4 | — | | — | | |
-| 5 | — | | — | | |
+| 1 | A SYSTEMATIC LITERATURE REVIEW ON 360° PANORAMIC APPLICATI | | Book Review: Patricia Canning, Style in the Renaissance: L | 72% | |
+| 2 | — | | In search of a lost treasure: cultural mapping studies in | 60% | |
+| 3 | — | | Beliefs and Practices Concerning Academic Writing Among Po | 59% | |
+| 4 | — | | Thematic Scientific Bibliography as a Discourse: Modern Yo | 59% | |
+| 5 | — | | ЯЗЫКОВАЯ РЕАЛИЗАЦИЯ АВТОРСКОЙ МОДАЛЬНОСТИ... // Language r | 59% | |
 
 **Análise**: _a preencher_
 
@@ -134,11 +134,11 @@ análises sobre aprendizagem cognitiva de fato.
 
 | Rank | Modo textual | Pertinência | Modo semântico | Score | Pertinência |
 |------|-------------|-------------|---------------|-------|-------------|
-| 1 | — | | — | | |
-| 2 | — | | — | | |
-| 3 | — | | — | | |
-| 4 | — | | — | | |
-| 5 | — | | — | | |
+| 1 | — | | Demandas cognitivas en tareas enviadas a preescolares dura | 77% | |
+| 2 | — | | Design and Application of Computer-Aided College Chinese I | 73% | |
+| 3 | — | | Análise cognitiva das tarefas de comparação de probabilida | 72% | |
+| 4 | — | | Epistemic and Cognitive Analysis of a 2D Visualization Tas | 71% | |
+| 5 | — | | Análise cognitiva de tarefas de comparação de probabilidad | 71% | |
 
 **Análise**: _a preencher_
 
@@ -153,11 +153,11 @@ deve surfaçar análises sobre embodied cognition, corporeidade, Merleau-Ponty.
 
 | Rank | Modo textual | Pertinência | Modo semântico | Score | Pertinência |
 |------|-------------|-------------|---------------|-------|-------------|
-| 1 | — | | — | | |
-| 2 | — | | — | | |
-| 3 | — | | — | | |
-| 4 | — | | — | | |
-| 5 | — | | — | | |
+| 1 | — | | THE ANALYSIS OF CONCEPTS IN A TERMINOLOGY: A CASE STUDY OF | 78% | |
+| 2 | — | | "Typical" and "imperceptible" as modus language category | 77% | |
+| 3 | — | | Un análisis cognitivista de las perífrasis modales de obli | 77% | |
+| 4 | — | | The Polysemy of Khilāl: A Cognitive Approach | 76% | |
+| 5 | — | | Imagining the future self through thought experiments | 76% | |
 
 **Análise**: _a preencher_
 
@@ -173,11 +173,11 @@ explicitamente mas tratam do mesmo objeto.
 
 | Rank | Modo textual | Pertinência | Modo semântico | Score | Pertinência |
 |------|-------------|-------------|---------------|-------|-------------|
-| 1 | — | | — | | |
-| 2 | — | | — | | |
-| 3 | — | | — | | |
-| 4 | — | | — | | |
-| 5 | — | | — | | |
+| 1 | Uma análise cognitivo-axiológica dos anúncios do Gymshark | | A PSYCHODIAGNOSTIC COGNITIVE ANALYSIS OF PERIODONTAL PATIE | 81% | |
+| 2 | TESE - AnCo-REDES _ MODELO PARA ANÁLISE COGNITIVA COM BASE | | Un análisis cognitivista de las perífrasis modales de obli | 80% | |
+| 3 | Linguo-cognitive analysis of a literary text: linguistic m | | The Polysemy of Khilāl: A Cognitive Approach | 80% | |
+| 4 | TESE: Análise conceitual e cognitiva: Modac - um modelo di | | Cognitive literary studies: Theory, experiments, analyses | 80% | |
+| 5 | Intelligent Algorithms of Processing of Information in the | | Scenario Modelling of the Green Economy in an Economic Spa | 76% | |
 
 **Análise**: _a preencher_
 
@@ -193,11 +193,11 @@ socioconstrutivistas. Documentar o caso onde textual é melhor.
 
 | Rank | Modo textual | Pertinência | Modo semântico | Score | Pertinência |
 |------|-------------|-------------|---------------|-------|-------------|
-| 1 | — | | — | | |
-| 2 | — | | — | | |
-| 3 | — | | — | | |
-| 4 | — | | — | | |
-| 5 | — | | — | | |
+| 1 | — | | Presuntivismo e falsa contraposição entre mentira e verdad | 50% | |
+| 2 | — | | Comportamento infocomunicacional de bibliotecários e estud | 41% | |
+| 3 | — | | Articuler cognition spatiale et cognition environnementale | 41% | |
+| 4 | — | | Expert cognition in the production sequence of Acheulian c | 41% | |
+| 5 | — | | ANADIPLOSIS AS A MEANS OF COHESION: THE LOCATIVE-TEMPORAL | 40% | |
 
 **Análise**: _a preencher_
 
@@ -213,11 +213,11 @@ sobre redes de colaboração e cognição distribuída.
 
 | Rank | Modo textual | Pertinência | Modo semântico | Score | Pertinência |
 |------|-------------|-------------|---------------|-------|-------------|
-| 1 | — | | — | | |
-| 2 | — | | — | | |
-| 3 | — | | — | | |
-| 4 | — | | — | | |
-| 5 | — | | — | | |
+| 1 | — | | A relação entre a memória social e sociocognição: busca do | 70% | |
+| 2 | — | | Representações sociais de profissionais de emergência sobr | 68% | |
+| 3 | — | | COGNIÇÃO EM AMBIENTES COM MEDIAÇÃO TELEMÁTICA... | 66% | |
+| 4 | — | | Brain-Behavior Participant Similarity Networks among Youth | 66% | |
+| 5 | — | | The Fundamentals of Cognitive Informatics | 66% | |
 
 **Análise**: _a preencher_
 
@@ -232,11 +232,11 @@ classificadas com epistemologia "realismo" mesmo sem mencionar "realismo crític
 
 | Rank | Modo textual | Pertinência | Modo semântico | Score | Pertinência |
 |------|-------------|-------------|---------------|-------|-------------|
-| 1 | — | | — | | |
-| 2 | — | | — | | |
-| 3 | — | | — | | |
-| 4 | — | | — | | |
-| 5 | — | | — | | |
+| 1 | — | | Metaphorically redefined vocabulary: Categorization and sy | 62% | |
+| 2 | — | | Theatre as research | 60% | |
+| 3 | — | | Imagining the future self through thought experiments | 59% | |
+| 4 | — | | Ritual and Christian Beginnings: A Socio-Cognitive Analysi | 59% | |
+| 5 | — | | TRANSIÇÃO, PLASTICIDADE DE FRONTEIRAS E IDENTIDADE CIENTÍF | 57% | |
 
 **Análise**: _a preencher_
 
@@ -267,11 +267,11 @@ Para cada query: além da tabela top-5, marque **Obra-alvo no top-5 do semântic
 
 | Rank | Modo textual | Pertinência | Modo semântico | Score | Pertinência |
 |------|-------------|-------------|---------------|-------|-------------|
-| 1 | — | | — | | |
-| 2 | — | | — | | |
-| 3 | — | | — | | |
-| 4 | — | | — | | |
-| 5 | — | | — | | |
+| 1 | — | | A relação entre a memória social e sociocognição: busca do | 64% | |
+| 2 | — | | Didactic-Pedagogical Approaches in e-Learning: Teaching Au | 63% | |
+| 3 | — | | Comportamento infocomunicacional de bibliotecários e estud | 62% | |
+| 4 | — | | TESE: Análise conceitual e cognitiva: Modac - um modelo di | 61% | |
+| 5 | — | | A REDE COMO ESPAÇO MULTIRREFERENCIAL DE APRENDIZAGEM. | 58% | |
 
 **Obra-alvo no top-5 do semântico?** _Sim / Não_ · **Análise**: _a preencher_
 
@@ -289,11 +289,11 @@ muito particular; teste forte de fronteira.
 
 | Rank | Modo textual | Pertinência | Modo semântico | Score | Pertinência |
 |------|-------------|-------------|---------------|-------|-------------|
-| 1 | — | | — | | |
-| 2 | — | | — | | |
-| 3 | — | | — | | |
-| 4 | — | | — | | |
-| 5 | — | | — | | |
+| 1 | — | | The Fundamentals of Cognitive Informatics | 61% | |
+| 2 | — | | Comportamento infocomunicacional de bibliotecários e estud | 58% | |
+| 3 | — | | Trans/Form/Ação | 57% | |
+| 4 | — | | TRANSIÇÃO, PLASTICIDADE DE FRONTEIRAS E IDENTIDADE CIENTÍF | 56% | |
+| 5 | — | | Expert cognition in the production sequence of Acheulian c | 55% | |
 
 **Obra-alvo no top-5 do semântico?** _Sim / Não_ · **Análise**: _a preencher_
 
@@ -311,11 +311,11 @@ muito particular; teste forte de fronteira.
 
 | Rank | Modo textual | Pertinência | Modo semântico | Score | Pertinência |
 |------|-------------|-------------|---------------|-------|-------------|
-| 1 | — | | — | | |
-| 2 | — | | — | | |
-| 3 | — | | — | | |
-| 4 | — | | — | | |
-| 5 | — | | — | | |
+| 1 | — | | Defining the community of interest as thematic and cogniti | 59% | |
+| 2 | — | | A relação entre a memória social e sociocognição: busca do | 55% | |
+| 3 | — | | TESE: ENCRUZILHADAS E LINHAS DE FUGA DA INTERATIVIDADE | 55% | |
+| 4 | — | | Didactic-Pedagogical Approaches in e-Learning: Teaching Au | 54% | |
+| 5 | — | | "Wish you were here" trust in public administration in Lat | 53% | |
 
 **Obra-alvo no top-5 do semântico?** _Sim / Não_ · **Análise**: _a preencher_
 
@@ -333,11 +333,11 @@ irreconhecido" — onde o viés de canonicidade mais provavelmente falha.
 
 | Rank | Modo textual | Pertinência | Modo semântico | Score | Pertinência |
 |------|-------------|-------------|---------------|-------|-------------|
-| 1 | — | | — | | |
-| 2 | — | | — | | |
-| 3 | — | | — | | |
-| 4 | — | | — | | |
-| 5 | — | | — | | |
+| 1 | — | | Structural-semantic analysis of Mansi good wishes | 62% | |
+| 2 | — | | "Typical" and "imperceptible" as modus language category | 62% | |
+| 3 | — | | Address inversion in Swahili: Usage patterns, cognitive mo | 60% | |
+| 4 | — | | When to Use Your Head and When to Use Your Heart: The Diff | 60% | |
+| 5 | — | | A Multimodal Analysis of the Representation of Hegemonic M | 60% | |
 
 **Obra-alvo no top-5 do semântico?** _Sim / Não_ · **Análise**: _a preencher_
 
@@ -354,11 +354,11 @@ do campo. Expressão própria da autora — quase ausente do vocabulário geral 
 
 | Rank | Modo textual | Pertinência | Modo semântico | Score | Pertinência |
 |------|-------------|-------------|---------------|-------|-------------|
-| 1 | — | | — | | |
-| 2 | — | | — | | |
-| 3 | — | | — | | |
-| 4 | — | | — | | |
-| 5 | — | | — | | |
+| 1 | — | | A relação entre a memória social e sociocognição: busca do | 71% | |
+| 2 | — | | Didactic-Pedagogical Approaches in e-Learning: Teaching Au | 64% | |
+| 3 | — | | Address inversion in Swahili: Usage patterns, cognitive mo | 61% | |
+| 4 | — | | Linguistic and Cognitive Analysis of Inter-Cultural Busine | 60% | |
+| 5 | — | | Cross-cultural competence of communicators as a way to cre | 59% | |
 
 **Obra-alvo no top-5 do semântico?** _Sim / Não_ · **Análise**: _a preencher_
 
@@ -375,6 +375,25 @@ do campo. Expressão própria da autora — quase ausente do vocabulário geral 
 
 **Indicador de viés de canonicidade** — obras-alvo de fronteira nos top-5 do
 semântico: **_ / 5** (ou _/N alvos). _Quanto mais baixo, maior o viés._
+
+### Observações mecânicas (factuais — coletadas automaticamente, sem julgamento)
+
+> Coletado em 2026-06 sobre 652 análises indexadas. São **fatos de recuperação**,
+> não juízos de pertinência (esses são seus).
+
+- **Modo textual retornou 0 resultados em 12 das 15 queries.** Só devolveu algo em
+  Q1 (1), Q4 (1) e Q7 (5). Confirma que o FTS exige casamento de termos: perde toda
+  pergunta em linguagem natural e todo o vocabulário próprio de Fróes.
+- **O bloco C inteiro (C1–C5) deu 0 no textual** — nenhuma das expressões de
+  fronteira ("acervação", "tradução do conhecimento", "segregação sociocognitiva"…)
+  existe literalmente no corpus. É o cenário em que **só** a busca semântica opera.
+- **O modo semântico sempre devolve 5 resultados** (ele retorna os mais próximos,
+  mesmo quando a similaridade é baixa: no bloco C os scores caem a 53–64%, e em Q8
+  "Vygotsky" a 40–50%). Score baixo é o sinal de que "o mais próximo" pode ainda
+  ser irrelevante — **é exatamente aí que o seu julgamento decide**.
+- Vários títulos se repetem entre queries diferentes (ex.: *"A relação entre a
+  memória social e sociocognição"* aparece em Q3, Q9, C1, C3, C5). Pode indicar uma
+  análise "central" no espaço vetorial — ou um viés de hub a investigar.
 
 ### Quando a busca semântica ganha
 _a preencher_
