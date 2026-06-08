@@ -305,6 +305,7 @@ def painel_view(request: HttpRequest) -> HttpResponse:
             "projetos_painel": projetos_painel,
             "n_projetos": len(meus_projetos),
             "proxima": proxima,
+            "pode_criar_projeto": user.is_staff or user.eh_curador,
         }
 
     return render(

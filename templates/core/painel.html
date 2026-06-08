@@ -106,9 +106,12 @@
   {% endif %}
 
   {# ── Projeto(s): objetivo, estratégia e as 7 etapas com seus contadores ── #}
-  {% if projetos_painel %}
+  {% if projetos_painel or pode_criar_projeto %}
   <section class="painel-secao">
-    <h2>{% if n_projetos > 1 %}Seus projetos{% else %}Seu projeto{% endif %}</h2>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;">
+      <h2 style="margin:0;">{% if n_projetos > 1 %}Seus projetos{% else %}Seu projeto{% endif %}</h2>
+      {% if pode_criar_projeto %}<a href="{% url 'triagem_novo_projeto' %}" class="btn btn-sm btn-primary">+ Novo projeto</a>{% endif %}
+    </div>
     <p class="secao-desc">Os projetos em que você participa. <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a></p>
     {% for item in projetos_painel %}
     <div class="projeto-bloco">
@@ -120,6 +123,8 @@
         {% if item.projeto.estrategia_busca %}{{ item.projeto.estrategia_busca|truncatechars:220 }}{% else %}<span style="color:var(--color-ink-3);">(a definir no protocolo){% if item.eh_curador %} — <a href="{% url 'triagem_protocolo' item.projeto.slug %}" style="color:var(--color-gold-deep);">editar</a>{% endif %}</span>{% endif %}
       </p>
     </div>
+    {% empty %}
+    <p class="empty">Você ainda não participa de nenhum projeto.{% if pode_criar_projeto %} Crie o primeiro em <a href="{% url 'triagem_novo_projeto' %}" style="color:var(--color-gold-deep);font-style:normal;">Novo projeto →</a>{% endif %}</p>
     {% endfor %}
   </section>
   {% endif %}
