@@ -35,7 +35,13 @@ from .autotriagem import (
     reverter_inclusao,
 )
 from .estatisticas import estatisticas_por_base
-from .forms import DecisaoTriagemForm, DesempateForm, EditarBuscaForm, ImportarBuscaForm
+from .forms import (
+    DecisaoTriagemForm,
+    DesempateForm,
+    EditarBuscaForm,
+    ImportarBuscaForm,
+    RegistroFonteForm,
+)
 from .importacao import (
     analisar_arquivo,
     decodificar,
@@ -513,6 +519,103 @@ def editar_busca_view(
             "ano_min": 2000,
             "ano_max": datetime.date.today().year,
             "ano_range": datetime.date.today().year - 2000,
+        },
+    )
+
+
+def _sincronizar_artigo(registro) -> None:
+    """Propaga os campos bibliográficos do registro para o `Artigo` promovido.
+
+    Mantém a análise em sincronia com as correções feitas na fonte. Nunca toca o
+    acervo legado (`eh_legado`). Se o DOI/ISBN editado colidir com outro artigo,
+    salva o resto e preserva a chave antiga.
+    """
+    from django.db import IntegrityError
+
+    from .promocao import _idioma
+
+    artigo = registro.artigo
+    if artigo is None or artigo.eh_legado:
+        return
+    artigo.titulo = registro.titulo
+    artigo.autores = registro.autores
+    artigo.ano = registro.ano
+    artigo.resumo = registro.resumo
+    artigo.palavras_chaves = registro.palavras_chaves
+    artigo.titulo_periodico = registro.titulo_periodico
+    artigo.idioma = _idioma(registro.idioma)
+    artigo.link_acesso = registro.link or ""
+    artigo.doi = registro.doi or None
+    artigo.isbn = registro.isbn or None
+    comuns = [
+        "titulo",
+        "autores",
+        "ano",
+        "resumo",
+        "palavras_chaves",
+        "titulo_periodico",
+        "idioma",
+        "link_acesso",
+    ]
+    try:
+        artigo.save(update_fields=[*comuns, "doi", "isbn"])
+    except IntegrityError:
+        # DOI/ISBN colidiu com outro artigo: salva o resto sem mexer na chave.
+        artigo.refresh_from_db(fields=["doi", "isbn"])
+        for campo in comuns:
+            setattr(artigo, campo, getattr(registro, campo, getattr(artigo, campo)))
+        artigo.idioma = _idioma(registro.idioma)
+        artigo.link_acesso = registro.link or ""
+        artigo.save(update_fields=comuns)
+
+
+@_projeto_analista
+def fonte_view(request: HttpRequest, projeto: ProtocoloTriagem, busca_id: int) -> HttpResponse:
+    """Navega as fontes (registros) de uma importação, uma a uma, e permite
+    completar/corrigir os campos bibliográficos. Gate: importador ou curador."""
+    busca = get_object_or_404(Busca, pk=busca_id, protocolo=projeto)
+    if not _pode_editar_busca(busca, request.user, projeto):
+        return HttpResponseForbidden("Só quem importou (ou o curador) navega/edita as fontes.")
+
+    ids = list(busca.registros.order_by("titulo", "pk").values_list("pk", flat=True))
+    total = len(ids)
+
+    def _idx(valor) -> int:
+        try:
+            return max(0, min(int(valor), total - 1)) if total else 0
+        except (TypeError, ValueError):
+            return 0
+
+    i = _idx(request.POST.get("i") if request.method == "POST" else request.GET.get("i"))
+    registro = RegistroTriagem.objects.select_related("artigo").get(pk=ids[i]) if total else None
+
+    base_url = reverse("triagem_busca_fonte", args=[projeto.slug, busca.pk])
+    if request.method == "POST" and registro is not None:
+        form = RegistroFonteForm(request.POST, instance=registro)
+        if form.is_valid():
+            form.save()
+            _sincronizar_artigo(registro)
+            from .relevancia import atualizar_relevancia
+
+            atualizar_relevancia(registro)
+            messages.success(request, "Fonte atualizada.")
+            return redirect(f"{base_url}?i={i}")
+    else:
+        form = RegistroFonteForm(instance=registro) if registro else None
+
+    return render(
+        request,
+        "triagem/fonte.html",
+        {
+            "projeto": projeto,
+            "protocolo": projeto,
+            "busca": busca,
+            "registro": registro,
+            "form": form,
+            "pos": i + 1,
+            "total": total,
+            "url_anterior": f"{base_url}?i={i - 1}" if i > 0 else "",
+            "url_proximo": f"{base_url}?i={i + 1}" if i < total - 1 else "",
         },
     )
 

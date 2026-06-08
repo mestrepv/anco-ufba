@@ -146,6 +146,46 @@ class EditarBuscaForm(ImportarBuscaForm):
         self.fields.pop("formato", None)
 
 
+class RegistroFonteForm(forms.ModelForm):
+    """Edita os campos bibliográficos de um registro (fonte) — para completar o
+    que não veio no arquivo importado (resumo, palavras-chave, etc.)."""
+
+    class Meta:
+        model = RegistroTriagem
+        fields = [
+            "titulo",
+            "autores",
+            "ano",
+            "titulo_periodico",
+            "doi",
+            "isbn",
+            "idioma",
+            "tipo",
+            "palavras_chaves",
+            "resumo",
+            "link",
+        ]
+        labels = {
+            "titulo": "Título",
+            "autores": "Autores",
+            "ano": "Ano",
+            "titulo_periodico": "Periódico/Fonte",
+            "doi": "DOI",
+            "isbn": "ISBN/ISSN",
+            "idioma": "Idioma",
+            "tipo": "Tipo de documento",
+            "palavras_chaves": "Palavras-chave",
+            "resumo": "Resumo",
+            "link": "Link de acesso",
+        }
+        widgets = {
+            "titulo": forms.Textarea(attrs={"rows": 2}),
+            "autores": forms.Textarea(attrs={"rows": 2}),
+            "palavras_chaves": forms.Textarea(attrs={"rows": 2}),
+            "resumo": forms.Textarea(attrs={"rows": 7}),
+        }
+
+
 class DecisaoTriagemForm(forms.Form):
     """Parecer de triagem de um revisor (incluir/excluir/dúvida + motivo)."""
 

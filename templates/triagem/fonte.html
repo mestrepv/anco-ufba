@@ -1,0 +1,107 @@
+{% extends "_base_publico.html" %}
+
+{% block title %}Fontes · {{ busca.base_nome|default:"Importação" }}{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}
+<style>
+  .fonte-nav { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:10px 0 18px; }
+  .fonte-pos { font-family:var(--font-sans); font-size:14px; color:var(--color-ink-2); }
+  .fonte-pos b { color:var(--color-ink); }
+  .fonte-form .tg-field label { display:block; font-family:var(--font-sans); font-size:12px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.03em; color:var(--color-ink-3); margin-bottom:6px; }
+  .fonte-form input[type=text], .fonte-form input[type=number], .fonte-form textarea, .fonte-form select {
+    width:100%; font-family:var(--font-sans); font-size:14px; padding:9px 11px; box-sizing:border-box;
+    border:1px solid var(--color-rule-strong); border-radius:6px; background:var(--color-paper); color:var(--color-ink); }
+  .fonte-form textarea { line-height:1.55; resize:vertical; }
+  .fonte-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
+  @media (max-width:560px){ .fonte-row-2 { grid-template-columns:1fr; } }
+  .fonte-vazio { color:var(--color-ink-3); font-style:italic; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tg-wrap narrow">
+  <a href="{% url 'triagem_busca_resumo' projeto.slug busca.pk %}" class="tg-back">&larr; {{ busca.base_nome|default:"Importação" }}</a>
+  <h1 class="tg-h1" style="margin-top:6px;">Fontes da importação</h1>
+  <p class="tg-desc">
+    Navegue por cada fonte e <strong>complete o que faltou</strong> no arquivo
+    (resumo, palavras-chave, DOI…). O que você salvar aqui vale também para a
+    análise do artigo.
+  </p>
+
+  {% if registro %}
+  {# ── Navegação ─────────────────────────────────────────────────── #}
+  <div class="fonte-nav">
+    {% if url_anterior %}<a href="{{ url_anterior }}" class="btn btn-secondary">&larr; Voltar</a>{% else %}<span class="btn btn-secondary" style="opacity:.4;pointer-events:none;">&larr; Voltar</span>{% endif %}
+    <span class="fonte-pos">Fonte <b>{{ pos }}</b> de <b>{{ total }}</b></span>
+    {% if url_proximo %}<a href="{{ url_proximo }}" class="btn btn-secondary">Avançar &rarr;</a>{% else %}<span class="btn btn-secondary" style="opacity:.4;pointer-events:none;">Avançar &rarr;</span>{% endif %}
+  </div>
+
+  {# ── Ficha editável ────────────────────────────────────────────── #}
+  <form method="post" class="fonte-form">
+    {% csrf_token %}
+    <input type="hidden" name="i" value="{{ pos|add:'-1' }}">
+    {% for erro in form.non_field_errors %}<p class="tg-err">{{ erro }}</p>{% endfor %}
+
+    <div class="tg-field">
+      <label for="{{ form.titulo.id_for_label }}">{{ form.titulo.label }}</label>
+      {{ form.titulo }}
+      {% for e in form.titulo.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
+    </div>
+    <div class="tg-field">
+      <label for="{{ form.autores.id_for_label }}">{{ form.autores.label }}</label>
+      {{ form.autores }}
+    </div>
+    <div class="fonte-row-2">
+      <div class="tg-field">
+        <label for="{{ form.ano.id_for_label }}">{{ form.ano.label }}</label>
+        {{ form.ano }}
+      </div>
+      <div class="tg-field">
+        <label for="{{ form.titulo_periodico.id_for_label }}">{{ form.titulo_periodico.label }}</label>
+        {{ form.titulo_periodico }}
+      </div>
+    </div>
+    <div class="fonte-row-2">
+      <div class="tg-field">
+        <label for="{{ form.doi.id_for_label }}">{{ form.doi.label }}</label>
+        {{ form.doi }}
+      </div>
+      <div class="tg-field">
+        <label for="{{ form.isbn.id_for_label }}">{{ form.isbn.label }}</label>
+        {{ form.isbn }}
+      </div>
+    </div>
+    <div class="fonte-row-2">
+      <div class="tg-field">
+        <label for="{{ form.idioma.id_for_label }}">{{ form.idioma.label }}</label>
+        {{ form.idioma }}
+      </div>
+      <div class="tg-field">
+        <label for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
+        {{ form.tipo }}
+      </div>
+    </div>
+    <div class="tg-field">
+      <label for="{{ form.palavras_chaves.id_for_label }}">{{ form.palavras_chaves.label }}</label>
+      {{ form.palavras_chaves }}
+    </div>
+    <div class="tg-field">
+      <label for="{{ form.resumo.id_for_label }}">{{ form.resumo.label }}</label>
+      {{ form.resumo }}
+    </div>
+    <div class="tg-field">
+      <label for="{{ form.link.id_for_label }}">{{ form.link.label }}</label>
+      {{ form.link }}
+    </div>
+
+    <div class="tg-actions" style="margin-top:8px;">
+      <button type="submit" class="btn btn-primary">Salvar fonte</button>
+      {% if url_proximo %}<a href="{{ url_proximo }}" class="btn btn-secondary">Pular para a próxima &rarr;</a>{% endif %}
+    </div>
+    <p class="tg-help" style="margin-top:8px;">Voltar/Avançar sem salvar descarta as alterações desta fonte.</p>
+  </form>
+  {% else %}
+    <p class="tg-empty">Esta importação não tem fontes.</p>
+  {% endif %}
+</div>
+{% endblock %}

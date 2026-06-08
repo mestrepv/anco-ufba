@@ -54,6 +54,11 @@ urlpatterns = [
         views.editar_busca_view,
         name="triagem_busca_editar",
     ),
+    path(
+        "p/<slug:slug>/busca/<int:busca_id>/fonte/",
+        views.fonte_view,
+        name="triagem_busca_fonte",
+    ),
     path("p/<slug:slug>/registros/", views.registros_view, name="triagem_registros"),
     path("p/<slug:slug>/duplicatas/", views.duplicatas_view, name="triagem_duplicatas"),
     path(
