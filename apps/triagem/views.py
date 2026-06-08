@@ -56,7 +56,11 @@ from .models import (
     RegistroTriagem,
     SorteioAnalise,
 )
-from .sorteio_analise import analistas_do_projeto, executar_sorteio_analise
+from .sorteio_analise import (
+    analistas_do_projeto,
+    desfazer_sorteio,
+    executar_sorteio_analise,
+)
 from .tasks import avancar_apos_status, iniciar_triagem
 
 
@@ -1395,6 +1399,14 @@ def estatisticas_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRe
 def sorteio_analise_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
     """Curador sorteia os incluídos entre os analistas (cota, única/dupla)."""
     if request.method == "POST":
+        if request.POST.get("acao") == "desfazer":
+            sorteio = get_object_or_404(
+                SorteioAnalise, pk=request.POST.get("sorteio_id"), projeto=projeto
+            )
+            n = desfazer_sorteio(sorteio)
+            messages.success(request, f"Sorteio desfeito ({n} atribuição(ões) removida(s)).")
+            return redirect("triagem_sorteio_analise", slug=projeto.slug)
+
         modo = request.POST.get("modo_revisao", SorteioAnalise.ModoRevisao.UNICA)
         if modo not in dict(SorteioAnalise.ModoRevisao.choices):
             modo = SorteioAnalise.ModoRevisao.UNICA
@@ -1409,6 +1421,7 @@ def sorteio_analise_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Htt
             por=request.user,
             observacoes=request.POST.get("observacoes", "").strip(),
             aleatorio=projeto.eh_anco,
+            exigir_completos=bool(request.POST.get("exigir_completos")),
         )
         if res.sorteio is not None:
             msg = f"Sorteio criado: {res.atribuidas} atribuições para {res.analistas} analista(s)."
@@ -1421,7 +1434,11 @@ def sorteio_analise_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Htt
         return redirect("triagem_sorteio_analise", slug=projeto.slug)
 
     sorteios = projeto.sorteios_analise.prefetch_related("atribuicoes").all()
-    n_incluidos = projeto.registros.filter(status=RegistroTriagem.Status.INCLUIDO).count()
+    incluidos = projeto.registros.filter(status=RegistroTriagem.Status.INCLUIDO)
+    n_incluidos = incluidos.count()
+    n_completos = (
+        incluidos.exclude(doi="").exclude(resumo="").exclude(palavras_chaves="").count()
+    )
     ja_atribuidos = (
         AtribuicaoAnalise.objects.filter(sorteio__projeto=projeto)
         .values("artigo_id")
@@ -1436,6 +1453,7 @@ def sorteio_analise_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Htt
             "protocolo": projeto,
             "sorteios": sorteios,
             "n_incluidos": n_incluidos,
+            "n_completos": n_completos,
             "n_disponiveis": n_incluidos - ja_atribuidos,
             "n_analistas": len(analistas_do_projeto(projeto)),
             "modos": SorteioAnalise.ModoRevisao.choices,

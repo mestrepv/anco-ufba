@@ -11,7 +11,7 @@ from apps.triagem.models import (
     SorteioAnalise,
 )
 from apps.triagem.promocao import promover_para_acervo
-from apps.triagem.sorteio_analise import _pool, executar_sorteio_analise
+from apps.triagem.sorteio_analise import _pool, desfazer_sorteio, executar_sorteio_analise
 
 from .conftest import membro
 
@@ -149,6 +149,67 @@ def test_sem_analistas(proj):
     res = executar_sorteio_analise(proj, cota=5, analistas=[])
     assert res.sorteio is None
     assert "analista" in res.motivo.lower()
+
+
+# ── Só artigos completos + desfazer sorteio ─────────────────────────────────
+
+
+def _incluido_completo(proj, n, *, completo):
+    reg = RegistroTriagem.objects.create(
+        protocolo=proj,
+        titulo=f"C{n}",
+        doi=f"10/c{n}",
+        resumo="um resumo" if completo else "",
+        palavras_chaves="cognição" if completo else "",
+        ano=2020,
+        status=RegistroTriagem.Status.INCLUIDO,
+        identificador=f"c{n}",
+    )
+    return reg, promover_para_acervo(reg)
+
+
+def test_exigir_completos_so_inclui_completos(proj):
+    a1 = _analista(proj, "ac")
+    completos = {_incluido_completo(proj, i, completo=True)[1].pk for i in range(3)}
+    for i in range(3, 6):
+        _incluido_completo(proj, i, completo=False)  # sem resumo/palavras-chave
+    res = executar_sorteio_analise(
+        proj, cota=10, por=a1, analistas=[a1], aleatorio=True, exigir_completos=True
+    )
+    escolhidos = set(
+        AtribuicaoAnalise.objects.filter(sorteio=res.sorteio).values_list("artigo_id", flat=True)
+    )
+    assert escolhidos == completos  # só os 3 completos entraram
+
+
+def test_exigir_completos_sem_nenhum_completo(proj):
+    a1 = _analista(proj, "ac2")
+    _incluido_completo(proj, 0, completo=False)
+    res = executar_sorteio_analise(
+        proj, cota=5, por=a1, analistas=[a1], aleatorio=True, exigir_completos=True
+    )
+    assert res.sorteio is None
+    assert "completo" in res.motivo.lower()
+
+
+def test_desfazer_sorteio_remove_atribuicoes(proj):
+    a1 = _analista(proj, "ad")
+    for i in range(3):
+        _incluido_completo(proj, i, completo=True)
+    res = executar_sorteio_analise(
+        proj, cota=5, por=a1, analistas=[a1], aleatorio=True, exigir_completos=True
+    )
+    sid = res.sorteio.pk
+    assert AtribuicaoAnalise.objects.filter(sorteio_id=sid).count() == 3
+    n = desfazer_sorteio(res.sorteio)
+    assert n == 3
+    assert not SorteioAnalise.objects.filter(pk=sid).exists()
+    assert AtribuicaoAnalise.objects.filter(sorteio_id=sid).count() == 0
+    # Artigos voltam ao pool: novo sorteio os pega de novo.
+    res2 = executar_sorteio_analise(
+        proj, cota=5, por=a1, analistas=[a1], aleatorio=True, exigir_completos=True
+    )
+    assert res2.atribuidas == 3
 
 
 # ── Sorteio aleatório (modo ANCO simplificado) ──────────────────────────────

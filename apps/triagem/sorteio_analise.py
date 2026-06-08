@@ -79,6 +79,7 @@ def _pool(
     *,
     aleatorio: bool = False,
     semente: int | None = None,
+    exigir_completos: bool = False,
 ) -> list[_ItemPool]:
     # Ordem base sempre determinística por `pk` (a ordem do banco não é
     # garantida); o modo aleatório embaralha em seguida com a seed.
@@ -88,6 +89,9 @@ def _pool(
         .select_related("artigo")
         .order_by(*ordem)
     )
+    if exigir_completos:
+        # Só artigos com DOI, resumo e palavras-chave preenchidos entram no sorteio.
+        regs = regs.exclude(doi="").exclude(resumo="").exclude(palavras_chaves="")
     pool, vistos = [], set()
     for r in regs:
         if r.artigo_id in vistos or r.artigo_id in excluir_artigos:
@@ -117,6 +121,7 @@ def executar_sorteio_analise(
     analistas=None,
     aleatorio: bool = False,
     semente: int | None = None,
+    exigir_completos: bool = False,
 ) -> ResultadoSorteioAnalise:
     """Cria um `SorteioAnalise` e aloca as `AtribuicaoAnalise` (idempotente por
     artigo: não realoca artigos já atribuídos em sorteios anteriores do projeto).
@@ -139,9 +144,20 @@ def executar_sorteio_analise(
             "artigo_id", flat=True
         )
     )
-    pool = _pool(projeto, ja_atribuidos, aleatorio=aleatorio, semente=semente)
+    pool = _pool(
+        projeto,
+        ja_atribuidos,
+        aleatorio=aleatorio,
+        semente=semente,
+        exigir_completos=exigir_completos,
+    )
     if not pool:
-        return ResultadoSorteioAnalise(None, motivo="Nenhum artigo incluído disponível.")
+        motivo = (
+            "Nenhum artigo completo (DOI + resumo + palavras-chave) disponível."
+            if exigir_completos
+            else "Nenhum artigo incluído disponível."
+        )
+        return ResultadoSorteioAnalise(None, motivo=motivo)
 
     assentos = 2 if modo_revisao == SorteioAnalise.ModoRevisao.DUPLA else 1
     vagas = {item.artigo_id: assentos for item in pool}
@@ -205,3 +221,16 @@ def executar_sorteio_analise(
         analistas=len(analistas),
         faltas=faltas,
     )
+
+
+@transaction.atomic
+def desfazer_sorteio(sorteio: SorteioAnalise) -> int:
+    """Desfaz um sorteio: remove suas atribuições e o próprio sorteio.
+
+    As análises porventura já iniciadas (`Analise`) **não** são apagadas — só a
+    distribuição. Os artigos voltam ao pool e podem ser re-sorteados. Retorna o
+    número de atribuições removidas.
+    """
+    n = sorteio.atribuicoes.count()
+    sorteio.delete()  # cascata remove as AtribuicaoAnalise
+    return n
