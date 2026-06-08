@@ -77,11 +77,15 @@
         {% endif %}
         <div class="meta-row"><dt>Ano</dt><dd>{{ analise.artigo.ano|default:"—" }}</dd></div>
         {% if analise.artigo.doi %}
-        <div class="meta-row"><dt>DOI</dt><dd><span class="mono">{{ analise.artigo.doi }}</span></dd></div>
+        <div class="meta-row"><dt>DOI</dt><dd><a href="https://doi.org/{{ analise.artigo.doi }}" target="_blank" rel="noopener noreferrer" class="link mono">{{ analise.artigo.doi }} ↗</a></dd></div>
         {% endif %}
         {% if analise.artigo.isbn %}
         <div class="meta-row"><dt>ISBN</dt><dd><span class="mono">{{ analise.artigo.isbn }}</span></dd></div>
         {% endif %}
+        <div class="meta-row"><dt>Link alternativo</dt><dd>
+          {% if analise.artigo.link_acesso_alternativo %}<a href="{{ analise.artigo.link_acesso_alternativo }}" target="_blank" rel="noopener noreferrer" class="link">{{ analise.artigo.link_acesso_alternativo }} ↗</a>
+          {% else %}<span class="t-meta" style="color: var(--color-ink-4); font-style:italic;">—</span>{% endif %}
+        </dd></div>
         <div class="meta-row"><dt>Autores</dt><dd>{{ analise.artigo.autores|truncatechars:300|default:"—" }}</dd></div>
         <div class="meta-row"><dt>Base</dt><dd>{{ analise.artigo.base_consulta.nome|default:"—" }}</dd></div>
         {% if analise.artigo.palavras_chaves %}
