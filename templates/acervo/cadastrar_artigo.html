@@ -172,14 +172,18 @@
             <label class="field-label" for="id_autores">Autores</label>
             <textarea name="autores" id="id_autores" class="field-textarea" rows="2" x-text="meta.autores_str || ''"></textarea>
           </div>
+        </div>
+      </details>
 
-          <div>
-            <label class="field-label" for="id_resumo">Resumo</label>
-            <textarea name="resumo" id="id_resumo" class="field-textarea" rows="4" x-text="meta.resumo || ''"></textarea>
-            <p class="t-meta" style="color: var(--color-ink-4); margin-top: 4px;">
-              Quando o lookup não traz, cole o resumo do PDF (opcional).
-            </p>
-          </div>
+      {# Resumo — visível (expandido) por padrão; o analista pode recolher #}
+      <details open
+               style="border: 1px solid var(--color-rule); border-radius: 6px; padding: 12px 14px;">
+        <summary style="cursor: pointer; font-family: var(--font-sans); font-size: 13px; color: var(--color-ink-3); font-weight: 500;">Resumo</summary>
+        <div style="margin-top: 14px;">
+          <textarea name="resumo" id="id_resumo" class="field-textarea" rows="8" x-text="meta.resumo || ''"></textarea>
+          <p class="t-meta" style="color: var(--color-ink-4); margin-top: 4px;">
+            Quando o lookup não traz, cole o resumo do PDF (opcional).
+          </p>
         </div>
       </details>
 
