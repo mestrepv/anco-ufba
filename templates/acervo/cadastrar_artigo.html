@@ -16,6 +16,13 @@
       preenche link de acesso, base de consulta e demais campos
       complementares.
     </p>
+    {% if projeto_corpus %}
+    <div style="margin-top: 14px; padding: 12px 16px; border-radius: 8px; background: var(--color-review-bg); border: 1px solid var(--color-gold-deep); font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);">
+      Este artigo será <strong>adicionado ao corpus</strong> do projeto
+      <strong>{{ projeto_corpus.nome }}</strong> — vira uma fonte e pode ser
+      sorteado para análise, como os importados.
+    </div>
+    {% endif %}
   </header>
 
   {# ── Passo 1: identificador ─────────────────────────────────────── #}
@@ -84,6 +91,7 @@
     </p>
 
     <form method="post" id="form-cadastrar-artigo" class="meta-card" style="display: grid; gap: 18px;">{% csrf_token %}
+      {% if projeto_slug %}<input type="hidden" name="projeto" value="{{ projeto_slug }}">{% endif %}
 
       {% if form.non_field_errors %}
       <div class="badge badge-err" style="display: block; padding: 12px 14px; border-radius: 6px;">
@@ -250,7 +258,7 @@
   <section style="margin-top: 24px; display: flex; align-items: center; justify-content: flex-end; gap: 12px;"
            x-show="lookupOk || modoManual" x-cloak>
     <button type="submit" form="form-cadastrar-artigo" class="btn btn-primary">
-      Cadastrar e iniciar análise →
+      {% if projeto_corpus %}Adicionar ao corpus →{% else %}Cadastrar e iniciar análise →{% endif %}
     </button>
   </section>
 

@@ -90,6 +90,35 @@ def buscar_artigo_view(request: HttpRequest) -> HttpResponse:
     return redirect("cadastrar_artigo")
 
 
+def _projeto_corpus(request: HttpRequest):
+    """Projeto ANCO de destino do "Artigo individual" (slug em ?projeto=/POST).
+
+    Só retorna o projeto se o usuário for membro (ou admin) e o projeto for ANCO;
+    caso contrário, o cadastro segue o fluxo avulso (inicia a própria análise).
+    """
+    slug = request.GET.get("projeto") or request.POST.get("projeto")
+    if not slug:
+        return None
+    from apps.triagem.models import ProtocoloTriagem
+
+    p = ProtocoloTriagem.objects.filter(slug=slug).first()
+    if p and p.eh_anco and (request.user.is_staff or p.eh_membro(request.user)):
+        return p
+    return None
+
+
+def _adicionar_ao_corpus(request: HttpRequest, projeto, artigo) -> HttpResponse:
+    """Inclui o artigo no corpus do projeto e volta para o corpus."""
+    from apps.triagem.promocao import registrar_artigo_no_corpus
+
+    reg = registrar_artigo_no_corpus(projeto, artigo, request.user)
+    if reg is not None:
+        messages.success(request, f"Artigo adicionado ao corpus de “{projeto.nome}”.")
+    else:
+        messages.info(request, "Este artigo já está no acervo histórico (legado).")
+    return redirect("triagem_incluidos", slug=projeto.slug)
+
+
 @_exige_analista
 def cadastrar_artigo_view(request: HttpRequest) -> HttpResponse:
     """
@@ -102,6 +131,7 @@ def cadastrar_artigo_view(request: HttpRequest) -> HttpResponse:
     POST: valida ArtigoMetadadosForm, cria Artigo + Analise (rascunho),
     valida link em background e redireciona para a edição da análise.
     """
+    projeto_corpus = _projeto_corpus(request)
     if request.method == "POST":
         # Se o artigo (DOI/ISBN) já existe, reaproveita em vez de barrar com
         # "já existe": recupera (ou inicia) a análise do usuário e abre para
@@ -116,6 +146,8 @@ def cadastrar_artigo_view(request: HttpRequest) -> HttpResponse:
         if existente is None and isbn:
             existente = Artigo.objects.filter(isbn=isbn).first()
         if existente is not None:
+            if projeto_corpus is not None:
+                return _adicionar_ao_corpus(request, projeto_corpus, existente)
             analise, criada = Analise.objects.get_or_create(
                 artigo=existente,
                 analista=request.user,
@@ -132,9 +164,9 @@ def cadastrar_artigo_view(request: HttpRequest) -> HttpResponse:
                 )
             return redirect("editar_analise", analise_id=analise.pk)
 
-        # Inclusão avulsa (Revisão ANCO): o analista pode cadastrar um artigo
-        # próprio, analisá-lo e enviar à curadoria — fora do sorteio de projeto.
-        # O acesso é pelo painel ANCO ("Artigo individual").
+        # Inclusão avulsa (Revisão ANCO): cadastra um artigo próprio. Vindo de um
+        # projeto ("Artigo individual" no painel), entra no **corpus** do projeto
+        # (vira fonte, pode ser sorteado). Sem projeto, inicia a própria análise.
         form = ArtigoMetadadosForm(request.POST)
         if form.is_valid():
             artigo = form.save(commit=False)
@@ -146,6 +178,8 @@ def cadastrar_artigo_view(request: HttpRequest) -> HttpResponse:
                 aplicar_resultado_no_artigo(artigo, resultado)
             except Exception:  # noqa: BLE001
                 pass
+            if projeto_corpus is not None:
+                return _adicionar_ao_corpus(request, projeto_corpus, artigo)
             analise, _ = Analise.objects.get_or_create(
                 artigo=artigo,
                 analista=request.user,
@@ -184,7 +218,12 @@ def cadastrar_artigo_view(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "acervo/cadastrar_artigo.html",
-        {"form": form, "lookup_form": lookup_form},
+        {
+            "form": form,
+            "lookup_form": lookup_form,
+            "projeto_corpus": projeto_corpus,
+            "projeto_slug": request.GET.get("projeto") or request.POST.get("projeto") or "",
+        },
     )
 
 

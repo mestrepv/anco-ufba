@@ -97,3 +97,59 @@ def promover_para_acervo(registro: RegistroTriagem) -> Artigo | None:
     registro.artigo = artigo
     registro.save(update_fields=["artigo"])
     return artigo
+
+
+def registrar_artigo_no_corpus(projeto, artigo, por):
+    """Põe um `Artigo` avulso (cadastrado por "Artigo individual") no corpus de um
+    projeto: cria/garante um `RegistroTriagem` INCLUIDO apontando para o artigo,
+    com proveniência numa `Busca` "Artigos individuais" do usuário. Idempotente.
+
+    Legado é isento (já está no acervo curado): retorna None.
+    """
+    from django.utils import timezone
+
+    from .models import Busca, RegistroTriagem, chave_dedup
+
+    if getattr(artigo, "eh_legado", False):
+        return None
+
+    ident = chave_dedup(
+        artigo.doi or "", artigo.isbn or "", artigo.titulo, artigo.ano, artigo.titulo_periodico
+    )
+    reg, _criado = RegistroTriagem.objects.get_or_create(
+        protocolo=projeto,
+        identificador=ident,
+        defaults={
+            "titulo": artigo.titulo,
+            "autores": artigo.autores,
+            "ano": artigo.ano,
+            "doi": artigo.doi or "",
+            "isbn": artigo.isbn or "",
+            "resumo": artigo.resumo,
+            "palavras_chaves": artigo.palavras_chaves,
+            "titulo_periodico": artigo.titulo_periodico,
+            "idioma": artigo.idioma or "",
+            "status": RegistroTriagem.Status.INCLUIDO,
+            "artigo": artigo,
+            "decisao_final": RegistroTriagem.Decisao.INCLUIR,
+            "decidida_em": timezone.now(),
+        },
+    )
+    # Já existia (ex.: importado antes): garante vínculo ao artigo e inclusão.
+    campos = []
+    if reg.artigo_id is None:
+        reg.artigo = artigo
+        campos.append("artigo")
+    if reg.status != RegistroTriagem.Status.INCLUIDO and not reg.ja_no_acervo:
+        reg.status = RegistroTriagem.Status.INCLUIDO
+        reg.decisao_final = RegistroTriagem.Decisao.INCLUIR
+        reg.decidida_em = timezone.now()
+        campos += ["status", "decisao_final", "decidida_em"]
+    if campos:
+        reg.save(update_fields=campos)
+
+    busca, _ = Busca.objects.get_or_create(
+        protocolo=projeto, criado_por=por, outra_base="Artigos individuais"
+    )
+    reg.origem_buscas.add(busca)
+    return reg
