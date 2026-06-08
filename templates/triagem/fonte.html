@@ -1,12 +1,12 @@
 {% extends "_base_publico.html" %}
 {% load triagem_extras %}
 
-{% block title %}Fontes — {{ busca.base_nome|default:"Importação" }}{% endblock %}
+{% block title %}Fontes — {{ titulo_fontes }}{% endblock %}
 
 {% block content %}
 <main style="max-width: 760px; margin: 32px auto 80px; padding: 0 24px;">
 
-  <a href="{% url 'triagem_busca_resumo' projeto.slug busca.pk %}" class="link" style="font-size:13px;">&larr; {{ busca.base_nome|default:"Importação" }}</a>
+  <a href="{{ voltar_url }}" class="link" style="font-size:13px;">&larr; {{ voltar_label }}</a>
 
   {% if registro %}
   {# ── Navegação ─────────────────────────────────────────────────── #}

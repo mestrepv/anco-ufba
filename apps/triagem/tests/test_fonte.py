@@ -135,6 +135,36 @@ def test_realce_marca_o_termo(client, proj_anco):
     assert b"<mark>cognitive analysis</mark>" in resp.content
 
 
+def test_navegador_de_projeto_mostra_minhas_fontes(client, proj_anco):
+    dono = _user("donp")
+    outro = _user("outrop")
+    b1 = Busca.objects.create(protocolo=proj_anco, criado_por=dono, outra_base="WoS")
+    b2 = Busca.objects.create(protocolo=proj_anco, criado_por=outro, outra_base="Scopus")
+    for k in range(2):
+        r = RegistroTriagem.objects.create(
+            protocolo=proj_anco,
+            titulo=f"meu {k}",
+            doi=f"10/meu{k}",
+            identificador=f"meu{k}",
+            status=RegistroTriagem.Status.INCLUIDO,
+        )
+        r.origem_buscas.add(b1)
+    # Importação de outro analista (não deve aparecer para 'dono').
+    ro = RegistroTriagem.objects.create(
+        protocolo=proj_anco,
+        titulo="outro",
+        doi="10/outro",
+        identificador="outro",
+        status=RegistroTriagem.Status.INCLUIDO,
+    )
+    ro.origem_buscas.add(b2)
+
+    client.force_login(dono)
+    resp = client.get(reverse("triagem_fontes", args=[proj_anco.slug]) + "?i=0")
+    assert resp.status_code == 200
+    assert resp.context["total"] == 2  # só as fontes das bases que o dono importou
+
+
 def test_nao_dono_nao_acessa_fontes(client, proj_anco):
     dono = _user("dono4")
     intruso = _user("intruso4")

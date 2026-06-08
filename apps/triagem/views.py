@@ -532,15 +532,8 @@ def _sincronizar_artigo(registro) -> None:
         artigo.save(update_fields=comuns)
 
 
-@_projeto_analista
-def fonte_view(request: HttpRequest, projeto: ProtocoloTriagem, busca_id: int) -> HttpResponse:
-    """Navega as fontes (registros) de uma importação, uma a uma, e permite
-    completar/corrigir os campos bibliográficos. Gate: importador ou curador."""
-    busca = get_object_or_404(Busca, pk=busca_id, protocolo=projeto)
-    if not _pode_editar_busca(busca, request.user, projeto):
-        return HttpResponseForbidden("Só quem importou (ou o curador) navega/edita as fontes.")
-
-    ids = list(busca.registros.order_by("titulo", "pk").values_list("pk", flat=True))
+def _navegar_fontes(request, projeto, ids, *, base_url, voltar_url, voltar_label, titulo_fontes):
+    """Núcleo do navegador de fontes (1 registro por vez, edição inline)."""
     total = len(ids)
 
     def _idx(valor) -> int:
@@ -552,7 +545,6 @@ def fonte_view(request: HttpRequest, projeto: ProtocoloTriagem, busca_id: int) -
     i = _idx(request.POST.get("i") if request.method == "POST" else request.GET.get("i"))
     registro = RegistroTriagem.objects.select_related("artigo").get(pk=ids[i]) if total else None
 
-    base_url = reverse("triagem_busca_fonte", args=[projeto.slug, busca.pk])
     if request.method == "POST" and registro is not None:
         form = RegistroFonteForm(request.POST, instance=registro)
         if form.is_valid():
@@ -578,15 +570,54 @@ def fonte_view(request: HttpRequest, projeto: ProtocoloTriagem, busca_id: int) -
         {
             "projeto": projeto,
             "protocolo": projeto,
-            "busca": busca,
             "registro": registro,
             "form": form,
             "pos": i + 1,
             "total": total,
             "realce_termos": realce_termos,
+            "voltar_url": voltar_url,
+            "voltar_label": voltar_label,
+            "titulo_fontes": titulo_fontes,
             "url_anterior": f"{base_url}?i={i - 1}" if i > 0 else "",
             "url_proximo": f"{base_url}?i={i + 1}" if i < total - 1 else "",
         },
+    )
+
+
+@_projeto_analista
+def fonte_view(request: HttpRequest, projeto: ProtocoloTriagem, busca_id: int) -> HttpResponse:
+    """Navega as fontes de uma importação. Gate: importador ou curador."""
+    busca = get_object_or_404(Busca, pk=busca_id, protocolo=projeto)
+    if not _pode_editar_busca(busca, request.user, projeto):
+        return HttpResponseForbidden("Só quem importou (ou o curador) navega/edita as fontes.")
+    ids = list(busca.registros.order_by("titulo", "pk").values_list("pk", flat=True))
+    return _navegar_fontes(
+        request,
+        projeto,
+        ids,
+        base_url=reverse("triagem_busca_fonte", args=[projeto.slug, busca.pk]),
+        voltar_url=reverse("triagem_busca_resumo", args=[projeto.slug, busca.pk]),
+        voltar_label=busca.base_nome or "Importação",
+        titulo_fontes=busca.base_nome or "Importação",
+    )
+
+
+@_projeto_analista
+def fontes_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
+    """Navega TODAS as fontes do projeto que o usuário pode editar (as suas
+    importações; o curador vê todas). Entrada pelo painel."""
+    qs = projeto.registros.filter(status=RegistroTriagem.Status.INCLUIDO)
+    if not projeto.eh_curador_no(request.user):
+        qs = qs.filter(origem_buscas__criado_por=request.user)
+    ids = list(qs.order_by("titulo", "pk").values_list("pk", flat=True).distinct())
+    return _navegar_fontes(
+        request,
+        projeto,
+        ids,
+        base_url=reverse("triagem_fontes", args=[projeto.slug]),
+        voltar_url=reverse("triagem_painel", args=[projeto.slug]),
+        voltar_label=projeto.nome or "Projeto",
+        titulo_fontes="suas fontes",
     )
 
 

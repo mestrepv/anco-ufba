@@ -54,10 +54,9 @@
   </div>
   {% endif %}
 
-  {# ── Ações desta importação (as do fluxo ficam no painel) ────────── #}
-  <p class="tg-meta" style="margin:-4px 0 12px;">Os {{ busca.n_lidos }} registro(s) entraram no corpus. Use <strong>Navegar pelas fontes</strong> para ver/completar cada um.</p>
+  {# ── Ações desta importação (navegar pelas fontes está no painel) ── #}
+  <p class="tg-meta" style="margin:-4px 0 12px;">Os {{ busca.n_lidos }} registro(s) entraram no corpus. Para ver/completar cada fonte, use <strong>Navegar pelas fontes</strong> no painel do projeto.</p>
   <div class="tg-actions" style="margin-bottom:8px;">
-    {% if pode_editar %}<a href="{% url 'triagem_busca_fonte' projeto.slug busca.pk %}?i=0" class="btn btn-primary">Navegar pelas fontes</a>{% endif %}
     {% if pode_editar %}<a href="{% url 'triagem_busca_editar' projeto.slug busca.pk %}" class="btn btn-secondary">Editar dados da importação</a>{% endif %}
   </div>
 

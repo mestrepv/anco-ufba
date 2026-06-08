@@ -59,6 +59,7 @@ urlpatterns = [
         views.fonte_view,
         name="triagem_busca_fonte",
     ),
+    path("p/<slug:slug>/fontes/", views.fontes_view, name="triagem_fontes"),
     path("p/<slug:slug>/registros/", views.registros_view, name="triagem_registros"),
     path("p/<slug:slug>/duplicatas/", views.duplicatas_view, name="triagem_duplicatas"),
     path(
