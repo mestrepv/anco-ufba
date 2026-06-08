@@ -151,5 +151,15 @@ def registrar_artigo_no_corpus(projeto, artigo, por):
     busca, _ = Busca.objects.get_or_create(
         protocolo=projeto, criado_por=por, outra_base="Artigos individuais"
     )
+    ja_vinculado = busca.registros.filter(pk=reg.pk).exists()
     reg.origem_buscas.add(busca)
+    if not ja_vinculado:
+        # Mantém os contadores da "Busca" sintética coerentes (1 por artigo novo).
+        from django.db.models import F
+
+        Busca.objects.filter(pk=busca.pk).update(
+            n_lidos=F("n_lidos") + 1,
+            n_novos=F("n_novos") + 1,
+            importado_em=timezone.now(),
+        )
     return reg

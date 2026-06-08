@@ -50,6 +50,10 @@ def test_registrar_artigo_no_corpus_idempotente(proj_anco):
     reg2 = registrar_artigo_no_corpus(proj_anco, art, u)
     assert reg2.pk == reg.pk
     assert proj_anco.registros.filter(artigo=art).count() == 1
+    # contadores da Busca sintética coerentes (1, não 0 nem 2).
+    busca = reg.origem_buscas.get(outra_base="Artigos individuais")
+    busca.refresh_from_db()
+    assert busca.n_lidos == 1 and busca.n_novos == 1
 
 
 def test_registrar_legado_e_isento(proj_anco):
