@@ -23,21 +23,18 @@
         @submit="if (!confirm('Confirmar as alterações desta fonte?')) $event.preventDefault();">
     {% csrf_token %}
     <input type="hidden" name="i" value="{{ pos|add:'-1' }}">
-    <span class="badge" :class="edit ? 'badge-warn' : 'badge-ok'" style="margin-bottom:14px;"
-          x-text="edit ? 'edição ativa — confirme ao salvar' : 'fonte {{ pos }} de {{ total }} · somente leitura'"></span>
-
-    {% for erro in form.non_field_errors %}<p class="t-meta" style="color:var(--color-danger);">{{ erro }}</p>{% endfor %}
-
-    {# Ações (acima do título) #}
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;">
-      <span class="t-meta" style="color:var(--color-ink-4);" x-show="edit" x-cloak>As alterações valem também para a análise do artigo.</span>
-      <span x-show="!edit"></span>
+    {# Faixa de status + ações na mesma linha #}
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+      <span class="badge" :class="edit ? 'badge-warn' : 'badge-ok'"
+            x-text="edit ? 'edição ativa — confirme ao salvar' : 'fonte {{ pos }} de {{ total }} · somente leitura'"></span>
       <div style="display:flex;gap:10px;">
         <button type="button" class="btn btn-secondary btn-sm" x-show="!edit" @click="edit = true; $nextTick(() => growAll())">Ativar edição</button>
         <a href="?i={{ pos|add:'-1' }}" class="btn btn-ghost btn-sm" x-show="edit" x-cloak>Cancelar</a>
         <button type="submit" class="btn btn-primary btn-sm" x-show="edit" x-cloak>Salvar alterações</button>
       </div>
     </div>
+
+    {% for erro in form.non_field_errors %}<p class="t-meta" style="color:var(--color-danger);">{{ erro }}</p>{% endfor %}
 
     {# Título (realçado na leitura) #}
     <div x-show="!edit" class="ie-read ie-title-read">{{ form.titulo.value|default_if_none:''|realce:realce_termos|default:'(sem título)' }}</div>
