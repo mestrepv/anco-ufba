@@ -17,7 +17,7 @@
 
   {# ── Card de metadados (só-leitura; destrava ao Ativar edição) ──── #}
   <form method="post" class="meta-card"
-        x-data="{ edit: false, nres: ({{ form.resumo.value|length|default:0 }}), grow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight)+'px'; } }"
+        x-data="{ edit: false, nres: ({{ form.resumo.value|length|default:0 }}), doi: '{{ form.doi.value|default_if_none:''|escapejs }}', link: '{{ form.link.value|default_if_none:''|escapejs }}', grow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight)+'px'; } }"
         :class="edit && 'ie-editando'"
         @submit="if (!confirm('Confirmar as alterações desta fonte?')) $event.preventDefault();">
     {% csrf_token %}
@@ -37,10 +37,16 @@
     <dl style="margin-top:4px;">
       <div class="meta-row"><dt>Periódico / Fonte</dt><dd><input name="titulo_periodico" class="ie-field" placeholder="—" :readonly="!edit" value="{{ form.titulo_periodico.value|default_if_none:'' }}"></dd></div>
       <div class="meta-row"><dt>Tipo</dt><dd><input name="tipo" class="ie-field" placeholder="—" :readonly="!edit" value="{{ form.tipo.value|default_if_none:'' }}"></dd></div>
-      <div class="meta-row"><dt>DOI</dt><dd><input name="doi" class="ie-field mono" placeholder="—" :readonly="!edit" value="{{ form.doi.value|default_if_none:'' }}"></dd></div>
+      <div class="meta-row"><dt>DOI</dt><dd style="display:flex;align-items:center;gap:12px;">
+        <input name="doi" class="ie-field mono" placeholder="—" :readonly="!edit" x-model="doi" style="flex:1;">
+        <a x-show="doi.trim()" :href="'https://doi.org/' + doi.trim()" target="_blank" rel="noopener" class="link" style="white-space:nowrap;font-size:13px;">abrir ↗</a>
+      </dd></div>
       <div class="meta-row"><dt>ISBN / ISSN</dt><dd><input name="isbn" class="ie-field mono" placeholder="—" :readonly="!edit" value="{{ form.isbn.value|default_if_none:'' }}"></dd></div>
       <div class="meta-row"><dt>Idioma</dt><dd><input name="idioma" class="ie-field" placeholder="—" :readonly="!edit" value="{{ form.idioma.value|default_if_none:'' }}"></dd></div>
-      <div class="meta-row"><dt>Link de acesso</dt><dd><input name="link" class="ie-field mono" placeholder="—" :readonly="!edit" value="{{ form.link.value|default_if_none:'' }}"></dd></div>
+      <div class="meta-row"><dt>Link de acesso</dt><dd style="display:flex;align-items:center;gap:12px;">
+        <input name="link" class="ie-field mono" placeholder="—" :readonly="!edit" x-model="link" style="flex:1;">
+        <a x-show="link.trim()" :href="link.trim()" target="_blank" rel="noopener" class="link" style="white-space:nowrap;font-size:13px;">abrir ↗</a>
+      </dd></div>
       <div class="meta-row"><dt>Palavras-chave</dt><dd><textarea name="palavras_chaves" rows="1" class="ie-field" placeholder="—" :readonly="!edit" x-init="grow($el)" @input="grow($el)">{{ form.palavras_chaves.value|default_if_none:'' }}</textarea></dd></div>
       <div class="meta-row">
         <dt>Resumo</dt>
