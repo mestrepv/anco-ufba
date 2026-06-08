@@ -425,7 +425,7 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                 "titulo": "Tudo em dia 🎉",
                 "sub": "Importe uma nova base para começar uma rodada de triagem.",
                 "href": reverse("triagem_importar", args=[sl]),
-                "label": "Importar busca",
+                "label": "Importar lista",
                 "ocioso": True,
             }
         else:

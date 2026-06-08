@@ -134,7 +134,7 @@ def cadastrar_artigo_view(request: HttpRequest) -> HttpResponse:
 
         # Inclusão avulsa (Revisão ANCO): o analista pode cadastrar um artigo
         # próprio, analisá-lo e enviar à curadoria — fora do sorteio de projeto.
-        # O acesso é pelo painel ANCO ("Importar avulso").
+        # O acesso é pelo painel ANCO ("Artigo individual").
         form = ArtigoMetadadosForm(request.POST)
         if form.is_valid():
             artigo = form.save(commit=False)

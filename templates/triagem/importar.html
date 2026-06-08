@@ -1,6 +1,6 @@
 {% extends "_base_publico.html" %}
 
-{% block title %}Importar busca · Triagem{% endblock %}
+{% block title %}Importar lista · Triagem{% endblock %}
 {% block extra_head %}{% include "triagem/_estilos.html" %}
 <style>
   .imp-summary { cursor:pointer; font-family:var(--font-sans); font-size:12px; font-weight:700;
@@ -15,7 +15,7 @@
 {% block content %}
 <div class="tg-wrap narrow">
   <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; Triagem</a>
-  <h1 class="tg-h1" style="margin-top:6px;">Importar busca</h1>
+  <h1 class="tg-h1" style="margin-top:6px;">Importar lista</h1>
   <p class="tg-desc">
     Envie o arquivo exportado de uma base (RIS, BibTeX ou CSV). Assim que você
     escolher o arquivo, eu confiro e mostro <strong>quantos registros</strong> tem —

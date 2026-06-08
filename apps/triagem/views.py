@@ -253,7 +253,7 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
             else 0
         )
         # Itens incluídos de forma avulsa: análises suas sobre artigos que não
-        # vieram de triagem (entraram por "Importar avulso").
+        # vieram de triagem (entraram por "Artigo individual").
         meus_avulsos = (
             Analise.objects.filter(analista=request.user, artigo__registros_triagem__isnull=True)
             .exclude(status=Analise.Status.LEGADO)
