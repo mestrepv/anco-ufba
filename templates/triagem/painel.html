@@ -66,8 +66,8 @@
     <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-primary">Importar lista</a>
     <a href="{% url 'cadastrar_artigo' %}" class="btn btn-secondary">Artigo individual</a>
     <a href="{% url 'triagem_incluidos' projeto.slug %}" class="btn btn-secondary">Ver corpus</a>
-    <a href="{% url 'triagem_duplicatas' projeto.slug %}?escopo=minhas&i=0" class="btn btn-secondary">Analisar duplicatas{% if minha_dup %} ({{ minha_dup }}){% endif %}</a>
-    <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">Análise cognitiva{% if minha_a_analisar %} ({{ minha_a_analisar }}){% endif %}</a>
+    <a href="{% url 'triagem_duplicatas' projeto.slug %}?escopo=minhas&i=0" class="btn btn-secondary">Revisar duplicatas{% if minha_dup %} ({{ minha_dup }}){% endif %}</a>
+    <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">Analisar artigos{% if minha_a_analisar %} ({{ minha_a_analisar }}){% endif %}</a>
   </div>
   {# ── Minhas importações ─────────────────────────────────────────── #}
   <h2 class="tg-h2">Minhas importações <span class="tg-meta">({{ minhas_buscas|length }})</span></h2>
