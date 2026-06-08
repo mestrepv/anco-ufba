@@ -36,15 +36,24 @@
 
     {% for erro in form.non_field_errors %}<p class="t-meta" style="color:var(--color-danger);">{{ erro }}</p>{% endfor %}
 
-    {# Título (realçado na leitura) #}
+    {# Título · leitura realçada / edição com rótulo e caixa própria #}
     <div x-show="!edit" class="ie-read ie-title-read">{{ form.titulo.value|default_if_none:''|realce:realce_termos|default:'(sem título)' }}</div>
-    <input x-show="edit" x-cloak name="titulo" class="ie-field ie-title" placeholder="(sem título)" value="{{ form.titulo.value|default_if_none:'' }}">
+    <div x-show="edit" x-cloak class="ie-campo">
+      <label class="ie-lbl">Título</label>
+      <input name="titulo" class="ie-box ie-title" placeholder="(sem título)" value="{{ form.titulo.value|default_if_none:'' }}">
+    </div>
 
-    <div style="display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;margin:2px 0 16px;">
-      <span x-show="!edit" class="ie-read ie-sub">{{ form.autores.value|default_if_none:''|default:'(autores)' }} · {{ form.ano.value|default_if_none:'s.d.' }}</span>
-      <input x-show="edit" x-cloak name="autores" class="ie-field ie-sub" placeholder="(autores)" value="{{ form.autores.value|default_if_none:'' }}" style="flex:1;min-width:200px;">
-      <span x-show="edit" x-cloak style="color:var(--color-ink-3);">·</span>
-      <input x-show="edit" x-cloak name="ano" type="number" class="ie-field ie-sub" placeholder="ano" value="{{ form.ano.value|default_if_none:'' }}" style="width:90px;">
+    {# Autores · Ano #}
+    <div x-show="!edit" class="ie-read ie-sub" style="margin:2px 0 16px;">{{ form.autores.value|default_if_none:''|default:'(autores)' }} · {{ form.ano.value|default_if_none:'s.d.' }}</div>
+    <div x-show="edit" x-cloak style="display:flex;flex-wrap:wrap;gap:14px;margin:12px 0 18px;">
+      <div class="ie-campo" style="flex:1;min-width:220px;">
+        <label class="ie-lbl">Autores</label>
+        <input name="autores" class="ie-box" placeholder="(autores)" value="{{ form.autores.value|default_if_none:'' }}">
+      </div>
+      <div class="ie-campo" style="width:120px;">
+        <label class="ie-lbl">Ano</label>
+        <input name="ano" type="number" class="ie-box" placeholder="ano" value="{{ form.ano.value|default_if_none:'' }}">
+      </div>
     </div>
 
     <dl style="margin-top:4px;">
@@ -98,8 +107,16 @@
     transition:border-color .12s, background .12s; }
   textarea.ie-field { resize:none; overflow:hidden; line-height:1.6; min-height:1.6em; }
   .ie-field.mono { font-family:var(--font-mono); font-size:13px; color:var(--color-ink-2); }
-  .ie-title { font-family:var(--font-serif); font-size:22px; line-height:1.3; color:var(--color-ink); padding:4px 8px; }
   .ie-sub { font-family:var(--font-sans); font-size:14px; color:var(--color-ink-3); }
+  /* Cabeçalho na edição: cada campo com rótulo e caixa própria (não se misturam). */
+  .ie-campo { display:block; }
+  .ie-lbl { display:block; font-family:var(--font-sans); font-size:12px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.04em; color:var(--color-ink-3); margin:0 0 5px; }
+  .ie-box { width:100%; box-sizing:border-box; font-family:var(--font-sans); font-size:14px;
+    color:var(--color-ink); background:#fff; border:1px solid var(--color-rule-strong); border-radius:7px;
+    padding:9px 11px; line-height:1.4; }
+  .ie-box:focus { outline:none; border-color:var(--color-gold); }
+  .ie-box.ie-title { font-family:var(--font-serif); font-size:20px; line-height:1.3; padding:10px 12px; }
   .ie-editando .ie-field:not([readonly]) { border-color:var(--color-rule); background:var(--color-paper-2); cursor:text; }
   .ie-field:not([readonly]):hover { border-color:var(--color-rule-strong); }
   .ie-field:not([readonly]):focus { outline:none; border-color:var(--color-gold); background:#fff; }
