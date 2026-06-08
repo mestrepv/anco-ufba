@@ -28,6 +28,17 @@
 
     {% for erro in form.non_field_errors %}<p class="t-meta" style="color:var(--color-danger);">{{ erro }}</p>{% endfor %}
 
+    {# Ações (acima do título) #}
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;">
+      <span class="t-meta" style="color:var(--color-ink-4);" x-show="edit" x-cloak>As alterações valem também para a análise do artigo.</span>
+      <span x-show="!edit"></span>
+      <div style="display:flex;gap:10px;">
+        <button type="button" class="btn btn-secondary btn-sm" x-show="!edit" @click="edit = true; $nextTick(() => growAll())">Ativar edição</button>
+        <a href="?i={{ pos|add:'-1' }}" class="btn btn-ghost btn-sm" x-show="edit" x-cloak>Cancelar</a>
+        <button type="submit" class="btn btn-primary btn-sm" x-show="edit" x-cloak>Salvar alterações</button>
+      </div>
+    </div>
+
     {# Título (realçado na leitura) #}
     <div x-show="!edit" class="ie-read ie-title-read">{{ form.titulo.value|default_if_none:''|realce:realce_termos|default:'(sem título)' }}</div>
     <input x-show="edit" x-cloak name="titulo" class="ie-field ie-title" placeholder="(sem título)" value="{{ form.titulo.value|default_if_none:'' }}">
@@ -70,16 +81,6 @@
         </dd>
       </div>
     </dl>
-
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:18px;margin-top:14px;border-top:1px solid var(--color-paper-3);">
-      <span class="t-meta" style="color:var(--color-ink-4);" x-show="edit" x-cloak>As alterações valem também para a análise do artigo.</span>
-      <span x-show="!edit"></span>
-      <div style="display:flex;gap:10px;">
-        <button type="button" class="btn btn-secondary btn-sm" x-show="!edit" @click="edit = true; $nextTick(() => growAll())">Ativar edição</button>
-        <a href="?i={{ pos|add:'-1' }}" class="btn btn-ghost btn-sm" x-show="edit" x-cloak>Cancelar</a>
-        <button type="submit" class="btn btn-primary btn-sm" x-show="edit" x-cloak>Salvar alterações</button>
-      </div>
-    </div>
   </form>
   {% else %}
     <p class="t-small" style="color:var(--color-ink-3);margin-top:16px;">Esta importação não tem fontes.</p>
