@@ -53,23 +53,42 @@
     </p>
   {% endif %}
 
-  <h2 class="tg-h2">Sorteios anteriores</h2>
+  <h2 class="tg-h2">Sorteios e atribuições</h2>
   {% if sorteios %}
     <ul class="tg-list">
       {% for s in sorteios %}
-        <li class="tg-card tg-row">
-          <div>
-            <div class="tg-item-title">{{ s.get_modo_revisao_display }} · cota {{ s.cota }}</div>
-            <div class="tg-meta">{{ s.criado_em|date:"d/m/Y H:i" }} · {{ s.atribuicoes.count }} atribuição(ões){% if s.observacoes %} · {{ s.observacoes }}{% endif %}</div>
+        <li class="tg-card" x-data="{ aberto: true }">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+            <div style="cursor:pointer;" @click="aberto = !aberto">
+              <div class="tg-item-title"><span x-text="aberto ? '▾' : '▸'" style="color:var(--color-ink-3);"></span> {{ s.get_modo_revisao_display }} · cota {{ s.cota }}</div>
+              <div class="tg-meta">{{ s.criado_em|date:"d/m/Y H:i" }} · {{ s.distribuicao|length }} analista(s) · {{ s.atribuicoes.count }} atribuição(ões){% if s.observacoes %} · {{ s.observacoes }}{% endif %}</div>
+            </div>
+            <div style="display:flex;gap:8px;flex-shrink:0;">
+              {% if s.modo_revisao == 'dupla' %}<a href="{% url 'triagem_consenso' projeto.slug %}" class="btn btn-sm">Consenso</a>{% endif %}
+              <form method="post" onsubmit="return confirm('Desfazer este sorteio? As atribuições serão removidas (as análises já iniciadas permanecem).');" style="margin:0;">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="desfazer">
+                <input type="hidden" name="sorteio_id" value="{{ s.pk }}">
+                <button type="submit" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Desfazer</button>
+              </form>
+            </div>
           </div>
-          <div style="display:flex;gap:8px;flex-shrink:0;">
-            {% if s.modo_revisao == 'dupla' %}<a href="{% url 'triagem_consenso' projeto.slug %}" class="btn btn-sm">Consenso</a>{% endif %}
-            <form method="post" onsubmit="return confirm('Desfazer este sorteio? As atribuições serão removidas (as análises já iniciadas permanecem).');" style="margin:0;">
-              {% csrf_token %}
-              <input type="hidden" name="acao" value="desfazer">
-              <input type="hidden" name="sorteio_id" value="{{ s.pk }}">
-              <button type="submit" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Desfazer</button>
-            </form>
+
+          <div x-show="aberto" x-cloak style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-rule);display:grid;gap:14px;">
+            {% for g in s.distribuicao %}
+            <div>
+              <div style="font-family:var(--font-sans);font-weight:600;font-size:14px;color:var(--color-ink);margin-bottom:6px;">
+                {{ g.analista.nome_exibicao|default:g.analista.email }} <span class="tg-meta">· {{ g.artigos|length }} artigo{{ g.artigos|length|pluralize }}</span>
+              </div>
+              <ol style="margin:0;padding-left:20px;font-family:var(--font-sans);font-size:13.5px;line-height:1.6;color:var(--color-ink-2);">
+                {% for art in g.artigos %}
+                  <li>{{ art.titulo|truncatechars:120 }} <span class="tg-meta">{{ art.ano|default:"s.d." }}</span></li>
+                {% endfor %}
+              </ol>
+            </div>
+            {% empty %}
+            <p class="tg-meta">Sem atribuições.</p>
+            {% endfor %}
           </div>
         </li>
       {% endfor %}

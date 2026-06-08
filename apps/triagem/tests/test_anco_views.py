@@ -98,6 +98,21 @@ def test_sorteio_view_cria_sorteio(client, proj_anco):
     assert SorteioAnalise.objects.filter(projeto=proj_anco).exists()
 
 
+def test_sorteio_view_mostra_distribuicao(client, proj_anco):
+    cur = _analista("curd", papel=User.Papel.CURADOR, is_staff=True)
+    ana = _analista("anad")
+    art = _incluido(proj_anco, "10/dist")
+    sorteio = SorteioAnalise.objects.create(projeto=proj_anco, criado_por=cur)
+    AtribuicaoAnalise.objects.create(sorteio=sorteio, analista=ana, artigo=art)
+    client.force_login(cur)
+    resp = client.get(reverse("triagem_sorteio_analise", args=[proj_anco.slug]))
+    assert resp.status_code == 200
+    dist = resp.context["sorteios"][0].distribuicao
+    assert dist[0]["analista"] == ana
+    assert art in dist[0]["artigos"]
+    assert ana.nome_exibicao.encode() in resp.content or ana.email.encode() in resp.content
+
+
 def _incluido_de(proj, dono, doi):
     reg = RegistroTriagem.objects.create(
         protocolo=proj,
