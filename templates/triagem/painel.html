@@ -64,15 +64,15 @@
     </div>
   </div>
 
-  {# Andamento — uma linha #}
-  <div class="tg-card" style="margin-bottom:20px;">
-    <div class="pj-funil">
-      <span><b>{{ c.importados }}</b> importados</span><span class="seta">−</span>
-      <span><b>{{ c.duplicados_entre_bases }}</b> duplicados</span><span class="seta">→</span>
-      <span style="color:var(--color-ok);"><b style="color:var(--color-ok);">{{ c.incluidos }}</b> no corpus</span>
-    </div>
-    <p class="tg-meta" style="margin:8px 0 0;">Sem triagem: tudo que é importado entra no corpus. {{ c.ja_no_acervo }} já no acervo (isentos) · <a href="{% url 'triagem_estatisticas' projeto.slug %}" style="color:var(--color-gold-deep);">Estatística artigos × bases →</a></p>
+  {# Andamento — cards clicáveis #}
+  <h2 class="tg-h2">Andamento</h2>
+  <div class="tg-grid-stats" style="margin-bottom:8px;">
+    <a class="tg-stat" href="{% url 'triagem_registros' projeto.slug %}"><div class="n">{{ c.importados }}</div><div class="l">importados</div></a>
+    <a class="tg-stat" href="{% url 'triagem_incluidos' projeto.slug %}" style="border-color:var(--color-ok);"><div class="n" style="color:var(--color-ok);">{{ c.incluidos }}</div><div class="l">no corpus</div></a>
+    <a class="tg-stat" href="{% url 'triagem_registros' projeto.slug %}?status=identificado"><div class="n">{{ c.ja_no_acervo }}</div><div class="l">já no acervo (isentos)</div></a>
+    <a class="tg-stat" href="{% url 'triagem_duplicatas' projeto.slug %}?escopo={% if eh_curador %}todas{% else %}minhas{% endif %}&i=0"><div class="n" style="color:var(--color-gold-deep);">{{ c.duplicados_entre_bases }}</div><div class="l">duplicados</div></a>
   </div>
+  <p class="tg-meta" style="margin:0 0 22px;">Sem triagem: tudo que é importado entra no corpus. <a href="{% url 'triagem_estatisticas' projeto.slug %}" style="color:var(--color-gold-deep);">Estatística artigos × bases →</a></p>
 
   {# Fluxo em 3 passos #}
   <div class="fluxo3">
