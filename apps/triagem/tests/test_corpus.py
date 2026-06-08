@@ -7,6 +7,7 @@ from django.urls import reverse
 from apps.acervo.models import Analise
 from apps.triagem.models import (
     AtribuicaoAnalise,
+    Busca,
     ProtocoloTriagem,
     RegistroTriagem,
     SorteioAnalise,
@@ -81,6 +82,24 @@ def test_filtro_status_sem_analise(client, proj_anco):
     assert resp.status_code == 200
     assert resp.context["n_filtrado"] == 2  # os 2 sem análise
     assert resp.context["tem_filtro"] is True
+
+
+def test_base_agrupa_importacoes_iguais(client, proj_anco):
+    ana = _user("ana4")
+    # Mesma base ("WoS") importada em 2 arquivos → 1 opção no filtro.
+    b1 = Busca.objects.create(protocolo=proj_anco, criado_por=ana, outra_base="WoS")
+    b2 = Busca.objects.create(protocolo=proj_anco, criado_por=ana, outra_base="WoS")
+    reg1, _ = _incluido(proj_anco, "10/b1")
+    reg2, _ = _incluido(proj_anco, "10/b2")
+    reg1.origem_buscas.add(b1)
+    reg2.origem_buscas.add(b2)
+    _incluido(proj_anco, "10/sem-base")
+    client.force_login(ana)
+    resp = client.get(reverse("triagem_incluidos", args=[proj_anco.slug]))
+    assert resp.context["bases"] == ["WoS"]  # uma só opção, sem duplicar
+    # Filtrar por "WoS" traz os 2 registros das duas importações.
+    resp2 = client.get(reverse("triagem_incluidos", args=[proj_anco.slug]), {"base": "WoS"})
+    assert resp2.context["n_filtrado"] == 2
 
 
 def test_busca_por_titulo(client, proj_anco):

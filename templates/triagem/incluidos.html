@@ -62,7 +62,7 @@
     <input type="search" name="q" value="{{ filtros.q }}" placeholder="buscar título ou autor…">
     <select name="base" onchange="this.form.submit()">
       <option value="">Todas as bases</option>
-      {% for b in bases %}<option value="{{ b.pk }}" {% if filtros.base == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.base_nome|default:"Importação" }}</option>{% endfor %}
+      {% for nome in bases %}<option value="{{ nome }}" {% if filtros.base == nome %}selected{% endif %}>{{ nome }}</option>{% endfor %}
     </select>
     <select name="tipo" onchange="this.form.submit()">
       <option value="">Todos os tipos</option>

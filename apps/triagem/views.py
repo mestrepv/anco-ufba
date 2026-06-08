@@ -1190,8 +1190,11 @@ def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
     qs = base_qs
     if q:
         qs = qs.filter(Q(titulo__icontains=q) | Q(autores__icontains=q))
-    if f_base.isdigit():
-        qs = qs.filter(origem_buscas__id=int(f_base))
+    if f_base:
+        # Filtra pelo NOME da base (uma base pode vir de várias importações).
+        qs = qs.filter(
+            Q(origem_buscas__base_consulta__nome=f_base) | Q(origem_buscas__outra_base=f_base)
+        )
     if f_tipo:
         qs = qs.filter(tipo=f_tipo)
     if f_idioma:
@@ -1238,10 +1241,15 @@ def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
     idiomas = sorted(
         i for i in base_qs.exclude(idioma="").values_list("idioma", flat=True).distinct() if i
     )
-    bases = (
-        Busca.objects.filter(protocolo=projeto, registros__status=_St.INCLUIDO)
-        .select_related("base_consulta")
-        .distinct()
+    # Bases distintas por NOME (várias importações da mesma base contam uma vez).
+    bases = sorted(
+        {
+            b.base_nome
+            for b in Busca.objects.filter(protocolo=projeto, registros__status=_St.INCLUIDO)
+            .select_related("base_consulta")
+            .distinct()
+            if b.base_nome
+        }
     )
 
     eh_cur = projeto.eh_curador_no(request.user)
