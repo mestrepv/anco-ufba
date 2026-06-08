@@ -65,17 +65,31 @@ class Artigo(models.Model):
         OUTRO = "outro", "Outro"
 
     class Area(models.TextChoices):
-        # Grandes áreas do conhecimento (CNPq/CAPES, como no Lattes).
-        # O valor é o próprio rótulo para casar com os dados legados existentes.
+        # Áreas de conhecimento da Análise Cognitiva (cf. Fróes Burnham — áreas a
+        # que se vinculam os periódicos do campo). Valor == rótulo: casa com os
+        # dados existentes e exibe o próprio nome. "Outros" abre campo livre.
+        PSICOLOGIA = "Psicologia", "Psicologia"
+        EDUCACAO = "Educação", "Educação"
+        COMPORTAMENTO = "Comportamento", "Comportamento"
+        TRABALHO_CARREIRA = "Trabalho e carreira", "Trabalho e carreira"
+        RELACOES_HUMANAS_SOCIAIS = "Relações humanas e sociais", "Relações humanas e sociais"
+        OUTRAS_CHS = "Outras Ciências Humanas e Sociais", "Outras Ciências Humanas e Sociais"
+        INTERDISCIPLINAR = "Interdisciplinar", "Interdisciplinar"
+        LINGUA_DISCURSO = "Língua, Linguística, Discurso", "Língua, Linguística, Discurso"
+        GESTAO_ORGANIZACAO = "Gestão e Organização", "Gestão e Organização"
+        SAUDE = "Saúde", "Saúde"
+        NEUROCIENCIA = "Neurociência", "Neurociência"
+        COMPUTACAO = "Computação", "Computação"
+        INFORMACAO_COMUNICACAO = "Informação e Comunicação", "Informação e Comunicação"
+        EDUCACAO_PSICOLOGIA = "Educação e Psicologia", "Educação e Psicologia"
+        PSICOLOGIA_CIENCIAS_SOCIAIS = (
+            "Psicologia e Ciências Sociais",
+            "Psicologia e Ciências Sociais",
+        )
+        VIOLENCIA_CRIME_POLICIA = "Violência, Crime, Polícia", "Violência, Crime, Polícia"
         EXATAS_TERRA = "Ciências Exatas e da Terra", "Ciências Exatas e da Terra"
-        BIOLOGICAS = "Ciências Biológicas", "Ciências Biológicas"
-        ENGENHARIAS = "Engenharias", "Engenharias"
-        SAUDE = "Ciências da Saúde", "Ciências da Saúde"
-        AGRARIAS = "Ciências Agrárias", "Ciências Agrárias"
-        SOCIAIS_APLICADAS = "Ciências Sociais Aplicadas", "Ciências Sociais Aplicadas"
-        HUMANAS = "Ciências Humanas", "Ciências Humanas"
-        LINGUISTICA_LETRAS_ARTES = "Linguística, Letras e Artes", "Linguística, Letras e Artes"
-        MULTIDISCIPLINAR = "Multidisciplinar", "Multidisciplinar"
+        NECESSIDADES_ESPECIAIS = "Necessidades especiais", "Necessidades especiais"
+        MUSICA = "Música", "Música"
         OUTROS = "Outros", "Outros"
 
     doi = models.CharField(
@@ -138,7 +152,12 @@ class Artigo(models.Model):
         choices=Area.choices,
         blank=True,
         db_index=True,
-        help_text="Grande área do conhecimento (CNPq/CAPES).",
+        help_text="Área de conhecimento da Análise Cognitiva (cf. Fróes).",
+    )
+    area_outra = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Área especificada quando a área de conhecimento é 'Outros'.",
     )
     autores = models.TextField(blank=True)
     vinculacao_institucional = models.TextField(blank=True)
@@ -462,7 +481,9 @@ class Analise(models.Model):
         """Lista (rótulos) dos campos das abas 1–3 ainda não preenchidos."""
         faltam: list[str] = []
         if not (self.artigo.area or "").strip():
-            faltam.append("Grande área")
+            faltam.append("Área de conhecimento")
+        elif self.artigo.area == "Outros" and not (self.artigo.area_outra or "").strip():
+            faltam.append("Área de conhecimento (especificar)")
         for campo, label in self._SUBMISSAO_BOOL.items():
             if getattr(self, campo) is None:
                 faltam.append(label)

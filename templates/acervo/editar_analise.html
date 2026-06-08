@@ -99,10 +99,16 @@
           </dd>
         </div>
         <div class="meta-row">
-          <dt><label for="{{ artigo_form.area.id_for_label }}" style="cursor:pointer;">Grande área</label></dt>
-          <dd>
+          <dt><label for="{{ artigo_form.area.id_for_label }}" style="cursor:pointer;">Área de conhecimento</label></dt>
+          <dd x-data="{ outros: '{{ artigo_form.area.value|default_if_none:'' }}' === 'Outros' }"
+              @change="outros = ($event.target.name === 'area' && $event.target.value === 'Outros')">
             {{ artigo_form.area }}
             {% if artigo_form.area.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ artigo_form.area.errors|join:" / " }}</p>{% endif %}
+            <div x-show="outros" x-cloak style="margin-top: 8px;">
+              <label for="{{ artigo_form.area_outra.id_for_label }}" class="field-label">Especifique a área</label>
+              {{ artigo_form.area_outra }}
+              {% if artigo_form.area_outra.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ artigo_form.area_outra.errors|join:" / " }}</p>{% endif %}
+            </div>
           </dd>
         </div>
       </dl>

@@ -204,10 +204,16 @@
         {{ form.link_acesso_alternativo }}
       </div>
 
-      <div>
-        <label class="field-label" for="id_area">Grande área (CNPq/CAPES) *</label>
+      <div x-data="{ outros: '{{ form.area.value|default_if_none:'' }}' === 'Outros' }"
+           @change="outros = ($event.target.name === 'area' && $event.target.value === 'Outros')">
+        <label class="field-label" for="id_area">Área de conhecimento *</label>
         {{ form.area }}
         {% if form.area.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ form.area.errors|join:" / " }}</p>{% endif %}
+        <div x-show="outros" x-cloak style="margin-top: 8px;">
+          <label class="field-label" for="id_area_outra">Especifique a área</label>
+          {{ form.area_outra }}
+          {% if form.area_outra.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ form.area_outra.errors|join:" / " }}</p>{% endif %}
+        </div>
       </div>
 
       <div>

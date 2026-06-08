@@ -378,8 +378,8 @@
           {% endif %}
           {% if analise.artigo.area %}
           <div>
-            <dt style="color:var(--color-ink-3);">Grande área</dt>
-            <dd style="margin:0; color:var(--color-ink);">{{ analise.artigo.area }}</dd>
+            <dt style="color:var(--color-ink-3);">Área de conhecimento</dt>
+            <dd style="margin:0; color:var(--color-ink);">{% if analise.artigo.area == 'Outros' and analise.artigo.area_outra %}{{ analise.artigo.area_outra }}{% else %}{{ analise.artigo.area }}{% endif %}</dd>
           </div>
           {% endif %}
           <div>

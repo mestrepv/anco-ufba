@@ -91,6 +91,7 @@ class ArtigoMetadadosForm(forms.ModelForm):
             "pagina_inicial",
             "pagina_final",
             "area",
+            "area_outra",
             "autores",
             "vinculacao_institucional",
             "palavras_chaves",
@@ -163,6 +164,11 @@ class ArtigoMetadadosForm(forms.ModelForm):
             raise forms.ValidationError(
                 "Informe DOI, ISBN, ou no mínimo título e ano para cadastrar o artigo."
             )
+        if (
+            cleaned.get("area") == Artigo.Area.OUTROS
+            and not (cleaned.get("area_outra") or "").strip()
+        ):
+            self.add_error("area_outra", "Especifique a área quando escolher 'Outros'.")
         return cleaned
 
 
@@ -172,17 +178,26 @@ ArtigoForm = ArtigoMetadadosForm
 
 
 class ArtigoAreaForm(forms.ModelForm):
-    """Edição pontual da grande área do artigo (passo Identificação da análise)."""
+    """Edição da área de conhecimento do artigo (passo Identificação da análise)."""
 
     class Meta:
         model = Artigo
-        fields = ("area",)
+        fields = ("area", "area_outra")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["area"].required = True
-        self.fields["area"].label = "Grande área (CNPq/CAPES)"
+        self.fields["area"].label = "Área de conhecimento"
         self.fields["area"].widget.attrs["class"] = "field-input"
+        self.fields["area_outra"].required = False
+        self.fields["area_outra"].label = "Especifique a área"
+        self.fields["area_outra"].widget.attrs["class"] = "field-input"
+
+    def clean(self):
+        dados = super().clean()
+        if dados.get("area") == Artigo.Area.OUTROS and not (dados.get("area_outra") or "").strip():
+            self.add_error("area_outra", "Especifique a área quando escolher 'Outros'.")
+        return dados
 
 
 # ---------------------------------------------------------------------------

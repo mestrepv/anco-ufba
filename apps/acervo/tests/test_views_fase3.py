@@ -110,7 +110,7 @@ class TestCadastrarArtigo:
                 "numero": "",
                 "pagina_inicial": "",
                 "pagina_final": "",
-                "area": "Ciências Humanas",
+                "area": "Psicologia",
                 "autores": "Autor X",
                 "vinculacao_institucional": "",
                 "palavras_chaves": "",
@@ -174,7 +174,7 @@ def analise_completa(db, analista, vocab):
         ano=2020,
         base_consulta=vocab,
         link_acesso="https://example.org/c",
-        area="Ciências Humanas",
+        area="Psicologia",
     )
     a = Analise.objects.create(
         artigo=artigo,
@@ -239,10 +239,10 @@ class TestEditarAnalise:
 
     def test_post_identificacao_salva_grande_area(self, cliente_analista, analise_rascunho):
         url = reverse("editar_analise", args=[analise_rascunho.pk])  # passo identificacao
-        resp = cliente_analista.post(url, data={"area": "Multidisciplinar"})
+        resp = cliente_analista.post(url, data={"area": "Interdisciplinar"})
         assert resp.status_code == 302
         analise_rascunho.artigo.refresh_from_db()
-        assert analise_rascunho.artigo.area == "Multidisciplinar"
+        assert analise_rascunho.artigo.area == "Interdisciplinar"
 
     def test_outro_analista_nao_pode_editar(self, db, client, analise_rascunho):
         outro = User.objects.create_user(

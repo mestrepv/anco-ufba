@@ -536,7 +536,7 @@
               <h3 style="margin:0;"><a class="result-title" href="{% url 'pagina_analise' analise.pk %}">{{ analise.artigo.titulo }}</a></h3>
 
               <div style="margin-top:6px; font-family:var(--font-sans); font-size:13px; color:var(--color-ink-3); line-height:1.45;">
-                {{ analise.artigo.autores|truncatechars:70 }}{% if analise.artigo.autores and analise.artigo.titulo_periodico %} · {% endif %}<em>{{ analise.artigo.titulo_periodico|truncatechars:50 }}</em>{% if analise.artigo.ano %}, {{ analise.artigo.ano }}{% endif %}{% if analise.artigo.base_consulta %} · {{ analise.artigo.base_consulta.nome }}{% endif %}{% if analise.artigo.area %} · {{ analise.artigo.area }}{% endif %}
+                {{ analise.artigo.autores|truncatechars:70 }}{% if analise.artigo.autores and analise.artigo.titulo_periodico %} · {% endif %}<em>{{ analise.artigo.titulo_periodico|truncatechars:50 }}</em>{% if analise.artigo.ano %}, {{ analise.artigo.ano }}{% endif %}{% if analise.artigo.base_consulta %} · {{ analise.artigo.base_consulta.nome }}{% endif %}{% if analise.artigo.area %} · {% if analise.artigo.area == 'Outros' and analise.artigo.area_outra %}{{ analise.artigo.area_outra }}{% else %}{{ analise.artigo.area }}{% endif %}{% endif %}
               </div>
 
               {% if analise.artigo.resumo %}
@@ -590,7 +590,7 @@
             <h3 style="margin:0;"><a class="result-title" href="{% url 'pagina_analise' analise.pk %}">{{ analise.artigo.titulo }}</a></h3>
 
             <div style="margin-top:6px; font-family:var(--font-sans); font-size:13px; color:var(--color-ink-3); line-height:1.45;">
-              {{ analise.artigo.autores|truncatechars:70 }}{% if analise.artigo.autores and analise.artigo.titulo_periodico %} · {% endif %}<em>{{ analise.artigo.titulo_periodico|truncatechars:50 }}</em>{% if analise.artigo.ano %}, {{ analise.artigo.ano }}{% endif %}{% if analise.artigo.base_consulta %} · {{ analise.artigo.base_consulta.nome }}{% endif %}{% if analise.artigo.area %} · {{ analise.artigo.area }}{% endif %}
+              {{ analise.artigo.autores|truncatechars:70 }}{% if analise.artigo.autores and analise.artigo.titulo_periodico %} · {% endif %}<em>{{ analise.artigo.titulo_periodico|truncatechars:50 }}</em>{% if analise.artigo.ano %}, {{ analise.artigo.ano }}{% endif %}{% if analise.artigo.base_consulta %} · {{ analise.artigo.base_consulta.nome }}{% endif %}{% if analise.artigo.area %} · {% if analise.artigo.area == 'Outros' and analise.artigo.area_outra %}{{ analise.artigo.area_outra }}{% else %}{{ analise.artigo.area }}{% endif %}{% endif %}
             </div>
 
             {% if analise.artigo.resumo %}
