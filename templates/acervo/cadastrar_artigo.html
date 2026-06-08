@@ -220,13 +220,22 @@
         {{ form.vinculacao_institucional }}
       </div>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 18px;">
-        <label style="display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--color-ink-2);">
-          {{ form.acesso_aberto }} Acesso aberto
-        </label>
-        <label style="display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--color-ink-2);">
-          {{ form.artigo_pago }} Portal CAPES
-        </label>
+      <div>
+        <span class="field-label">Acesso</span>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 12px 18px; margin-top: 6px;">
+          <label style="display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--color-ink-2);">
+            {{ form.acesso_aberto }} Acesso aberto
+          </label>
+          <label style="display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--color-ink-2);">
+            {{ form.artigo_pago }} Portal CAPES
+          </label>
+          <label style="display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--color-ink-2);">
+            {{ form.pago_sem_capes }} Pago (sem CAPES)
+          </label>
+        </div>
+        <p class="t-meta" style="color: var(--color-ink-4); margin-top: 6px;">
+          “Portal CAPES” = pago, mas acessível pela CAPES. “Pago (sem CAPES)” deve ser evitado.
+        </p>
       </div>
     </form>
   </section>

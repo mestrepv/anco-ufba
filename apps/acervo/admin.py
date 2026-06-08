@@ -32,6 +32,7 @@ class ArtigoAdmin(UnfoldModelAdmin):
         "eh_legado",
         "acesso_aberto",
         "artigo_pago",
+        "pago_sem_capes",
         "idioma",
         "ano",
         "base_consulta",

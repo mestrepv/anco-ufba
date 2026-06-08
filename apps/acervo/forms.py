@@ -100,6 +100,7 @@ class ArtigoMetadadosForm(forms.ModelForm):
             "link_acesso_alternativo",
             "artigo_pago",
             "acesso_aberto",
+            "pago_sem_capes",
         ]
         widgets = {
             "resumo": forms.Textarea(attrs={"rows": 4}),

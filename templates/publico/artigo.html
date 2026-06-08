@@ -54,7 +54,8 @@
         <a href="{{ snapshot_recente.url_wayback }}" target="_blank" class="text-sm text-gold-deep hover:text-[#74531a] underline">snapshot Wayback ↗</a>
         {% endif %}
         {% if artigo.acesso_aberto %}<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs">Acesso aberto</span>{% endif %}
-        {% if artigo.artigo_pago %}<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs">Pago</span>{% endif %}
+        {% if artigo.artigo_pago %}<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs">Portal CAPES</span>{% endif %}
+        {% if artigo.pago_sem_capes %}<span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 text-xs">Pago (sem CAPES)</span>{% endif %}
     </div>
 </section>
 

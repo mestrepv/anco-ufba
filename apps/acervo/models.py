@@ -168,10 +168,16 @@ class Artigo(models.Model):
         blank=True,
         help_text="Repositorio institucional, preprint, mirror.",
     )
-    artigo_pago = models.BooleanField(default=False)
+    artigo_pago = models.BooleanField(
+        default=False, help_text="Selo: pago, mas acessível pelo Portal CAPES."
+    )
     acesso_aberto = models.BooleanField(
         default=False,
         help_text="Selo: obra com licenca de acesso aberto.",
+    )
+    pago_sem_capes = models.BooleanField(
+        default=False,
+        help_text="Selo: pago e sem acesso pelo Portal CAPES (evitar incluir).",
     )
 
     link_status = models.CharField(
