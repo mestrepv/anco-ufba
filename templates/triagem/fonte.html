@@ -17,7 +17,7 @@
 
   {# ── Card de metadados (só-leitura; destrava ao Ativar edição) ──── #}
   <form method="post" class="meta-card"
-        x-data="{ edit: false, nres: ({{ form.resumo.value|length|default:0 }}) }"
+        x-data="{ edit: false, nres: ({{ form.resumo.value|length|default:0 }}), grow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight)+'px'; } }"
         :class="edit && 'ie-editando'"
         @submit="if (!confirm('Confirmar as alterações desta fonte?')) $event.preventDefault();">
     {% csrf_token %}
@@ -41,13 +41,13 @@
       <div class="meta-row"><dt>ISBN / ISSN</dt><dd><input name="isbn" class="ie-field mono" placeholder="—" :readonly="!edit" value="{{ form.isbn.value|default_if_none:'' }}"></dd></div>
       <div class="meta-row"><dt>Idioma</dt><dd><input name="idioma" class="ie-field" placeholder="—" :readonly="!edit" value="{{ form.idioma.value|default_if_none:'' }}"></dd></div>
       <div class="meta-row"><dt>Link de acesso</dt><dd><input name="link" class="ie-field mono" placeholder="—" :readonly="!edit" value="{{ form.link.value|default_if_none:'' }}"></dd></div>
-      <div class="meta-row"><dt>Palavras-chave</dt><dd><textarea name="palavras_chaves" rows="2" class="ie-field" placeholder="—" :readonly="!edit">{{ form.palavras_chaves.value|default_if_none:'' }}</textarea></dd></div>
+      <div class="meta-row"><dt>Palavras-chave</dt><dd><textarea name="palavras_chaves" rows="1" class="ie-field" placeholder="—" :readonly="!edit" x-init="grow($el)" @input="grow($el)">{{ form.palavras_chaves.value|default_if_none:'' }}</textarea></dd></div>
       <div class="meta-row">
         <dt>Resumo</dt>
         <dd>
           <details open>
             <summary style="font-family:var(--font-sans);font-size:13px;color:var(--color-ink-3);cursor:pointer;">resumo (<span x-text="nres"></span> caracteres)</summary>
-            <textarea name="resumo" rows="7" class="ie-field" placeholder="(sem resumo)" :readonly="!edit" @input="nres = $event.target.value.length" style="margin-top:8px;">{{ form.resumo.value|default_if_none:'' }}</textarea>
+            <textarea name="resumo" rows="1" class="ie-field" placeholder="(sem resumo)" :readonly="!edit" x-init="grow($el)" @input="nres = $event.target.value.length; grow($el)" style="margin-top:8px;">{{ form.resumo.value|default_if_none:'' }}</textarea>
           </details>
         </dd>
       </div>
@@ -76,13 +76,12 @@
     color:var(--color-ink); background:transparent; border:1px solid transparent; border-radius:6px;
     padding:6px 8px; margin:-6px -8px; line-height:1.5; cursor:default;
     transition:border-color .12s, background .12s; }
-  textarea.ie-field { resize:none; line-height:1.6; }
+  textarea.ie-field { resize:none; overflow:hidden; line-height:1.6; min-height:1.6em; }
   .ie-field.mono { font-family:var(--font-mono); font-size:13px; color:var(--color-ink-2); }
   .ie-title { font-family:var(--font-serif); font-size:22px; line-height:1.3; color:var(--color-ink); padding:4px 8px; }
   .ie-sub { font-family:var(--font-sans); font-size:14px; color:var(--color-ink-3); }
   /* Modo edição: realça os campos editáveis (atributo readonly ausente). */
   .ie-editando .ie-field:not([readonly]) { border-color:var(--color-rule); background:var(--color-paper-2); cursor:text; }
-  .ie-editando textarea.ie-field { resize:vertical; }
   .ie-field:not([readonly]):hover { border-color:var(--color-rule-strong); }
   .ie-field:not([readonly]):focus { outline:none; border-color:var(--color-gold); background:#fff; }
   .meta-row dd { padding-right:4px; }
