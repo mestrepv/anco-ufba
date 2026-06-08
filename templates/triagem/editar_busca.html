@@ -1,0 +1,111 @@
+{% extends "_base_publico.html" %}
+
+{% block title %}Editar importação · Triagem{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+
+{% block content %}
+<div class="tg-wrap narrow">
+  <a href="{% url 'triagem_busca_resumo' projeto.slug busca.pk %}" class="tg-back">&larr; {{ busca.base_nome|default:"Importação" }}</a>
+  <h1 class="tg-h1" style="margin-top:6px;">Editar dados da importação</h1>
+  <p class="tg-desc">
+    Ajuste os <strong>metadados</strong> desta importação (base, estratégia, filtros).
+    Os registros já carregados <strong>não</strong> são reimportados — só os dados de
+    registro mudam.
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+    {% for erro in form.non_field_errors %}<p class="tg-err">{{ erro }}</p>{% endfor %}
+
+    {# Base #}
+    <div class="tg-fieldset-title" style="margin-top:0;">De qual base?</div>
+    <div class="tg-field">
+      <label for="{{ form.base_consulta.id_for_label }}">{{ form.base_consulta.label }}</label>
+      {{ form.base_consulta }}
+      {% for e in form.base_consulta.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
+    </div>
+    <div class="tg-field">
+      <label for="{{ form.outra_base.id_for_label }}">{{ form.outra_base.label }}</label>
+      {{ form.outra_base }}
+      <p class="tg-help">Use só se a base não estiver na lista acima.</p>
+      {% for e in form.outra_base.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
+    </div>
+
+    {# Detalhes da busca #}
+    <div class="tg-fieldset-title">Detalhes da busca</div>
+    <div class="tg-field">
+      <label for="{{ form.n_identificados.id_for_label }}">{{ form.n_identificados.label }}</label>
+      {{ form.n_identificados }}
+      <p class="tg-help">{{ form.n_identificados.help_text }}</p>
+      {% for e in form.n_identificados.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
+    </div>
+    <div class="tg-field">
+      <label for="{{ form.string_busca.id_for_label }}">{{ form.string_busca.label }}</label>
+      {{ form.string_busca }}
+      <p class="tg-help">{{ form.string_busca.help_text }}</p>
+    </div>
+    <div class="tg-field">
+      <label>{{ form.campos_busca.label }}</label>
+      <div class="tg-checkgrid">
+        {% for sub in form.campos_busca %}<label>{{ sub.tag }} <span>{{ sub.choice_label }}</span></label>{% endfor %}
+      </div>
+    </div>
+    <div class="tg-field">
+      <label for="{{ form.data_busca.id_for_label }}">{{ form.data_busca.label }}</label>
+      {{ form.data_busca }}
+    </div>
+    <div class="tg-field"
+         x-data="{ de: {{ form.ano_inicio.value|default:ano_min }}, ate: {{ form.ano_fim.value|default:ano_max }} }">
+      <label>Período: <strong x-text="de"></strong> – <strong x-text="ate"></strong></label>
+      <div class="tg-range">
+        <div class="tg-range-track"></div>
+        <div class="tg-range-fill"
+             :style="'left:' + ((de - {{ ano_min }}) / {{ ano_range }} * 100) + '%; width:' + ((ate - de) / {{ ano_range }} * 100) + '%'"></div>
+        <input type="range" class="tg-range-input" name="ano_inicio"
+               min="{{ ano_min }}" max="{{ ano_max }}" step="1"
+               x-model.number="de" @input="if (de > ate) de = ate">
+        <input type="range" class="tg-range-input" name="ano_fim"
+               min="{{ ano_min }}" max="{{ ano_max }}" step="1"
+               x-model.number="ate" @input="if (ate < de) ate = de">
+      </div>
+      <div class="tg-slider-lbl" style="display:flex;justify-content:space-between;">
+        <span>{{ ano_min }}</span><span>{{ ano_max }}</span>
+      </div>
+    </div>
+    <div class="tg-field"
+         x-data="{ outro: {% if form.idiomas.value and 'outro' in form.idiomas.value %}true{% else %}false{% endif %} }">
+      <label>{{ form.idiomas.label }}</label>
+      <div class="tg-checkgrid">
+        {% for sub in form.idiomas %}
+          <label>
+            <input type="checkbox" name="idiomas" value="{{ sub.data.value }}"
+                   {% if sub.data.selected %}checked{% endif %}
+                   {% if sub.data.value == 'outro' %}@change="outro = $event.target.checked"{% endif %}>
+            <span>{{ sub.choice_label }}</span>
+          </label>
+        {% endfor %}
+      </div>
+      <div x-show="outro" x-cloak style="margin-top:10px;">
+        <label for="{{ form.idioma_outro.id_for_label }}" style="display:block;font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--color-ink-2);margin-bottom:6px;">{{ form.idioma_outro.label }}</label>
+        {{ form.idioma_outro }}
+      </div>
+    </div>
+    <div class="tg-field">
+      <label>{{ form.tipos_documento.label }}</label>
+      <div class="tg-checkgrid">
+        {% for sub in form.tipos_documento %}<label>{{ sub.tag }} <span>{{ sub.choice_label }}</span></label>{% endfor %}
+      </div>
+    </div>
+    <div class="tg-field">
+      <label for="{{ form.filtros.id_for_label }}">{{ form.filtros.label }}</label>
+      {{ form.filtros }}
+      <p class="tg-help">{{ form.filtros.help_text }}</p>
+    </div>
+
+    <div class="tg-actions" style="margin-top:18px;">
+      <button type="submit" class="btn btn-primary">Salvar alterações</button>
+      <a href="{% url 'triagem_busca_resumo' projeto.slug busca.pk %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

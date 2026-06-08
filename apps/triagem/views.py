@@ -35,7 +35,7 @@ from .autotriagem import (
     reverter_inclusao,
 )
 from .estatisticas import estatisticas_por_base
-from .forms import DecisaoTriagemForm, DesempateForm, ImportarBuscaForm
+from .forms import DecisaoTriagemForm, DesempateForm, EditarBuscaForm, ImportarBuscaForm
 from .importacao import (
     analisar_arquivo,
     decodificar,
@@ -209,6 +209,7 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
         pode, cascata, _motivo = pode_excluir_busca(b, request.user, projeto)
         b.pode_excluir = pode
         b.excluir_cascata = cascata
+        b.pode_editar = _pode_editar_busca(b, request.user, projeto)
     minhas_buscas = [b for b in buscas if b.criado_por_id == request.user.id]
     membros = projeto.membros.select_related("usuario").order_by("-papel", "usuario__nome_exibicao")
     contexto = {
@@ -409,6 +410,7 @@ def busca_resumo_view(
             "excluir_cascata": excluir_cascata,
             "motivo_bloqueio": motivo_bloqueio,
             "pode_gerenciar": pode_excluir,
+            "pode_editar": _pode_editar_busca(busca, request.user, projeto),
         },
     )
 
@@ -435,6 +437,84 @@ def excluir_busca_view(
         return redirect("triagem_painel", slug=projeto.slug)
     messages.error(request, msg)
     return redirect("triagem_painel", slug=projeto.slug)
+
+
+def _pode_editar_busca(busca, user, projeto) -> bool:
+    """Quem altera os metadados de uma importação: o importador ou o curador.
+
+    Edição só mexe nos metadados (base, estratégia, filtros…), nunca nos
+    registros já importados — por isso é liberada mesmo após a triagem começar.
+    """
+    return busca.criado_por_id == user.id or projeto.eh_curador_no(user)
+
+
+@_projeto_analista
+def editar_busca_view(
+    request: HttpRequest, projeto: ProtocoloTriagem, busca_id: int
+) -> HttpResponse:
+    """Edita os metadados de uma importação já carregada (sem reimportar)."""
+    busca = get_object_or_404(Busca, pk=busca_id, protocolo=projeto)
+    if not _pode_editar_busca(busca, request.user, projeto):
+        return HttpResponseForbidden("Só quem importou (ou o curador) edita esta importação.")
+
+    campos = [
+        "base_consulta",
+        "outra_base",
+        "string_busca",
+        "campos_busca",
+        "ano_inicio",
+        "ano_fim",
+        "idiomas",
+        "idioma_outro",
+        "tipos_documento",
+        "filtros",
+        "data_busca",
+        "n_identificados",
+    ]
+    if request.method == "POST":
+        form = EditarBuscaForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            for campo in campos:
+                if campo == "n_identificados" and cd.get(campo) is None:
+                    continue  # mantém a contagem existente se deixarem em branco
+                setattr(busca, campo, cd[campo])
+            busca.save(update_fields=campos)
+            messages.success(request, "Dados da importação atualizados.")
+            return redirect("triagem_busca_resumo", slug=projeto.slug, busca_id=busca.pk)
+    else:
+        form = EditarBuscaForm(
+            initial={
+                "base_consulta": busca.base_consulta_id,
+                "outra_base": busca.outra_base,
+                "string_busca": busca.string_busca,
+                "campos_busca": busca.campos_busca,
+                "ano_inicio": busca.ano_inicio,
+                "ano_fim": busca.ano_fim,
+                "idiomas": busca.idiomas,
+                "idioma_outro": busca.idioma_outro,
+                "tipos_documento": busca.tipos_documento,
+                "filtros": busca.filtros,
+                "data_busca": busca.data_busca,
+                "n_identificados": busca.n_identificados,
+            }
+        )
+
+    import datetime
+
+    return render(
+        request,
+        "triagem/editar_busca.html",
+        {
+            "form": form,
+            "busca": busca,
+            "projeto": projeto,
+            "protocolo": projeto,
+            "ano_min": 2000,
+            "ano_max": datetime.date.today().year,
+            "ano_range": datetime.date.today().year - 2000,
+        },
+    )
 
 
 @_projeto_analista
@@ -747,6 +827,30 @@ def protocolo_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
             projeto.usa_texto_completo = bool(request.POST.get("usa_texto_completo"))
             projeto.save(update_fields=["registro_externo", "usa_texto_completo"])
             messages.success(request, "Protocolo atualizado.")
+        elif acao == "salvar_criterios":
+            # Objetivo, estratégia e critérios. No ANCO sempre editável; no
+            # rigoroso só com a versão destravada (preserva o protocolo a priori).
+            if not projeto.eh_anco and projeto.travado_em:
+                messages.error(
+                    request, "Protocolo travado: abra uma nova versão para editar os critérios."
+                )
+            else:
+                for campo in (
+                    "pergunta_pesquisa",
+                    "estrategia_busca",
+                    "criterios_inclusao",
+                    "criterios_exclusao",
+                ):
+                    setattr(projeto, campo, request.POST.get(campo, "").strip())
+                projeto.save(
+                    update_fields=[
+                        "pergunta_pesquisa",
+                        "estrategia_busca",
+                        "criterios_inclusao",
+                        "criterios_exclusao",
+                    ]
+                )
+                messages.success(request, "Objetivo e critérios atualizados.")
         elif acao == "travar":
             projeto.travar(request.user)
             messages.success(request, f"Versão {projeto.versao} travada (a priori).")
@@ -758,7 +862,12 @@ def protocolo_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
     return render(
         request,
         "triagem/protocolo.html",
-        {"projeto": projeto, "protocolo": projeto, "versoes": projeto.versoes.all()},
+        {
+            "projeto": projeto,
+            "protocolo": projeto,
+            "versoes": projeto.versoes.all(),
+            "eh_curador": projeto.eh_curador_no(request.user),
+        },
     )
 
 

@@ -12,6 +12,10 @@
       <span class="tg-meta">{{ b.n_lidos }} lidos{% if b.n_identificados %} / {{ b.n_identificados }} relatados{% if b.n_lidos != b.n_identificados %} <span style="color:var(--color-danger);">⚠</span>{% endif %}{% endif %}</span>
     </div>
   </a>
+  {% if b.pode_editar %}
+    <a href="{% url 'triagem_busca_editar' projeto.slug b.pk %}" class="btn btn-sm btn-secondary"
+       title="Editar os dados desta importação" style="white-space:nowrap;margin-bottom:8px;align-self:center;">Editar</a>
+  {% endif %}
   {% if b.pode_excluir %}
     <form method="post" action="{% url 'triagem_busca_excluir' projeto.slug b.pk %}"
           onsubmit="return confirm('{% if b.excluir_cascata %}A triagem desta importação será APAGADA junto. {% endif %}Excluir esta importação{% if b.base_nome %} “{{ b.base_nome|escapejs }}”{% endif %}?');"

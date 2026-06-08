@@ -101,6 +101,7 @@
   {# ── Ações ──────────────────────────────────────────────────────── #}
   <div class="tg-actions" style="margin-top:24px;">
     <a href="{% url 'triagem_duplicatas' projeto.slug %}" class="btn btn-primary">Revisar possíveis duplicatas</a>
+    {% if pode_editar %}<a href="{% url 'triagem_busca_editar' projeto.slug busca.pk %}" class="btn btn-secondary">Editar dados da importação</a>{% endif %}
     <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-secondary">Importar outra base</a>
   </div>
 

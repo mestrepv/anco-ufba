@@ -13,37 +13,65 @@
     <h1 class="tg-h1">Protocolo ANCO</h1>
   </div>
   <p class="tg-desc">
-    O <strong>objetivo</strong>, os <strong>critérios de seleção</strong> e <strong>como os
-    artigos são analisados</strong> neste projeto. A análise ocorre <strong>depois</strong> da
-    busca e triagem.
+    O <strong>objetivo</strong>, a <strong>estratégia de busca</strong>, os
+    <strong>critérios de seleção</strong> e <strong>como os artigos são analisados</strong> neste
+    projeto. Não há triagem prévia: a busca define o corpus.
   </p>
 
   <div class="tg-card" style="margin:14px 0 22px;">
     <div class="pj-funil" style="font-size:13px;">
       <span>Busca nas bases</span><span class="seta">→</span>
-      <span>Importação + dedup</span><span class="seta">→</span>
-      <span>Triagem (Revisão ANCO)</span><span class="seta">→</span>
-      <span>Sorteio</span><span class="seta">→</span>
+      <span>Importação + dedup (inclui todos)</span><span class="seta">→</span>
+      <span>Sorteio aleatório</span><span class="seta">→</span>
       <span style="color:var(--color-ok);"><b style="color:var(--color-ok);">Análise</b> (Matriz AnCo)</span>
     </div>
   </div>
 
-  <h2 class="tg-h2">Objetivo e critérios</h2>
+  <h2 class="tg-h2">Objetivo, estratégia e critérios</h2>
+  {% if eh_curador %}
+  <div class="tg-card" style="margin-bottom:22px;">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="acao" value="salvar_criterios">
+      <div class="tg-field">
+        <label for="id_pergunta_pesquisa">Objetivo da revisão</label>
+        <textarea id="id_pergunta_pesquisa" name="pergunta_pesquisa" rows="2"
+                  style="width:100%;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;box-sizing:border-box;">{{ protocolo.pergunta_pesquisa }}</textarea>
+      </div>
+      <div class="tg-field">
+        <label for="id_estrategia_busca">Estratégia de busca</label>
+        <textarea id="id_estrategia_busca" name="estrategia_busca" rows="2"
+                  placeholder="ex.: &quot;cognitive analysis&quot; / &quot;análise cognitiva&quot; nas bases X, Y, Z"
+                  style="width:100%;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;box-sizing:border-box;">{{ protocolo.estrategia_busca }}</textarea>
+      </div>
+      <div class="tg-field">
+        <label for="id_criterios_inclusao" style="color:var(--color-ok);">✔ Incluir se</label>
+        <textarea id="id_criterios_inclusao" name="criterios_inclusao" rows="2"
+                  style="width:100%;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;box-sizing:border-box;">{{ protocolo.criterios_inclusao }}</textarea>
+      </div>
+      <div class="tg-field">
+        <label for="id_criterios_exclusao" style="color:var(--color-danger);">✗ Excluir se</label>
+        <textarea id="id_criterios_exclusao" name="criterios_exclusao" rows="2"
+                  style="width:100%;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;box-sizing:border-box;">{{ protocolo.criterios_exclusao }}</textarea>
+      </div>
+      <button class="btn btn-primary">Salvar</button>
+    </form>
+  </div>
+  {% else %}
   <div class="tg-card tg-table-scroll" style="margin-bottom:22px;">
     <table class="tg-table">
       <tr><td style="white-space:nowrap;color:var(--color-ink-3);">Objetivo</td><td style="overflow-wrap:anywhere;">{{ protocolo.pergunta_pesquisa|default:"—" }}</td></tr>
+      <tr><td style="white-space:nowrap;color:var(--color-ink-3);">Estratégia de busca</td><td style="overflow-wrap:anywhere;">{{ protocolo.estrategia_busca|default:"—" }}</td></tr>
       <tr><td style="color:var(--color-ok);">✔ Incluir se</td><td><pre style="white-space:pre-wrap;font-family:var(--font-sans);margin:0;">{{ protocolo.criterios_inclusao|default:"—" }}</pre></td></tr>
       <tr><td style="color:var(--color-danger);">✗ Excluir se</td><td><pre style="white-space:pre-wrap;font-family:var(--font-sans);margin:0;">{{ protocolo.criterios_exclusao|default:"—" }}</pre></td></tr>
     </table>
-    {% if user.is_staff or user.eh_curador %}
-      <p class="tg-meta" style="margin-top:10px;">Editados no <a href="/admin/triagem/protocolotriagem/{{ protocolo.pk }}/change/" style="color:var(--color-gold-deep);">admin</a> (curador).</p>
-    {% endif %}
   </div>
+  {% endif %}
 
   <h2 class="tg-h2">Como os artigos são analisados (Matriz AnCo)</h2>
   <p class="tg-desc" style="margin-bottom:12px;">
-    Quando um artigo é <strong>incluído</strong> na triagem e <strong>sorteado</strong> para um
-    analista, ele preenche a <strong>Matriz AnCo</strong> em 4 abas:
+    Quando um artigo do corpus é <strong>sorteado</strong> para um analista, ele preenche a
+    <strong>Matriz AnCo</strong> em 4 abas:
   </p>
   <div class="tg-card" style="margin-bottom:18px;">
     <ol style="margin:0;padding-left:20px;font-family:var(--font-sans);font-size:14px;line-height:1.7;color:var(--color-ink-2);">

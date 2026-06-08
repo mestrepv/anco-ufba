@@ -132,6 +132,20 @@ class ImportarBuscaForm(forms.Form):
         return dados
 
 
+class EditarBuscaForm(ImportarBuscaForm):
+    """Edita os metadados de uma `Busca` já carregada — sem reenviar o arquivo.
+
+    Reusa todos os campos de `ImportarBuscaForm`, exceto o upload (`arquivo`) e o
+    `formato` (inferido na importação): a edição só altera os metadados da busca,
+    não reimporta registros.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields.pop("arquivo", None)
+        self.fields.pop("formato", None)
+
+
 class DecisaoTriagemForm(forms.Form):
     """Parecer de triagem de um revisor (incluir/excluir/dúvida + motivo)."""
 
