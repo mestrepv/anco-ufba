@@ -192,97 +192,22 @@ def painel_view(request: HttpRequest) -> HttpResponse:
 
         # Um bloco por projeto: objetivo, estratégia e as 7 etapas com OS
         # contadores do usuário NAQUELE projeto (painel consolidado).
-        def _passos_projeto(p):
+        # Resumo leve por projeto: só os contadores que o "próximo passo"
+        # usa. As etapas (cards) saíram do painel — o detalhe fica na página do
+        # projeto (/triagem/p/<slug>/).
+        def _resumo_projeto(p):
             eh_cur = p.eh_curador_no(user)
             n_dup = contar_pares_do_usuario(p, user, eh_cur)
-            n_analisar = (
-                Artigo.objects.filter(
-                    registros_triagem__status=RegistroTriagem.Status.INCLUIDO,
-                    registros_triagem__protocolo=p,
-                )
-                .exclude(pk__in=ja_minhas)
-                .distinct()
-                .count()
-            )
-
             if p.eh_anco:
-                # Revisão ANCO: autotriagem + relevância + sorteio de análise + consenso.
-                n_autotriar = registros_para_autotriar(p, user).count()
-                n_incluidos = p.registros.filter(status=RegistroTriagem.Status.INCLUIDO).count()
-                # "A analisar" deste projeto respeita as atribuições do usuário.
-                atribuidos_p = AtribuicaoAnalise.objects.filter(
-                    analista=user, sorteio__projeto=p
-                ).values_list("artigo_id", flat=True)
-                if atribuidos_p:
-                    n_analisar = (
-                        Artigo.objects.filter(pk__in=list(atribuidos_p))
-                        .exclude(pk__in=ja_minhas)
-                        .distinct()
-                        .count()
-                    )
-                passos = [
-                    {
-                        "num": 1,
-                        "titulo": "Importar base",
-                        "href": reverse("triagem_importar", args=[p.slug]),
-                        "count": None,
-                        "curador": False,
-                    },
-                    {
-                        "num": 2,
-                        "titulo": "Revisar duplicatas",
-                        "href": reverse("triagem_duplicatas", args=[p.slug]),
-                        "count": n_dup or None,
-                        "curador": False,
-                    },
-                    {
-                        "num": 3,
-                        "titulo": "Triar minha base",
-                        "href": reverse("triagem_autotriar", args=[p.slug]),
-                        "count": n_autotriar or None,
-                        "curador": False,
-                    },
-                    {
-                        "num": 4,
-                        "titulo": "Incluídos por relevância",
-                        "href": reverse("triagem_incluidos", args=[p.slug]),
-                        "count": n_incluidos or None,
-                        "curador": False,
-                    },
-                    {
-                        "num": 5,
-                        "titulo": "Sortear análise",
-                        "href": reverse("triagem_sorteio_analise", args=[p.slug]),
-                        "count": None,
-                        "curador": True,
-                    },
-                    {
-                        "num": 6,
-                        "titulo": "A analisar",
-                        "href": reverse("triagem_a_analisar"),
-                        "count": n_analisar or None,
-                        "curador": False,
-                    },
-                    {
-                        "num": 7,
-                        "titulo": "Consenso",
-                        "href": reverse("triagem_consenso", args=[p.slug]),
-                        "count": None,
-                        "curador": True,
-                    },
-                ]
                 return {
                     "projeto": p,
                     "eh_curador": eh_cur,
                     "eh_anco": True,
-                    "passos": passos,
                     "n_dup": n_dup,
-                    "n_autotriar": n_autotriar,
-                    "n_incluidos": n_incluidos,
+                    "n_autotriar": registros_para_autotriar(p, user).count(),
                     "n_ident": 0,
                     "n_desemp": 0,
                 }
-
             n_ident = (
                 p.registros.filter(
                     status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
@@ -290,72 +215,17 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                 if eh_cur
                 else 0
             )
-            n_desemp = len(registros_para_desempate(p)) if eh_cur else 0
-            n_triar = DecisaoTriagem.objects.filter(
-                revisor=user, concluido_em__isnull=True, registro__protocolo=p
-            ).count()
-            passos = [
-                {
-                    "num": 1,
-                    "titulo": "Importar base",
-                    "href": reverse("triagem_importar", args=[p.slug]),
-                    "count": None,
-                    "curador": False,
-                },
-                {
-                    "num": 2,
-                    "titulo": "Revisar duplicatas",
-                    "href": reverse("triagem_duplicatas", args=[p.slug]),
-                    "count": n_dup or None,
-                    "curador": False,
-                },
-                {
-                    "num": 3,
-                    "titulo": "Iniciar triagem",
-                    "href": reverse("triagem_iniciar", args=[p.slug]),
-                    "count": n_ident or None,
-                    "curador": True,
-                },
-                {
-                    "num": 4,
-                    "titulo": "Triar",
-                    "href": reverse("triagem_minhas"),
-                    "count": n_triar or None,
-                    "curador": False,
-                },
-                {
-                    "num": 5,
-                    "titulo": "Desempates",
-                    "href": reverse("triagem_desempate", args=[p.slug]),
-                    "count": n_desemp or None,
-                    "curador": True,
-                },
-                {
-                    "num": 6,
-                    "titulo": "A analisar",
-                    "href": reverse("triagem_a_analisar"),
-                    "count": n_analisar or None,
-                    "curador": False,
-                },
-                {
-                    "num": 7,
-                    "titulo": "Acompanhar (PRISMA)",
-                    "href": reverse("triagem_prisma", args=[p.slug]),
-                    "count": None,
-                    "curador": False,
-                },
-            ]
             return {
                 "projeto": p,
                 "eh_curador": eh_cur,
                 "eh_anco": False,
-                "passos": passos,
                 "n_dup": n_dup,
                 "n_ident": n_ident,
-                "n_desemp": n_desemp,
+                "n_desemp": len(registros_para_desempate(p)) if eh_cur else 0,
+                "n_autotriar": 0,
             }
 
-        projetos_painel = [_passos_projeto(p) for p in meus_projetos]
+        projetos_painel = [_resumo_projeto(p) for p in meus_projetos]
 
         # Próximo passo: nudge cross-projeto (usa o projeto ativo p/ as etapas
         # específicas de projeto; triagens/a-analisar são globais).

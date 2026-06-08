@@ -109,36 +109,16 @@
   {% if projetos_painel %}
   <section class="painel-secao">
     <h2>{% if n_projetos > 1 %}Seus projetos{% else %}Seu projeto{% endif %}</h2>
-    <p class="secao-desc">O fluxo de triagem em que você participa e onde você está em cada etapa. <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a></p>
+    <p class="secao-desc">Os projetos em que você participa. <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a></p>
     {% for item in projetos_painel %}
     <div class="projeto-bloco">
       <div class="projeto-cab">
         <a href="{% url 'triagem_painel' item.projeto.slug %}" class="projeto-nome">{{ item.projeto.nome }}{% if item.eh_curador %} <span class="projeto-papel">curador</span>{% endif %}</a>
         <a href="{% url 'triagem_painel' item.projeto.slug %}" class="btn btn-sm btn-primary">Entrar no projeto &rarr;</a>
       </div>
-      {% if item.projeto.pergunta_pesquisa %}
-        <p class="projeto-meta"><span class="rotulo">Objetivo:</span> {{ item.projeto.pergunta_pesquisa }}</p>
-      {% endif %}
       <p class="projeto-meta"><span class="rotulo">Estratégia de busca:</span>
-        {% if item.projeto.estrategia_busca %}{{ item.projeto.estrategia_busca }}{% else %}<span style="color:var(--color-ink-3);">(a definir no protocolo){% if item.eh_curador %} — <a href="{% url 'triagem_protocolo' item.projeto.slug %}" style="color:var(--color-gold-deep);">editar</a>{% endif %}</span>{% endif %}
+        {% if item.projeto.estrategia_busca %}{{ item.projeto.estrategia_busca|truncatechars:220 }}{% else %}<span style="color:var(--color-ink-3);">(a definir no protocolo){% if item.eh_curador %} — <a href="{% url 'triagem_protocolo' item.projeto.slug %}" style="color:var(--color-gold-deep);">editar</a>{% endif %}</span>{% endif %}
       </p>
-      <div class="fluxo-map" style="margin-top:14px;">
-        {% for p in item.passos %}
-          {% if p.curador and not item.eh_curador %}
-            <div class="passo-card mudo">
-              <span class="passo-num">{{ p.num }}</span>
-              <span class="passo-titulo">{{ p.titulo }}</span>
-              <span class="passo-tag">curador</span>
-            </div>
-          {% else %}
-            <div class="passo-card">
-              <span class="passo-num">{{ p.num }}</span>
-              <span class="passo-titulo">{{ p.titulo }}</span>
-              {% if p.curador %}<span class="passo-tag">curador</span>{% endif %}
-            </div>
-          {% endif %}
-        {% endfor %}
-      </div>
     </div>
     {% endfor %}
   </section>
