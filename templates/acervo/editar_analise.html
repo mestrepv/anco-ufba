@@ -84,6 +84,16 @@
         {% endif %}
         <div class="meta-row"><dt>Autores</dt><dd>{{ analise.artigo.autores|truncatechars:300|default:"—" }}</dd></div>
         <div class="meta-row"><dt>Base</dt><dd>{{ analise.artigo.base_consulta.nome|default:"—" }}</dd></div>
+        {% if analise.artigo.palavras_chaves %}
+        <div class="meta-row"><dt>Palavras-chave</dt><dd>{{ analise.artigo.palavras_chaves }}</dd></div>
+        {% endif %}
+        <div class="meta-row">
+          <dt>Resumo</dt>
+          <dd>
+            {% if analise.artigo.resumo %}<div style="line-height:1.65; white-space:pre-wrap;">{{ analise.artigo.resumo }}</div>
+            {% else %}<span class="t-meta" style="color: var(--color-ink-4); font-style:italic;">não disponível</span>{% endif %}
+          </dd>
+        </div>
         <div class="meta-row">
           <dt><label for="{{ artigo_form.area.id_for_label }}" style="cursor:pointer;">Grande área</label></dt>
           <dd>
