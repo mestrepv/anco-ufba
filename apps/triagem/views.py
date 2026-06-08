@@ -1070,14 +1070,30 @@ def a_analisar_view(request: HttpRequest) -> HttpResponse:
     )
     por_atribuicao = bool(atribuidos)
     if por_atribuicao:
-        artigos = Artigo.objects.filter(pk__in=atribuidos)
+        # Mostra TODOS os atribuídos (mesmo já analisados) — permanecem no painel
+        # com o status da análise. Não some ao iniciar/concluir.
+        artigos = Artigo.objects.filter(pk__in=atribuidos).distinct().order_by("-ano", "titulo")
     else:
-        artigos = Artigo.objects.filter(
-            registros_triagem__status=RegistroTriagem.Status.INCLUIDO,
-            registros_triagem__protocolo__modo=ProtocoloTriagem.Modo.RIGOROSO,
+        # Pool self-serve (rigoroso): some o que já analisei (não re-pegar).
+        artigos = (
+            Artigo.objects.filter(
+                registros_triagem__status=RegistroTriagem.Status.INCLUIDO,
+                registros_triagem__protocolo__modo=ProtocoloTriagem.Modo.RIGOROSO,
+            )
+            .exclude(pk__in=minhas)
+            .distinct()
+            .order_by("-ano", "titulo")
         )
-    artigos = artigos.exclude(pk__in=minhas).distinct().order_by("-ano", "titulo")
     pagina = Paginator(artigos, 50).get_page(request.GET.get("page"))
+
+    # Anexa a análise do usuário a cada artigo da página (status + ação certa).
+    page_ids = [a.pk for a in pagina.object_list]
+    minhas_analises = {
+        an.artigo_id: an
+        for an in Analise.objects.filter(analista=request.user, artigo_id__in=page_ids)
+    }
+    for art in pagina.object_list:
+        art.minha_analise = minhas_analises.get(art.pk)
 
     # Em projeto ANCO com incluídos, mas sem sorteio para o usuário: aguardando.
     aguardando_sorteio = (

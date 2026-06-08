@@ -1,7 +1,17 @@
 {% extends "_base_publico.html" %}
 
 {% block title %}A analisar · Triagem{% endblock %}
-{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}
+<style>
+  .status-chip { display:inline-flex; padding:2px 10px; border-radius:999px; font-family:var(--font-sans);
+    font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; }
+  .status-rascunho { background:var(--color-paper-3); color:var(--color-ink-2); }
+  .status-submetida { background:#e8eef5; color:#2a4d6e; }
+  .status-publicada { background:#e0ebd9; color:#3a5a2a; }
+  .status-legado { background:var(--color-paper-2); color:var(--color-ink-3); }
+  .status-rejeitada, .status-despublicada { background:#fdf2f0; color:var(--color-danger); }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="tg-wrap">
@@ -10,6 +20,7 @@
   <p class="tg-desc">
     {% if por_atribuicao %}
       Artigos <strong>sorteados para você</strong>. Preencha a Matriz AnCo de cada um.
+      Eles <strong>permanecem aqui</strong> mesmo depois de analisados, com o status.
     {% elif aguardando_sorteio %}
       A análise começa depois do <strong>sorteio</strong> da curadoria.
     {% else %}
@@ -28,7 +39,18 @@
               {{ artigo.ano|default:"s.d." }}{% if artigo.titulo_periodico %} · {{ artigo.titulo_periodico }}{% endif %}{% if artigo.doi %} · {{ artigo.doi }}{% endif %}
             </div>
           </div>
-          <a href="{% url 'iniciar_analise' artigo.pk %}" class="btn btn-sm btn-primary" style="flex-shrink:0;">Analisar</a>
+          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+            {% if artigo.minha_analise %}
+              <span class="status-chip status-{{ artigo.minha_analise.status }}">{{ artigo.minha_analise.get_status_display }}</span>
+              {% if artigo.minha_analise.status == 'rascunho' or artigo.minha_analise.pode_ser_modificada %}
+                <a href="{% url 'editar_analise' artigo.minha_analise.pk %}" class="btn btn-sm btn-primary">Continuar</a>
+              {% else %}
+                <a href="{% url 'pagina_analise' artigo.minha_analise.pk %}" class="btn btn-sm btn-secondary">Ver análise</a>
+              {% endif %}
+            {% else %}
+              <a href="{% url 'iniciar_analise' artigo.pk %}" class="btn btn-sm btn-primary">Analisar</a>
+            {% endif %}
+          </div>
         </li>
       {% endfor %}
     </ul>

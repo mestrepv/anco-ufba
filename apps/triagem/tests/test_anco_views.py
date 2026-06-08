@@ -62,6 +62,23 @@ def test_a_analisar_mostra_so_atribuidos(client, proj_anco):
     assert artigos == [meu]  # só o atribuído
 
 
+def test_a_analisar_mantem_atribuido_apos_iniciar(client, proj_anco):
+    """Bug: o artigo sumia ao iniciar a análise. Deve permanecer com o status."""
+    from apps.acervo.models import Analise
+
+    ana = _analista("anamantem")
+    art = _incluido(proj_anco, "10/mantem")
+    sorteio = SorteioAnalise.objects.create(projeto=proj_anco, criado_por=ana)
+    AtribuicaoAnalise.objects.create(sorteio=sorteio, analista=ana, artigo=art)
+    Analise.objects.create(artigo=art, analista=ana, status=Analise.Status.RASCUNHO)
+
+    client.force_login(ana)
+    resp = client.get(reverse("triagem_a_analisar"))
+    artigos = list(resp.context["pagina"].object_list)
+    assert artigos == [art]  # continua aparecendo
+    assert artigos[0].minha_analise is not None  # com a análise anexada
+
+
 def test_a_analisar_anco_sem_sorteio_aguarda(client, proj_anco):
     """No ANCO, sem sorteio para o usuário, não mostra o pool — aguarda o sorteio."""
     ana = _analista("ana2")
