@@ -213,13 +213,8 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
             "-importado_em", "-criado_em"
         )[:50]
     )
-    # Anota permissão de exclusão por importação (regra: importador antes da
-    # triagem; só curador depois, apagando a triagem junto).
-    for b in buscas:
-        pode, cascata, _motivo = pode_excluir_busca(b, request.user, projeto)
-        b.pode_excluir = pode
-        b.excluir_cascata = cascata
-        b.pode_editar = _pode_editar_busca(b, request.user, projeto)
+    # As ações por importação (editar/excluir) vivem na página de detalhe; aqui a
+    # linha é só um resumo clicável.
     minhas_buscas = [b for b in buscas if b.criado_por_id == request.user.id]
     membros = projeto.membros.select_related("usuario").order_by("-papel", "usuario__nome_exibicao")
     contexto = {
