@@ -1134,25 +1134,142 @@ def autotriar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
 
 @_projeto_analista
 def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
-    """Corpus do projeto: todos os artigos, do mais recente ao mais antigo."""
-    regs = (
-        projeto.registros.filter(status=RegistroTriagem.Status.INCLUIDO)
+    """Corpus do projeto: resumo, busca/filtros e status de análise por artigo."""
+    from urllib.parse import urlencode
+
+    from django.db.models import Exists, Max, Min, OuterRef, Q
+
+    from apps.acervo.models import Analise
+
+    _St = RegistroTriagem.Status
+    enviadas = (Analise.Status.SUBMETIDA, Analise.Status.PUBLICADA)
+
+    base_qs = (
+        projeto.registros.filter(status=_St.INCLUIDO, artigo__isnull=False)
         .select_related("artigo", "artigo__base_consulta")
-        .order_by("-artigo__ano", "titulo")
+        .annotate(
+            _analisado=Exists(
+                Analise.objects.filter(artigo_id=OuterRef("artigo_id"), status__in=enviadas)
+            ),
+            _rascunho=Exists(
+                Analise.objects.filter(
+                    artigo_id=OuterRef("artigo_id"), status=Analise.Status.RASCUNHO
+                )
+            ),
+            _atribuido=Exists(
+                AtribuicaoAnalise.objects.filter(
+                    artigo_id=OuterRef("artigo_id"), sorteio__projeto=projeto
+                )
+            ),
+        )
     )
-    total = regs.count()
-    pagina = Paginator(regs, 50).get_page(request.GET.get("page"))
+
+    # ── Resumo do corpus (sobre o total, não o filtrado) ────────────────
+    total = base_qs.count()
+    anos = base_qs.exclude(artigo__ano__isnull=True).aggregate(
+        mn=Min("artigo__ano"), mx=Max("artigo__ano")
+    )
+    n_teses = base_qs.filter(Q(tipo__icontains="tese") | Q(tipo__icontains="disserta")).count()
+    n_bases = (
+        Busca.objects.filter(protocolo=projeto, registros__status=_St.INCLUIDO).distinct().count()
+    )
+    n_analisado = base_qs.filter(_analisado=True).count()
+    n_pendente_envio = (
+        base_qs.filter(_analisado=False).filter(Q(_atribuido=True) | Q(_rascunho=True)).count()
+    )
+    n_sem = total - n_analisado - n_pendente_envio
+
+    # ── Busca + filtros + ordenação ─────────────────────────────────────
+    q = request.GET.get("q", "").strip()
+    f_base = request.GET.get("base", "").strip()
+    f_tipo = request.GET.get("tipo", "").strip()
+    f_idioma = request.GET.get("idioma", "").strip()
+    f_status = request.GET.get("status", "").strip()
+    ordem = request.GET.get("ordem", "recentes")
+
+    qs = base_qs
+    if q:
+        qs = qs.filter(Q(titulo__icontains=q) | Q(autores__icontains=q))
+    if f_base.isdigit():
+        qs = qs.filter(origem_buscas__id=int(f_base))
+    if f_tipo:
+        qs = qs.filter(tipo=f_tipo)
+    if f_idioma:
+        qs = qs.filter(idioma=f_idioma)
+    if f_status == "analisado":
+        qs = qs.filter(_analisado=True)
+    elif f_status == "pendente":
+        qs = qs.filter(_analisado=False).filter(Q(_atribuido=True) | Q(_rascunho=True))
+    elif f_status == "sem":
+        qs = qs.filter(_analisado=False, _atribuido=False, _rascunho=False)
+
+    qs = qs.order_by("titulo") if ordem == "titulo" else qs.order_by("-artigo__ano", "titulo")
+    qs = qs.distinct()
+    n_filtrado = qs.count()
+    pagina = Paginator(qs, 50).get_page(request.GET.get("page"))
+
+    # Nome do analista atribuído (só os da página).
+    page_art_ids = [r.artigo_id for r in pagina.object_list]
+    atrib_nome: dict[int, str] = {}
+    for a in (
+        AtribuicaoAnalise.objects.filter(sorteio__projeto=projeto, artigo_id__in=page_art_ids)
+        .select_related("analista")
+        .order_by("criado_em")
+    ):
+        atrib_nome.setdefault(a.artigo_id, a.analista.nome_exibicao or a.analista.email)
+
+    # Estado de análise por item (o template não lê atributos com "_").
+    for r in pagina.object_list:
+        nome = atrib_nome.get(r.artigo_id, "")
+        if r._analisado:
+            r.estado_rotulo, r.estado_cor = "● analisado", "ok"
+        elif r._rascunho:
+            r.estado_rotulo, r.estado_cor = "◐ em análise", "warn"
+        elif r._atribuido:
+            r.estado_rotulo = f"◐ atribuído a {nome}" if nome else "◐ atribuído"
+            r.estado_cor = "warn"
+        else:
+            r.estado_rotulo, r.estado_cor = "○ sem análise", "muted"
+
+    # Opções dos filtros.
+    tipos = sorted(
+        t for t in base_qs.exclude(tipo="").values_list("tipo", flat=True).distinct() if t
+    )
+    idiomas = sorted(
+        i for i in base_qs.exclude(idioma="").values_list("idioma", flat=True).distinct() if i
+    )
+    bases = (
+        Busca.objects.filter(protocolo=projeto, registros__status=_St.INCLUIDO)
+        .select_related("base_consulta")
+        .distinct()
+    )
+
     eh_cur = projeto.eh_curador_no(request.user)
-    # Quem pode remover cada item: curador (todos) ou quem importou a base.
     if eh_cur:
         excluiveis_ids = {r.pk for r in pagina.object_list}
     else:
         excluiveis_ids = set(
             projeto.registros.filter(
-                status=RegistroTriagem.Status.INCLUIDO,
-                origem_buscas__criado_por=request.user,
+                status=_St.INCLUIDO, origem_buscas__criado_por=request.user
             ).values_list("pk", flat=True)
         )
+
+    filtros = {
+        "q": q,
+        "base": f_base,
+        "tipo": f_tipo,
+        "idioma": f_idioma,
+        "status": f_status,
+        "ordem": ordem,
+    }
+    querystring = urlencode(
+        {
+            k: v
+            for k, v in filtros.items()
+            if v and k != "ordem" or (k == "ordem" and v != "recentes")
+        }
+    )
+
     return render(
         request,
         "triagem/incluidos.html",
@@ -1161,6 +1278,21 @@ def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
             "protocolo": projeto,
             "pagina": pagina,
             "total": total,
+            "n_filtrado": n_filtrado,
+            "tem_filtro": bool(q or f_base or f_tipo or f_idioma or f_status),
+            "ano_min": anos["mn"],
+            "ano_max": anos["mx"],
+            "n_teses": n_teses,
+            "n_bases": n_bases,
+            "n_analisado": n_analisado,
+            "n_pendente": n_pendente_envio,
+            "n_sem": n_sem,
+            "atrib_nome": atrib_nome,
+            "tipos": tipos,
+            "idiomas": idiomas,
+            "bases": bases,
+            "filtros": filtros,
+            "querystring": querystring,
             "pode_curar": eh_cur,
             "excluiveis_ids": excluiveis_ids,
         },

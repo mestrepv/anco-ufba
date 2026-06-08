@@ -1,16 +1,37 @@
 {% extends "_base_publico.html" %}
 
-{% block title %}Incluídos por relevância · Revisão ANCO{% endblock %}
+{% block title %}Corpus do projeto · {{ projeto.nome }}{% endblock %}
 {% block extra_head %}{% include "triagem/_estilos.html" %}
 <style>
   .inc-card { cursor: default; }
   .inc-head { display:flex; align-items:flex-start; gap:12px; cursor:pointer; }
-  .inc-head .chevron { transition: transform .15s; color: var(--color-ink-3); flex-shrink:0; margin-top:2px; }
+  .inc-head .chevron { transition: transform .15s; color: var(--color-ink-3); flex-shrink:0; margin-top:3px; }
   .inc-head.aberto .chevron { transform: rotate(90deg); }
   .inc-detalhe { margin-top:14px; padding-top:14px; border-top:1px solid var(--color-rule); }
   .inc-detalhe p { font-family:var(--font-sans); font-size:14px; line-height:1.6; color:var(--color-ink-2); margin:0 0 10px; }
   .inc-detalhe .rotulo { font-weight:700; color:var(--color-ink-2); }
-  .inc-score { flex-shrink:0; padding:3px 11px; border-radius:999px; border:1px solid var(--color-rule); background:var(--color-paper-2); font-weight:700; color:var(--color-gold-deep); font-size:12px; }
+  /* Resumo do corpus */
+  .corpus-resumo { display:flex; flex-wrap:wrap; gap:8px 22px; font-family:var(--font-sans); font-size:14px; color:var(--color-ink-2); margin:6px 0 4px; }
+  .corpus-resumo b { color:var(--color-ink); }
+  .funil { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 18px; }
+  .funil .fcell { font-family:var(--font-sans); font-size:13px; padding:5px 12px; border-radius:999px; border:1px solid var(--color-rule); }
+  .funil .ok { background:#e0ebd9; color:#3a5a2a; border-color:#c4d7b8; }
+  .funil .warn { background:#fbe7c9; color:#7a531a; border-color:#eccf99; }
+  .funil .muted { background:var(--color-paper-2); color:var(--color-ink-3); }
+  /* Barra de filtros */
+  .filtros { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 18px; }
+  .filtros input[type=search], .filtros select { font-family:var(--font-sans); font-size:13px; padding:7px 10px;
+    border:1px solid var(--color-rule-strong); border-radius:6px; background:var(--color-paper); color:var(--color-ink); }
+  .filtros input[type=search] { min-width:220px; flex:1; }
+  /* Chips e estado por item */
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:7px; }
+  .chip { font-family:var(--font-sans); font-size:11px; padding:2px 9px; border-radius:999px; border:1px solid var(--color-rule); background:var(--color-paper-2); color:var(--color-ink-2); }
+  .estado { font-family:var(--font-sans); font-size:12px; font-weight:600; padding:2px 10px; border-radius:999px; white-space:nowrap; }
+  .estado.ok { background:#e0ebd9; color:#3a5a2a; }
+  .estado.warn { background:#fbe7c9; color:#7a531a; }
+  .estado.muted { background:var(--color-paper-2); color:var(--color-ink-3); }
+  .sinal-falta { color:var(--color-danger); }
+  .sinal-ok { color:var(--color-ok); }
 </style>
 {% endblock %}
 
@@ -21,10 +42,51 @@
     <h1 class="tg-h1" style="margin-top:6px;">Corpus do projeto <span class="tg-meta">· {{ total }} artigo{{ total|pluralize }}</span></h1>
     {% if pode_curar %}<a href="{% url 'triagem_sorteio_analise' projeto.slug %}" class="btn btn-sm btn-primary">Sortear análise &rarr;</a>{% endif %}
   </div>
-  <p class="tg-desc">
-    Todos os artigos do projeto, do mais recente ao mais antigo. Clique num artigo
-    para ver os detalhes; use <strong>Remover</strong> para tirá-lo do corpus.
-  </p>
+
+  {% if total %}
+  {# ── Resumo do corpus ────────────────────────────────────────────── #}
+  <div class="corpus-resumo">
+    <span><b>{{ total }}</b> artigos</span>
+    {% if ano_min %}<span><b>{{ ano_min }}</b>–<b>{{ ano_max }}</b></span>{% endif %}
+    <span><b>{{ n_bases }}</b> base{{ n_bases|pluralize }} · <a href="{% url 'triagem_estatisticas' projeto.slug %}" style="color:var(--color-gold-deep);">estatística →</a></span>
+    {% if n_teses %}<span><b>{{ n_teses }}</b> tese{{ n_teses|pluralize }}/dissertação</span>{% endif %}
+  </div>
+  <div class="funil">
+    <span class="fcell ok">● {{ n_analisado }} analisado{{ n_analisado|pluralize }}</span>
+    <span class="fcell warn">◐ {{ n_pendente }} em análise / atribuído{{ n_pendente|pluralize }}</span>
+    <span class="fcell muted">○ {{ n_sem }} sem análise</span>
+  </div>
+
+  {# ── Busca + filtros ─────────────────────────────────────────────── #}
+  <form method="get" class="filtros">
+    <input type="search" name="q" value="{{ filtros.q }}" placeholder="buscar título ou autor…">
+    <select name="base" onchange="this.form.submit()">
+      <option value="">Todas as bases</option>
+      {% for b in bases %}<option value="{{ b.pk }}" {% if filtros.base == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.base_nome|default:"Importação" }}</option>{% endfor %}
+    </select>
+    <select name="tipo" onchange="this.form.submit()">
+      <option value="">Todos os tipos</option>
+      {% for t in tipos %}<option value="{{ t }}" {% if filtros.tipo == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+    </select>
+    <select name="idioma" onchange="this.form.submit()">
+      <option value="">Idioma</option>
+      {% for i in idiomas %}<option value="{{ i }}" {% if filtros.idioma == i %}selected{% endif %}>{{ i }}</option>{% endfor %}
+    </select>
+    <select name="status" onchange="this.form.submit()">
+      <option value="">Qualquer status</option>
+      <option value="analisado" {% if filtros.status == 'analisado' %}selected{% endif %}>Analisado</option>
+      <option value="pendente" {% if filtros.status == 'pendente' %}selected{% endif %}>Em análise / atribuído</option>
+      <option value="sem" {% if filtros.status == 'sem' %}selected{% endif %}>Sem análise</option>
+    </select>
+    <select name="ordem" onchange="this.form.submit()">
+      <option value="recentes" {% if filtros.ordem == 'recentes' %}selected{% endif %}>Mais recentes</option>
+      <option value="titulo" {% if filtros.ordem == 'titulo' %}selected{% endif %}>Título (A–Z)</option>
+    </select>
+    <button type="submit" class="btn btn-sm btn-secondary">Buscar</button>
+    {% if tem_filtro %}<a href="{% url 'triagem_incluidos' projeto.slug %}" class="tg-meta" style="color:var(--color-gold-deep);">limpar</a>{% endif %}
+  </form>
+
+  {% if tem_filtro %}<p class="tg-meta" style="margin:-8px 0 12px;">Mostrando <b>{{ n_filtrado }}</b> de {{ total }}.</p>{% endif %}
 
   {% if pagina.object_list %}
     <ul class="tg-list">
@@ -32,16 +94,24 @@
         <li class="tg-card inc-card" x-data="{ aberto: false }">
           <div class="inc-head" :class="aberto && 'aberto'" @click="aberto = !aberto">
             <span class="chevron" x-html="'&#9656;'"></span>
-            <div style="flex:1;">
-              <div class="tg-item-title">{{ r.titulo|truncatechars:140 }}</div>
-              <div class="tg-meta">
-                {{ r.ano|default:"s.d." }}{% if r.titulo_periodico %} · {{ r.titulo_periodico }}{% endif %}{% if r.artigo.base_consulta %} · {{ r.artigo.base_consulta.nome }}{% endif %}
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+                <div class="tg-item-title">{{ r.titulo|truncatechars:140 }}</div>
+                <span class="estado {{ r.estado_cor }}">{{ r.estado_rotulo }}</span>
+              </div>
+              {% if r.autores %}<div class="tg-meta">{{ r.autores|truncatechars:90 }}</div>{% endif %}
+              <div class="chips">
+                <span class="chip">{{ r.ano|default:"s.d." }}</span>
+                {% if r.tipo %}<span class="chip">{{ r.tipo }}</span>{% endif %}
+                {% if r.artigo.base_consulta %}<span class="chip">{{ r.artigo.base_consulta.nome }}</span>{% endif %}
+                <span class="chip">DOI {% if r.doi %}<span class="sinal-ok">✓</span>{% else %}<span class="sinal-falta">✗</span>{% endif %}</span>
+                <span class="chip">resumo {% if r.resumo %}<span class="sinal-ok">✓</span>{% else %}<span class="sinal-falta">✗</span>{% endif %}</span>
               </div>
             </div>
           </div>
 
           <div class="inc-detalhe" x-show="aberto" x-cloak>
-            {% if r.autores %}<p><span class="rotulo">Autores:</span> {{ r.autores }}</p>{% endif %}
+            {% if r.titulo_periodico %}<p><span class="rotulo">Periódico:</span> {{ r.titulo_periodico }}</p>{% endif %}
             {% if r.resumo %}<p><span class="rotulo">Resumo:</span> {{ r.resumo }}</p>
             {% else %}<p style="color:var(--color-ink-3);font-style:italic;">Sem resumo disponível.</p>{% endif %}
             {% if r.palavras_chaves %}<p><span class="rotulo">Palavras-chave:</span> {{ r.palavras_chaves }}</p>{% endif %}
@@ -67,13 +137,17 @@
 
     {% if pagina.has_other_pages %}
       <div class="tg-actions" style="margin-top:18px;align-items:center;">
-        {% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}" style="color:var(--color-gold-deep);font-size:14px;">&larr; anterior</a>{% endif %}
+        {% if pagina.has_previous %}<a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ pagina.previous_page_number }}" style="color:var(--color-gold-deep);font-size:14px;">&larr; anterior</a>{% endif %}
         <span class="tg-meta">página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
-        {% if pagina.has_next %}<a href="?page={{ pagina.next_page_number }}" style="color:var(--color-gold-deep);font-size:14px;">próxima &rarr;</a>{% endif %}
+        {% if pagina.has_next %}<a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ pagina.next_page_number }}" style="color:var(--color-gold-deep);font-size:14px;">próxima &rarr;</a>{% endif %}
       </div>
     {% endif %}
   {% else %}
-    <p class="tg-empty">Corpus vazio. Importe uma base para que os artigos entrem automaticamente no corpus.</p>
+    <p class="tg-empty">Nenhum artigo com esses filtros. <a href="{% url 'triagem_incluidos' projeto.slug %}" style="color:var(--color-gold-deep);">limpar filtros</a></p>
+  {% endif %}
+
+  {% else %}
+    <p class="tg-empty" style="margin-top:14px;">Corpus vazio. Importe uma base para que os artigos entrem automaticamente no corpus.</p>
   {% endif %}
 </div>
 {% endblock %}
