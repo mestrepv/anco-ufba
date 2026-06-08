@@ -28,15 +28,13 @@ from django.views.decorators.http import require_POST
 
 from . import duplicatas as dup
 from . import prisma
-from .aprovacao import consolidar_registro, registros_para_desempate
+from .aprovacao import consolidar_registro, incluir_corpus_total, registros_para_desempate
 from .autotriagem import (
-    autotriar,
-    desfazer_autotriagem,
     pode_autotriar,
     registros_decididos_do_usuario,
-    registros_para_autotriar,
     reverter_inclusao,
 )
+from .estatisticas import estatisticas_por_base
 from .forms import DecisaoTriagemForm, DesempateForm, ImportarBuscaForm
 from .importacao import (
     analisar_arquivo,
@@ -228,23 +226,19 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
     }
 
     if projeto.eh_anco:
-        # Dois painéis: "Meu trabalho" (analista, escopo das próprias bases) e
-        # "Curadoria" (visão do projeto inteiro). Não misturar.
+        # Sem triagem prévia: a importação já inclui tudo no corpus. Dois painéis:
+        # "Meu trabalho" (analista) e "Curadoria" (visão do projeto inteiro).
         aba = request.GET.get("aba", "trabalho")
         if aba != "curadoria" or not eh_curador:
             aba = "trabalho"
-        au = reverse("triagem_autotriar", args=[projeto.slug])
+        _inc_url = reverse("triagem_incluidos", args=[projeto.slug])
 
-        # — Painel do analista (escopo = minhas) —
-        meu_a_triar = registros_para_autotriar(projeto, request.user, "minhas").count()
-        meu_inc = registros_decididos_do_usuario(
-            projeto, request.user, (_St.INCLUIDO,), "minhas"
-        ).count()
-        meu_exc = registros_decididos_do_usuario(
-            projeto, request.user, (_St.EXCLUIDO,), "minhas"
-        ).count()
         from apps.acervo.models import Analise, Artigo
 
+        # — Painel do analista —
+        meu_corpus = registros_decididos_do_usuario(
+            projeto, request.user, (_St.INCLUIDO,), "minhas"
+        ).count()
         ja_minhas = Analise.objects.filter(analista=request.user).values_list(
             "artigo_id", flat=True
         )
@@ -267,52 +261,31 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
             .count()
         )
         contexto["cards_trabalho"] = [
-            {
-                "rotulo": "A triar",
-                "count": meu_a_triar,
-                "href": f"{au}?escopo=minhas&lista=pendentes&i=0",
-            },
-            {
-                "rotulo": "Incluídos",
-                "count": meu_inc,
-                "href": f"{au}?escopo=minhas&lista=incluidos&i=0",
-            },
-            {
-                "rotulo": "Excluídos",
-                "count": meu_exc,
-                "href": f"{au}?escopo=minhas&lista=excluidos&i=0",
-            },
+            {"rotulo": "No corpus (minhas bases)", "count": meu_corpus, "href": _inc_url},
             {
                 "rotulo": "A analisar",
                 "count": minha_a_analisar,
                 "href": reverse("triagem_a_analisar"),
             },
-            {
-                "rotulo": "Avulsos",
-                "count": meus_avulsos,
-                "href": reverse("minhas_analises"),
-            },
+            {"rotulo": "Avulsos", "count": meus_avulsos, "href": reverse("minhas_analises")},
         ]
         contexto["minha_dup"] = dup.contar_pares_do_usuario(projeto, request.user, False)
 
         # — Painel de curadoria (projeto inteiro) —
-        a_triar_todas = projeto.registros.filter(
-            status=_St.IDENTIFICADO, ja_no_acervo=False
-        ).count()
         isentos = projeto.registros.filter(ja_no_acervo=True).count()
+        # Registros importados que ainda não entraram no corpus (legado de fluxo
+        # antigo / falha de auto-inclusão) — habilitam o botão "Incluir corpus".
+        pendentes_corpus = projeto.registros.filter(
+            status__in=(_St.IDENTIFICADO, _St.EXCLUIDO), ja_no_acervo=False
+        ).count()
         brutos = [
             ("Importados", projeto.registros.count(), _reg_url),
-            ("A triar", a_triar_todas, f"{au}?escopo=todas&lista=pendentes&i=0"),
+            ("No corpus", contagens.get(_St.INCLUIDO, 0), _inc_url),
             ("Já no acervo (isentos)", isentos, f"{_reg_url}?status=identificado"),
-            (
-                "Incluído",
-                contagens.get(_St.INCLUIDO, 0),
-                reverse("triagem_incluidos", args=[projeto.slug]),
-            ),
-            ("Excluído", contagens.get(_St.EXCLUIDO, 0), f"{_reg_url}?status=excluido"),
         ]
         # Grid do painel de curadoria (o de "Meu trabalho" usa cards_trabalho).
         contexto["cards"] = [{"rotulo": r, "count": n, "href": h} for r, n, h in brutos if n]
+        contexto["pendentes_corpus"] = pendentes_corpus
         contexto["aba"] = aba
         return render(request, "triagem/painel.html", contexto)
 
@@ -965,98 +938,21 @@ def _autotriar_url(slug: str, lista: str, i: int, escopo: str = "minhas") -> str
 
 @_projeto_analista
 def autotriar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
-    """Autotriagem (modo ANCO): navega itens e decide com botões no topo.
+    """Rota legada da autotriagem.
 
-    Duas listas: `pendentes` (a triar) e `decididos` (incluídos/excluídos, com
-    desfazer). Navegação por índice `i` — pode avançar/voltar sem decidir.
+    No modo ANCO a triagem prévia foi **descontinuada**: a importação já inclui
+    tudo no corpus. A rota é mantida viva (compat de links) e redireciona para o
+    corpus. No modo rigoroso, autotriagem nunca se aplicou.
     """
     if not projeto.eh_anco:
         messages.info(request, "Este projeto usa triagem por revisores independentes.")
         return redirect("triagem_registros", slug=projeto.slug)
 
-    eh_curador = projeto.eh_curador_no(request.user)
-
-    def _escopo(valor):
-        # 'todas' só vale para curador; senão cai em 'minhas'.
-        return "todas" if (valor == "todas" and eh_curador) else "minhas"
-
-    if request.method == "POST":
-        registro = get_object_or_404(
-            RegistroTriagem, pk=request.POST.get("registro_id"), protocolo=projeto
-        )
-        if not pode_autotriar(projeto, request.user, registro):
-            return HttpResponseForbidden("Você só tria registros de bases que importou.")
-        acao = request.POST.get("acao")
-        lista = request.POST.get("lista", "pendentes")
-        escopo = _escopo(request.POST.get("escopo"))
-        try:
-            i = int(request.POST.get("i", 0))
-        except (TypeError, ValueError):
-            i = 0
-        if acao == "desfazer":
-            if desfazer_autotriagem(registro, por=request.user):
-                messages.success(request, "Decisão desfeita — voltou para a fila.")
-        elif acao in ("incluir", "excluir"):
-            if registro.status == RegistroTriagem.Status.IDENTIFICADO and not registro.ja_no_acervo:
-                novo = autotriar(registro, acao, por=request.user)
-                rotulo = "incluído" if novo == RegistroTriagem.Status.INCLUIDO else "excluído"
-                messages.success(request, f"Registro {rotulo}.")
-            else:
-                messages.info(request, "Este registro não está disponível para triagem.")
-        else:
-            messages.error(request, "Ação inválida.")
-        return redirect(_autotriar_url(projeto.slug, lista, i, escopo))
-
-    escopo = _escopo(request.GET.get("escopo"))
-    lista = request.GET.get("lista", "pendentes")
-    if lista == "incluidos":
-        qs = registros_decididos_do_usuario(
-            projeto, request.user, (RegistroTriagem.Status.INCLUIDO,), escopo
-        )
-    elif lista == "excluidos":
-        qs = registros_decididos_do_usuario(
-            projeto, request.user, (RegistroTriagem.Status.EXCLUIDO,), escopo
-        )
-    else:
-        lista = "pendentes"
-        qs = registros_para_autotriar(projeto, request.user, escopo)
-    ids = list(qs.values_list("pk", flat=True))
-    total = len(ids)
-    try:
-        i = int(request.GET.get("i", 0))
-    except (TypeError, ValueError):
-        i = 0
-    i = max(0, min(i, total - 1)) if total else 0
-    registro = RegistroTriagem.objects.select_related("artigo").get(pk=ids[i]) if total else None
-    return render(
+    messages.info(
         request,
-        "triagem/autotriar.html",
-        {
-            "projeto": projeto,
-            "protocolo": projeto,
-            "registro": registro,
-            "eh_curador": eh_curador,
-            "escopo": escopo,
-            "lista": lista,
-            "i": i,
-            "pos": i + 1,
-            "total": total,
-            "tem_anterior": i > 0,
-            "tem_proximo": i < total - 1,
-            "url_anterior": _autotriar_url(projeto.slug, lista, i - 1, escopo) if i > 0 else "",
-            "url_proximo": _autotriar_url(projeto.slug, lista, i + 1, escopo)
-            if i < total - 1
-            else "",
-            "n_pendentes": registros_para_autotriar(projeto, request.user, escopo).count(),
-            "n_incluidos": registros_decididos_do_usuario(
-                projeto, request.user, (RegistroTriagem.Status.INCLUIDO,), escopo
-            ).count(),
-            "n_excluidos": registros_decididos_do_usuario(
-                projeto, request.user, (RegistroTriagem.Status.EXCLUIDO,), escopo
-            ).count(),
-            "termos_realce": projeto.termos_realce,
-        },
+        "A triagem prévia foi descontinuada; todos os registros importados entram no corpus.",
     )
+    return redirect("triagem_incluidos", slug=projeto.slug)
 
 
 @_projeto_analista
@@ -1112,6 +1008,37 @@ def excluir_incluido_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Ht
 
 
 @_projeto_curador
+@require_POST
+def incluir_corpus_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
+    """Inclui no corpus todos os registros pendentes (sem triagem prévia)."""
+    if not projeto.eh_anco:
+        return HttpResponseForbidden("Disponível apenas na Revisão ANCO.")
+    n = incluir_corpus_total(projeto)
+    if n:
+        messages.success(request, f"{n} registro(s) incluído(s) no corpus.")
+    else:
+        messages.info(request, "Nenhum registro pendente — o corpus já está completo.")
+    return redirect("triagem_painel", slug=projeto.slug)
+
+
+@_projeto_analista
+def estatisticas_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
+    """Estatística consolidada artigos × bases do corpus (modo ANCO)."""
+    if not projeto.eh_anco:
+        messages.info(request, "A estatística por base está disponível na Revisão ANCO.")
+        return redirect("triagem_prisma", slug=projeto.slug)
+    return render(
+        request,
+        "triagem/estatisticas.html",
+        {
+            "projeto": projeto,
+            "protocolo": projeto,
+            "est": estatisticas_por_base(projeto),
+        },
+    )
+
+
+@_projeto_curador
 def sorteio_analise_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
     """Curador sorteia os incluídos entre os analistas (cota, única/dupla)."""
     if request.method == "POST":
@@ -1128,6 +1055,7 @@ def sorteio_analise_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Htt
             cota=cota,
             por=request.user,
             observacoes=request.POST.get("observacoes", "").strip(),
+            aleatorio=projeto.eh_anco,
         )
         if res.sorteio is not None:
             msg = f"Sorteio criado: {res.atribuidas} atribuições para {res.analistas} analista(s)."

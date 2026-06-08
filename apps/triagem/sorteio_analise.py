@@ -1,16 +1,24 @@
-"""Sorteio da análise — Revisão ANCO (Fase 13).
+"""Sorteio da análise — Revisão ANCO.
 
-Distribui os artigos **incluídos** na triagem entre os analistas do projeto:
-uma **cota** por analista, **priorizando maior relevância** e **preferindo bases
-distintas** (preferência, nunca bloqueia — decisão §8.2). `modo_revisao` define
-1 (`unica`) ou 2 (`dupla`) analistas por artigo.
+Distribui os artigos do **corpus** (incluídos) entre os analistas do projeto:
+uma **cota** por analista. `modo_revisao` define 1 (`unica`) ou 2 (`dupla`)
+analistas por artigo.
 
-Determinístico: pool ordenado por (-relevância, -ano, pk); round-robin estável
-entre analistas. Não toca o acervo curado nem o protocolo rigoroso.
+Dois modos de seleção:
+- **Aleatório** (`aleatorio=True`, padrão do modo ANCO simplificado): o pool é
+  embaralhado com `random.Random(semente)` — sorteio puramente randômico, sem
+  priorizar relevância nem preferir bases distintas. A `semente` é gravada no
+  `SorteioAnalise` para ser **reprodutível/auditável**.
+- **Determinístico** (`aleatorio=False`, legado): pool ordenado por
+  (-relevância, -ano, pk), preferindo bases distintas.
+
+Round-robin estável entre analistas; idempotente (não realoca artigos já
+atribuídos em sorteios anteriores). Não toca o acervo curado nem o rigoroso.
 """
 
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass, field
 
 from django.db import transaction
@@ -65,11 +73,20 @@ def analistas_do_projeto(projeto: ProtocoloTriagem):
     return list(User.objects.filter(pk__in=ids, is_active=True).order_by("pk"))
 
 
-def _pool(projeto: ProtocoloTriagem, excluir_artigos: set[int]) -> list[_ItemPool]:
+def _pool(
+    projeto: ProtocoloTriagem,
+    excluir_artigos: set[int],
+    *,
+    aleatorio: bool = False,
+    semente: int | None = None,
+) -> list[_ItemPool]:
+    # Ordem base sempre determinística por `pk` (a ordem do banco não é
+    # garantida); o modo aleatório embaralha em seguida com a seed.
+    ordem = ("pk",) if aleatorio else ("-relevancia_score", "-artigo__ano", "pk")
     regs = (
         projeto.registros.filter(status=RegistroTriagem.Status.INCLUIDO, artigo__isnull=False)
         .select_related("artigo")
-        .order_by("-relevancia_score", "-artigo__ano", "pk")
+        .order_by(*ordem)
     )
     pool, vistos = [], set()
     for r in regs:
@@ -84,6 +101,8 @@ def _pool(projeto: ProtocoloTriagem, excluir_artigos: set[int]) -> list[_ItemPoo
                 ano=r.artigo.ano or 0,
             )
         )
+    if aleatorio:
+        random.Random(semente).shuffle(pool)
     return pool
 
 
@@ -96,14 +115,23 @@ def executar_sorteio_analise(
     por=None,
     observacoes: str = "",
     analistas=None,
+    aleatorio: bool = False,
+    semente: int | None = None,
 ) -> ResultadoSorteioAnalise:
     """Cria um `SorteioAnalise` e aloca as `AtribuicaoAnalise` (idempotente por
     artigo: não realoca artigos já atribuídos em sorteios anteriores do projeto).
+
+    `aleatorio=True` faz o sorteio puramente randômico (sem relevância nem
+    diversidade de base), embaralhando o pool com `random.Random(semente)`; a
+    `semente` é gerada quando ausente e gravada no `SorteioAnalise` (auditoria).
     """
     if analistas is None:
         analistas = analistas_do_projeto(projeto)
     if not analistas:
         return ResultadoSorteioAnalise(None, motivo="Sem analistas no projeto.")
+
+    if aleatorio and semente is None:
+        semente = random.randrange(2**31)
 
     # Não realocar artigos já distribuídos por sorteios anteriores deste projeto.
     ja_atribuidos = set(
@@ -111,7 +139,7 @@ def executar_sorteio_analise(
             "artigo_id", flat=True
         )
     )
-    pool = _pool(projeto, ja_atribuidos)
+    pool = _pool(projeto, ja_atribuidos, aleatorio=aleatorio, semente=semente)
     if not pool:
         return ResultadoSorteioAnalise(None, motivo="Nenhum artigo incluído disponível.")
 
@@ -131,12 +159,15 @@ def executar_sorteio_analise(
         cota=cota,
         criado_por=por,
         observacoes=observacoes,
+        semente=semente if aleatorio else None,
     )
 
     def _escolher(uid: int) -> _ItemPool | None:
         st = estado[uid]
-        # 1ª passada: prefere base nova. 2ª: relaxa a diversidade.
-        for prefere_base_nova in (True, False):
+        # Aleatório: percorre o pool já embaralhado, sem preferir base nova.
+        # Determinístico: 1ª passada prefere base nova; 2ª relaxa a diversidade.
+        passadas = (False,) if aleatorio else (True, False)
+        for prefere_base_nova in passadas:
             for item in pool:
                 if vagas[item.artigo_id] <= 0:
                     continue

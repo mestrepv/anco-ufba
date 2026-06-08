@@ -348,6 +348,29 @@ sorteio; painel oculta PRISMA/κ/checklist/calibração no modo `anco`. Rotas:
 `/triagem/p/<slug>/{autotriar,incluidos,sorteio-analise,consenso}/`. Migration
 triagem `0020`. Ver `docs/relatorios/fase-13.md` e `docs/planos/fase-13-revisao-anco.md`.
 
+**Revisão ANCO — sem triagem prévia (Fase 14, app `apps/triagem`):** por decisão
+da professora, o modo `anco` **deixou de ter triagem**. Agora, ao importar numa
+`Busca` de projeto `eh_anco`, **todo registro novo** (não `ja_no_acervo`, não
+duplicado) entra direto no corpus — `aprovacao.incluir_automaticamente` seta
+`INCLUIDO` + `promover_para_acervo` **sem criar `DecisaoTriagem`** (`decidida_por`
+fica `None`); hook ao fim de `importacao.importar_para_busca`. **Todos os tipos**
+de documento entram (artigo, tese, etc.). A **autotriagem foi descontinuada**:
+`autotriar_view` redireciona ao corpus; o painel ANCO esconde "A triar"/"Triar
+minha base" e mostra **corpus + estatística + sorteio**. Migração de dados:
+`aprovacao.incluir_corpus_total` (botão de curador `incluir_corpus_view` +
+`manage.py incluir_corpus --projeto <slug> [--dry-run]`) inclui os `IDENTIFICADO`
+pendentes **e reinclui os `EXCLUIDO`** da autotriagem antiga (via
+`desfazer_autotriagem` — exclusões antigas viram obsoletas; acervo legado nunca
+tocado). **Sorteio aleatório** (`sorteio_analise.executar_sorteio_analise(...,
+aleatorio=True)`): embaralha o pool com `random.Random(semente)` — sem relevância
+nem diversidade de base; `SorteioAnalise.semente` grava a seed (reprodutível);
+cota=5; o branch determinístico legado (`aleatorio=False`) permanece. **Estatística
+artigos × bases** (`estatisticas.estatisticas_por_base`, fonte
+`RegistroTriagem.origem_buscas`) em `/triagem/p/<slug>/estatisticas/`. Válvula:
+curador/importador ainda remove item do corpus (`excluir_incluido_view`). Migration
+triagem `0021`. O modo `rigoroso` (PRISMA-ScR, Fases 9–12) permanece **intacto**.
+Ver `docs/relatorios/fase-14.md`.
+
 **Gates de propriedade (servidor, não só UI):** excluir importação só pelo
 **importador** ou curador (`excluir_busca_view`); resolver/desfazer duplicata segue o
 gate `_pode_resolver_par`. O `/painel/` mostra **uma seção por projeto** (objetivo,

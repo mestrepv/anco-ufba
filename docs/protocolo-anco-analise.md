@@ -29,14 +29,18 @@
 A análise descrita aqui é a **última etapa** de um fluxo maior, **a montante**:
 
 ```
-Busca nas bases → Importação + deduplicação → Triagem (Revisão ANCO) → Sorteio → ANÁLISE (esta Matriz)
+Busca nas bases → Importação + deduplicação (inclui TODOS) → Sorteio aleatório → ANÁLISE (esta Matriz)
 ```
 
-Quando o analista abre o editor de análise, o artigo **já passou pela triagem**
-(foi reconhecido como pertinente e **incluído**) e foi **sorteado** para ele.
-Ou seja: a busca e a triagem **selecionam quais** artigos entram; a Matriz AnCo
-(este protocolo) trata de **analisar** os que foram selecionados. Este documento
-cobre apenas essa etapa final.
+**Não há triagem prévia.** Por decisão do projeto, todo artigo ou tese
+recuperado pela busca por *análise cognitiva* (*cognitive analysis*) **entra no
+corpus automaticamente** ao ser importado — a própria busca é o critério de
+seleção. A deduplicação remove as referências repetidas entre bases. Em seguida,
+um **sorteio aleatório** distribui o corpus entre os analistas (cota de **5
+artigos** por analista). Quando o analista abre o editor, o artigo já foi
+**sorteado** para ele. Ou seja: a busca **define o corpus**; o sorteio **decide
+quem analisa o quê**; a Matriz AnCo (este protocolo) trata de **analisar**. Este
+documento cobre apenas essa etapa final.
 
 ---
 

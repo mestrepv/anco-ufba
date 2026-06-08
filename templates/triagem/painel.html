@@ -65,13 +65,13 @@
   <div class="tg-actions" style="margin-bottom:24px;">
     <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-primary">Importar busca</a>
     <a href="{% url 'cadastrar_artigo' %}" class="btn btn-secondary">Importar avulso</a>
-    <a href="{% url 'triagem_autotriar' projeto.slug %}?escopo=minhas&lista=pendentes&i=0" class="btn btn-secondary">Triar minha base{% if cards_trabalho.0.count %} ({{ cards_trabalho.0.count }}){% endif %}</a>
+    <a href="{% url 'triagem_incluidos' projeto.slug %}" class="btn btn-secondary">Ver corpus</a>
     <a href="{% url 'triagem_duplicatas' projeto.slug %}?escopo=minhas&i=0" class="btn btn-secondary">Analisar duplicatas{% if minha_dup %} ({{ minha_dup }}){% endif %}</a>
     <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">Análise cognitiva{% if minha_a_analisar %} ({{ minha_a_analisar }}){% endif %}</a>
   </div>
   {# ── Minhas importações ─────────────────────────────────────────── #}
   <h2 class="tg-h2">Minhas importações <span class="tg-meta">({{ minhas_buscas|length }})</span></h2>
-  <p class="tg-meta" style="margin:-2px 0 12px;">As bases que <strong>você</strong> carregou. Você pode excluir uma importação <strong>enquanto a triagem dela não começou</strong>; depois, só o curador.</p>
+  <p class="tg-meta" style="margin:-2px 0 12px;">As bases que <strong>você</strong> carregou. Ao importar, os registros entram <strong>direto no corpus</strong> (sem triagem). Remover uma importação já no corpus é ação do curador.</p>
   <div style="margin-bottom:24px;">
   {% if minhas_buscas %}
     {% for b in minhas_buscas %}{% include "triagem/_busca_row.html" %}{% endfor %}
@@ -119,6 +119,16 @@
     <p class="tg-meta" style="margin:10px 0 0;">{{ c.ja_no_acervo }} já no acervo (isentos) · {{ c.duplicados_entre_bases }} duplicados entre bases ·
       <a href="{% url 'triagem_prisma' projeto.slug %}" style="color:var(--color-gold-deep);">Fluxograma PRISMA completo →</a></p>
   </div>
+  {% else %}
+  <div class="tg-card" style="margin-bottom:14px;">
+    <div class="pj-funil">
+      <span><b>{{ c.importados }}</b> importados</span><span class="seta">→</span>
+      <span>− <b>{{ c.duplicados_entre_bases }}</b> duplicados</span><span class="seta">→</span>
+      <span style="color:var(--color-ok);"><b style="color:var(--color-ok);">{{ c.incluidos }}</b> no corpus</span>
+    </div>
+    <p class="tg-meta" style="margin:10px 0 0;">Sem triagem prévia: todos os registros entram no corpus. {{ c.ja_no_acervo }} já no acervo (isentos) ·
+      <a href="{% url 'triagem_estatisticas' projeto.slug %}" style="color:var(--color-gold-deep);">Estatística artigos × bases →</a></p>
+  </div>
   {% endif %}
 
   {% if cards %}
@@ -134,7 +144,14 @@
     {% if projeto.eh_anco %}
       <a href="{% url 'triagem_sorteio_analise' projeto.slug %}" class="btn btn-primary">Sortear análise</a>
       <a href="{% url 'triagem_consenso' projeto.slug %}" class="btn btn-secondary">Consenso</a>
-      <a href="{% url 'triagem_autotriar' projeto.slug %}?escopo=todas&lista=pendentes&i=0" class="btn btn-secondary">Revisar triagem (todas as bases)</a>
+      <a href="{% url 'triagem_estatisticas' projeto.slug %}" class="btn btn-secondary">Estatística por base</a>
+      {% if pendentes_corpus %}
+      <form method="post" action="{% url 'triagem_incluir_corpus' projeto.slug %}" style="display:inline;"
+            onsubmit="return confirm('Incluir {{ pendentes_corpus }} registro(s) pendente(s) no corpus? Exclusões antigas serão desfeitas.');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary">Incluir corpus pendente ({{ pendentes_corpus }})</button>
+      </form>
+      {% endif %}
       <a href="{% url 'triagem_duplicatas' projeto.slug %}?escopo=todas&i=0" class="btn btn-secondary">Todas as duplicatas</a>
       <a href="{% url 'triagem_registros' projeto.slug %}" class="btn btn-secondary">Registros</a>
     {% else %}

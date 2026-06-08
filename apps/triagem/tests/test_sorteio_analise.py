@@ -11,7 +11,7 @@ from apps.triagem.models import (
     SorteioAnalise,
 )
 from apps.triagem.promocao import promover_para_acervo
-from apps.triagem.sorteio_analise import executar_sorteio_analise
+from apps.triagem.sorteio_analise import _pool, executar_sorteio_analise
 
 from .conftest import membro
 
@@ -149,3 +149,56 @@ def test_sem_analistas(proj):
     res = executar_sorteio_analise(proj, cota=5, analistas=[])
     assert res.sorteio is None
     assert "analista" in res.motivo.lower()
+
+
+# ── Sorteio aleatório (modo ANCO simplificado) ──────────────────────────────
+
+
+def test_aleatorio_segue_ordem_embaralhada_e_grava_semente(proj):
+    """Com a seed fixa, a seleção é o prefixo do pool embaralhado — reprodutível."""
+    a1 = _analista(proj, "ar1")
+    for i in range(10):
+        _incluido(proj, base=f"B{i}", score=i)
+    pool = _pool(proj, set(), aleatorio=True, semente=99)
+    esperado = {item.artigo_id for item in pool[:5]}
+    res = executar_sorteio_analise(proj, cota=5, por=a1, analistas=[a1], aleatorio=True, semente=99)
+    obtido = set(
+        AtribuicaoAnalise.objects.filter(sorteio=res.sorteio).values_list("artigo_id", flat=True)
+    )
+    assert obtido == esperado
+    res.sorteio.refresh_from_db()
+    assert res.sorteio.semente == 99  # seed registrada para auditoria
+
+
+def test_aleatorio_ignora_relevancia(proj):
+    """O sorteio aleatório não escolhe necessariamente os mais relevantes."""
+    a1 = _analista(proj, "ar2")
+    altos = {_incluido(proj, base=f"H{i}", score=100 + i)[1].pk for i in range(5)}
+    for i in range(5):
+        _incluido(proj, base=f"L{i}", score=1)
+    # Procura uma seed (determinística) cuja seleção difira dos 5 mais relevantes.
+    seed = next(
+        s
+        for s in range(1, 200)
+        if {item.artigo_id for item in _pool(proj, set(), aleatorio=True, semente=s)[:5]} != altos
+    )
+    res = executar_sorteio_analise(
+        proj, cota=5, por=a1, analistas=[a1], aleatorio=True, semente=seed
+    )
+    obtido = set(
+        AtribuicaoAnalise.objects.filter(sorteio=res.sorteio).values_list("artigo_id", flat=True)
+    )
+    assert obtido != altos  # não é a seleção determinística por relevância
+
+
+def test_aleatorio_respeita_cota_e_idempotencia(proj):
+    a1 = _analista(proj, "ar3")
+    for i in range(8):
+        _incluido(proj, base=f"B{i}", score=10)
+    r1 = executar_sorteio_analise(proj, cota=5, por=a1, analistas=[a1], aleatorio=True)
+    assert r1.atribuidas == 5
+    assert r1.sorteio.semente is not None  # seed gerada automaticamente
+    r2 = executar_sorteio_analise(proj, cota=5, por=a1, analistas=[a1], aleatorio=True)
+    # 3 restantes no pool → completa a cota anterior só até o disponível.
+    novos = AtribuicaoAnalise.objects.filter(sorteio=r2.sorteio).count() if r2.sorteio else 0
+    assert novos == 3  # não realoca os 5 já distribuídos

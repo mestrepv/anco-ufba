@@ -486,4 +486,15 @@ def importar_para_busca(busca: Busca, registros_brutos: list[dict]) -> Resultado
         res.ja_no_acervo,
         res.ignorados,
     )
+
+    # Modo ANCO: sem triagem prévia — todo registro novo entra direto no corpus.
+    # Import local evita ciclo importacao→aprovacao→promocao→importacao.
+    if protocolo.eh_anco:
+        from .aprovacao import incluir_automaticamente
+
+        for reg in busca.registros.filter(
+            status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
+        ):
+            incluir_automaticamente(reg)
+
     return res

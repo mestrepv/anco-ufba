@@ -18,13 +18,14 @@
 <div class="tg-wrap">
   <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome|default:projeto.titulo }}</a>
   <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;">
-    <h1 class="tg-h1" style="margin-top:6px;">Incluídos por relevância</h1>
+    <h1 class="tg-h1" style="margin-top:6px;">Corpus da revisão</h1>
     {% if pode_curar %}<a href="{% url 'triagem_sorteio_analise' projeto.slug %}" class="btn btn-sm btn-primary">Sortear análise &rarr;</a>{% endif %}
   </div>
   <p class="tg-desc">
-    Artigos incluídos na triagem, ordenados pela <strong>correspondência com os
-    {{ n_termos }} termo(s) da estratégia de busca</strong>. Clique num artigo para
-    ver os detalhes; use <strong>Excluir</strong> para tirá-lo do pool de análise.
+    Todos os artigos do <strong>corpus</strong> (incluídos sem triagem prévia),
+    ordenados pela <strong>correspondência com os {{ n_termos }} termo(s) da
+    estratégia de busca</strong>. Clique num artigo para ver os detalhes; use
+    <strong>Excluir</strong> para tirá-lo do corpus de análise.
   </p>
 
   {% if pagina.object_list %}
@@ -75,7 +76,7 @@
       </div>
     {% endif %}
   {% else %}
-    <p class="tg-empty">Nenhum artigo incluído ainda. A triagem precisa incluir registros primeiro.</p>
+    <p class="tg-empty">Corpus vazio. Importe uma base para que os artigos entrem automaticamente no corpus.</p>
   {% endif %}
 </div>
 {% endblock %}

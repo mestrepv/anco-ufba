@@ -84,6 +84,56 @@ def consolidar_registro(
     return status
 
 
+@transaction.atomic
+def incluir_automaticamente(registro: RegistroTriagem) -> bool:
+    """Inclui um registro no corpus **sem decisão de revisor** (modo ANCO).
+
+    `IDENTIFICADO` → `INCLUIDO` + promove ao acervo. Não cria `DecisaoTriagem`
+    (inclusão automática = sem revisor; `decidida_por` fica `None`, auditável).
+    Idempotente: registro já incluído ou já no acervo legado não é tocado.
+    Retorna True se incluiu.
+    """
+    if registro.status != _St.IDENTIFICADO or registro.ja_no_acervo:
+        return False
+    consolidar_registro(registro, _Dec.INCLUIR)
+    # Imports locais: evitam ciclo importacao→aprovacao→promocao→importacao.
+    from .promocao import promover_para_acervo
+    from .relevancia import atualizar_relevancia
+
+    promover_para_acervo(registro)
+    atualizar_relevancia(registro)
+    return True
+
+
+def incluir_corpus_total(projeto) -> int:
+    """Põe **todo** registro não-legado de um projeto ANCO no corpus. Idempotente.
+
+    - `IDENTIFICADO` → inclui + promove.
+    - `EXCLUIDO` (não-legado) → desfaz a exclusão antiga (remove `Artigo`
+      órfão/decisões com segurança) e inclui — exclusões da autotriagem antiga
+      são tratadas como obsoletas.
+    - já `INCLUIDO` ou `ja_no_acervo` → ignora.
+
+    Retorna quantos registros entraram no corpus nesta passagem.
+    """
+    if not getattr(projeto, "eh_anco", False):
+        return 0
+    from .autotriagem import desfazer_autotriagem
+
+    n = 0
+    pendentes = projeto.registros.filter(
+        status__in=(_St.IDENTIFICADO, _St.EXCLUIDO),
+        ja_no_acervo=False,
+    )
+    for reg in pendentes:
+        if reg.status == _St.EXCLUIDO:
+            desfazer_autotriagem(reg, por=None)
+            reg.refresh_from_db()
+        if incluir_automaticamente(reg):
+            n += 1
+    return n
+
+
 def _todas_concluidas(registro: RegistroTriagem, etapa: str) -> bool:
     return not DecisaoTriagem.objects.filter(
         registro=registro, etapa=etapa, concluido_em__isnull=True

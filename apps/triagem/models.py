@@ -675,13 +675,15 @@ class RodadaCalibracao(models.Model):
 
 
 class SorteioAnalise(models.Model):
-    """Distribuição da análise (Matriz AnCo) — modo Revisão ANCO (Fase 13).
+    """Distribuição da análise (Matriz AnCo) — modo Revisão ANCO.
 
-    Após a triagem, o curador sorteia os incluídos entre os analistas: uma
-    **cota** de artigos por analista, preferindo **bases distintas** e
-    priorizando maior relevância. `modo_revisao` decide se cada artigo é
-    analisado por um analista (`unica`) ou por dois independentes + consenso
-    (`dupla`). Não toca o acervo curado nem o protocolo rigoroso.
+    O curador sorteia os artigos do corpus entre os analistas: uma **cota** de
+    artigos por analista. No modo ANCO simplificado o sorteio é **aleatório**
+    (`semente` registra a seed para reprodutibilidade/auditoria); o modo
+    determinístico legado (relevância + diversidade de base) permanece para
+    `aleatorio=False`. `modo_revisao` decide se cada artigo é analisado por um
+    analista (`unica`) ou por dois independentes + consenso (`dupla`). Não toca o
+    acervo curado nem o protocolo rigoroso.
     """
 
     class ModoRevisao(models.TextChoices):
@@ -710,6 +712,11 @@ class SorteioAnalise(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
     observacoes = models.TextField(
         blank=True, help_text="Critério/observações do sorteio (auditoria)."
+    )
+    semente = models.BigIntegerField(
+        null=True,
+        blank=True,
+        help_text="Seed do embaralhamento aleatório (reprodutível/auditável).",
     )
 
     class Meta:

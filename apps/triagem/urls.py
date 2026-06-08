@@ -86,6 +86,12 @@ urlpatterns = [
         name="triagem_incluido_excluir",
     ),
     path(
+        "p/<slug:slug>/incluir-corpus/",
+        views.incluir_corpus_view,
+        name="triagem_incluir_corpus",
+    ),
+    path("p/<slug:slug>/estatisticas/", views.estatisticas_view, name="triagem_estatisticas"),
+    path(
         "p/<slug:slug>/sorteio-analise/", views.sorteio_analise_view, name="triagem_sorteio_analise"
     ),
     path("p/<slug:slug>/consenso/", views.consenso_view, name="triagem_consenso"),
