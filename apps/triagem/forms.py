@@ -185,6 +185,15 @@ class RegistroFonteForm(forms.ModelForm):
             "resumo": forms.Textarea(attrs={"rows": 7}),
         }
 
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        # Mesmas classes do editor de análise (design editorial AnCo).
+        for field in self.fields.values():
+            if isinstance(field.widget, forms.Textarea):
+                field.widget.attrs["class"] = "field-textarea"
+            else:
+                field.widget.attrs["class"] = "field-input"
+
 
 class DecisaoTriagemForm(forms.Form):
     """Parecer de triagem de um revisor (incluir/excluir/dúvida + motivo)."""

@@ -599,7 +599,9 @@ def fonte_view(request: HttpRequest, projeto: ProtocoloTriagem, busca_id: int) -
 
             atualizar_relevancia(registro)
             messages.success(request, "Fonte atualizada.")
-            return redirect(f"{base_url}?i={i}")
+            # Salvar e avançar: vai para a próxima fonte (ou fica na última).
+            prox = i + 1 if i < total - 1 else i
+            return redirect(f"{base_url}?i={prox}")
     else:
         form = RegistroFonteForm(instance=registro) if registro else None
 
