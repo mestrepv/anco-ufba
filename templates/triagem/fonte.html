@@ -3,86 +3,74 @@
 {% block title %}Fontes — {{ busca.base_nome|default:"Importação" }}{% endblock %}
 
 {% block content %}
-<main style="max-width: 880px; margin: 32px auto 80px; padding: 0 24px;">
+<main style="max-width: 760px; margin: 32px auto 80px; padding: 0 24px;">
 
-  {# ── Cabeçalho ─────────────────────────────────────────────────── #}
-  <header style="margin-bottom: 20px;">
-    <span class="t-eyebrow" style="color: var(--color-gold);">An·Co · fonte da importação ·
-      {{ busca.base_nome|default:"base" }}</span>
-    {% if registro %}
-    <h1 class="t-h1" style="margin-top: 4px; font-size: 26px; line-height: 1.2;">
-      {{ registro.titulo|truncatechars:140|default:"(sem título)" }}
-    </h1>
-    <p class="t-small" style="color: var(--color-ink-3); margin-top: 6px;">
-      {{ registro.ano|default:"s.d." }}
-      {% if registro.titulo_periodico %} · <em>{{ registro.titulo_periodico|truncatechars:80 }}</em>{% endif %}
-    </p>
-    {% if registro.link %}
-    <div style="margin-top: 12px;">
-      <a href="{{ registro.link }}" target="_blank" rel="noopener noreferrer" class="link" style="font-size: 14px;">Acessar obra ↗</a>
-    </div>
-    {% endif %}
-    {% endif %}
-  </header>
+  <a href="{% url 'triagem_busca_resumo' projeto.slug busca.pk %}" class="link" style="font-size:13px;">&larr; {{ busca.base_nome|default:"Importação" }}</a>
 
   {% if registro %}
-  {# ── Navegação entre as fontes ─────────────────────────────────── #}
-  <nav style="display: flex; align-items: center; justify-content: space-between; gap: 12px;
-              border-bottom: 1px solid var(--color-rule); padding-bottom: 12px; margin-bottom: 24px;"
-       aria-label="Navegação entre as fontes">
-    {% if url_anterior %}<a href="{{ url_anterior }}" class="btn btn-ghost btn-sm">← Voltar</a>
-    {% else %}<span class="btn btn-ghost btn-sm" style="opacity:.4;pointer-events:none;">← Voltar</span>{% endif %}
-    <span class="t-meta" style="color: var(--color-ink-3);">Fonte <strong style="color: var(--color-ink);">{{ pos }}</strong> de <strong style="color: var(--color-ink);">{{ total }}</strong></span>
-    {% if url_proximo %}<a href="{{ url_proximo }}" class="btn btn-ghost btn-sm">Avançar →</a>
-    {% else %}<span class="btn btn-ghost btn-sm" style="opacity:.4;pointer-events:none;">Avançar →</span>{% endif %}
-  </nav>
+  {# ── Navegação ─────────────────────────────────────────────────── #}
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 16px;">
+    {% if url_anterior %}<a href="{{ url_anterior }}" class="btn btn-ghost btn-sm">← Voltar</a>{% else %}<span class="btn btn-ghost btn-sm" style="opacity:.4;pointer-events:none;">← Voltar</span>{% endif %}
+    <span class="t-meta" style="color:var(--color-ink-3);">Fonte <strong style="color:var(--color-ink);">{{ pos }}</strong> de <strong style="color:var(--color-ink);">{{ total }}</strong></span>
+    {% if url_proximo %}<a href="{{ url_proximo }}" class="btn btn-ghost btn-sm">Avançar →</a>{% else %}<span class="btn btn-ghost btn-sm" style="opacity:.4;pointer-events:none;">Avançar →</span>{% endif %}
+  </div>
 
-  {# ── Ficha da fonte (editável) ─────────────────────────────────── #}
-  <form method="post" class="meta-card">
+  {# ── Card de metadados, editável inline ────────────────────────── #}
+  <form method="post" class="meta-card" x-data="{ nres: ({{ form.resumo.value|length|default:0 }}) }">
     {% csrf_token %}
     <input type="hidden" name="i" value="{{ pos|add:'-1' }}">
-    <header style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--color-paper-3); margin-bottom: 18px;">
-      <h2 class="t-h2">Dados da fonte</h2>
-    </header>
-    <p class="t-small" style="color: var(--color-ink-3); margin: -6px 0 18px;">
-      Confira e <strong>complete o que faltou</strong> no arquivo (resumo,
-      palavras-chave, DOI…). O que você salvar vale também para a análise do artigo.
-    </p>
+    <span class="badge badge-ok" style="margin-bottom:14px;">fonte {{ pos }} de {{ total }} · clique num campo para editar</span>
 
-    {% for erro in form.non_field_errors %}<p class="t-meta" style="color: var(--color-danger);">{{ erro }}</p>{% endfor %}
+    {% for erro in form.non_field_errors %}<p class="t-meta" style="color:var(--color-danger);">{{ erro }}</p>{% endfor %}
 
-    <div style="display: grid; gap: 16px;">
-    {% for field in form %}
-      <div>
-        <label class="field-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {% if field.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ field.errors|join:" / " }}</p>{% endif %}
-      </div>
-    {% endfor %}
+    <input name="titulo" class="ie-field ie-title" placeholder="(sem título)" value="{{ form.titulo.value|default_if_none:'' }}">
+    <div style="display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;margin:2px 0 16px;">
+      <input name="autores" class="ie-field ie-sub" placeholder="(autores)" value="{{ form.autores.value|default_if_none:'' }}" style="flex:1;min-width:200px;">
+      <span style="color:var(--color-ink-3);">·</span>
+      <input name="ano" type="number" class="ie-field ie-sub" placeholder="ano" value="{{ form.ano.value|default_if_none:'' }}" style="width:90px;">
     </div>
 
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 18px; margin-top: 18px; border-top: 1px solid var(--color-paper-3);">
-      {% if url_anterior %}<a href="{{ url_anterior }}" class="btn btn-ghost btn-sm">← Voltar</a>{% else %}<span></span>{% endif %}
-      <button type="submit" class="btn btn-primary btn-sm">Salvar{% if url_proximo %} e avançar{% endif %} →</button>
+    <dl style="margin-top:4px;">
+      <div class="meta-row"><dt>Periódico / Fonte</dt><dd><input name="titulo_periodico" class="ie-field" placeholder="—" value="{{ form.titulo_periodico.value|default_if_none:'' }}"></dd></div>
+      <div class="meta-row"><dt>Tipo</dt><dd><input name="tipo" class="ie-field" placeholder="—" value="{{ form.tipo.value|default_if_none:'' }}"></dd></div>
+      <div class="meta-row"><dt>DOI</dt><dd><input name="doi" class="ie-field mono" placeholder="—" value="{{ form.doi.value|default_if_none:'' }}"></dd></div>
+      <div class="meta-row"><dt>ISBN / ISSN</dt><dd><input name="isbn" class="ie-field mono" placeholder="—" value="{{ form.isbn.value|default_if_none:'' }}"></dd></div>
+      <div class="meta-row"><dt>Idioma</dt><dd><input name="idioma" class="ie-field" placeholder="—" value="{{ form.idioma.value|default_if_none:'' }}"></dd></div>
+      <div class="meta-row"><dt>Link de acesso</dt><dd><input name="link" class="ie-field mono" placeholder="—" value="{{ form.link.value|default_if_none:'' }}"></dd></div>
+      <div class="meta-row"><dt>Palavras-chave</dt><dd><textarea name="palavras_chaves" rows="2" class="ie-field" placeholder="—">{{ form.palavras_chaves.value|default_if_none:'' }}</textarea></dd></div>
+      <div class="meta-row">
+        <dt>Resumo</dt>
+        <dd>
+          <details open>
+            <summary style="font-family:var(--font-sans);font-size:13px;color:var(--color-ink-3);cursor:pointer;">resumo (<span x-text="nres"></span> caracteres)</summary>
+            <textarea name="resumo" rows="7" class="ie-field" placeholder="(sem resumo — cole do PDF, se necessário)" @input="nres = $event.target.value.length" style="margin-top:8px;">{{ form.resumo.value|default_if_none:'' }}</textarea>
+          </details>
+        </dd>
+      </div>
+    </dl>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:18px;margin-top:14px;border-top:1px solid var(--color-paper-3);">
+      <span class="t-meta" style="color:var(--color-ink-4);">As alterações valem também para a análise do artigo.</span>
+      <button type="submit" class="btn btn-primary btn-sm">Salvar fonte</button>
     </div>
   </form>
   {% else %}
-    <p class="t-small" style="color: var(--color-ink-3);">Esta importação não tem fontes.</p>
+    <p class="t-small" style="color:var(--color-ink-3);margin-top:16px;">Esta importação não tem fontes.</p>
   {% endif %}
 
 </main>
 
 <style>
-  /* Inputs/áreas no padrão editorial (mesmas classes do editor de análise),
-     caso o tema global ainda não as cubra neste contexto. */
-  .meta-card .field-input, .meta-card .field-textarea {
-    width: 100%; box-sizing: border-box; font-family: var(--font-sans); font-size: 14px;
-    padding: 9px 11px; border: 1px solid var(--color-rule-strong); border-radius: 6px;
-    background: #fff; color: var(--color-ink);
-  }
-  .meta-card .field-textarea { line-height: 1.55; resize: vertical; }
-  .meta-card .field-input:focus, .meta-card .field-textarea:focus {
-    outline: none; border-color: var(--color-gold);
-  }
+  /* Campos editáveis inline: parecem texto; viram input ao focar/passar o mouse. */
+  .ie-field { width:100%; box-sizing:border-box; font-family:var(--font-sans); font-size:14px;
+    color:var(--color-ink); background:transparent; border:1px solid transparent; border-radius:6px;
+    padding:6px 8px; margin:-6px -8px; line-height:1.5; transition:border-color .12s, background .12s; }
+  .ie-field:hover { border-color:var(--color-rule); background:var(--color-paper-2); }
+  .ie-field:focus { outline:none; border-color:var(--color-gold); background:#fff; }
+  textarea.ie-field { resize:vertical; line-height:1.6; }
+  .ie-field.mono { font-family:var(--font-mono); font-size:13px; color:var(--color-ink-2); }
+  .ie-title { font-family:var(--font-serif); font-size:22px; line-height:1.3; color:var(--color-ink); padding:4px 8px; }
+  .ie-sub { font-family:var(--font-sans); font-size:14px; color:var(--color-ink-3); }
+  .meta-row dd { padding-right:4px; }
 </style>
 {% endblock %}
