@@ -87,9 +87,9 @@
         <dt>Resumo</dt>
         <dd>
           {% if dados.resumo %}
-          <details>
+          <details open>
             <summary style="font-family: var(--font-sans); font-size: 13px; color: var(--color-ink-3); cursor: pointer;">
-              mostrar resumo ({{ dados.resumo|length }} caracteres)
+              resumo ({{ dados.resumo|length }} caracteres)
             </summary>
             <p class="t-prose" style="font-size: 14px; color: var(--color-ink); margin-top: 8px;">{{ dados.resumo }}</p>
           </details>
