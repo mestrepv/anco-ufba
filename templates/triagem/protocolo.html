@@ -54,6 +54,13 @@
         <textarea id="id_criterios_exclusao" name="criterios_exclusao" rows="2"
                   style="width:100%;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;box-sizing:border-box;">{{ protocolo.criterios_exclusao }}</textarea>
       </div>
+      <div class="tg-field">
+        <label for="id_termos_realce">Termos destacados (realce)</label>
+        <textarea id="id_termos_realce" name="termos_realce" rows="2"
+                  placeholder="cognitive analysis, análise cognitiva, análises cognitivas…"
+                  style="width:100%;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;box-sizing:border-box;">{{ protocolo.termos_realce }}</textarea>
+        <p class="tg-meta" style="margin:6px 0 0;">Separados por vírgula. São marcados (amarelo) no título/resumo/palavras-chave ao navegar pelas fontes. Inclua as variações (plural, com e sem acento).</p>
+      </div>
       <button class="btn btn-primary">Salvar</button>
     </form>
   </div>
@@ -64,6 +71,7 @@
       <tr><td style="white-space:nowrap;color:var(--color-ink-3);">Estratégia de busca</td><td style="overflow-wrap:anywhere;">{{ protocolo.estrategia_busca|default:"—" }}</td></tr>
       <tr><td style="color:var(--color-ok);">✔ Incluir se</td><td><pre style="white-space:pre-wrap;font-family:var(--font-sans);margin:0;">{{ protocolo.criterios_inclusao|default:"—" }}</pre></td></tr>
       <tr><td style="color:var(--color-danger);">✗ Excluir se</td><td><pre style="white-space:pre-wrap;font-family:var(--font-sans);margin:0;">{{ protocolo.criterios_exclusao|default:"—" }}</pre></td></tr>
+      <tr><td style="color:var(--color-ink-3);">Termos destacados</td><td style="overflow-wrap:anywhere;">{{ protocolo.termos_realce|default:"—" }}</td></tr>
     </table>
   </div>
   {% endif %}

@@ -568,7 +568,10 @@ def fonte_view(request: HttpRequest, projeto: ProtocoloTriagem, busca_id: int) -
         form = RegistroFonteForm(instance=registro) if registro else None
 
     # Termos destacados (<mark>) nos campos de texto: os do projeto ou o padrão AnCo.
-    realce_termos = projeto.termos_realce or "cognitive analysis, análise cognitiva, analise cognitiva"
+    realce_termos = projeto.termos_realce or (
+        "cognitive analysis, cognitive analyses, análise cognitiva, "
+        "analise cognitiva, análises cognitivas, analises cognitivas"
+    )
     return render(
         request,
         "triagem/fonte.html",
@@ -905,22 +908,17 @@ def protocolo_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
                     request, "Protocolo travado: abra uma nova versão para editar os critérios."
                 )
             else:
-                for campo in (
+                campos = (
                     "pergunta_pesquisa",
                     "estrategia_busca",
                     "criterios_inclusao",
                     "criterios_exclusao",
-                ):
-                    setattr(projeto, campo, request.POST.get(campo, "").strip())
-                projeto.save(
-                    update_fields=[
-                        "pergunta_pesquisa",
-                        "estrategia_busca",
-                        "criterios_inclusao",
-                        "criterios_exclusao",
-                    ]
+                    "termos_realce",
                 )
-                messages.success(request, "Objetivo e critérios atualizados.")
+                for campo in campos:
+                    setattr(projeto, campo, request.POST.get(campo, "").strip())
+                projeto.save(update_fields=list(campos))
+                messages.success(request, "Objetivo, critérios e termos de realce atualizados.")
         elif acao == "travar":
             projeto.travar(request.user)
             messages.success(request, f"Versão {projeto.versao} travada (a priori).")

@@ -108,12 +108,14 @@ def test_curador_edita_estrategia(client, proj_anco):
             "estrategia_busca": "cognitive analysis nas bases WoS/Scopus",
             "criterios_inclusao": "usa o termo",
             "criterios_exclusao": "fora de escopo",
+            "termos_realce": "cognitive analysis, análise cognitiva",
         },
     )
     assert resp.status_code == 302
     proj_anco.refresh_from_db()
     assert proj_anco.estrategia_busca == "cognitive analysis nas bases WoS/Scopus"
     assert proj_anco.pergunta_pesquisa == "Mapear a AnCo"
+    assert proj_anco.termos_realce == "cognitive analysis, análise cognitiva"
 
 
 def test_analista_nao_edita_estrategia(client, proj_anco):
