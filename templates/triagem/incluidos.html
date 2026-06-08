@@ -104,6 +104,7 @@
                 <span class="chip">{{ r.ano|default:"s.d." }}</span>
                 {% if r.tipo %}<span class="chip">{{ r.tipo }}</span>{% endif %}
                 {% if r.artigo.base_consulta %}<span class="chip">{{ r.artigo.base_consulta.nome }}</span>{% endif %}
+                {% if r.eh_individual %}<span class="chip" style="background:#f0e8d2;border-color:#e0cf9a;color:#7a531a;">individual</span>{% endif %}
                 <span class="chip">DOI {% if r.doi %}<span class="sinal-ok">✓</span>{% else %}<span class="sinal-falta">✗</span>{% endif %}</span>
                 <span class="chip">resumo {% if r.resumo %}<span class="sinal-ok">✓</span>{% else %}<span class="sinal-falta">✗</span>{% endif %}</span>
               </div>

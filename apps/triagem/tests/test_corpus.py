@@ -105,6 +105,22 @@ def test_base_agrupa_importacoes_iguais(client, proj_anco):
     assert resp2.context["n_filtrado"] == 2
 
 
+def test_marca_artigo_individual(client, proj_anco):
+    from apps.acervo.models import Artigo
+    from apps.triagem.promocao import registrar_artigo_no_corpus
+
+    ana = _user("anaind")
+    art = Artigo.objects.create(
+        titulo="Ind", doi="10/indc", ano=2020, resumo="r", palavras_chaves="k"
+    )
+    registrar_artigo_no_corpus(proj_anco, art, ana)
+    client.force_login(ana)
+    resp = client.get(reverse("triagem_incluidos", args=[proj_anco.slug]))
+    regs = list(resp.context["pagina"].object_list)
+    assert regs[0].eh_individual is True
+    assert b"individual" in resp.content
+
+
 def test_busca_por_titulo(client, proj_anco):
     ana = _user("ana3")
     reg, _ = _incluido(proj_anco, "10/x")

@@ -1212,6 +1212,9 @@ def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
                     artigo_id=OuterRef("artigo_id"), sorteio__projeto=projeto
                 )
             ),
+            eh_individual=Exists(
+                Busca.objects.filter(registros=OuterRef("pk"), outra_base="Artigos individuais")
+            ),
         )
     )
 
