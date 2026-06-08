@@ -1234,12 +1234,16 @@ def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
         else:
             r.estado_rotulo, r.estado_cor = "○ sem análise", "muted"
 
-    # Opções dos filtros.
-    tipos = sorted(
-        t for t in base_qs.exclude(tipo="").values_list("tipo", flat=True).distinct() if t
+    # Opções dos filtros — a partir de um queryset SEM anotações (senão o
+    # .values().distinct() agruparia também pelos Exists e repetiria os valores).
+    # `.order_by(campo)` limpa a ordenação padrão do modelo (que, senão, entra no
+    # DISTINCT e repete os valores).
+    corpus = projeto.registros.filter(status=_St.INCLUIDO, artigo__isnull=False)
+    tipos = list(
+        corpus.exclude(tipo="").order_by("tipo").values_list("tipo", flat=True).distinct()
     )
-    idiomas = sorted(
-        i for i in base_qs.exclude(idioma="").values_list("idioma", flat=True).distinct() if i
+    idiomas = list(
+        corpus.exclude(idioma="").order_by("idioma").values_list("idioma", flat=True).distinct()
     )
     # Bases distintas por NOME (várias importações da mesma base contam uma vez).
     bases = sorted(

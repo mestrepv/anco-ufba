@@ -69,6 +69,9 @@ def test_resumo_e_status_por_item(client, proj_anco):
     assert resp.context["ano_min"] == 2010 and resp.context["ano_max"] == 2020
     corpo = resp.content.decode()
     assert "analisado" in corpo and "sem análise" in corpo and "atribuído" in corpo
+    # Opções de filtro sem duplicação (apesar de status de análise diferentes).
+    assert resp.context["tipos"] == ["Artigo", "Tese/Dissertação"]
+    assert len(resp.context["tipos"]) == len(set(resp.context["tipos"]))
 
 
 def test_filtro_status_sem_analise(client, proj_anco):
