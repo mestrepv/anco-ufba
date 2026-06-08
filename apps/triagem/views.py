@@ -567,6 +567,8 @@ def fonte_view(request: HttpRequest, projeto: ProtocoloTriagem, busca_id: int) -
     else:
         form = RegistroFonteForm(instance=registro) if registro else None
 
+    # Termos destacados (<mark>) nos campos de texto: os do projeto ou o padrão AnCo.
+    realce_termos = projeto.termos_realce or "cognitive analysis, análise cognitiva, analise cognitiva"
     return render(
         request,
         "triagem/fonte.html",
@@ -578,6 +580,7 @@ def fonte_view(request: HttpRequest, projeto: ProtocoloTriagem, busca_id: int) -
             "form": form,
             "pos": i + 1,
             "total": total,
+            "realce_termos": realce_termos,
             "url_anterior": f"{base_url}?i={i - 1}" if i > 0 else "",
             "url_proximo": f"{base_url}?i={i + 1}" if i < total - 1 else "",
         },

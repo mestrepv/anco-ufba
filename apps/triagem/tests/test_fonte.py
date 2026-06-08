@@ -119,6 +119,22 @@ def test_nao_sincroniza_artigo_legado(client, proj_anco):
     assert legado.titulo == "Velho"  # legado intocado
 
 
+def test_realce_marca_o_termo(client, proj_anco):
+    dono = _user("donor")
+    busca = Busca.objects.create(protocolo=proj_anco, criado_por=dono, outra_base="WoS")
+    reg = RegistroTriagem.objects.create(
+        protocolo=proj_anco,
+        titulo="On cognitive analysis of learning",
+        doi="10/realce",
+        identificador="idr",
+    )
+    reg.origem_buscas.add(busca)
+    client.force_login(dono)
+    resp = client.get(reverse("triagem_busca_fonte", args=[proj_anco.slug, busca.pk]) + "?i=0")
+    assert resp.status_code == 200
+    assert b"<mark>cognitive analysis</mark>" in resp.content
+
+
 def test_nao_dono_nao_acessa_fontes(client, proj_anco):
     dono = _user("dono4")
     intruso = _user("intruso4")

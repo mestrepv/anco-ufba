@@ -1,4 +1,5 @@
 {% extends "_base_publico.html" %}
+{% load triagem_extras %}
 
 {% block title %}Fontes — {{ busca.base_nome|default:"Importação" }}{% endblock %}
 
@@ -17,7 +18,7 @@
 
   {# ── Card de metadados (só-leitura; destrava ao Ativar edição) ──── #}
   <form method="post" class="meta-card"
-        x-data="{ edit: false, nres: ({{ form.resumo.value|length|default:0 }}), doi: '{{ form.doi.value|default_if_none:''|escapejs }}', link: '{{ form.link.value|default_if_none:''|escapejs }}', grow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight)+'px'; } }"
+        x-data="{ edit: false, nres: ({{ form.resumo.value|length|default:0 }}), doi: '{{ form.doi.value|default_if_none:''|escapejs }}', link: '{{ form.link.value|default_if_none:''|escapejs }}', grow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight)+'px'; }, growAll(){ this.$root.querySelectorAll('textarea.ie-field').forEach(t=>this.grow(t)); } }"
         :class="edit && 'ie-editando'"
         @submit="if (!confirm('Confirmar as alterações desta fonte?')) $event.preventDefault();">
     {% csrf_token %}
@@ -27,15 +28,22 @@
 
     {% for erro in form.non_field_errors %}<p class="t-meta" style="color:var(--color-danger);">{{ erro }}</p>{% endfor %}
 
-    <input name="titulo" class="ie-field ie-title" placeholder="(sem título)" :readonly="!edit" value="{{ form.titulo.value|default_if_none:'' }}">
+    {# Título (realçado na leitura) #}
+    <div x-show="!edit" class="ie-read ie-title-read">{{ form.titulo.value|default_if_none:''|realce:realce_termos|default:'(sem título)' }}</div>
+    <input x-show="edit" x-cloak name="titulo" class="ie-field ie-title" placeholder="(sem título)" value="{{ form.titulo.value|default_if_none:'' }}">
+
     <div style="display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;margin:2px 0 16px;">
-      <input name="autores" class="ie-field ie-sub" placeholder="(autores)" :readonly="!edit" value="{{ form.autores.value|default_if_none:'' }}" style="flex:1;min-width:200px;">
-      <span style="color:var(--color-ink-3);">·</span>
-      <input name="ano" type="number" class="ie-field ie-sub" placeholder="ano" :readonly="!edit" value="{{ form.ano.value|default_if_none:'' }}" style="width:90px;">
+      <span x-show="!edit" class="ie-read ie-sub">{{ form.autores.value|default_if_none:''|default:'(autores)' }} · {{ form.ano.value|default_if_none:'s.d.' }}</span>
+      <input x-show="edit" x-cloak name="autores" class="ie-field ie-sub" placeholder="(autores)" value="{{ form.autores.value|default_if_none:'' }}" style="flex:1;min-width:200px;">
+      <span x-show="edit" x-cloak style="color:var(--color-ink-3);">·</span>
+      <input x-show="edit" x-cloak name="ano" type="number" class="ie-field ie-sub" placeholder="ano" value="{{ form.ano.value|default_if_none:'' }}" style="width:90px;">
     </div>
 
     <dl style="margin-top:4px;">
-      <div class="meta-row"><dt>Periódico / Fonte</dt><dd><input name="titulo_periodico" class="ie-field" placeholder="—" :readonly="!edit" value="{{ form.titulo_periodico.value|default_if_none:'' }}"></dd></div>
+      <div class="meta-row"><dt>Periódico / Fonte</dt><dd>
+        <div x-show="!edit" class="ie-read">{{ form.titulo_periodico.value|default_if_none:''|realce:realce_termos|default:'—' }}</div>
+        <input x-show="edit" x-cloak name="titulo_periodico" class="ie-field" placeholder="—" value="{{ form.titulo_periodico.value|default_if_none:'' }}">
+      </dd></div>
       <div class="meta-row"><dt>Tipo</dt><dd><input name="tipo" class="ie-field" placeholder="—" :readonly="!edit" value="{{ form.tipo.value|default_if_none:'' }}"></dd></div>
       <div class="meta-row"><dt>DOI</dt><dd style="display:flex;align-items:center;gap:12px;">
         <input name="doi" class="ie-field mono" placeholder="—" :readonly="!edit" x-model="doi" style="flex:1;">
@@ -47,13 +55,17 @@
         <input name="link" class="ie-field mono" placeholder="—" :readonly="!edit" x-model="link" style="flex:1;">
         <a x-show="link.trim()" :href="link.trim()" target="_blank" rel="noopener" class="link" style="white-space:nowrap;font-size:13px;">abrir ↗</a>
       </dd></div>
-      <div class="meta-row"><dt>Palavras-chave</dt><dd><textarea name="palavras_chaves" rows="1" class="ie-field" placeholder="—" :readonly="!edit" x-init="grow($el)" @input="grow($el)">{{ form.palavras_chaves.value|default_if_none:'' }}</textarea></dd></div>
+      <div class="meta-row"><dt>Palavras-chave</dt><dd>
+        <div x-show="!edit" class="ie-read">{{ form.palavras_chaves.value|default_if_none:''|realce:realce_termos|default:'—' }}</div>
+        <textarea x-show="edit" x-cloak name="palavras_chaves" rows="1" class="ie-field" placeholder="—" @input="grow($el)">{{ form.palavras_chaves.value|default_if_none:'' }}</textarea>
+      </dd></div>
       <div class="meta-row">
         <dt>Resumo</dt>
         <dd>
           <details open>
             <summary style="font-family:var(--font-sans);font-size:13px;color:var(--color-ink-3);cursor:pointer;">resumo (<span x-text="nres"></span> caracteres)</summary>
-            <textarea name="resumo" rows="1" class="ie-field" placeholder="(sem resumo)" :readonly="!edit" x-init="grow($el)" @input="nres = $event.target.value.length; grow($el)" style="margin-top:8px;">{{ form.resumo.value|default_if_none:'' }}</textarea>
+            <div x-show="!edit" class="ie-read ie-prose" style="margin-top:8px;">{{ form.resumo.value|default_if_none:''|realce:realce_termos|default:'(sem resumo)' }}</div>
+            <textarea x-show="edit" x-cloak name="resumo" rows="1" class="ie-field" placeholder="(sem resumo)" @input="nres = $event.target.value.length; grow($el)" style="margin-top:8px;">{{ form.resumo.value|default_if_none:'' }}</textarea>
           </details>
         </dd>
       </div>
@@ -63,7 +75,7 @@
       <span class="t-meta" style="color:var(--color-ink-4);" x-show="edit" x-cloak>As alterações valem também para a análise do artigo.</span>
       <span x-show="!edit"></span>
       <div style="display:flex;gap:10px;">
-        <button type="button" class="btn btn-secondary btn-sm" x-show="!edit" @click="edit = true">Ativar edição</button>
+        <button type="button" class="btn btn-secondary btn-sm" x-show="!edit" @click="edit = true; $nextTick(() => growAll())">Ativar edição</button>
         <a href="?i={{ pos|add:'-1' }}" class="btn btn-ghost btn-sm" x-show="edit" x-cloak>Cancelar</a>
         <button type="submit" class="btn btn-primary btn-sm" x-show="edit" x-cloak>Salvar alterações</button>
       </div>
@@ -77,7 +89,11 @@
 
 <style>
   [x-cloak] { display:none !important; }
-  /* Campos: só-leitura parecem texto; ao Ativar edição ganham a moldura editável. */
+  /* Texto em leitura (com realce) e campos editáveis com a mesma métrica. */
+  .ie-read { font-family:var(--font-sans); font-size:14px; color:var(--color-ink); line-height:1.5; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .ie-read.ie-title-read { font-family:var(--font-serif); font-size:22px; line-height:1.3; margin-bottom:2px; }
+  .ie-read.ie-sub { color:var(--color-ink-3); }
+  .ie-read.ie-prose { line-height:1.6; }
   .ie-field { width:100%; box-sizing:border-box; font-family:var(--font-sans); font-size:14px;
     color:var(--color-ink); background:transparent; border:1px solid transparent; border-radius:6px;
     padding:6px 8px; margin:-6px -8px; line-height:1.5; cursor:default;
@@ -86,10 +102,11 @@
   .ie-field.mono { font-family:var(--font-mono); font-size:13px; color:var(--color-ink-2); }
   .ie-title { font-family:var(--font-serif); font-size:22px; line-height:1.3; color:var(--color-ink); padding:4px 8px; }
   .ie-sub { font-family:var(--font-sans); font-size:14px; color:var(--color-ink-3); }
-  /* Modo edição: realça os campos editáveis (atributo readonly ausente). */
   .ie-editando .ie-field:not([readonly]) { border-color:var(--color-rule); background:var(--color-paper-2); cursor:text; }
   .ie-field:not([readonly]):hover { border-color:var(--color-rule-strong); }
   .ie-field:not([readonly]):focus { outline:none; border-color:var(--color-gold); background:#fff; }
   .meta-row dd { padding-right:4px; }
+  /* Marcador do termo da busca. */
+  mark { background:#ffe9a8; color:var(--color-ink); padding:0 2px; border-radius:3px; }
 </style>
 {% endblock %}
