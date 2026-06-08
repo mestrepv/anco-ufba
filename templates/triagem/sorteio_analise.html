@@ -1,7 +1,19 @@
 {% extends "_base_publico.html" %}
 
 {% block title %}Sorteio da análise · Revisão ANCO{% endblock %}
-{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}
+<style>
+  .dist-analista { border:1px solid var(--color-rule); border-left:3px solid var(--color-gold-deep); border-radius:8px; padding:12px 14px; background:var(--color-paper); }
+  .dist-cab { display:flex; align-items:center; gap:9px; margin-bottom:8px; }
+  .dist-avatar { width:26px; height:26px; border-radius:50%; background:var(--color-gold-deep); color:#fff; font-family:var(--font-sans); font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .dist-nome { font-family:var(--font-sans); font-weight:600; font-size:14px; color:var(--color-ink); }
+  .dist-chip { font-family:var(--font-sans); font-size:11px; padding:2px 9px; border-radius:999px; background:var(--color-paper-2); border:1px solid var(--color-rule); color:var(--color-ink-2); margin-left:auto; }
+  .dist-arts { margin:0; padding-left:22px; display:grid; gap:4px; }
+  .dist-arts li { font-family:var(--font-sans); font-size:13.5px; line-height:1.5; }
+  .dist-art-link { color:var(--color-ink); text-decoration:none; border-bottom:1px solid transparent; }
+  .dist-art-link:hover { color:var(--color-gold-deep); border-bottom-color:var(--color-gold); }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="tg-wrap narrow">
@@ -74,15 +86,20 @@
             </div>
           </div>
 
-          <div x-show="aberto" x-cloak style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-rule);display:grid;gap:14px;">
+          <div x-show="aberto" x-cloak style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-rule);display:grid;gap:12px;">
             {% for g in s.distribuicao %}
-            <div>
-              <div style="font-family:var(--font-sans);font-weight:600;font-size:14px;color:var(--color-ink);margin-bottom:6px;">
-                {{ g.analista.nome_exibicao|default:g.analista.email }} <span class="tg-meta">· {{ g.artigos|length }} artigo{{ g.artigos|length|pluralize }}</span>
+            <div class="dist-analista">
+              <div class="dist-cab">
+                <span class="dist-avatar">{{ g.analista.nome_exibicao|default:g.analista.email|first|upper }}</span>
+                <span class="dist-nome">{{ g.analista.nome_exibicao|default:g.analista.email }}</span>
+                <span class="dist-chip">{{ g.artigos|length }} artigo{{ g.artigos|length|pluralize }}</span>
               </div>
-              <ol style="margin:0;padding-left:20px;font-family:var(--font-sans);font-size:13.5px;line-height:1.6;color:var(--color-ink-2);">
+              <ol class="dist-arts">
                 {% for art in g.artigos %}
-                  <li>{{ art.titulo|truncatechars:120 }} <span class="tg-meta">{{ art.ano|default:"s.d." }}</span></li>
+                  <li>
+                    <a href="{% url 'pagina_artigo' art.slug %}" target="_blank" rel="noopener" class="dist-art-link">{{ art.obj.titulo|truncatechars:130 }}</a>
+                    <span class="tg-meta">{{ art.obj.ano|default:"s.d." }}{% if art.obj.titulo_periodico %} · {{ art.obj.titulo_periodico|truncatechars:50 }}{% endif %}</span>
+                  </li>
                 {% endfor %}
               </ol>
             </div>

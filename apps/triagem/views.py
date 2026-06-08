@@ -1433,6 +1433,8 @@ def sorteio_analise_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Htt
             messages.info(request, res.motivo or "Nada a sortear.")
         return redirect("triagem_sorteio_analise", slug=projeto.slug)
 
+    from apps.publico.services import doi_to_slug
+
     sorteios = list(
         projeto.sorteios_analise.prefetch_related(
             "atribuicoes__analista", "atribuicoes__artigo"
@@ -1445,7 +1447,13 @@ def sorteio_analise_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Htt
             grupos.setdefault(a.analista, []).append(a.artigo)
         s.distribuicao = sorted(
             (
-                {"analista": u, "artigos": sorted(arts, key=lambda x: (x.titulo or "").lower())}
+                {
+                    "analista": u,
+                    "artigos": [
+                        {"obj": art, "slug": doi_to_slug(art.identificador_canonico)}
+                        for art in sorted(arts, key=lambda x: (x.titulo or "").lower())
+                    ],
+                }
                 for u, arts in grupos.items()
             ),
             key=lambda g: (g["analista"].nome_exibicao or g["analista"].email or "").lower(),

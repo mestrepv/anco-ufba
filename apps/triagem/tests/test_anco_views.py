@@ -109,7 +109,8 @@ def test_sorteio_view_mostra_distribuicao(client, proj_anco):
     assert resp.status_code == 200
     dist = resp.context["sorteios"][0].distribuicao
     assert dist[0]["analista"] == ana
-    assert art in dist[0]["artigos"]
+    assert dist[0]["artigos"][0]["obj"] == art
+    assert dist[0]["artigos"][0]["slug"]  # slug do DOI para o link
     assert ana.nome_exibicao.encode() in resp.content or ana.email.encode() in resp.content
 
 
