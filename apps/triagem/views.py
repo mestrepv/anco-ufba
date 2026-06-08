@@ -151,27 +151,32 @@ def projetos_view(request: HttpRequest) -> HttpResponse:
                 "eh_curador": p.eh_curador_no(request.user),
             }
         )
+    pode_criar = request.user.is_staff or request.user.eh_curador
     return render(
         request,
         "triagem/projetos.html",
-        {"projetos": dados, "pode_criar": request.user.is_staff},
+        {"projetos": dados, "pode_criar": pode_criar},
     )
 
 
 @_exige_analista
 def novo_projeto_view(request: HttpRequest) -> HttpResponse:
-    """Cria um novo projeto (revisão de escopo). Exclusivo de admin (Fase 12.3)."""
-    if not request.user.is_staff:
-        return HttpResponseForbidden("Apenas o admin cria projetos.")
+    """Cria um novo projeto (revisão de escopo). Curador ou admin."""
+    if not (request.user.is_staff or request.user.eh_curador):
+        return HttpResponseForbidden("Apenas curadores criam projetos.")
 
     if request.method == "POST":
         nome = request.POST.get("nome", "").strip()
         if not nome:
             messages.error(request, "Informe um nome para o projeto.")
             return redirect("triagem_novo_projeto")
+        modo = request.POST.get("modo")
+        if modo not in dict(ProtocoloTriagem.Modo.choices):
+            modo = ProtocoloTriagem.Modo.RIGOROSO
         projeto = ProtocoloTriagem.objects.create(
             nome=nome,
             titulo=nome,
+            modo=modo,
             pergunta_pesquisa=request.POST.get("pergunta_pesquisa", "").strip(),
             estrategia_busca=request.POST.get("estrategia_busca", "").strip(),
         )
@@ -184,7 +189,11 @@ def novo_projeto_view(request: HttpRequest) -> HttpResponse:
         messages.success(request, f"Projeto “{projeto.nome}” criado.")
         return redirect("triagem_painel", slug=projeto.slug)
 
-    return render(request, "triagem/novo_projeto.html", {})
+    return render(
+        request,
+        "triagem/novo_projeto.html",
+        {"modos": ProtocoloTriagem.Modo.choices},
+    )
 
 
 # --------------------------------------------------------------------------- #
