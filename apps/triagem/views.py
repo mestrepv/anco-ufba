@@ -254,6 +254,14 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
             else 0
         )
         contexto["n_corpus"] = contagens.get(_St.INCLUIDO, 0)
+        # Os incluídos pelo próprio usuário (o que ele pode navegar/completar).
+        contexto["meu_corpus"] = (
+            projeto.registros.filter(
+                status=_St.INCLUIDO, origem_buscas__criado_por=request.user
+            )
+            .distinct()
+            .count()
+        )
         contexto["isentos"] = projeto.registros.filter(ja_no_acervo=True).count()
         # Registros importados que ainda não entraram no corpus (legado do fluxo
         # antigo / falha de auto-inclusão) — habilitam o botão "Incluir corpus".
@@ -610,9 +618,10 @@ def fonte_view(request: HttpRequest, projeto: ProtocoloTriagem, busca_id: int) -
 def fontes_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
     """Navega TODAS as fontes do projeto que o usuário pode editar (as suas
     importações; o curador vê todas). Entrada pelo painel."""
-    qs = projeto.registros.filter(status=RegistroTriagem.Status.INCLUIDO)
-    if not projeto.eh_curador_no(request.user):
-        qs = qs.filter(origem_buscas__criado_por=request.user)
+    # Só as fontes incluídas pelo próprio usuário (as suas importações/artigos).
+    qs = projeto.registros.filter(
+        status=RegistroTriagem.Status.INCLUIDO, origem_buscas__criado_por=request.user
+    )
     ids = list(qs.order_by("titulo", "pk").values_list("pk", flat=True).distinct())
     return _navegar_fontes(
         request,

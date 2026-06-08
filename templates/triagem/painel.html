@@ -68,7 +68,7 @@
   <h2 class="tg-h2">Andamento</h2>
   <div class="tg-grid-stats" style="margin-bottom:8px;">
     <a class="tg-stat" href="{% url 'triagem_registros' projeto.slug %}"><div class="n">{{ c.importados }}</div><div class="l">importados</div></a>
-    <a class="tg-stat" href="{% url 'triagem_fontes' projeto.slug %}?i=0" style="border-color:var(--color-ok);"><div class="n" style="color:var(--color-ok);">{{ c.incluidos }}</div><div class="l">novos artigos</div></a>
+    <a class="tg-stat" href="{% url 'triagem_fontes' projeto.slug %}?i=0" style="border-color:var(--color-ok);" title="Suas fontes para navegar/completar"><div class="n" style="color:var(--color-ok);">{{ meu_corpus }}</div><div class="l">novos artigos (seus)</div></a>
     <a class="tg-stat" href="{% url 'triagem_registros' projeto.slug %}?status=identificado"><div class="n">{{ c.ja_no_acervo }}</div><div class="l">já no acervo (isentos)</div></a>
     <a class="tg-stat" href="{% url 'triagem_duplicatas' projeto.slug %}?escopo={% if eh_curador %}todas{% else %}minhas{% endif %}&i=0"><div class="n" style="color:var(--color-gold-deep);">{{ c.duplicados_entre_bases }}</div><div class="l">duplicados</div></a>
   </div>
