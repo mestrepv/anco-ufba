@@ -36,8 +36,12 @@ def test_curador_cria_projeto_anco(client):
 def test_curador_cria_projeto_rigoroso(client):
     cur = _user("cur2", papel=User.Papel.CURADOR)
     client.force_login(cur)
-    client.post(reverse("triagem_novo_projeto"), data={"nome": "Projeto PRISMA", "modo": "rigoroso"})
-    assert ProtocoloTriagem.objects.get(nome="Projeto PRISMA").modo == ProtocoloTriagem.Modo.RIGOROSO
+    client.post(
+        reverse("triagem_novo_projeto"), data={"nome": "Projeto PRISMA", "modo": "rigoroso"}
+    )
+    assert (
+        ProtocoloTriagem.objects.get(nome="Projeto PRISMA").modo == ProtocoloTriagem.Modo.RIGOROSO
+    )
 
 
 def test_modo_invalido_cai_no_default(client):

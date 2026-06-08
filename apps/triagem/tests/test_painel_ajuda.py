@@ -47,14 +47,13 @@ def test_ajuda_exige_analista(client, leitor):
     assert client.get(turl("triagem_ajuda")).status_code == 403
 
 
-def test_painel_mostra_projeto_e_etapas(client, analista):
-    # Sem tarefa pendente: o painel mostra a seção do projeto + as 7 etapas.
+def test_painel_mostra_projeto(client, analista):
+    # Sem tarefa pendente: o painel lista o projeto (sem os cards de etapas).
     client.force_login(analista)
     resp = client.get(reverse("painel"))
     assert resp.status_code == 200
     assert b"Seu projeto" in resp.content  # seção do projeto (1 projeto)
-    assert b"Importar base" in resp.content  # etapa 1
-    assert b"Acompanhar (PRISMA)" in resp.content  # etapa 7
+    assert b"Estrat" in resp.content  # breve estratégia de busca no item
     assert "Próximo passo".encode() not in resp.content  # ocioso → sem hero
 
 
@@ -83,8 +82,8 @@ def test_painel_conta_a_analisar(client, protocolo, analista):
     promover_para_acervo(reg)
     client.force_login(analista)
     resp = client.get(reverse("painel"))
-    # etapa "A analisar" presente + hero apontando para análise
-    assert b"A analisar" in resp.content
+    # hero "Próximo passo" apontando para a análise
+    assert "Próximo passo".encode() in resp.content
     assert resp.context["proxima"]["href"].endswith("/a-analisar/")
 
 

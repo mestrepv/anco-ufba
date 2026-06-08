@@ -34,7 +34,7 @@
 
   <div class="tg-grid-stats" style="margin-bottom:18px;">
     <div class="tg-stat"><div class="n">{{ busca.n_lidos }}</div><div class="l">lidos do arquivo</div></div>
-    <div class="tg-stat" style="border-color:var(--color-ok);"><div class="n" style="color:var(--color-ok);">{{ n_novos }}</div><div class="l">novos a triar</div></div>
+    <div class="tg-stat" style="border-color:var(--color-ok);"><div class="n" style="color:var(--color-ok);">{{ n_novos }}</div><div class="l">novos no corpus</div></div>
     <div class="tg-stat"><div class="n">{{ n_ja_acervo }}</div><div class="l">já no acervo</div></div>
     <div class="tg-stat" style="border-color:var(--color-review-rule);"><div class="n" style="color:var(--color-gold-deep);">{{ busca.n_duplicados }}</div><div class="l">duplicados (outras bases)</div></div>
     <div class="tg-stat"><div class="n" style="color:var(--color-ink-3);">{{ busca.n_ignorados }}</div><div class="l">ignorados</div></div>
@@ -54,56 +54,14 @@
   </div>
   {% endif %}
 
-  {# ── Já no acervo histórico ──────────────────────────────────────── #}
-  <h2 class="tg-h2">Já no acervo histórico ({{ n_ja_acervo }})</h2>
-  <p class="secao-desc tg-meta" style="margin:-4px 0 12px;">
-    Registros desta busca que já estão na base curada (legado) — <strong>não</strong> entram na triagem.
-  </p>
-  {% if ja_acervo %}
-    <div style="max-height:340px;overflow:auto;border:1px solid var(--color-rule);border-radius:8px;">
-      <table class="tg-table" style="margin:0;">
-        <tbody>
-          {% for item in ja_acervo %}
-            <tr>
-              <td style="padding-left:14px;">{{ item.reg.titulo|truncatechars:110 }}
-                <div class="tg-meta">{{ item.reg.ano|default:"s.d." }}{% if item.reg.autores %} · {{ item.reg.autores|truncatechars:50 }}{% endif %}</div></td>
-              <td style="text-align:right;padding-right:14px;white-space:nowrap;">
-                {% if item.slug %}<a href="{% url 'pagina_artigo' item.slug %}" style="color:var(--color-gold-deep);font-size:13px;">ver no acervo &nearr;</a>{% else %}<span class="tg-meta">no acervo</span>{% endif %}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% else %}
-    <p class="tg-empty">Nenhum registro desta busca estava no acervo.</p>
-  {% endif %}
-
-  {# ── Novos a triar ──────────────────────────────────────────────── #}
-  <h2 class="tg-h2">Novos a triar ({{ n_novos }})</h2>
-  <p class="secao-desc tg-meta" style="margin:-4px 0 12px;">Registros inéditos — seguem para a deduplicação e a triagem.</p>
-  {% if novos %}
-    <div style="max-height:340px;overflow:auto;border:1px solid var(--color-rule);border-radius:8px;">
-      <table class="tg-table" style="margin:0;">
-        <tbody>
-          {% for r in novos %}
-            <tr>
-              <td style="padding-left:14px;">{{ r.titulo|truncatechars:110 }}
-                <div class="tg-meta">{{ r.ano|default:"s.d." }}{% if r.tipo %} · {{ r.tipo }}{% endif %}{% if r.doi %} · {{ r.doi }}{% endif %}</div></td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% else %}
-    <p class="tg-empty">Nenhum registro novo nesta busca.</p>
-  {% endif %}
-
   {# ── Ações ──────────────────────────────────────────────────────── #}
-  <div class="tg-actions" style="margin-top:24px;">
-    {% if pode_editar %}<a href="{% url 'triagem_busca_fonte' projeto.slug busca.pk %}?i=0" class="btn btn-primary">Navegar pelas fontes ({{ busca.n_lidos }})</a>{% endif %}
-    <a href="{% url 'triagem_duplicatas' projeto.slug %}" class="btn btn-secondary">Revisar possíveis duplicatas</a>
+  <p class="tg-meta" style="margin:-4px 0 12px;">Os {{ busca.n_lidos }} registro(s) entraram no corpus. Use <strong>Navegar pelas fontes</strong> para ver/completar cada um.</p>
+  <div class="tg-actions" style="margin-bottom:8px;">
+    {% if pode_editar %}<a href="{% url 'triagem_busca_fonte' projeto.slug busca.pk %}?i=0" class="btn btn-primary">Navegar pelas fontes</a>{% endif %}
     {% if pode_editar %}<a href="{% url 'triagem_busca_editar' projeto.slug busca.pk %}" class="btn btn-secondary">Editar dados da importação</a>{% endif %}
-    <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-secondary">Importar outra base</a>
+    <a href="{% url 'triagem_incluidos' projeto.slug %}" class="btn btn-secondary">Ver corpus</a>
+    <a href="{% url 'triagem_duplicatas' projeto.slug %}" class="btn btn-secondary">Possíveis duplicatas</a>
+    <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-secondary">Importar outra</a>
   </div>
 
   {# ── Excluir importação (só importador/curador) ──────────────────── #}

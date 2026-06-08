@@ -29,11 +29,7 @@ from django.views.decorators.http import require_POST
 from . import duplicatas as dup
 from . import prisma
 from .aprovacao import consolidar_registro, incluir_corpus_total, registros_para_desempate
-from .autotriagem import (
-    pode_autotriar,
-    registros_decididos_do_usuario,
-    reverter_inclusao,
-)
+from .autotriagem import pode_autotriar, reverter_inclusao
 from .estatisticas import estatisticas_por_base
 from .forms import (
     DecisaoTriagemForm,
@@ -60,7 +56,6 @@ from .models import (
     RegistroTriagem,
     SorteioAnalise,
 )
-from .relevancia import termos_do_protocolo
 from .sorteio_analise import analistas_do_projeto, executar_sorteio_analise
 from .tasks import avancar_apos_status, iniciar_triagem
 
@@ -242,19 +237,10 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
     }
 
     if projeto.eh_anco:
-        # Sem triagem prévia: a importação já inclui tudo no corpus. Dois painéis:
-        # "Meu trabalho" (analista) e "Curadoria" (visão do projeto inteiro).
-        aba = request.GET.get("aba", "trabalho")
-        if aba != "curadoria" or not eh_curador:
-            aba = "trabalho"
-        _inc_url = reverse("triagem_incluidos", args=[projeto.slug])
-
+        # Fluxo simplificado (sem triagem): Adicionar fontes → Corpus → Sortear →
+        # Analisar. Uma página só, sem abas; ações de curador ficam marcadas.
         from apps.acervo.models import Analise, Artigo
 
-        # — Painel do analista —
-        meu_corpus = registros_decididos_do_usuario(
-            projeto, request.user, (_St.INCLUIDO,), "minhas"
-        ).count()
         ja_minhas = Analise.objects.filter(analista=request.user).values_list(
             "artigo_id", flat=True
         )
@@ -263,46 +249,19 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
                 analista=request.user, sorteio__projeto=projeto
             ).values_list("artigo_id", flat=True)
         )
-        minha_a_analisar = (
+        contexto["minha_a_analisar"] = (
             Artigo.objects.filter(pk__in=atribuidos).exclude(pk__in=ja_minhas).distinct().count()
             if atribuidos
             else 0
         )
-        # Itens incluídos de forma avulsa: análises suas sobre artigos que não
-        # vieram de triagem (entraram por "Artigo individual").
-        meus_avulsos = (
-            Analise.objects.filter(analista=request.user, artigo__registros_triagem__isnull=True)
-            .exclude(status=Analise.Status.LEGADO)
-            .distinct()
-            .count()
-        )
-        contexto["cards_trabalho"] = [
-            {"rotulo": "No corpus (minhas bases)", "count": meu_corpus, "href": _inc_url},
-            {
-                "rotulo": "A analisar",
-                "count": minha_a_analisar,
-                "href": reverse("triagem_a_analisar"),
-            },
-            {"rotulo": "Avulsos", "count": meus_avulsos, "href": reverse("minhas_analises")},
-        ]
-        contexto["minha_dup"] = dup.contar_pares_do_usuario(projeto, request.user, False)
-
-        # — Painel de curadoria (projeto inteiro) —
-        isentos = projeto.registros.filter(ja_no_acervo=True).count()
-        # Registros importados que ainda não entraram no corpus (legado de fluxo
+        contexto["n_corpus"] = contagens.get(_St.INCLUIDO, 0)
+        contexto["isentos"] = projeto.registros.filter(ja_no_acervo=True).count()
+        # Registros importados que ainda não entraram no corpus (legado do fluxo
         # antigo / falha de auto-inclusão) — habilitam o botão "Incluir corpus".
-        pendentes_corpus = projeto.registros.filter(
+        contexto["pendentes_corpus"] = projeto.registros.filter(
             status__in=(_St.IDENTIFICADO, _St.EXCLUIDO), ja_no_acervo=False
         ).count()
-        brutos = [
-            ("Importados", projeto.registros.count(), _reg_url),
-            ("No corpus", contagens.get(_St.INCLUIDO, 0), _inc_url),
-            ("Já no acervo (isentos)", isentos, f"{_reg_url}?status=identificado"),
-        ]
-        # Grid do painel de curadoria (o de "Meu trabalho" usa cards_trabalho).
-        contexto["cards"] = [{"rotulo": r, "count": n, "href": h} for r, n, h in brutos if n]
-        contexto["pendentes_corpus"] = pendentes_corpus
-        contexto["aba"] = aba
+        contexto["minha_dup"] = dup.contar_pares_do_usuario(projeto, request.user, eh_curador)
         return render(request, "triagem/painel.html", contexto)
 
     # Modo rigoroso (PRISMA-ScR): painel único por status.
@@ -1180,15 +1139,16 @@ def autotriar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
 
 @_projeto_analista
 def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
-    """Pool de incluídos ordenado por relevância (correspondência de termos)."""
+    """Corpus do projeto: todos os artigos, do mais recente ao mais antigo."""
     regs = (
         projeto.registros.filter(status=RegistroTriagem.Status.INCLUIDO)
         .select_related("artigo", "artigo__base_consulta")
-        .order_by("-relevancia_score", "-artigo__ano", "titulo")
+        .order_by("-artigo__ano", "titulo")
     )
+    total = regs.count()
     pagina = Paginator(regs, 50).get_page(request.GET.get("page"))
     eh_cur = projeto.eh_curador_no(request.user)
-    # Quem pode excluir cada incluído: curador (todos) ou quem importou a base.
+    # Quem pode remover cada item: curador (todos) ou quem importou a base.
     if eh_cur:
         excluiveis_ids = {r.pk for r in pagina.object_list}
     else:
@@ -1205,7 +1165,7 @@ def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
             "projeto": projeto,
             "protocolo": projeto,
             "pagina": pagina,
-            "n_termos": len(termos_do_protocolo(projeto)),
+            "total": total,
             "pode_curar": eh_cur,
             "excluiveis_ids": excluiveis_ids,
         },

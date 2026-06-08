@@ -18,14 +18,12 @@
 <div class="tg-wrap">
   <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome|default:projeto.titulo }}</a>
   <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;">
-    <h1 class="tg-h1" style="margin-top:6px;">Corpus da revisão</h1>
+    <h1 class="tg-h1" style="margin-top:6px;">Corpus do projeto <span class="tg-meta">· {{ total }} artigo{{ total|pluralize }}</span></h1>
     {% if pode_curar %}<a href="{% url 'triagem_sorteio_analise' projeto.slug %}" class="btn btn-sm btn-primary">Sortear análise &rarr;</a>{% endif %}
   </div>
   <p class="tg-desc">
-    Todos os artigos do <strong>corpus</strong> (incluídos sem triagem prévia),
-    ordenados pela <strong>correspondência com os {{ n_termos }} termo(s) da
-    estratégia de busca</strong>. Clique num artigo para ver os detalhes; use
-    <strong>Excluir</strong> para tirá-lo do corpus de análise.
+    Todos os artigos do projeto, do mais recente ao mais antigo. Clique num artigo
+    para ver os detalhes; use <strong>Remover</strong> para tirá-lo do corpus.
   </p>
 
   {% if pagina.object_list %}
@@ -40,7 +38,6 @@
                 {{ r.ano|default:"s.d." }}{% if r.titulo_periodico %} · {{ r.titulo_periodico }}{% endif %}{% if r.artigo.base_consulta %} · {{ r.artigo.base_consulta.nome }}{% endif %}
               </div>
             </div>
-            <span class="inc-score" title="termos da busca que casaram">{{ r.relevancia_score }} termo{{ r.relevancia_score|pluralize }}</span>
           </div>
 
           <div class="inc-detalhe" x-show="aberto" x-cloak>
@@ -55,12 +52,12 @@
             </p>
             {% if r.pk in excluiveis_ids %}
               <form method="post" action="{% url 'triagem_incluido_excluir' projeto.slug %}"
-                    @submit="return confirm('Excluir “{{ r.titulo|truncatechars:60|escapejs }}” do pool de análise?')"
+                    @submit="return confirm('Remover “{{ r.titulo|truncatechars:60|escapejs }}” do corpus?')"
                     style="margin-top:6px;">
                 {% csrf_token %}
                 <input type="hidden" name="registro_id" value="{{ r.pk }}">
                 <input type="text" name="motivo" placeholder="Motivo (opcional)" class="field-input" style="max-width:340px;margin-bottom:8px;">
-                <div><button type="submit" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Excluir do pool</button></div>
+                <div><button type="submit" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Remover do corpus</button></div>
               </form>
             {% endif %}
           </div>

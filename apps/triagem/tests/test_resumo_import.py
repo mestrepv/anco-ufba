@@ -200,8 +200,7 @@ def test_detalhe_mostra_ja_no_acervo_e_data(client, analista, base_termo, settin
     client.force_login(analista)
     resp = _upload(client, base_termo, 1)  # RIS tem doi 10.1/abc → já no acervo
     detalhe = client.get(resp.headers["Location"])
-    assert "Já no acervo histórico".encode() in detalhe.content
-    assert b"ver no acervo" in detalhe.content
+    assert "já no acervo".encode() in detalhe.content  # contador de isentos
     assert b"Importada em" in detalhe.content
     assert b"Excluir importa" in detalhe.content  # botão presente (intocada)
 
