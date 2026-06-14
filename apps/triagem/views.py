@@ -12,6 +12,7 @@ import csv
 import functools
 import json
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -108,9 +109,11 @@ def _projeto_analista(view):
     @functools.wraps(view)
     @login_required
     def wrapper(request: HttpRequest, slug: str, *args, **kwargs):
+        projeto = get_object_or_404(ProtocoloTriagem, slug=slug)
+        if projeto.eh_anco and getattr(settings, "ANCO_ATIVO", False):
+            return redirect("anco_painel", slug=projeto.slug, permanent=True)
         if not getattr(request.user, "eh_analista", False):
             return HttpResponseForbidden("Apenas analistas ou curadores acessam a triagem.")
-        projeto = get_object_or_404(ProtocoloTriagem, slug=slug)
         if not (request.user.is_staff or projeto.eh_membro(request.user)):
             return HttpResponseForbidden("Você não é membro deste projeto.")
         return view(request, projeto, *args, **kwargs)
@@ -125,6 +128,8 @@ def _projeto_curador(view):
     @login_required
     def wrapper(request: HttpRequest, slug: str, *args, **kwargs):
         projeto = get_object_or_404(ProtocoloTriagem, slug=slug)
+        if projeto.eh_anco and getattr(settings, "ANCO_ATIVO", False):
+            return redirect("anco_painel", slug=projeto.slug, permanent=True)
         if not projeto.eh_curador_no(request.user):
             return HttpResponseForbidden("Apenas curadores deste projeto.")
         return view(request, projeto, *args, **kwargs)
