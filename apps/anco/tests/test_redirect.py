@@ -12,17 +12,13 @@ pytestmark = pytest.mark.django_db
 
 
 def test_triagem_painel_anco_redireciona_para_anco():
-    proto = ProtocoloTriagem.objects.create(
-        nome="Piloto", slug="piloto-x", modo=ProtocoloTriagem.Modo.ANCO
-    )
-    ProjetoANCO.objects.create(nome="Piloto", slug="piloto-x")  # destino migrado
+    # Redirect por existência do slug em ProjetoANCO (independe do campo `modo`).
+    ProjetoANCO.objects.create(nome="Piloto", slug="piloto-x")
     u = User.objects.create_user(username="m", email="m@u.edu", password="x")
-    ProjetoMembro.objects.create(projeto=proto, usuario=u, papel="curador")
-    client_login = u
     from django.test import Client
 
     c = Client()
-    c.force_login(client_login)
+    c.force_login(u)
     resp = c.get(reverse("triagem_painel", args=["piloto-x"]))
     assert resp.status_code == 301
     assert resp.url == reverse("anco_painel", args=["piloto-x"])

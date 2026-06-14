@@ -103,15 +103,25 @@ def _exige_analista(view):
     return wrapper
 
 
+def _anco_movido(slug: str) -> bool:
+    """Transição (separação ANCO × PRISMA): True se o slug já foi migrado para o
+    módulo `apps/anco`. Não depende do campo `modo` (que será removido na Fase C)."""
+    if not getattr(settings, "ANCO_ATIVO", False):
+        return False
+    from apps.anco.models import ProjetoANCO
+
+    return ProjetoANCO.objects.filter(slug=slug).exists()
+
+
 def _projeto_analista(view):
     """Resolve o projeto pelo slug e exige que o usuário seja **membro** dele."""
 
     @functools.wraps(view)
     @login_required
     def wrapper(request: HttpRequest, slug: str, *args, **kwargs):
+        if _anco_movido(slug):
+            return redirect("anco_painel", slug=slug, permanent=True)
         projeto = get_object_or_404(ProtocoloTriagem, slug=slug)
-        if projeto.eh_anco and getattr(settings, "ANCO_ATIVO", False):
-            return redirect("anco_painel", slug=projeto.slug, permanent=True)
         if not getattr(request.user, "eh_analista", False):
             return HttpResponseForbidden("Apenas analistas ou curadores acessam a triagem.")
         if not (request.user.is_staff or projeto.eh_membro(request.user)):
@@ -127,9 +137,9 @@ def _projeto_curador(view):
     @functools.wraps(view)
     @login_required
     def wrapper(request: HttpRequest, slug: str, *args, **kwargs):
+        if _anco_movido(slug):
+            return redirect("anco_painel", slug=slug, permanent=True)
         projeto = get_object_or_404(ProtocoloTriagem, slug=slug)
-        if projeto.eh_anco and getattr(settings, "ANCO_ATIVO", False):
-            return redirect("anco_painel", slug=projeto.slug, permanent=True)
         if not projeto.eh_curador_no(request.user):
             return HttpResponseForbidden("Apenas curadores deste projeto.")
         return view(request, projeto, *args, **kwargs)
