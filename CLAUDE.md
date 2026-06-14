@@ -285,6 +285,18 @@ Fluxo atual:
 
 ### 9.2-bis. Triagem PRISMA-ScR (Fase 9, app `apps/triagem`)
 
+> **ATUALIZAÇÃO IMPORTANTE (2026-06) — Separação ANCO × PRISMA.** O modo `anco` foi
+> **extraído** para um app independente **`apps/anco`** (Revisão ANCO: import →
+> corpus → sorteio de análise, **sem triagem**). O `apps/triagem` ficou **PRISMA-ScR
+> puro**: o campo `ProtocoloTriagem.modo`, a propriedade `eh_anco`, o
+> `relevancia_score` e os models `SorteioAnalise/AtribuicaoAnalise/ConsensoAnalise`
+> **foram removidos** (migration `triagem 0022`). A **relevância** sai do PRISMA e
+> virá do **ASReview** (ver `docs/planos/integracao-asreview.md` + `apps/triagem/asreview.py`).
+> Acesso por módulo: `User.pode_prisma`/`pode_anco` + settings `PRISMA_ATIVO`/`ANCO_ATIVO`;
+> rotas ANCO em `/anco/`. Tudo em `docs/planos/separacao-anco-prisma.md` e
+> `docs/relatorios/separacao-anco-prisma-fase-*.md`. **As descrições de modo `anco`
+> nas seções Fase 13/14 abaixo são históricas** (o fluxo vive agora em `apps/anco`).
+
 Etapa **anterior à análise**: busca em ≥9 bases → importação (RIS/BibTeX/CSV) com
 dedup → triagem por **≥2 revisores independentes** (incluir/excluir/dúvida, interface
 **mascarada**) → consenso/desempate → **promoção dos incluídos a `Artigo`** → análise
