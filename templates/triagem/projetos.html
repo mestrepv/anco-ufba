@@ -29,7 +29,7 @@
         <a href="{% url 'triagem_painel' item.projeto.slug %}" class="busca-row" style="align-items:center;">
           <div>
             <div class="b-base">{{ item.projeto.nome }}
-              <span class="tg-meta" style="padding:1px 8px;border-radius:999px;border:1px solid var(--color-rule);background:var(--color-paper-2);">{% if item.projeto.eh_anco %}Revisão ANCO{% else %}PRISMA-ScR{% endif %}</span>
+              <span class="tg-meta" style="padding:1px 8px;border-radius:999px;border:1px solid var(--color-rule);background:var(--color-paper-2);">PRISMA-ScR</span>
               {% if item.eh_curador %} <span class="tg-meta" style="color:var(--color-gold-deep);">· curador</span>{% endif %}</div>
             <div class="b-meta">
               {% if item.projeto.pergunta_pesquisa %}{{ item.projeto.pergunta_pesquisa|truncatechars:90 }}{% else %}{{ item.projeto.titulo }}{% endif %}

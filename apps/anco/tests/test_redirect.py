@@ -24,10 +24,9 @@ def test_triagem_painel_anco_redireciona_para_anco():
     assert resp.url == reverse("anco_painel", args=["piloto-x"])
 
 
-def test_projeto_rigoroso_nao_redireciona():
-    proto = ProtocoloTriagem.objects.create(
-        nome="Rig", slug="rig-x", modo=ProtocoloTriagem.Modo.RIGOROSO
-    )
+def test_projeto_sem_anco_nao_redireciona():
+    # Projeto da triagem (PRISMA) sem ProjetoANCO de mesmo slug → sem redirect.
+    proto = ProtocoloTriagem.objects.create(nome="Rig", slug="rig-x")
     u = User.objects.create_user(
         username="a", email="a@u.edu", password="x", papel=User.Papel.ANALISTA
     )

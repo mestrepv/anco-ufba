@@ -16,10 +16,7 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def proj_anco(db):
-    p = ProtocoloTriagem.ativo()
-    p.modo = ProtocoloTriagem.Modo.ANCO
-    p.save()
-    return p
+    return ProtocoloTriagem.ativo()
 
 
 def _user(nome, papel=User.Papel.ANALISTA, **kw):

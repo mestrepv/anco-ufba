@@ -87,20 +87,6 @@ class ProtocoloTriagem(models.Model):
         help_text="Ativa a 2ª etapa de triagem (texto completo) após o título/resumo.",
     )
 
-    class Modo(models.TextChoices):
-        RIGOROSO = "rigoroso", "Rigoroso (PRISMA-ScR)"
-        ANCO = "anco", "Revisão ANCO (simplificado)"
-
-    modo = models.CharField(
-        max_length=10,
-        choices=Modo.choices,
-        default=Modo.RIGOROSO,
-        help_text=(
-            "Rigoroso: triagem por ≥2 revisores independentes (PRISMA-ScR). "
-            "Revisão ANCO: o dono da base autotria; sorteio distribui cotas de "
-            "análise. Apenas comuta o fluxo — o código rigoroso permanece."
-        ),
-    )
     registro_externo = models.URLField(
         max_length=300,
         blank=True,
@@ -159,18 +145,12 @@ class ProtocoloTriagem(models.Model):
             return True
         return self.papel_de(user) == ProjetoMembro.Papel.CURADOR
 
-    @property
-    def eh_anco(self) -> bool:
-        """Projeto no modo Revisão ANCO (simplificado)."""
-        return self.modo == self.Modo.ANCO
-
     def snapshot_dados(self) -> dict:
         return {
             "titulo": self.titulo,
             "pergunta_pesquisa": self.pergunta_pesquisa,
             "criterios_inclusao": self.criterios_inclusao,
             "criterios_exclusao": self.criterios_exclusao,
-            "modo": self.modo,
             "n_revisores": self.n_revisores,
             "prazo_dias": self.prazo_dias,
             "usa_texto_completo": self.usa_texto_completo,
@@ -462,14 +442,6 @@ class RegistroTriagem(models.Model):
     status = models.CharField(
         max_length=15, choices=Status.choices, default=Status.IDENTIFICADO, db_index=True
     )
-    relevancia_score = models.PositiveSmallIntegerField(
-        default=0,
-        db_index=True,
-        help_text=(
-            "Nº de termos da estratégia de busca presentes no título/resumo/"
-            "palavras-chave. Cache de ordenação (Revisão ANCO); recalculável."
-        ),
-    )
     motivo_exclusao = models.TextField(
         blank=True, help_text="Motivo da exclusão (PRISMA: excluded with reasons)."
     )
@@ -694,140 +666,3 @@ class RodadaCalibracao(models.Model):
     def __str__(self) -> str:
         return f"Calibração {self.pk} do protocolo {self.protocolo_id}"
 
-
-class SorteioAnalise(models.Model):
-    """Distribuição da análise (Matriz AnCo) — modo Revisão ANCO.
-
-    O curador sorteia os artigos do corpus entre os analistas: uma **cota** de
-    artigos por analista. No modo ANCO simplificado o sorteio é **aleatório**
-    (`semente` registra a seed para reprodutibilidade/auditoria); o modo
-    determinístico legado (relevância + diversidade de base) permanece para
-    `aleatorio=False`. `modo_revisao` decide se cada artigo é analisado por um
-    analista (`unica`) ou por dois independentes + consenso (`dupla`). Não toca o
-    acervo curado nem o protocolo rigoroso.
-    """
-
-    class ModoRevisao(models.TextChoices):
-        UNICA = "unica", "Revisão única (1 analista)"
-        DUPLA = "dupla", "Revisão dupla (2 analistas + consenso)"
-
-    projeto = models.ForeignKey(
-        ProtocoloTriagem, on_delete=models.CASCADE, related_name="sorteios_analise"
-    )
-    modo_revisao = models.CharField(
-        max_length=10,
-        choices=ModoRevisao.choices,
-        default=ModoRevisao.UNICA,
-        help_text="Decidido pelo curador no momento do sorteio.",
-    )
-    cota = models.PositiveSmallIntegerField(
-        default=5, help_text="Artigos atribuídos a cada analista."
-    )
-    criado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="sorteios_analise_criados",
-    )
-    criado_em = models.DateTimeField(auto_now_add=True)
-    observacoes = models.TextField(
-        blank=True, help_text="Critério/observações do sorteio (auditoria)."
-    )
-    semente = models.BigIntegerField(
-        null=True,
-        blank=True,
-        help_text="Seed do embaralhamento aleatório (reprodutível/auditável).",
-    )
-
-    class Meta:
-        verbose_name = "sorteio de análise"
-        verbose_name_plural = "sorteios de análise"
-        ordering = ["-criado_em"]
-
-    def __str__(self) -> str:
-        return f"Sorteio {self.pk} ({self.get_modo_revisao_display()}) — projeto {self.projeto_id}"
-
-    @property
-    def assentos_por_artigo(self) -> int:
-        return 2 if self.modo_revisao == self.ModoRevisao.DUPLA else 1
-
-
-class AtribuicaoAnalise(models.Model):
-    """Um artigo atribuído a um analista por um sorteio (Fase 13)."""
-
-    sorteio = models.ForeignKey(
-        SorteioAnalise, on_delete=models.CASCADE, related_name="atribuicoes"
-    )
-    analista = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="atribuicoes_analise",
-    )
-    artigo = models.ForeignKey(
-        "acervo.Artigo", on_delete=models.CASCADE, related_name="atribuicoes_analise"
-    )
-    criado_em = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = "atribuição de análise"
-        verbose_name_plural = "atribuições de análise"
-        ordering = ["sorteio", "analista", "artigo"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["sorteio", "analista", "artigo"],
-                name="uniq_atribuicao_por_sorteio_analista_artigo",
-            ),
-        ]
-        indexes = [models.Index(fields=["analista", "artigo"])]
-
-    def __str__(self) -> str:
-        return f"Artigo {self.artigo_id} → analista {self.analista_id}"
-
-
-class ConsensoAnalise(models.Model):
-    """Conciliação da revisão dupla: duas análises independentes → uma final.
-
-    O curador concilia as duas `Analise` de um artigo numa `analise_final`
-    (geralmente uma 3ª análise de autoria do curador, dado o unique
-    artigo+analista). As de origem são preservadas como insumo. Fase 13.
-    """
-
-    artigo = models.ForeignKey("acervo.Artigo", on_delete=models.CASCADE, related_name="consensos")
-    sorteio = models.ForeignKey(
-        SorteioAnalise,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="consensos",
-    )
-    analises = models.ManyToManyField(
-        "acervo.Analise",
-        blank=True,
-        related_name="consensos_origem",
-        help_text="As análises independentes que entraram na conciliação.",
-    )
-    analise_final = models.ForeignKey(
-        "acervo.Analise",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="consenso_final",
-    )
-    conciliado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="consensos_conciliados",
-    )
-    conciliado_em = models.DateTimeField(null=True, blank=True)
-    criado_em = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = "consenso de análise"
-        verbose_name_plural = "consensos de análise"
-        ordering = ["-criado_em"]
-
-    def __str__(self) -> str:
-        return f"Consenso do artigo {self.artigo_id}"

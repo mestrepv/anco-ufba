@@ -7,100 +7,6 @@
 <div class="tg-wrap narrow">
   <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome|default:"Triagem" }}</a>
 
-{% if projeto.eh_anco %}
-  {# ───────────────────────── Protocolo ANCO (simplificado) ───────────────────────── #}
-  <div class="tg-head">
-    <h1 class="tg-h1">Protocolo ANCO</h1>
-  </div>
-  <p class="tg-desc">
-    O <strong>objetivo</strong>, a <strong>estratégia de busca</strong>, os
-    <strong>critérios de seleção</strong> e <strong>como os artigos são analisados</strong> neste
-    projeto. Não há triagem prévia: a busca define o corpus.
-  </p>
-
-  <div class="tg-card" style="margin:14px 0 22px;">
-    <div class="pj-funil" style="font-size:13px;">
-      <span>Busca nas bases</span><span class="seta">→</span>
-      <span>Importação + dedup (inclui todos)</span><span class="seta">→</span>
-      <span>Sorteio aleatório</span><span class="seta">→</span>
-      <span style="color:var(--color-ok);"><b style="color:var(--color-ok);">Análise</b> (Matriz AnCo)</span>
-    </div>
-  </div>
-
-  <h2 class="tg-h2">Objetivo, estratégia e critérios</h2>
-  {% if eh_curador %}
-  <div class="tg-card" style="margin-bottom:22px;">
-    <form method="post">
-      {% csrf_token %}
-      <input type="hidden" name="acao" value="salvar_criterios">
-      <div class="tg-field">
-        <label for="id_pergunta_pesquisa">Objetivo da revisão</label>
-        <textarea id="id_pergunta_pesquisa" name="pergunta_pesquisa" rows="2"
-                  style="width:100%;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;box-sizing:border-box;">{{ protocolo.pergunta_pesquisa }}</textarea>
-      </div>
-      <div class="tg-field">
-        <label for="id_estrategia_busca">Estratégia de busca</label>
-        <textarea id="id_estrategia_busca" name="estrategia_busca" rows="2"
-                  placeholder="ex.: &quot;cognitive analysis&quot; / &quot;análise cognitiva&quot; nas bases X, Y, Z"
-                  style="width:100%;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;box-sizing:border-box;">{{ protocolo.estrategia_busca }}</textarea>
-      </div>
-      <div class="tg-field">
-        <label for="id_criterios_inclusao" style="color:var(--color-ok);">✔ Incluir se</label>
-        <textarea id="id_criterios_inclusao" name="criterios_inclusao" rows="2"
-                  style="width:100%;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;box-sizing:border-box;">{{ protocolo.criterios_inclusao }}</textarea>
-      </div>
-      <div class="tg-field">
-        <label for="id_criterios_exclusao" style="color:var(--color-danger);">✗ Excluir se</label>
-        <textarea id="id_criterios_exclusao" name="criterios_exclusao" rows="2"
-                  style="width:100%;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;box-sizing:border-box;">{{ protocolo.criterios_exclusao }}</textarea>
-      </div>
-      <div class="tg-field">
-        <label for="id_termos_realce">Termos destacados (realce)</label>
-        <textarea id="id_termos_realce" name="termos_realce" rows="2"
-                  placeholder="cognitive analysis, análise cognitiva, análises cognitivas…"
-                  style="width:100%;font-family:var(--font-sans);font-size:14px;padding:9px 11px;border:1px solid var(--color-rule-strong);border-radius:6px;box-sizing:border-box;">{{ protocolo.termos_realce }}</textarea>
-        <p class="tg-meta" style="margin:6px 0 0;">Separados por vírgula. São marcados (amarelo) no título/resumo/palavras-chave ao navegar pelas fontes. Inclua as variações (plural, com e sem acento).</p>
-      </div>
-      <button class="btn btn-primary">Salvar</button>
-    </form>
-  </div>
-  {% else %}
-  <div class="tg-card tg-table-scroll" style="margin-bottom:22px;">
-    <table class="tg-table">
-      <tr><td style="white-space:nowrap;color:var(--color-ink-3);">Objetivo</td><td style="overflow-wrap:anywhere;">{{ protocolo.pergunta_pesquisa|default:"—" }}</td></tr>
-      <tr><td style="white-space:nowrap;color:var(--color-ink-3);">Estratégia de busca</td><td style="overflow-wrap:anywhere;">{{ protocolo.estrategia_busca|default:"—" }}</td></tr>
-      <tr><td style="color:var(--color-ok);">✔ Incluir se</td><td><pre style="white-space:pre-wrap;font-family:var(--font-sans);margin:0;">{{ protocolo.criterios_inclusao|default:"—" }}</pre></td></tr>
-      <tr><td style="color:var(--color-danger);">✗ Excluir se</td><td><pre style="white-space:pre-wrap;font-family:var(--font-sans);margin:0;">{{ protocolo.criterios_exclusao|default:"—" }}</pre></td></tr>
-      <tr><td style="color:var(--color-ink-3);">Termos destacados</td><td style="overflow-wrap:anywhere;">{{ protocolo.termos_realce|default:"—" }}</td></tr>
-    </table>
-  </div>
-  {% endif %}
-
-  <h2 class="tg-h2">Como os artigos são analisados (Matriz AnCo)</h2>
-  <p class="tg-desc" style="margin-bottom:12px;">
-    Quando um artigo do corpus é <strong>sorteado</strong> para um analista, ele preenche a
-    <strong>Matriz AnCo</strong> em 4 abas:
-  </p>
-  <div class="tg-card" style="margin-bottom:18px;">
-    <ol style="margin:0;padding-left:20px;font-family:var(--font-sans);font-size:14px;line-height:1.7;color:var(--color-ink-2);">
-      <li><strong>Identificação</strong> — a referência do artigo e a grande área (CAPES, metadado administrativo).</li>
-      <li><strong>Presença e pertinência</strong> — onde o termo <em>Análise Cognitiva</em> aparece; <strong>se e como</strong> a obra dialoga com o campo (reconhecimento multirreferencial — não filtrar por disciplina); se a obra <strong>define o conceito</strong>.</li>
-      <li><strong>Análise do artigo</strong> — objeto, objetivo, foco, metodologia, <strong>epistemologia</strong> e <strong>teoria</strong> (vocabulário controlado), referenciais, resultados, contexto, observações.</li>
-      <li><strong>Resenha crítica</strong> <span class="tg-meta">(opcional)</span> — texto autoral; passa por <strong>revisão cega por pares</strong>.</li>
-    </ol>
-  </div>
-  <div class="tg-note" style="margin-bottom:18px;">
-    <strong>Princípios.</strong> Reconhecer <em>se e como</em> a obra trabalha com o conhecimento
-    (campo emergente e multirreferencial — na dúvida, reconheça e justifique); <strong>explicitar
-    os fundamentos teórico-epistemológicos</strong>; a análise é <strong>construtiva</strong> (o
-    sistema de referência é construído pelo analista, não “encontrado” no material).
-  </div>
-  <p class="tg-meta">
-    Para submeter à curadoria, preenchem-se todos os campos das abas 1–3 (a resenha é opcional).
-    Curadoria pode aprovar, pedir ajustes ou rejeitar.
-  </p>
-
-{% else %}
   {# ───────────────────────── Protocolo rigoroso (PRISMA-ScR) ───────────────────────── #}
   <div class="tg-head">
     <h1 class="tg-h1">Protocolo da revisão</h1>
@@ -177,6 +83,5 @@
   {% else %}
     <p class="tg-empty">Nenhuma versão travada ainda.</p>
   {% endif %}
-{% endif %}
 </div>
 {% endblock %}

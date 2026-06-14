@@ -46,7 +46,6 @@ from .importacao import (
     pode_excluir_busca,
 )
 from .models import (
-    AtribuicaoAnalise,
     Busca,
     DecisaoTriagem,
     ProjetoMembro,
@@ -176,13 +175,9 @@ def novo_projeto_view(request: HttpRequest) -> HttpResponse:
         if not nome:
             messages.error(request, "Informe um nome para o projeto.")
             return redirect("triagem_novo_projeto")
-        modo = request.POST.get("modo")
-        if modo not in dict(ProtocoloTriagem.Modo.choices):
-            modo = ProtocoloTriagem.Modo.RIGOROSO
         projeto = ProtocoloTriagem.objects.create(
             nome=nome,
             titulo=nome,
-            modo=modo,
             pergunta_pesquisa=request.POST.get("pergunta_pesquisa", "").strip(),
             estrategia_busca=request.POST.get("estrategia_busca", "").strip(),
         )
@@ -195,11 +190,7 @@ def novo_projeto_view(request: HttpRequest) -> HttpResponse:
         messages.success(request, f"Projeto “{projeto.nome}” criado.")
         return redirect("triagem_painel", slug=projeto.slug)
 
-    return render(
-        request,
-        "triagem/novo_projeto.html",
-        {"modos": ProtocoloTriagem.Modo.choices},
-    )
+    return render(request, "triagem/novo_projeto.html", {})
 
 
 # --------------------------------------------------------------------------- #
@@ -1145,31 +1136,17 @@ def ajuda_view(request: HttpRequest) -> HttpResponse:
 
 @_exige_analista
 def a_analisar_view(request: HttpRequest) -> HttpResponse:
-    """Artigos a analisar. Com **atribuições** (sorteio da Revisão ANCO): só as
-    suas. Sem atribuições: pool self-serve apenas dos projetos **rigorosos** — em
-    projeto ANCO a análise espera o **sorteio da curadoria** (nada aparece antes)."""
+    """Artigos a analisar: pool self-serve dos incluídos pela triagem (some o que
+    o usuário já analisou)."""
     from apps.acervo.models import Analise, Artigo
 
     minhas = Analise.objects.filter(analista=request.user).values_list("artigo_id", flat=True)
-    atribuidos = list(
-        AtribuicaoAnalise.objects.filter(analista=request.user).values_list("artigo_id", flat=True)
+    artigos = (
+        Artigo.objects.filter(registros_triagem__status=RegistroTriagem.Status.INCLUIDO)
+        .exclude(pk__in=minhas)
+        .distinct()
+        .order_by("-ano", "titulo")
     )
-    por_atribuicao = bool(atribuidos)
-    if por_atribuicao:
-        # Mostra TODOS os atribuídos (mesmo já analisados) — permanecem no painel
-        # com o status da análise. Não some ao iniciar/concluir.
-        artigos = Artigo.objects.filter(pk__in=atribuidos).distinct().order_by("-ano", "titulo")
-    else:
-        # Pool self-serve (rigoroso): some o que já analisei (não re-pegar).
-        artigos = (
-            Artigo.objects.filter(
-                registros_triagem__status=RegistroTriagem.Status.INCLUIDO,
-                registros_triagem__protocolo__modo=ProtocoloTriagem.Modo.RIGOROSO,
-            )
-            .exclude(pk__in=minhas)
-            .distinct()
-            .order_by("-ano", "titulo")
-        )
     pagina = Paginator(artigos, 50).get_page(request.GET.get("page"))
 
     # Anexa a análise do usuário a cada artigo da página (status + ação certa).
@@ -1181,24 +1158,7 @@ def a_analisar_view(request: HttpRequest) -> HttpResponse:
     for art in pagina.object_list:
         art.minha_analise = minhas_analises.get(art.pk)
 
-    # Em projeto ANCO com incluídos, mas sem sorteio para o usuário: aguardando.
-    aguardando_sorteio = (
-        not por_atribuicao
-        and ProtocoloTriagem.objects.filter(
-            modo=ProtocoloTriagem.Modo.ANCO,
-            membros__usuario=request.user,
-            registros__status=RegistroTriagem.Status.INCLUIDO,
-        ).exists()
-    )
-    return render(
-        request,
-        "triagem/a_analisar.html",
-        {
-            "pagina": pagina,
-            "por_atribuicao": por_atribuicao,
-            "aguardando_sorteio": aguardando_sorteio,
-        },
-    )
+    return render(request, "triagem/a_analisar.html", {"pagina": pagina})
 
 
 @_projeto_analista
@@ -1270,11 +1230,6 @@ def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
                     artigo_id=OuterRef("artigo_id"), status=Analise.Status.RASCUNHO
                 )
             ),
-            _atribuido=Exists(
-                AtribuicaoAnalise.objects.filter(
-                    artigo_id=OuterRef("artigo_id"), sorteio__projeto=projeto
-                )
-            ),
             eh_individual=Exists(
                 Busca.objects.filter(registros=OuterRef("pk"), outra_base="Artigos individuais")
             ),
@@ -1291,9 +1246,7 @@ def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
         Busca.objects.filter(protocolo=projeto, registros__status=_St.INCLUIDO).distinct().count()
     )
     n_analisado = base_qs.filter(_analisado=True).count()
-    n_pendente_envio = (
-        base_qs.filter(_analisado=False).filter(Q(_atribuido=True) | Q(_rascunho=True)).count()
-    )
+    n_pendente_envio = base_qs.filter(_analisado=False, _rascunho=True).count()
     n_sem = total - n_analisado - n_pendente_envio
 
     # ── Busca + filtros + ordenação ─────────────────────────────────────
@@ -1319,42 +1272,30 @@ def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
     if f_status == "analisado":
         qs = qs.filter(_analisado=True)
     elif f_status == "pendente":
-        qs = qs.filter(_analisado=False).filter(Q(_atribuido=True) | Q(_rascunho=True))
+        qs = qs.filter(_analisado=False, _rascunho=True)
     elif f_status == "sem":
-        qs = qs.filter(_analisado=False, _atribuido=False, _rascunho=False)
+        qs = qs.filter(_analisado=False, _rascunho=False)
 
     qs = qs.order_by("titulo") if ordem == "titulo" else qs.order_by("-artigo__ano", "titulo")
     qs = qs.distinct()
     n_filtrado = qs.count()
     pagina = Paginator(qs, 50).get_page(request.GET.get("page"))
 
-    # Nome do analista atribuído (só os da página).
     page_art_ids = [r.artigo_id for r in pagina.object_list]
     # Análise do PRÓPRIO usuário em cada artigo da página (curador/admin pode
-    # analisar qualquer artigo sem sorteio — o botão usa isto p/ Analisar/Continuar/Ver).
+    # analisar qualquer artigo — o botão usa isto p/ Analisar/Continuar/Ver).
     minha_analise: dict[int, Analise] = {
         an.artigo_id: an
         for an in Analise.objects.filter(analista=request.user, artigo_id__in=page_art_ids)
     }
-    atrib_nome: dict[int, str] = {}
-    for a in (
-        AtribuicaoAnalise.objects.filter(sorteio__projeto=projeto, artigo_id__in=page_art_ids)
-        .select_related("analista")
-        .order_by("criado_em")
-    ):
-        atrib_nome.setdefault(a.artigo_id, a.analista.nome_exibicao or a.analista.email)
 
     # Estado de análise por item (o template não lê atributos com "_").
     for r in pagina.object_list:
-        nome = atrib_nome.get(r.artigo_id, "")
         r.minha_analise = minha_analise.get(r.artigo_id)
         if r._analisado:
             r.estado_rotulo, r.estado_cor = "● analisado", "ok"
         elif r._rascunho:
             r.estado_rotulo, r.estado_cor = "◐ em análise", "warn"
-        elif r._atribuido:
-            r.estado_rotulo = f"◐ atribuído a {nome}" if nome else "◐ atribuído"
-            r.estado_cor = "warn"
         else:
             r.estado_rotulo, r.estado_cor = "○ sem análise", "muted"
 
@@ -1423,7 +1364,6 @@ def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
             "n_analisado": n_analisado,
             "n_pendente": n_pendente_envio,
             "n_sem": n_sem,
-            "atrib_nome": atrib_nome,
             "tipos": tipos,
             "idiomas": idiomas,
             "bases": bases,

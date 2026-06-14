@@ -17,10 +17,7 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def proj_anco(db):
-    p = ProtocoloTriagem.ativo()
-    p.modo = ProtocoloTriagem.Modo.ANCO
-    p.save()
-    return p
+    return ProtocoloTriagem.ativo()
 
 
 @pytest.fixture
@@ -61,30 +58,6 @@ def test_registrar_legado_e_isento(proj_anco):
     leg = Artigo.objects.create(titulo="Velho", doi="10/leg", eh_legado=True)
     assert registrar_artigo_no_corpus(proj_anco, leg, u) is None
     assert not proj_anco.registros.filter(artigo=leg).exists()
-
-
-def test_cadastro_com_projeto_vai_ao_corpus(client, proj_anco, base):
-    u = _user("u3")
-    client.force_login(u)
-    resp = client.post(
-        reverse("cadastrar_artigo") + f"?projeto={proj_anco.slug}",
-        data={
-            "titulo": "Cog individual",
-            "ano": "2021",
-            "doi": "10.1/ind",
-            "link_acesso": "https://example.org/a",
-            "base_consulta": str(base.pk),
-            "tipo_publicacao": "artigo",
-            "area": "Psicologia",
-        },
-    )
-    assert resp.status_code == 302
-    assert resp.url == reverse("triagem_incluidos", args=[proj_anco.slug])
-    art = Artigo.objects.get(doi="10.1/ind")
-    assert proj_anco.registros.filter(
-        artigo=art, status=RegistroTriagem.Status.INCLUIDO
-    ).exists()  # entrou no corpus
-    assert not Analise.objects.filter(artigo=art).exists()  # NÃO iniciou análise
 
 
 def test_cadastro_sem_projeto_inicia_analise(client, base):

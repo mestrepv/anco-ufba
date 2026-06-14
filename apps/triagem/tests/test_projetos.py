@@ -16,39 +16,20 @@ def _user(nome, papel=User.Papel.ANALISTA, **kw):
     )
 
 
-def test_curador_cria_projeto_anco(client):
+def test_curador_cria_projeto(client):
     cur = _user("cur", papel=User.Papel.CURADOR)
     client.force_login(cur)
     resp = client.post(
         reverse("triagem_novo_projeto"),
-        data={"nome": "Projeto ANCO", "modo": "anco", "estrategia_busca": "cognitive analysis"},
+        data={"nome": "Projeto PRISMA", "estrategia_busca": "cognitive analysis"},
     )
     assert resp.status_code == 302
-    p = ProtocoloTriagem.objects.get(nome="Projeto ANCO")
-    assert p.modo == ProtocoloTriagem.Modo.ANCO
+    p = ProtocoloTriagem.objects.get(nome="Projeto PRISMA")
     assert p.estrategia_busca == "cognitive analysis"
     # criador vira curador do projeto
     assert ProjetoMembro.objects.filter(
         projeto=p, usuario=cur, papel=ProjetoMembro.Papel.CURADOR
     ).exists()
-
-
-def test_curador_cria_projeto_rigoroso(client):
-    cur = _user("cur2", papel=User.Papel.CURADOR)
-    client.force_login(cur)
-    client.post(
-        reverse("triagem_novo_projeto"), data={"nome": "Projeto PRISMA", "modo": "rigoroso"}
-    )
-    assert (
-        ProtocoloTriagem.objects.get(nome="Projeto PRISMA").modo == ProtocoloTriagem.Modo.RIGOROSO
-    )
-
-
-def test_modo_invalido_cai_no_default(client):
-    cur = _user("cur3", papel=User.Papel.CURADOR)
-    client.force_login(cur)
-    client.post(reverse("triagem_novo_projeto"), data={"nome": "Sem modo", "modo": "xpto"})
-    assert ProtocoloTriagem.objects.get(nome="Sem modo").modo == ProtocoloTriagem.Modo.RIGOROSO
 
 
 def test_analista_comum_nao_cria(client):

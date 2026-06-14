@@ -36,15 +36,13 @@
   <a href="{% url 'triagem_projetos' %}" class="tg-back">&larr; Projetos</a>
   <div class="tg-head">
     <div>
-      <p class="t-eyebrow" style="margin:0 0 4px;">{% if projeto.eh_anco %}Revisão ANCO · Análise Cognitiva{% else %}Revisão de escopo · PRISMA-ScR{% endif %}</p>
+      <p class="t-eyebrow" style="margin:0 0 4px;">Revisão de escopo · PRISMA-ScR</p>
       <h1 class="tg-h1">{{ projeto.nome }}</h1>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
-        <a href="{% url 'triagem_protocolo' projeto.slug %}" class="pj-chip">{% if projeto.eh_anco %}Protocolo ANCO{% elif protocolo.travado_em %}🔒 Protocolo v{{ protocolo.versao }}{% else %}✎ Protocolo (rascunho){% endif %}</a>
-        {% if not projeto.eh_anco %}
-          {% if protocolo.registro_externo %}<a href="{{ protocolo.registro_externo }}" target="_blank" rel="noopener" class="pj-chip">Registro externo &nearr;</a>{% endif %}
-          {% if protocolo.usa_texto_completo %}<span class="pj-chip">2 etapas (T/R → texto)</span>{% endif %}
-          <span class="pj-chip">{{ protocolo.n_revisores }} revisores · prazo {{ protocolo.prazo_dias }}d</span>
-        {% endif %}
+        <a href="{% url 'triagem_protocolo' projeto.slug %}" class="pj-chip">{% if protocolo.travado_em %}🔒 Protocolo v{{ protocolo.versao }}{% else %}✎ Protocolo (rascunho){% endif %}</a>
+        {% if protocolo.registro_externo %}<a href="{{ protocolo.registro_externo }}" target="_blank" rel="noopener" class="pj-chip">Registro externo &nearr;</a>{% endif %}
+        {% if protocolo.usa_texto_completo %}<span class="pj-chip">2 etapas (T/R → texto)</span>{% endif %}
+        <span class="pj-chip">{{ protocolo.n_revisores }} revisores · prazo {{ protocolo.prazo_dias }}d</span>
         <span class="pj-chip">{% if eh_curador %}você é curador{% else %}você é analista{% endif %}</span>
       </div>
     </div>
@@ -53,93 +51,6 @@
     </div>
   </div>
 
-{% if projeto.eh_anco %}
-  {# ═══════════════════════ PAINEL ANCO (fluxo simplificado) ═══════════════════════ #}
-
-  {# Sobre: estratégia (e objetivo) #}
-  <div class="tg-card" style="margin:14px 0 16px;">
-    <div class="crit-grid">
-      <span class="rotulo">Estratégia de busca</span>
-      <span style="font-family:var(--font-sans);font-size:14px;color:var(--color-ink-2);">{% if protocolo.estrategia_busca %}{{ protocolo.estrategia_busca }}{% else %}<span style="color:var(--color-ink-3);">(a definir{% if eh_curador %} — <a href="{% url 'triagem_protocolo' projeto.slug %}" style="color:var(--color-gold-deep);">editar</a>{% endif %})</span>{% endif %}</span>
-      {% if protocolo.pergunta_pesquisa %}<span class="rotulo">Objetivo</span><span style="font-family:var(--font-serif);font-size:15px;color:var(--color-ink);line-height:1.4;">{{ protocolo.pergunta_pesquisa }}</span>{% endif %}
-    </div>
-  </div>
-
-  {# Andamento — cards clicáveis #}
-  <h2 class="tg-h2">Andamento</h2>
-  <div class="tg-grid-stats" style="margin-bottom:8px;">
-    <a class="tg-stat" href="{% url 'triagem_registros' projeto.slug %}"><div class="n">{{ c.importados }}</div><div class="l">registros importados</div></a>
-    <a class="tg-stat" href="{% url 'triagem_fontes' projeto.slug %}?i=0" style="border-color:var(--color-ok);" title="Suas fontes para navegar/completar"><div class="n" style="color:var(--color-ok);">{{ meu_corpus }}</div><div class="l">artigos novos (seus)</div></a>
-    <a class="tg-stat" href="{% url 'triagem_registros' projeto.slug %}?status=identificado" title="Já estavam no acervo — não precisam ser analisados de novo"><div class="n">{{ c.ja_no_acervo }}</div><div class="l">já cadastrados antes</div></a>
-    <a class="tg-stat" href="{% url 'triagem_duplicatas' projeto.slug %}?escopo={% if eh_curador %}todas{% else %}minhas{% endif %}&i=0" title="Referências repetidas entre bases (já contadas uma vez)"><div class="n" style="color:var(--color-gold-deep);">{{ c.duplicados_entre_bases }}</div><div class="l">repetidos entre bases</div></a>
-  </div>
-  <p class="tg-meta" style="margin:0 0 22px;">Não há triagem: tudo que você importa já entra na lista de artigos do projeto. <a href="{% url 'triagem_estatisticas' projeto.slug %}" style="color:var(--color-gold-deep);">Artigos por base →</a></p>
-
-  {# Fluxo em 3 passos #}
-  <div class="fluxo3">
-    <div class="fluxo3-row">
-      <div class="fluxo3-num">1</div>
-      <div class="fluxo3-body">
-        <p class="fluxo3-tit">Adicionar fontes</p>
-        <div class="fluxo3-acts">
-          <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-primary">Importar lista</a>
-          <a href="{% url 'cadastrar_artigo' %}?projeto={{ projeto.slug }}" class="btn btn-secondary">Artigo individual</a>
-        </div>
-      </div>
-    </div>
-    <div class="fluxo3-row">
-      <div class="fluxo3-num">2</div>
-      <div class="fluxo3-body">
-        <p class="fluxo3-tit">Lista de artigos &middot; {{ n_corpus }} artigo{{ n_corpus|pluralize }}</p>
-        <div class="fluxo3-acts">
-          <a href="{% url 'triagem_incluidos' projeto.slug %}" class="btn btn-secondary">Ver artigos</a>
-          {% if minha_dup %}<a href="{% url 'triagem_duplicatas' projeto.slug %}?escopo={% if eh_curador %}todas{% else %}minhas{% endif %}&i=0" class="btn btn-secondary">Revisar duplicatas ({{ minha_dup }})</a>{% endif %}
-          {% if eh_curador and pendentes_corpus %}
-          <form method="post" action="{% url 'triagem_incluir_corpus' projeto.slug %}" style="display:inline;"
-                onsubmit="return confirm('Incluir {{ pendentes_corpus }} registro(s) pendente(s) no corpus? Exclusões antigas serão desfeitas.');">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-secondary">Incluir corpus pendente ({{ pendentes_corpus }})</button>
-          </form>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-    <div class="fluxo3-row">
-      <div class="fluxo3-num">3</div>
-      <div class="fluxo3-body">
-        <p class="fluxo3-tit">Análise (Matriz AnCo)</p>
-        <div class="fluxo3-acts">
-          {% if eh_curador %}<a href="{% url 'triagem_sorteio_analise' projeto.slug %}" class="btn btn-primary">Sortear análise</a>{% endif %}
-          <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">Analisar artigos{% if minha_a_analisar %} ({{ minha_a_analisar }}){% endif %}</a>
-          {% if eh_curador %}<a href="{% url 'triagem_consenso' projeto.slug %}" class="btn btn-secondary">Consenso</a>{% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# Importações #}
-  <h2 class="tg-h2">Importações <span class="tg-meta">({{ n_buscas }})</span></h2>
-  <p class="tg-meta" style="margin:-2px 0 12px;">As listas carregadas. Clique para ver o resumo, navegar/editar as fontes ou excluir.</p>
-  <div style="margin-bottom:28px;">
-  {% if buscas %}
-    {% for b in buscas %}{% include "triagem/_busca_row.html" %}{% endfor %}
-  {% else %}
-    <p class="tg-empty">Nenhuma importação ainda. Comece em <a href="{% url 'triagem_importar' projeto.slug %}" style="color:var(--color-gold-deep);">Importar lista</a>.</p>
-  {% endif %}
-  </div>
-
-  {# Equipe #}
-  <h2 class="tg-h2">Equipe <span class="tg-meta">({{ n_membros }})</span></h2>
-  <div class="pj-membros" style="margin-bottom:28px;">
-    {% for m in membros %}
-      <span class="pj-membro">{{ m.usuario.nome_exibicao|default:m.usuario.email }}{% if m.papel == 'curador' %} <span class="papel">curador</span>{% endif %}</span>
-    {% empty %}
-      <span class="tg-meta">Sem membros designados.</span>
-    {% endfor %}
-    {% if eh_curador %}<a href="{% url 'triagem_equipe' projeto.slug %}" class="pj-membro" style="border-style:dashed;color:var(--color-gold-deep);">+ gerenciar equipe</a>{% endif %}
-  </div>
-
-{% else %}
   {# ═══════════════════════ PAINEL RIGOROSO (PRISMA-ScR) ═══════════════════════ #}
   <div class="tg-card" style="margin:14px 0 18px;">
     <div class="crit-grid">
@@ -287,6 +198,5 @@
     {% endfor %}
     {% if eh_curador %}<a href="{% url 'triagem_equipe' projeto.slug %}" class="pj-membro" style="border-style:dashed;color:var(--color-gold-deep);">+ gerenciar equipe</a>{% endif %}
   </div>
-{% endif %}
 </div>
 {% endblock %}

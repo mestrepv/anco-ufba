@@ -96,14 +96,8 @@ def _projeto_corpus(request: HttpRequest):
     Só retorna o projeto se o usuário for membro (ou admin) e o projeto for ANCO;
     caso contrário, o cadastro segue o fluxo avulso (inicia a própria análise).
     """
-    slug = request.GET.get("projeto") or request.POST.get("projeto")
-    if not slug:
-        return None
-    from apps.triagem.models import ProtocoloTriagem
-
-    p = ProtocoloTriagem.objects.filter(slug=slug).first()
-    if p and p.eh_anco and (request.user.is_staff or p.eh_membro(request.user)):
-        return p
+    # ANCO migrou para apps/anco; o "Artigo individual → corpus" não usa mais
+    # projetos da triagem (PRISMA não recebe artigos avulsos no corpus).
     return None
 
 

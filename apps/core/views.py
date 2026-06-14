@@ -183,7 +183,6 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         from apps.triagem.aprovacao import registros_para_desempate
         from apps.triagem.duplicatas import contar_pares_do_usuario
         from apps.triagem.models import (
-            AtribuicaoAnalise,
             DecisaoTriagem,
             ProtocoloTriagem,
             RegistroTriagem,
@@ -204,24 +203,12 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         )
         n_triagens = triagens_pendentes.count()
         ja_minhas = Analise.objects.filter(analista=user).values_list("artigo_id", flat=True)
-        atribuidos_user = list(
-            AtribuicaoAnalise.objects.filter(analista=user).values_list("artigo_id", flat=True)
+        n_a_analisar = (
+            Artigo.objects.filter(registros_triagem__status=RegistroTriagem.Status.INCLUIDO)
+            .exclude(pk__in=ja_minhas)
+            .distinct()
+            .count()
         )
-        if atribuidos_user:
-            # Revisão ANCO com sorteio: conta só os artigos atribuídos ao usuário.
-            n_a_analisar = (
-                Artigo.objects.filter(pk__in=atribuidos_user)
-                .exclude(pk__in=ja_minhas)
-                .distinct()
-                .count()
-            )
-        else:
-            n_a_analisar = (
-                Artigo.objects.filter(registros_triagem__status=RegistroTriagem.Status.INCLUIDO)
-                .exclude(pk__in=ja_minhas)
-                .distinct()
-                .count()
-            )
 
         # Um bloco por projeto: objetivo, estratégia e as 7 etapas com OS
         # contadores do usuário NAQUELE projeto (painel consolidado).
