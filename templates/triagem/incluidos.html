@@ -1,6 +1,6 @@
 {% extends "_base_publico.html" %}
 
-{% block title %}Corpus do projeto · {{ projeto.nome }}{% endblock %}
+{% block title %}{% if projeto.eh_anco %}Corpus do projeto{% else %}Artigos incluídos{% endif %} · {{ projeto.nome }}{% endblock %}
 {% block extra_head %}{% include "triagem/_estilos.html" %}
 <style>
   .inc-card { cursor: default; }
@@ -39,8 +39,8 @@
 <div class="tg-wrap">
   <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome|default:projeto.titulo }}</a>
   <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;">
-    <h1 class="tg-h1" style="margin-top:6px;">Corpus do projeto <span class="tg-meta">· {{ total }} artigo{{ total|pluralize }}</span></h1>
-    {% if pode_curar %}<a href="{% url 'triagem_sorteio_analise' projeto.slug %}" class="btn btn-sm btn-primary">Sortear análise &rarr;</a>{% endif %}
+    <h1 class="tg-h1" style="margin-top:6px;">{% if projeto.eh_anco %}Corpus do projeto{% else %}Artigos incluídos{% endif %} <span class="tg-meta">· {{ total }} artigo{{ total|pluralize }}</span></h1>
+    {% if pode_curar and projeto.eh_anco %}<a href="{% url 'triagem_sorteio_analise' projeto.slug %}" class="btn btn-sm btn-primary">Sortear análise &rarr;</a>{% endif %}
   </div>
 
   {% if total %}
@@ -151,7 +151,7 @@
   {% endif %}
 
   {% else %}
-    <p class="tg-empty" style="margin-top:14px;">Corpus vazio. Importe uma base para que os artigos entrem automaticamente no corpus.</p>
+    <p class="tg-empty" style="margin-top:14px;">{% if projeto.eh_anco %}Corpus vazio. Importe uma base para que os artigos entrem automaticamente no corpus.{% else %}Nenhum artigo incluído ainda. Os artigos aparecem aqui quando são incluídos na triagem.{% endif %}</p>
   {% endif %}
 </div>
 {% endblock %}

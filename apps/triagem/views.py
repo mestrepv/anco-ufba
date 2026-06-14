@@ -209,7 +209,6 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
 
     # Só os status com registros (não polui com zeros).
     contagens = dict(projeto.registros.values_list("status").annotate(n=Count("id")))
-    _reg_url = reverse("triagem_registros", args=[projeto.slug])
     _St = RegistroTriagem.Status
     eh_curador = projeto.eh_curador_no(request.user)
 
@@ -272,16 +271,33 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
         contexto["minha_dup"] = dup.contar_pares_do_usuario(projeto, request.user, eh_curador)
         return render(request, "triagem/painel.html", contexto)
 
-    # Modo rigoroso (PRISMA-ScR): painel único por status.
-    contexto["cards"] = [
-        {
-            "rotulo": rotulo,
-            "count": contagens.get(codigo, 0),
-            "href": f"{_reg_url}?status={codigo}",
-        }
-        for codigo, rotulo in RegistroTriagem.Status.choices
-        if contagens.get(codigo, 0)
-    ]
+    # Modo rigoroso (PRISMA-ScR): painel guiado em 5 passos. Calcula o estado de
+    # cada passo para acender/apagar o botão certo (ver painel.html).
+    # ① protocolo completo? (tem critério de inclusão/exclusão registrado)
+    contexto["protocolo_incompleto"] = not (
+        projeto.criterios_inclusao.strip() or projeto.criterios_exclusao.strip()
+    )
+    # ③ duplicatas a revisar (mesma regra do modo ANCO)
+    contexto["minha_dup"] = dup.contar_pares_do_usuario(projeto, request.user, eh_curador)
+    # ④ minha fila de triagem NESTE projeto (link direto ao próximo artigo)
+    minhas = DecisaoTriagem.objects.filter(revisor=request.user, registro__protocolo=projeto)
+    total_fila = minhas.count()
+    feitas = minhas.filter(concluido_em__isnull=False).count()
+    contexto["minha_fila_total"] = total_fila
+    contexto["minha_fila_feitas"] = feitas
+    contexto["minha_fila_pct"] = round(feitas * 100 / total_fila) if total_fila else 0
+    contexto["minha_proxima_id"] = (
+        minhas.filter(concluido_em__isnull=True)
+        .order_by("prazo_em")
+        .values_list("pk", flat=True)
+        .first()
+    )
+    # ④ artigos novos ainda não atribuídos — curador "inicia" (atribui) a triagem
+    contexto["n_a_atribuir"] = projeto.registros.filter(
+        status=_St.IDENTIFICADO, ja_no_acervo=False
+    ).count()
+    # ⑤ divergências aguardando desempate (curador)
+    contexto["n_divergencias"] = len(registros_para_desempate(projeto)) if eh_curador else 0
     return render(request, "triagem/painel.html", contexto)
 
 
@@ -825,6 +841,14 @@ def iniciar_triagem_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Htt
         else:
             messages.info(request, "Nenhum registro identificado disponível para triar.")
         return redirect("triagem_registros", slug=projeto.slug)
+
+    # Sem nada a iniciar: não mostra página vazia — volta ao painel com aviso.
+    if not n_disponiveis:
+        messages.info(
+            request,
+            "Nada novo a iniciar — todos os registros importados já estão em triagem.",
+        )
+        return redirect("triagem_painel", slug=projeto.slug)
 
     return render(
         request,
@@ -1522,6 +1546,11 @@ def estatisticas_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRe
 @_projeto_curador
 def sorteio_analise_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
     """Curador sorteia os incluídos entre os analistas (cota, única/dupla)."""
+    if not projeto.eh_anco:
+        # Sorteio de cotas de análise é do modo Revisão ANCO. No PRISMA-ScR, os
+        # incluídos são analisados direto pela fila (sem sorteio) — ver painel.
+        messages.info(request, "O sorteio de análise é do modo Revisão ANCO.")
+        return redirect("triagem_incluidos", slug=projeto.slug)
     if request.method == "POST":
         if request.POST.get("acao") == "desfazer":
             sorteio = get_object_or_404(
@@ -1658,6 +1687,11 @@ def _artigos_para_consenso(projeto: ProtocoloTriagem) -> dict:
 @_projeto_curador
 def consenso_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
     """Conciliação da revisão dupla (curador): registra a análise final."""
+    if not projeto.eh_anco:
+        # Conciliação da análise dupla é do modo Revisão ANCO. No PRISMA-ScR, a
+        # divergência relevante é a da triagem (desempate), não da análise.
+        messages.info(request, "O consenso de análise é do modo Revisão ANCO.")
+        return redirect("triagem_incluidos", slug=projeto.slug)
     if request.method == "POST":
         from apps.acervo.models import Analise
 

@@ -27,6 +27,7 @@
   .fluxo3-tit { font-family:var(--font-sans); font-weight:600; font-size:15px; color:var(--color-ink); margin:2px 0 10px; }
   .fluxo3-acts { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   @media (max-width:560px){ .crit-grid{ grid-template-columns:1fr; } }
+  [x-cloak]{ display:none !important; }
 </style>
 {% endblock %}
 
@@ -170,34 +171,112 @@
       <a href="{% url 'triagem_prisma' projeto.slug %}" style="color:var(--color-gold-deep);">Fluxograma PRISMA completo →</a></p>
   </div>
 
-  {% if cards %}
-  <div class="tg-grid-stats" style="margin-bottom:28px;">
-    {% for card in cards %}
-      <a class="tg-stat" href="{{ card.href }}"><div class="n">{{ card.count }}</div><div class="l">{{ card.rotulo }}</div></a>
-    {% endfor %}
-  </div>
-  {% endif %}
+  {# Passo a passo guiado — o que fazer agora. Botão aceso = próximo passo. #}
+  <h2 class="tg-h2">Passo a passo</h2>
+  <div class="fluxo3" style="margin-top:8px;">
 
-  <div class="tg-actions" style="margin-bottom:28px;">
-    <a href="{% url 'triagem_duplicatas' projeto.slug %}" class="btn btn-secondary">Possíveis duplicatas</a>
-    <a href="{% url 'triagem_minhas' %}" class="btn btn-secondary">Minhas triagens</a>
-    {% if eh_curador %}
-      <a href="{% url 'triagem_iniciar' projeto.slug %}" class="btn btn-secondary">Iniciar triagem</a>
-      <a href="{% url 'triagem_desempate' projeto.slug %}" class="btn btn-secondary">Desempates</a>
-    {% endif %}
-    <a href="{% url 'triagem_a_analisar' %}" class="btn btn-secondary">A analisar</a>
-    <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-secondary">Importar lista</a>
-  </div>
+    {# ① Protocolo #}
+    <div class="fluxo3-row">
+      <div class="fluxo3-num">1</div>
+      <div class="fluxo3-body">
+        <p class="fluxo3-tit">Definir o protocolo
+          {% if protocolo_incompleto %}<span class="pj-chip" style="color:var(--color-danger);border-color:var(--color-danger);">⚠ incompleto</span>{% else %}<span style="color:var(--color-ok);">✔</span>{% endif %}
+        </p>
+        <div class="fluxo3-acts">
+          {% if eh_curador %}
+            <a href="{% url 'triagem_protocolo' projeto.slug %}" class="btn {% if protocolo_incompleto %}btn-primary{% else %}btn-secondary{% endif %}">Preencher protocolo</a>
+          {% else %}
+            <a href="{% url 'triagem_protocolo' projeto.slug %}" class="btn btn-secondary">Ver protocolo</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
 
-  <h2 class="tg-h2">Importações <span class="tg-meta">({{ n_buscas }})</span></h2>
-  <p class="tg-meta" style="margin:-2px 0 12px;">Quem importou, quando e o resultado da deduplicação. Clique para ver a comparação com o acervo e gerenciar.</p>
-  <div style="margin-bottom:28px;">
-  {% if buscas %}
-    {% for b in buscas %}{% include "triagem/_busca_row.html" %}{% endfor %}
-  {% else %}
-    <p class="tg-empty">Nenhuma importação ainda. Comece em <a href="{% url 'triagem_importar' projeto.slug %}" style="color:var(--color-gold-deep);">Importar lista</a>.</p>
-  {% endif %}
+    {# ② Importar — lista de importações embutida (recolhível) #}
+    <div class="fluxo3-row" x-data="{ imp: false }">
+      <div class="fluxo3-num">2</div>
+      <div class="fluxo3-body">
+        <p class="fluxo3-tit">Carregar artigos das bases
+          {% if c.importados %}<span style="color:var(--color-ok);">✔ {{ c.importados }} de {{ n_buscas }} lista{{ n_buscas|pluralize }}</span>{% endif %}
+        </p>
+        <div class="fluxo3-acts">
+          <a href="{% url 'triagem_importar' projeto.slug %}" class="btn {% if not c.importados %}btn-primary{% else %}btn-secondary{% endif %}">Importar lista</a>
+          {% if buscas %}
+          <button type="button" @click="imp = !imp" style="background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-sans);font-size:13px;color:var(--color-gold-deep);align-self:center;">
+            <span x-show="!imp">▸ ver {{ n_buscas }} importaç{{ n_buscas|pluralize:"ão,ões" }}</span>
+            <span x-show="imp" x-cloak>▾ ocultar importações</span>
+          </button>
+          {% endif %}
+        </div>
+        {% if buscas %}
+        <div x-show="imp" x-cloak style="margin-top:12px;">
+          <p class="tg-meta" style="margin:0 0 10px;">Quem importou, quando e o resultado da deduplicação. Clique numa linha para ver a comparação com o acervo e gerenciar.</p>
+          {% for b in buscas %}{% include "triagem/_busca_row.html" %}{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ③ Duplicatas #}
+    <div class="fluxo3-row">
+      <div class="fluxo3-num">3</div>
+      <div class="fluxo3-body">
+        <p class="fluxo3-tit">Limpar repetidos
+          {% if not minha_dup %}<span style="color:var(--color-ok);">✔ nenhum pendente</span>{% endif %}
+        </p>
+        {% if minha_dup %}
+        <div class="fluxo3-acts">
+          <a href="{% url 'triagem_duplicatas' projeto.slug %}?escopo={% if eh_curador %}todas{% else %}minhas{% endif %}&i=0" class="btn btn-primary">Revisar duplicatas ({{ minha_dup }})</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ④ Triar #}
+    <div class="fluxo3-row">
+      <div class="fluxo3-num">4</div>
+      <div class="fluxo3-body">
+        <p class="fluxo3-tit">Triar artigos
+          {% if minha_fila_total %}<span class="tg-meta">{{ minha_fila_feitas }} de {{ minha_fila_total }} triados</span>{% endif %}
+        </p>
+        {% if minha_fila_total %}
+        <div style="height:6px;background:var(--color-paper-2);border-radius:999px;overflow:hidden;margin:0 0 12px;max-width:320px;">
+          <span style="display:block;height:100%;background:var(--color-gold-deep);width:{{ minha_fila_pct }}%;"></span>
+        </div>
+        {% endif %}
+        <div class="fluxo3-acts">
+          {% if minha_proxima_id %}
+            <a href="{% url 'triagem_triar' minha_proxima_id %}" class="btn btn-primary">► Triar agora</a>
+          {% elif minha_fila_total %}
+            <span style="color:var(--color-ok);font-family:var(--font-sans);font-size:14px;">✔ você triou tudo</span>
+          {% endif %}
+          {% if eh_curador and n_a_atribuir %}
+            <a href="{% url 'triagem_iniciar' projeto.slug %}" class="btn {% if not minha_proxima_id %}btn-primary{% else %}btn-secondary{% endif %}">Iniciar triagem ({{ n_a_atribuir }} novos)</a>
+          {% endif %}
+          <a href="{% url 'triagem_minhas' %}" style="font-family:var(--font-sans);font-size:13px;color:var(--color-gold-deep);align-self:center;">ver minha fila</a>
+          <a href="{% url 'triagem_registros' projeto.slug %}" style="font-family:var(--font-sans);font-size:13px;color:var(--color-gold-deep);align-self:center;">ver registros</a>
+        </div>
+      </div>
+    </div>
+
+    {# ⑤ Fechar e analisar #}
+    <div class="fluxo3-row">
+      <div class="fluxo3-num">5</div>
+      <div class="fluxo3-body">
+        <p class="fluxo3-tit">Fechar e analisar
+          <span class="tg-meta">{{ c.incluidos }} incluído{{ c.incluidos|pluralize }}</span>
+        </p>
+        <div class="fluxo3-acts">
+          {% if eh_curador and n_divergencias %}<a href="{% url 'triagem_desempate' projeto.slug %}" class="btn btn-primary">Resolver divergências ({{ n_divergencias }})</a>{% endif %}
+          <a href="{% url 'triagem_incluidos' projeto.slug %}" class="btn btn-secondary">Ver incluídos</a>
+          <a href="{% url 'triagem_prisma' projeto.slug %}" class="btn btn-secondary">Fluxograma PRISMA</a>
+        </div>
+        <p class="tg-meta" style="margin:10px 0 0;">Próxima fase — <a href="{% url 'triagem_a_analisar' %}" style="color:var(--color-gold-deep);">Analisar artigos incluídos (Matriz AnCo) →</a></p>
+      </div>
+    </div>
+
   </div>
+  <div style="margin-bottom:28px;"></div>
 
   <h2 class="tg-h2">Equipe <span class="tg-meta">({{ n_membros }})</span></h2>
   <div class="pj-membros" style="margin-bottom:28px;">
