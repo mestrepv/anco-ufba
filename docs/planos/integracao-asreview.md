@@ -59,6 +59,37 @@ Para ordenar a fila por relevância, reintroduzir um campo leve em
 **no momento da integração** — não agora (evita campo morto). A ordenação da
 triagem (`/registros/`, sorteio/atribuição) passaria a usá-lo quando presente.
 
+## Piloto — pronto para rodar (Abordagem A)
+
+Terreno já preparado:
+
+1. **Exportar o corpus** de um projeto PRISMA em CSV (colunas do ASReview):
+   ```
+   docker compose -f infra/docker-compose.yml exec web \
+     python manage.py exportar_corpus jogos-epistemicos-e-dbr --saida /tmp/corpus.csv
+   docker compose -f infra/docker-compose.yml cp web:/tmp/corpus.csv ./corpus.csv
+   ```
+   Colunas: `record_id,title,abstract,authors,year,doi,keywords,journal,label_included`
+   (label 1/0 = decisões já tomadas; vazio = a triar). Duplicatas omitidas.
+
+2. **Subir o ASReview LAB** (opt-in, só localhost por segurança):
+   ```
+   docker compose -f infra/docker-compose.yml --profile asreview up -d asreview
+   ```
+   Acessar via **túnel SSH** (`ssh -L 5000:127.0.0.1:5000 servidor`) → http://localhost:5000.
+   > **Não** publicar pelo Caddy sem auth — o ASReview LAB v1 não tem login.
+   > Para acesso multiusuário/remoto, avaliar o ASReview LAB v2 (com autenticação).
+
+3. **Triar no ASReview**: criar projeto, subir o `corpus.csv`, marcar alguns
+   prior-knowledge (relevantes/irrelevantes), e screenar com active learning.
+
+4. **Avaliar**: registrar a regra de parada usada e o recall; levar à curadoria a
+   decisão de 1 vs 2 revisores (ver §"O catch" acima).
+
+Importar os rótulos/ordem de volta para os `RegistroTriagem` é o passo seguinte
+(após a curadoria decidir o desenho) — exigirá um comando `importar_triagem_asreview`
++ o campo `prioridade_asreview`.
+
 ## Checklist da integração (futuro)
 - [ ] Escolher abordagem (A ou B) com o usuário.
 - [ ] (A) Adicionar serviço `asreview` ao `infra/docker-compose.yml` + Caddy/auth.

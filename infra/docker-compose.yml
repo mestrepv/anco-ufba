@@ -120,11 +120,27 @@ services:
     profiles:
       - prod  # so sobe em producao (`--profile prod`); dev usa :8000 direto
 
+  # ASReview LAB — piloto de relevância (active learning) do PRISMA. OPT-IN:
+  # `docker compose -f infra/docker-compose.yml --profile asreview up -d asreview`.
+  # SEGURANCA: exposto só em 127.0.0.1:5000 (acesse via tunel SSH). NAO publicar
+  # pelo Caddy sem auth — o ASReview LAB v1 nao tem login. Ver docs/planos/integracao-asreview.md.
+  asreview:
+    image: ghcr.io/asreview/asreview:latest
+    restart: unless-stopped
+    command: lab --host 0.0.0.0 --port 5000
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - asreview_projects:/project_folder
+    profiles:
+      - asreview
+
 volumes:
   pgdata:
   caddy_data:
   caddy_config:
   model_cache:
+  asreview_projects:
 
 networks:
   internal:
