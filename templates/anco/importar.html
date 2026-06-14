@@ -1,0 +1,24 @@
+{% extends "_base_publico.html" %}
+{% block title %}Importar lista · {{ projeto.nome }}{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+{% block content %}
+<div class="tg-wrap narrow">
+  <a href="{% url 'anco_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome }}</a>
+  <h1 class="tg-h1" style="margin-top:6px;">Importar lista</h1>
+  <p class="tg-meta" style="margin:6px 0 16px;">RIS, BibTeX ou CSV exportado de uma base. Todo registro novo entra direto no corpus.</p>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="tg-note" style="border-color:var(--color-danger);">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form %}
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-family:var(--font-sans);font-size:13px;color:var(--color-ink-2);margin-bottom:4px;">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="tg-meta" style="margin-top:3px;">{{ field.help_text }}</div>{% endif %}
+        {% if field.errors %}<div style="color:var(--color-danger);font-size:13px;margin-top:3px;">{{ field.errors }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">Importar</button>
+  </form>
+</div>
+{% endblock %}

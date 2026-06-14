@@ -1,0 +1,91 @@
+{% extends "_base_publico.html" %}
+{% block title %}{{ projeto.nome }} · Revisão ANCO{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}
+<style>
+  .fluxo3 { display:grid; gap:12px; margin:8px 0 30px; }
+  .fluxo3-row { display:flex; gap:16px; align-items:flex-start; border:1px solid var(--color-rule); border-radius:12px; padding:16px 18px; background:var(--color-paper); }
+  .fluxo3-num { flex-shrink:0; width:30px; height:30px; border-radius:50%; background:var(--color-ink); color:var(--color-paper); display:flex; align-items:center; justify-content:center; font-family:var(--font-sans); font-weight:700; font-size:14px; }
+  .fluxo3-body { flex:1; min-width:0; }
+  .fluxo3-tit { font-family:var(--font-sans); font-weight:600; font-size:15px; color:var(--color-ink); margin:2px 0 10px; }
+  .fluxo3-acts { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .pj-membros { display:flex; flex-wrap:wrap; gap:8px; }
+  .pj-membro { display:inline-flex; gap:6px; font-family:var(--font-sans); font-size:13px; padding:5px 11px; border-radius:999px; border:1px solid var(--color-rule); background:var(--color-paper); color:var(--color-ink-2); }
+  .pj-membro .papel { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--color-gold-deep); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tg-wrap">
+  <a href="{% url 'anco_projetos' %}" class="tg-back">&larr; Projetos ANCO</a>
+  <p class="t-eyebrow" style="margin:0 0 4px;">Revisão ANCO · Análise Cognitiva</p>
+  <h1 class="tg-h1">{{ projeto.nome }}</h1>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+    <span class="pj-membro">{% if eh_curador %}você é curador{% else %}você é analista{% endif %}</span>
+  </div>
+
+  {% if projeto.pergunta_pesquisa %}
+  <div class="tg-card" style="margin:14px 0 16px;">
+    <p class="tg-meta" style="margin:0 0 4px;">Objetivo</p>
+    <p style="font-family:var(--font-serif);font-size:15px;color:var(--color-ink);line-height:1.4;margin:0;">{{ projeto.pergunta_pesquisa }}</p>
+  </div>
+  {% endif %}
+
+  <p class="tg-meta" style="margin:14px 0 4px;">Sem triagem: tudo que você importa entra direto no corpus.</p>
+
+  <div class="fluxo3">
+    <div class="fluxo3-row">
+      <div class="fluxo3-num">1</div>
+      <div class="fluxo3-body">
+        <p class="fluxo3-tit">Adicionar fontes {% if n_fontes %}<span class="tg-meta">· {{ n_fontes }} importação{{ n_fontes|pluralize:"ão,ões" }}</span>{% endif %}</p>
+        <div class="fluxo3-acts">
+          <a href="{% url 'anco_importar' projeto.slug %}" class="btn {% if not n_corpus %}btn-primary{% else %}btn-secondary{% endif %}">Importar lista</a>
+        </div>
+      </div>
+    </div>
+    <div class="fluxo3-row">
+      <div class="fluxo3-num">2</div>
+      <div class="fluxo3-body">
+        <p class="fluxo3-tit">Corpus &middot; {{ n_corpus }} artigo{{ n_corpus|pluralize }}</p>
+        <div class="fluxo3-acts">
+          <a href="{% url 'anco_corpus' projeto.slug %}" class="btn btn-secondary">Ver corpus</a>
+          <a href="{% url 'anco_estatisticas' projeto.slug %}" class="btn btn-secondary">Artigos por base</a>
+        </div>
+      </div>
+    </div>
+    <div class="fluxo3-row">
+      <div class="fluxo3-num">3</div>
+      <div class="fluxo3-body">
+        <p class="fluxo3-tit">Análise (Matriz AnCo){% if minha_a_analisar %} <span class="tg-meta">· {{ minha_a_analisar }} para você</span>{% endif %}</p>
+        <div class="fluxo3-acts">
+          {% if eh_curador %}<a href="{% url 'anco_sorteio' projeto.slug %}" class="btn btn-primary">Sortear análise</a>{% endif %}
+          <a href="{% url 'anco_corpus' projeto.slug %}" class="btn btn-secondary">Analisar artigos</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="tg-h2">Importações <span class="tg-meta">({{ n_fontes }})</span></h2>
+  <div style="margin-bottom:28px;">
+    {% for f in fontes %}
+      <div class="tg-card" style="display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;">
+        <div>
+          <strong>{{ f.base_nome|default:"(sem base)" }}</strong>
+          <span class="tg-meta">· {{ f.n_novos }} novo(s){% if f.criado_por %} · por {{ f.criado_por.nome_exibicao|default:f.criado_por.email }}{% endif %}{% if f.importado_em %} · {{ f.importado_em|date:"d/m/Y" }}{% endif %}</span>
+        </div>
+      </div>
+    {% empty %}
+      <p class="tg-empty">Nenhuma importação ainda. Comece em <a href="{% url 'anco_importar' projeto.slug %}" style="color:var(--color-gold-deep);">Importar lista</a>.</p>
+    {% endfor %}
+  </div>
+
+  <h2 class="tg-h2">Equipe <span class="tg-meta">({{ n_membros }})</span></h2>
+  <div class="pj-membros" style="margin-bottom:28px;">
+    {% for m in membros %}
+      <span class="pj-membro">{{ m.usuario.nome_exibicao|default:m.usuario.email }}{% if m.papel == 'curador' %} <span class="papel">curador</span>{% endif %}</span>
+    {% empty %}
+      <span class="tg-meta">Sem membros.</span>
+    {% endfor %}
+    {% if eh_curador %}<a href="{% url 'anco_equipe' projeto.slug %}" class="pj-membro" style="border-style:dashed;color:var(--color-gold-deep);">+ gerenciar equipe</a>{% endif %}
+  </div>
+</div>
+{% endblock %}

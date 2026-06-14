@@ -1,0 +1,38 @@
+{% extends "_base_publico.html" %}
+{% block title %}Corpus · {{ projeto.nome }}{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+{% block content %}
+<div class="tg-wrap">
+  <a href="{% url 'anco_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome }}</a>
+  <h1 class="tg-h1" style="margin-top:6px;">Corpus do projeto <span class="tg-meta">· {{ total }} artigo{{ total|pluralize }}</span></h1>
+
+  <form method="get" style="margin:14px 0;">
+    <input type="search" name="q" value="{{ q }}" placeholder="buscar por título…"
+           style="font-family:var(--font-sans);font-size:14px;padding:8px 12px;border:1px solid var(--color-rule-strong);border-radius:6px;min-width:260px;">
+    <button type="submit" class="btn btn-sm btn-secondary">Buscar</button>
+    {% if q %}<a href="{% url 'anco_corpus' projeto.slug %}" class="tg-meta" style="color:var(--color-gold-deep);">limpar</a>{% endif %}
+  </form>
+
+  <ul class="tg-list">
+    {% for it in itens %}
+      <li class="tg-card" style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:8px;">
+        <div style="min-width:0;">
+          <div style="font-family:var(--font-serif);color:var(--color-ink);">{{ it.titulo }}</div>
+          <div class="tg-meta">{{ it.autores|truncatechars:80 }}{% if it.ano %} · {{ it.ano }}{% endif %}{% if it.doi %} · {{ it.doi }}{% endif %}</div>
+        </div>
+        <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+          {% if it.artigo_id %}<a href="{% url 'iniciar_analise' it.artigo_id %}" class="btn btn-sm btn-primary">Analisar</a>{% endif %}
+          {% if eh_curador %}
+          <form method="post" action="{% url 'anco_corpus_excluir' projeto.slug %}" onsubmit="return confirm('Remover do corpus?');">
+            {% csrf_token %}<input type="hidden" name="item_id" value="{{ it.pk }}">
+            <button type="submit" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Remover</button>
+          </form>
+          {% endif %}
+        </div>
+      </li>
+    {% empty %}
+      <p class="tg-empty">{% if q %}Nada encontrado.{% else %}Corpus vazio. <a href="{% url 'anco_importar' projeto.slug %}" style="color:var(--color-gold-deep);">Importar lista</a>.{% endif %}</p>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "_base_publico.html" %}
+{% block title %}Estatísticas · {{ projeto.nome }}{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+{% block content %}
+<div class="tg-wrap narrow">
+  <a href="{% url 'anco_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome }}</a>
+  <h1 class="tg-h1" style="margin-top:6px;">Artigos por base</h1>
+  <p class="tg-meta" style="margin:6px 0 16px;">
+    {{ resumo.total }} artigo(s) no corpus{% if resumo.ano_min %} · {{ resumo.ano_min }}–{{ resumo.ano_max }}{% endif %}.
+  </p>
+  <table style="width:100%;border-collapse:collapse;font-family:var(--font-sans);font-size:14px;">
+    <thead><tr style="text-align:left;border-bottom:1px solid var(--color-rule);">
+      <th style="padding:8px 4px;">Base</th><th style="padding:8px 4px;text-align:right;">Artigos</th>
+    </tr></thead>
+    <tbody>
+      {% for row in resumo.por_base %}
+        <tr style="border-bottom:1px solid var(--color-rule);">
+          <td style="padding:8px 4px;">{{ row.base }}</td>
+          <td style="padding:8px 4px;text-align:right;"><strong>{{ row.n }}</strong></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="2" class="tg-meta" style="padding:8px 4px;">Corpus vazio.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

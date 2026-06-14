@@ -1,0 +1,45 @@
+{% extends "_base_publico.html" %}
+{% block title %}Sortear análise · {{ projeto.nome }}{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+{% block content %}
+<div class="tg-wrap narrow">
+  <a href="{% url 'anco_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome }}</a>
+  <h1 class="tg-h1" style="margin-top:6px;">Sortear análise</h1>
+  <p class="tg-meta" style="margin:6px 0 16px;">{{ n_corpus }} artigo(s) no corpus · {{ n_analistas }} analista(s). Distribuição aleatória por cota.</p>
+
+  <form method="post" class="tg-card" style="margin-bottom:24px;">
+    {% csrf_token %}
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:end;">
+      <div>
+        <label class="tg-meta" style="display:block;">Cota por analista</label>
+        <input type="number" name="cota" value="5" min="1" style="width:90px;padding:7px;border:1px solid var(--color-rule-strong);border-radius:6px;">
+      </div>
+      <div>
+        <label class="tg-meta" style="display:block;">Modo</label>
+        <select name="modo_revisao" style="padding:7px;border:1px solid var(--color-rule-strong);border-radius:6px;">
+          {% for val, rotulo in modos %}<option value="{{ val }}">{{ rotulo }}</option>{% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Sortear</button>
+    </div>
+  </form>
+
+  <h2 class="tg-h2">Sorteios</h2>
+  {% for s in sorteios %}
+    <div class="tg-card" style="display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;">
+      <div>
+        <strong>{{ s.get_modo_revisao_display }}</strong>
+        <span class="tg-meta">· cota {{ s.cota }} · {{ s.atribuicoes.count }} atribuição(ões) · {{ s.criado_em|date:"d/m/Y" }}</span>
+      </div>
+      <form method="post" onsubmit="return confirm('Desfazer este sorteio?');">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="desfazer">
+        <input type="hidden" name="sorteio_id" value="{{ s.pk }}">
+        <button type="submit" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Desfazer</button>
+      </form>
+    </div>
+  {% empty %}
+    <p class="tg-empty">Nenhum sorteio ainda.</p>
+  {% endfor %}
+</div>
+{% endblock %}

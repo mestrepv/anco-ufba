@@ -1,0 +1,19 @@
+{% extends "_base_publico.html" %}
+{% block title %}Projetos · Revisão ANCO{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+{% block content %}
+<div class="tg-wrap">
+  <p class="t-eyebrow" style="margin:0 0 4px;">Revisão ANCO · Análise Cognitiva</p>
+  <h1 class="tg-h1">Seus projetos</h1>
+  <div style="margin-top:18px;">
+    {% for p in projetos %}
+      <a class="tg-card" href="{% url 'anco_painel' p.slug %}" style="display:block;margin-bottom:10px;text-decoration:none;">
+        <strong style="color:var(--color-ink);">{{ p.nome }}</strong>
+        {% if p.pergunta_pesquisa %}<p class="tg-meta" style="margin:4px 0 0;">{{ p.pergunta_pesquisa|truncatechars:140 }}</p>{% endif %}
+      </a>
+    {% empty %}
+      <p class="tg-empty">Você ainda não participa de nenhum projeto ANCO.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

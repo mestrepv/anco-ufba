@@ -42,6 +42,11 @@ urlpatterns = [
     path("_ferramentas/doi/", consultar_doi_view, name="consultar_doi"),
 ]
 
+# Módulo Revisão ANCO — rotas montadas só quando ligado (transição da separação
+# ANCO × PRISMA; ver docs/planos/separacao-anco-prisma.md).
+if settings.ANCO_ATIVO:
+    urlpatterns.append(path("anco/", include("apps.anco.urls")))
+
 # Em dev, Django serve /media/. Em prod, Caddy serve /media/ direto do MEDIA_ROOT.
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

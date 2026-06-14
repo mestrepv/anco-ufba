@@ -31,3 +31,7 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.dummy.DummyCache",
     }
 }
+
+# Módulo Revisão ANCO ligado em dev/test (transição da separação ANCO × PRISMA).
+# Em produção segue OFF (default em base.py) até a Fase B do plano.
+ANCO_ATIVO = True
