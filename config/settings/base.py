@@ -49,10 +49,14 @@ INSTALLED_APPS = [
     "apps.vocabulario",
     "apps.acervo",
     "apps.triagem",
-    "apps.anco",
+    "apps.anco",  # módulo Revisão ANCO (rotas só quando ANCO_ATIVO=True)
     "apps.publico",
     "apps.busca_semantica",
 ]
+
+# Módulo Revisão ANCO (apps/anco): liga/desliga as rotas e a navegação.
+# Default OFF durante a transição (Fase A/B da separação ANCO × PRISMA).
+ANCO_ATIVO = env.bool("ANCO_ATIVO", default=False)
 
 # django-q2 — broker Redis em prod, sync em dev/test (override em dev.py)
 Q_CLUSTER = {
