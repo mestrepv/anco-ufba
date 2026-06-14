@@ -88,6 +88,45 @@ def test_iniciar_ignora_ja_no_acervo(client, protocolo, revisores, curador):
     assert DecisaoTriagem.objects.filter(registro=reg).count() == 0
 
 
+def test_iniciar_so_revisores_independentes(client, protocolo, revisores, curador):
+    """O curador define quantos revisores: só os marcados recebem a triagem."""
+    from apps.triagem.models import ProjetoMembro
+
+    # Tira 2 dos 3 analistas da triagem → ficam 1 analista + o curador = 2 revisores.
+    ProjetoMembro.objects.filter(
+        projeto=protocolo, usuario__in=[revisores[1], revisores[2]]
+    ).update(revisor_independente=False)
+    RegistroTriagem.objects.create(protocolo=protocolo, titulo="A", doi="10.1/a")
+    client.force_login(curador)
+    client.post(turl("triagem_iniciar"))
+    reg = RegistroTriagem.objects.get(doi="10.1/a")
+    assert protocolo.membros.filter(revisor_independente=True).count() == 2
+    assert DecisaoTriagem.objects.filter(registro=reg).count() == 2
+
+
+def test_iniciar_sem_revisor_bloqueia(client, protocolo, revisores, curador):
+    from apps.triagem.models import ProjetoMembro
+
+    ProjetoMembro.objects.filter(projeto=protocolo).update(revisor_independente=False)
+    RegistroTriagem.objects.create(protocolo=protocolo, titulo="A", doi="10.1/a")
+    client.force_login(curador)
+    resp = client.post(turl("triagem_iniciar"))
+    assert resp.status_code == 302  # redireciona à equipe com aviso
+    reg = RegistroTriagem.objects.get(doi="10.1/a")
+    assert DecisaoTriagem.objects.filter(registro=reg).count() == 0
+
+
+def test_equipe_toggle_revisor(client, protocolo, revisores, curador):
+    from apps.triagem.models import ProjetoMembro
+
+    m = ProjetoMembro.objects.get(projeto=protocolo, usuario=revisores[0])
+    assert m.revisor_independente is True  # default
+    client.force_login(curador)
+    client.post(turl("triagem_equipe"), {"acao": "revisor", "membro_id": m.pk})
+    m.refresh_from_db()
+    assert m.revisor_independente is False
+
+
 # ---- triar (mascarado) -----------------------------------------------------
 
 

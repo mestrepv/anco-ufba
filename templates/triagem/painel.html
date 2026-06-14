@@ -42,7 +42,7 @@
         <a href="{% url 'triagem_protocolo' projeto.slug %}" class="pj-chip">{% if protocolo.travado_em %}🔒 Protocolo v{{ protocolo.versao }}{% else %}✎ Protocolo (rascunho){% endif %}</a>
         {% if protocolo.registro_externo %}<a href="{{ protocolo.registro_externo }}" target="_blank" rel="noopener" class="pj-chip">Registro externo &nearr;</a>{% endif %}
         {% if protocolo.usa_texto_completo %}<span class="pj-chip">2 etapas (T/R → texto)</span>{% endif %}
-        <span class="pj-chip">{{ protocolo.n_revisores }} revisores · prazo {{ protocolo.prazo_dias }}d</span>
+        <a href="{% url 'triagem_equipe' projeto.slug %}" class="pj-chip">{{ n_revisores }} revisor{{ n_revisores|pluralize }} independente{{ n_revisores|pluralize }} · prazo {{ protocolo.prazo_dias }}d</a>
         <span class="pj-chip">{% if eh_curador %}você é curador{% else %}você é analista{% endif %}</span>
       </div>
     </div>

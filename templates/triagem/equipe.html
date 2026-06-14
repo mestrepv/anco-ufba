@@ -34,7 +34,8 @@
     <div>
       <p class="t-eyebrow" style="margin:0 0 4px;">Triagem · gerenciar equipe</p>
       <h1 class="tg-h1">Equipe <span class="tg-meta">({{ n_membros }})</span></h1>
-      <p class="tg-meta" style="margin-top:6px;">Curadores gerenciam quem participa da triagem deste projeto.
+      <p class="tg-meta" style="margin-top:6px;"><strong>{{ n_revisores }}</strong> revisor(es) independente(s) — quem faz a triagem.
+        O curador define <strong>quantos revisores</strong> o projeto tem marcando isto abaixo.
         Só analistas e curadores da plataforma podem ser adicionados.</p>
     </div>
   </div>
@@ -65,7 +66,14 @@
           <span class="eq-email">{{ m.usuario.email }}</span>
         </div>
         <span class="eq-tag">{{ m.papel }}</span>
+        {% if m.revisor_independente %}<span class="eq-tag" style="color:var(--color-ok);border-color:var(--color-ok);">revisor independente</span>{% endif %}
         <div class="eq-acts">
+          <form method="post" action="{% url 'triagem_equipe' projeto.slug %}">
+            {% csrf_token %}
+            <input type="hidden" name="acao" value="revisor">
+            <input type="hidden" name="membro_id" value="{{ m.pk }}">
+            <button type="submit" class="btn btn-sm btn-secondary">{% if m.revisor_independente %}tirar da triagem{% else %}tornar revisor{% endif %}</button>
+          </form>
           <form method="post" action="{% url 'triagem_equipe' projeto.slug %}">
             {% csrf_token %}
             <input type="hidden" name="acao" value="papel">

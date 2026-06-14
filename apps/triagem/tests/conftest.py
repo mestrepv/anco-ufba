@@ -16,6 +16,7 @@ PROJETO_ROTAS = {
     "triagem_duplicata_descartar",
     "triagem_duplicata_desfazer",
     "triagem_iniciar",
+    "triagem_equipe",
     "triagem_desempate",
     "triagem_desempatar",
     "triagem_prisma",

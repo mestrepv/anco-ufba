@@ -14,12 +14,19 @@
       <strong>{{ n_disponiveis }}</strong> registro(s) identificado(s).
     </p>
     <p class="tg-desc">
-      Cada registro será atribuído aos <strong>{{ n_membros }}</strong>
-      membro(s) do projeto, que triam de forma independente — incluir/excluir/dúvida,
-      prazo {{ protocolo.prazo_dias }} dias. <strong>Sem sorteio.</strong> Registros já
-      no acervo ou marcados como duplicata não entram. Você pode importar mais bases e
-      iniciar de novo depois — a revisão é cumulativa.
+      Cada registro será atribuído aos <strong>{{ n_revisores }}</strong>
+      revisor(es) independente(s) do projeto (definidos na Equipe), que triam de
+      forma independente — incluir/excluir/dúvida, prazo {{ protocolo.prazo_dias }}
+      dias. <strong>Sem sorteio.</strong> Registros já no acervo ou marcados como
+      duplicata não entram. Você pode importar mais bases e iniciar de novo depois —
+      a revisão é cumulativa.
     </p>
+    {% if not n_revisores %}
+    <p class="tg-note" style="border-color:var(--color-danger);color:var(--color-danger);">
+      Nenhum revisor independente marcado. Defina os revisores em
+      <a href="{% url 'triagem_equipe' projeto.slug %}" style="color:var(--color-gold-deep);">Equipe</a> antes de iniciar.
+    </p>
+    {% endif %}
     <form method="post">
       {% csrf_token %}
       <button type="submit" class="btn btn-primary">Confirmar e iniciar triagem</button>

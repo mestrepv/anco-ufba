@@ -224,6 +224,13 @@ class ProjetoMembro(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="projetos_triagem"
     )
     papel = models.CharField(max_length=10, choices=Papel.choices, default=Papel.ANALISTA)
+    revisor_independente = models.BooleanField(
+        default=True,
+        help_text=(
+            "Participa da triagem como revisor independente (decide incluir/excluir). "
+            "O curador define quantos revisores o projeto tem marcando isto na equipe."
+        ),
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:

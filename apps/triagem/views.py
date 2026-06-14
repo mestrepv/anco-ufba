@@ -262,6 +262,8 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
     ).count()
     # ⑤ divergências aguardando desempate (curador)
     contexto["n_divergencias"] = len(registros_para_desempate(projeto)) if eh_curador else 0
+    # Nº real de revisores = membros marcados como revisor independente (o curador define).
+    contexto["n_revisores"] = projeto.membros.filter(revisor_independente=True).count()
     return render(request, "triagem/painel.html", contexto)
 
 
@@ -774,30 +776,34 @@ def desfazer_mescla_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Htt
 
 @_projeto_curador
 def iniciar_triagem_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
-    """Curador fecha a coleta e inicia a triagem para todos os membros — sem sorteio.
+    """Curador fecha a coleta e inicia a triagem para os **revisores independentes**.
 
-    PRISMA-ScR: cada registro identificado é atribuído a **todos os membros do
-    projeto** (≥2 revisores independentes), que triam de forma independente. Não
-    há distribuição aleatória; reaproveita `atribuir_triagem_direta`.
+    PRISMA-ScR: cada registro identificado é atribuído aos membros marcados como
+    **revisor independente** na Equipe — o curador define quantos revisores o
+    projeto tem. Triam de forma independente, sem distribuição aleatória; reaproveita
+    `atribuir_triagem_direta`.
     """
     n_disponiveis = projeto.registros.filter(
         status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
     ).count()
-    membros = [m.usuario for m in projeto.membros.select_related("usuario")]
+    revisores = [
+        m.usuario
+        for m in projeto.membros.filter(revisor_independente=True).select_related("usuario")
+    ]
 
     if request.method == "POST":
-        if not membros:
+        if not revisores:
             messages.error(
                 request,
-                "O projeto não tem membros para triar. Adicione revisores em Equipe.",
+                "Marque ao menos um revisor independente na Equipe antes de iniciar a triagem.",
             )
-            return redirect("triagem_registros", slug=projeto.slug)
-        res = atribuir_triagem_direta(projeto, membros)
+            return redirect("triagem_equipe", slug=projeto.slug)
+        res = atribuir_triagem_direta(projeto, revisores)
         if res.registros:
             messages.success(
                 request,
                 f"Triagem iniciada para {res.registros} registro(s) "
-                f"({res.revisores} revisor(es)).",
+                f"({res.revisores} revisor(es) independente(s)).",
             )
         else:
             messages.info(request, "Nenhum registro identificado disponível para triar.")
@@ -818,7 +824,7 @@ def iniciar_triagem_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Htt
             "projeto": projeto,
             "protocolo": projeto,
             "n_disponiveis": n_disponiveis,
-            "n_membros": len(membros),
+            "n_revisores": len(revisores),
         },
     )
 
@@ -1434,14 +1440,27 @@ def equipe_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
             if not usuario:
                 messages.error(request, "Usuário inválido ou não habilitado para a triagem.")
             else:
+                rev = request.POST.get("revisor_independente") == "on"
                 _, criado = ProjetoMembro.objects.get_or_create(
-                    projeto=projeto, usuario=usuario, defaults={"papel": papel}
+                    projeto=projeto,
+                    usuario=usuario,
+                    defaults={"papel": papel, "revisor_independente": rev},
                 )
                 nome = usuario.nome_exibicao or usuario.email
                 if criado:
-                    messages.success(request, f"{nome} adicionado(a) como {papel}.")
+                    extra = " (revisor independente)" if rev else ""
+                    messages.success(request, f"{nome} adicionado(a) como {papel}{extra}.")
                 else:
                     messages.info(request, f"{nome} já era membro.")
+
+        elif acao == "revisor":
+            membro = projeto.membros.filter(pk=request.POST.get("membro_id")).first()
+            if membro:
+                membro.revisor_independente = not membro.revisor_independente
+                membro.save(update_fields=["revisor_independente"])
+                nome = membro.usuario.nome_exibicao or membro.usuario.email
+                estado = "revisor independente" if membro.revisor_independente else "fora da triagem"
+                messages.success(request, f"{nome} agora é {estado}.")
 
         elif acao in {"remover", "papel"}:
             membro = projeto.membros.filter(pk=request.POST.get("membro_id")).first()
@@ -1477,6 +1496,7 @@ def equipe_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
             "protocolo": projeto,
             "membros": membros,
             "n_membros": membros.count(),
+            "n_revisores": projeto.membros.filter(revisor_independente=True).count(),
             "candidatos": _candidatos_equipe(projeto),
         },
     )
