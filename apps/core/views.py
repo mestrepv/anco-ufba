@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
@@ -300,8 +301,26 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         else:
             proxima = None
 
+        # Projetos do módulo ANCO (separados do PRISMA), quando o módulo está ativo.
+        projetos_anco = []
+        if getattr(settings, "ANCO_ATIVO", False):
+            from apps.anco.models import ProjetoANCO
+
+            anco_qs = ProjetoANCO.objects.filter(arquivado=False)
+            if not user.is_staff:
+                anco_qs = anco_qs.filter(membros__usuario=user).distinct()
+            projetos_anco = [
+                {
+                    "projeto": pa,
+                    "eh_curador": pa.eh_curador_no(user),
+                    "n_corpus": pa.itens.filter(removido=False).count(),
+                }
+                for pa in anco_qs.order_by("nome")
+            ]
+
         contexto_triagem = {
             "projetos_painel": projetos_painel,
+            "projetos_anco": projetos_anco,
             "n_projetos": len(meus_projetos),
             "proxima": proxima,
             "pode_criar_projeto": user.is_staff or user.eh_curador,

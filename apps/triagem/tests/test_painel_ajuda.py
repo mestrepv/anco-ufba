@@ -52,9 +52,22 @@ def test_painel_mostra_projeto(client, analista):
     client.force_login(analista)
     resp = client.get(reverse("painel"))
     assert resp.status_code == 200
-    assert b"Seu projeto" in resp.content  # seção do projeto (1 projeto)
+    assert b"Suas revis" in resp.content  # seção "Suas revisões"
     assert b"Estrat" in resp.content  # breve estratégia de busca no item
     assert "Próximo passo".encode() not in resp.content  # ocioso → sem hero
+
+
+def test_painel_mostra_aba_anco(client, analista):
+    # Membro de um projeto ANCO vê a aba "Revisão ANCO" e o link para /anco/.
+    from apps.anco.models import MembroANCO, ProjetoANCO
+
+    pa = ProjetoANCO.objects.create(nome="Piloto ANCO")
+    MembroANCO.objects.create(projeto=pa, usuario=analista, papel=MembroANCO.Papel.ANALISTA)
+    client.force_login(analista)
+    resp = client.get(reverse("painel"))
+    assert resp.status_code == 200
+    assert "Revisão ANCO".encode() in resp.content
+    assert reverse("anco_painel", args=[pa.slug]).encode() in resp.content
 
 
 def test_painel_com_tarefa_mostra_proximo_passo_e_projeto(client, protocolo, analista):
@@ -69,7 +82,7 @@ def test_painel_com_tarefa_mostra_proximo_passo_e_projeto(client, protocolo, ana
     client.force_login(analista)
     resp = client.get(reverse("painel"))
     assert "Próximo passo".encode() in resp.content
-    assert b"Seu projeto" in resp.content
+    assert b"Suas revis" in resp.content
 
 
 def test_painel_conta_a_analisar(client, protocolo, analista):
@@ -91,5 +104,4 @@ def test_painel_leitor_sem_secao_triagem(client, leitor):
     client.force_login(leitor)
     resp = client.get(reverse("painel"))
     assert resp.status_code == 200
-    assert b"Seu projeto" not in resp.content
-    assert b"Seus projetos" not in resp.content
+    assert b"Suas revis" not in resp.content

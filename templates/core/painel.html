@@ -153,27 +153,61 @@
   </section>
   {% endif %}
 
-  {# ── Projeto(s): objetivo, estratégia e as 7 etapas com seus contadores ── #}
-  {% if projetos_painel or pode_criar_projeto %}
-  <section class="painel-secao">
+  {# ── Suas revisões: tabs separando PRISMA-ScR e Revisão ANCO ── #}
+  {% if projetos_painel or projetos_anco or pode_criar_projeto %}
+  <section class="painel-secao" x-data="{ tab: '{% if projetos_painel or not projetos_anco %}prisma{% else %}anco{% endif %}' }">
+    <style>
+      .rev-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 14px; }
+      .rev-tab { font-family:var(--font-sans); font-size:13.5px; padding:7px 14px; border-radius:999px;
+                 border:1px solid var(--color-rule); color:var(--color-ink-2); background:var(--color-paper); cursor:pointer; }
+      .rev-tab.ativa { background:var(--color-ink); color:var(--color-paper); border-color:var(--color-ink); }
+      [x-cloak] { display:none !important; }
+    </style>
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;">
-      <h2 style="margin:0;">{% if n_projetos > 1 %}Seus projetos{% else %}Seu projeto{% endif %}</h2>
+      <h2 style="margin:0;">Suas revisões</h2>
       {% if pode_criar_projeto %}<a href="{% url 'triagem_novo_projeto' %}" class="btn btn-sm btn-primary">+ Novo projeto</a>{% endif %}
     </div>
-    <p class="secao-desc">Os projetos em que você participa. <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a></p>
-    {% for item in projetos_painel %}
-    <div class="projeto-bloco">
-      <div class="projeto-cab">
-        <a href="{% url 'triagem_painel' item.projeto.slug %}" class="projeto-nome">{{ item.projeto.nome }}{% if item.eh_curador %} <span class="projeto-papel">curador</span>{% endif %}</a>
-        <a href="{% url 'triagem_painel' item.projeto.slug %}" class="btn btn-sm btn-primary">Entrar no projeto &rarr;</a>
-      </div>
-      <p class="projeto-meta"><span class="rotulo">Estratégia de busca:</span>
-        {% if item.projeto.estrategia_busca %}{{ item.projeto.estrategia_busca|truncatechars:220 }}{% else %}<span style="color:var(--color-ink-3);">(a definir no protocolo){% if item.eh_curador %} — <a href="{% url 'triagem_protocolo' item.projeto.slug %}" style="color:var(--color-gold-deep);">editar</a>{% endif %}</span>{% endif %}
-      </p>
+
+    {% if projetos_anco %}
+    <div class="rev-tabs">
+      <button type="button" class="rev-tab" :class="tab==='prisma' && 'ativa'" @click="tab='prisma'">Revisão de escopo · PRISMA-ScR ({{ projetos_painel|length }})</button>
+      <button type="button" class="rev-tab" :class="tab==='anco' && 'ativa'" @click="tab='anco'">Revisão ANCO · Análise Cognitiva ({{ projetos_anco|length }})</button>
     </div>
-    {% empty %}
-    <p class="empty">Você ainda não participa de nenhum projeto.{% if pode_criar_projeto %} Crie o primeiro em <a href="{% url 'triagem_novo_projeto' %}" style="color:var(--color-gold-deep);font-style:normal;">Novo projeto →</a>{% endif %}</p>
-    {% endfor %}
+    {% endif %}
+
+    {# ── PRISMA-ScR ── #}
+    <div x-show="tab==='prisma'"{% if projetos_anco %} x-cloak{% endif %}>
+      <p class="secao-desc">Revisões de escopo (triagem por ≥2 revisores). <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a></p>
+      {% for item in projetos_painel %}
+      <div class="projeto-bloco">
+        <div class="projeto-cab">
+          <a href="{% url 'triagem_painel' item.projeto.slug %}" class="projeto-nome">{{ item.projeto.nome }}{% if item.eh_curador %} <span class="projeto-papel">curador</span>{% endif %}</a>
+          <a href="{% url 'triagem_painel' item.projeto.slug %}" class="btn btn-sm btn-primary">Entrar no projeto &rarr;</a>
+        </div>
+        <p class="projeto-meta"><span class="rotulo">Estratégia de busca:</span>
+          {% if item.projeto.estrategia_busca %}{{ item.projeto.estrategia_busca|truncatechars:220 }}{% else %}<span style="color:var(--color-ink-3);">(a definir no protocolo){% if item.eh_curador %} — <a href="{% url 'triagem_protocolo' item.projeto.slug %}" style="color:var(--color-gold-deep);">editar</a>{% endif %}</span>{% endif %}
+        </p>
+      </div>
+      {% empty %}
+      <p class="empty">Você não participa de nenhuma revisão PRISMA-ScR.{% if pode_criar_projeto %} Crie a primeira em <a href="{% url 'triagem_novo_projeto' %}" style="color:var(--color-gold-deep);font-style:normal;">Novo projeto →</a>{% endif %}</p>
+      {% endfor %}
+    </div>
+
+    {# ── Revisão ANCO ── #}
+    {% if projetos_anco %}
+    <div x-show="tab==='anco'" x-cloak>
+      <p class="secao-desc">Revisões ANCO (análise cognitiva, sem triagem prévia).</p>
+      {% for item in projetos_anco %}
+      <div class="projeto-bloco">
+        <div class="projeto-cab">
+          <a href="{% url 'anco_painel' item.projeto.slug %}" class="projeto-nome">{{ item.projeto.nome }}{% if item.eh_curador %} <span class="projeto-papel">curador</span>{% endif %}</a>
+          <a href="{% url 'anco_painel' item.projeto.slug %}" class="btn btn-sm btn-primary">Entrar no projeto &rarr;</a>
+        </div>
+        <p class="projeto-meta"><span class="rotulo">Corpus:</span> {{ item.n_corpus }} artigo{{ item.n_corpus|pluralize }}{% if item.projeto.pergunta_pesquisa %} · {{ item.projeto.pergunta_pesquisa|truncatechars:140 }}{% endif %}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
   </section>
   {% endif %}
   {% endif %}{# eh_analista #}
