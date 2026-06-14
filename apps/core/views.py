@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
@@ -234,7 +233,9 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                 "n_desemp": len(registros_para_desempate(p)) if eh_cur else 0,
             }
 
-        projetos_painel = [_resumo_projeto(p) for p in meus_projetos]
+        projetos_painel = (
+            [_resumo_projeto(p) for p in meus_projetos] if user.acessa_prisma() else []
+        )
 
         # Próximo passo: nudge cross-projeto (usa o projeto ativo p/ as etapas
         # específicas de projeto; triagens/a-analisar são globais).
@@ -301,9 +302,9 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         else:
             proxima = None
 
-        # Projetos do módulo ANCO (separados do PRISMA), quando o módulo está ativo.
+        # Projetos do módulo ANCO (separados do PRISMA), quando o usuário acessa.
         projetos_anco = []
-        if getattr(settings, "ANCO_ATIVO", False):
+        if user.acessa_anco():
             from apps.anco.models import ProjetoANCO
 
             anco_qs = ProjetoANCO.objects.filter(arquivado=False)

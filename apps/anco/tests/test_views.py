@@ -13,7 +13,9 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def curador(db):
-    return User.objects.create_user(username="cur", email="cur@u.edu", password="x")
+    return User.objects.create_user(
+        username="cur", email="cur@u.edu", password="x", pode_anco=True
+    )
 
 
 @pytest.fixture
@@ -43,8 +45,18 @@ def test_projetos_lista(client, projeto, curador):
 
 
 def test_nao_membro_bloqueado(client, projeto):
-    outro = User.objects.create_user(username="z", email="z@u.edu", password="x")
+    outro = User.objects.create_user(username="z", email="z@u.edu", password="x", pode_anco=True)
     client.force_login(outro)
+    assert client.get(reverse("anco_painel", args=[projeto.slug])).status_code == 403
+
+
+def test_sem_pode_anco_bloqueado(client, projeto):
+    # Membro do projeto, mas sem acesso ao módulo (pode_anco=False) → 403.
+    membro = User.objects.create_user(
+        username="m2", email="m2@u.edu", password="x", pode_anco=False
+    )
+    MembroANCO.objects.create(projeto=projeto, usuario=membro, papel=MembroANCO.Papel.ANALISTA)
+    client.force_login(membro)
     assert client.get(reverse("anco_painel", args=[projeto.slug])).status_code == 403
 
 

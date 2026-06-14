@@ -88,6 +88,8 @@ def _exige_analista(view):
     def wrapper(request: HttpRequest, *args, **kwargs):
         if not getattr(request.user, "eh_analista", False):
             return HttpResponseForbidden("Apenas analistas ou curadores acessam a triagem.")
+        if not request.user.acessa_prisma():
+            return HttpResponseForbidden("Módulo PRISMA-ScR indisponível para você.")
         return view(request, *args, **kwargs)
 
     return wrapper
@@ -111,6 +113,8 @@ def _projeto_analista(view):
     def wrapper(request: HttpRequest, slug: str, *args, **kwargs):
         if _anco_movido(slug):
             return redirect("anco_painel", slug=slug, permanent=True)
+        if not request.user.acessa_prisma():
+            return HttpResponseForbidden("Módulo PRISMA-ScR indisponível para você.")
         projeto = get_object_or_404(ProtocoloTriagem, slug=slug)
         if not getattr(request.user, "eh_analista", False):
             return HttpResponseForbidden("Apenas analistas ou curadores acessam a triagem.")
@@ -129,6 +133,8 @@ def _projeto_curador(view):
     def wrapper(request: HttpRequest, slug: str, *args, **kwargs):
         if _anco_movido(slug):
             return redirect("anco_painel", slug=slug, permanent=True)
+        if not request.user.acessa_prisma():
+            return HttpResponseForbidden("Módulo PRISMA-ScR indisponível para você.")
         projeto = get_object_or_404(ProtocoloTriagem, slug=slug)
         if not projeto.eh_curador_no(request.user):
             return HttpResponseForbidden("Apenas curadores deste projeto.")

@@ -63,6 +63,8 @@ def test_painel_mostra_aba_anco(client, analista):
 
     pa = ProjetoANCO.objects.create(nome="Piloto ANCO")
     MembroANCO.objects.create(projeto=pa, usuario=analista, papel=MembroANCO.Papel.ANALISTA)
+    analista.pode_anco = True
+    analista.save(update_fields=["pode_anco"])
     client.force_login(analista)
     resp = client.get(reverse("painel"))
     assert resp.status_code == 200

@@ -106,6 +106,15 @@ class User(AbstractUser):
         help_text="Marca contas placeholder criadas pela migracao do legado.",
     )
 
+    # Acesso por módulo (separação ANCO × PRISMA). Camada global: settings
+    # PRISMA_ATIVO / ANCO_ATIVO; camada por usuário: estes campos (UserAdmin).
+    pode_prisma = models.BooleanField(
+        default=True, help_text="Acessa o módulo de Revisão de escopo (PRISMA-ScR)."
+    )
+    pode_anco = models.BooleanField(
+        default=False, help_text="Acessa o módulo de Revisão ANCO (Análise Cognitiva)."
+    )
+
     class Meta:
         verbose_name = "usuário"
         verbose_name_plural = "usuários"
@@ -126,6 +135,18 @@ class User(AbstractUser):
     def pode_revisar(self) -> bool:
         """Recebe revisões: precisa ser analista, ter aprovação e estar disponível."""
         return self.eh_analista and self.revisor_aprovado and self.aceita_revisoes
+
+    def acessa_prisma(self) -> bool:
+        """Pode usar o módulo PRISMA-ScR (global ligado + permissão; admin sempre)."""
+        from django.conf import settings
+
+        return getattr(settings, "PRISMA_ATIVO", True) and (self.is_staff or self.pode_prisma)
+
+    def acessa_anco(self) -> bool:
+        """Pode usar o módulo Revisão ANCO (global ligado + permissão; admin sempre)."""
+        from django.conf import settings
+
+        return getattr(settings, "ANCO_ATIVO", False) and (self.is_staff or self.pode_anco)
 
     @property
     def perfil_completo_minimo(self) -> bool:

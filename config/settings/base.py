@@ -54,8 +54,10 @@ INSTALLED_APPS = [
     "apps.busca_semantica",
 ]
 
-# Módulo Revisão ANCO (apps/anco): liga/desliga as rotas e a navegação.
-# Default OFF durante a transição (Fase A/B da separação ANCO × PRISMA).
+# Módulos liga/desliga global (separação ANCO × PRISMA). Camada por usuário em
+# User.pode_prisma / User.pode_anco. PRISMA é o módulo principal (default ON);
+# ANCO default OFF (ligado em prod/dev via .env durante a transição).
+PRISMA_ATIVO = env.bool("PRISMA_ATIVO", default=True)
 ANCO_ATIVO = env.bool("ANCO_ATIVO", default=False)
 
 # django-q2 — broker Redis em prod, sync em dev/test (override em dev.py)

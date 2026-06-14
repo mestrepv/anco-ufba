@@ -34,6 +34,8 @@ def _projeto_membro(view):
     @wraps(view)
     @login_required
     def wrapper(request: HttpRequest, slug: str, *args, **kwargs):
+        if not request.user.acessa_anco():
+            return HttpResponseForbidden("Módulo Revisão ANCO indisponível para você.")
         projeto = get_object_or_404(ProjetoANCO, slug=slug)
         if not projeto.eh_membro(request.user) and not request.user.is_staff:
             return HttpResponseForbidden("Você não é membro deste projeto.")
@@ -46,6 +48,8 @@ def _projeto_curador(view):
     @wraps(view)
     @login_required
     def wrapper(request: HttpRequest, slug: str, *args, **kwargs):
+        if not request.user.acessa_anco():
+            return HttpResponseForbidden("Módulo Revisão ANCO indisponível para você.")
         projeto = get_object_or_404(ProjetoANCO, slug=slug)
         if not projeto.eh_curador_no(request.user):
             return HttpResponseForbidden("Apenas o curador do projeto.")
@@ -61,6 +65,8 @@ def _projeto_curador(view):
 
 @login_required
 def projetos_view(request: HttpRequest) -> HttpResponse:
+    if not request.user.acessa_anco():
+        return HttpResponseForbidden("Módulo Revisão ANCO indisponível para você.")
     meus = ProjetoANCO.objects.filter(membros__usuario=request.user).distinct().order_by("nome")
     return render(request, "anco/projetos.html", {"projetos": meus})
 

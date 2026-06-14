@@ -45,6 +45,10 @@ class UserAdmin(DjangoUserAdmin, UnfoldModelAdmin):
         "promover_analista",
         "rebaixar_leitor",
         "aprovar_revisor",
+        "conceder_anco",
+        "revogar_anco",
+        "conceder_prisma",
+        "revogar_prisma",
         "conceder_admin",
         "revogar_admin",
     ]
@@ -68,6 +72,26 @@ class UserAdmin(DjangoUserAdmin, UnfoldModelAdmin):
     def aprovar_revisor(self, request, queryset):
         n = queryset.update(revisor_aprovado=True)
         self.message_user(request, f"{n} usuário(s) aprovado(s) como revisor.")
+
+    @admin.action(description="Conceder acesso ao módulo Revisão ANCO")
+    def conceder_anco(self, request, queryset):
+        n = queryset.update(pode_anco=True)
+        self.message_user(request, f"{n} usuário(s) com acesso ao módulo ANCO.")
+
+    @admin.action(description="Revogar acesso ao módulo Revisão ANCO")
+    def revogar_anco(self, request, queryset):
+        n = queryset.update(pode_anco=False)
+        self.message_user(request, f"{n} usuário(s) sem acesso ao módulo ANCO.")
+
+    @admin.action(description="Conceder acesso ao módulo PRISMA-ScR")
+    def conceder_prisma(self, request, queryset):
+        n = queryset.update(pode_prisma=True)
+        self.message_user(request, f"{n} usuário(s) com acesso ao módulo PRISMA-ScR.")
+
+    @admin.action(description="Revogar acesso ao módulo PRISMA-ScR")
+    def revogar_prisma(self, request, queryset):
+        n = queryset.update(pode_prisma=False)
+        self.message_user(request, f"{n} usuário(s) sem acesso ao módulo PRISMA-ScR.")
 
     @admin.action(description="Conceder acesso de admin do site (staff)")
     def conceder_admin(self, request, queryset):
@@ -94,6 +118,8 @@ class UserAdmin(DjangoUserAdmin, UnfoldModelAdmin):
                     "grupo_pesquisa",
                     "orcid",
                     "papel",
+                    "pode_prisma",
+                    "pode_anco",
                     "aceita_revisoes",
                     "limite_revisoes_simultaneas",
                     "eh_legado",
