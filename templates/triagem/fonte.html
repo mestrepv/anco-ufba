@@ -18,7 +18,7 @@
 
   {# ── Card de metadados (só-leitura; destrava ao Ativar edição) ──── #}
   <form method="post" class="meta-card"
-        x-data="{ edit: false, nres: ({{ form.resumo.value|length|default:0 }}), doi: '{{ form.doi.value|default_if_none:''|escapejs }}', link: '{{ form.link.value|default_if_none:''|escapejs }}', grow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight)+'px'; }, growAll(){ this.$root.querySelectorAll('textarea.ie-field').forEach(t=>this.grow(t)); } }"
+        x-data="{ edit: false, nres: ({{ form.resumo.value|length|default:0 }}), doi: '{{ form.doi.value|default_if_none:''|escapejs }}', link: '{{ form.link.value|default_if_none:''|escapejs }}', grow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight)+'px'; }, growAll(){ this.$root.querySelectorAll('textarea').forEach(t=>this.grow(t)); } }"
         :class="edit && 'ie-editando'"
         @submit="if (!confirm('Confirmar as alterações desta fonte?')) $event.preventDefault();">
     {% csrf_token %}
@@ -36,57 +36,42 @@
 
     {% for erro in form.non_field_errors %}<p class="t-meta" style="color:var(--color-danger);">{{ erro }}</p>{% endfor %}
 
-    {# Título · leitura realçada / edição com rótulo e caixa própria #}
-    <div x-show="!edit" class="ie-read ie-title-read">{{ form.titulo.value|default_if_none:''|realce:realce_termos|default:'(sem título)' }}</div>
-    <div x-show="edit" x-cloak class="ie-campo">
-      <label class="ie-lbl">Título</label>
-      <input name="titulo" class="ie-box ie-title" placeholder="(sem título)" value="{{ form.titulo.value|default_if_none:'' }}">
+    {# ── LEITURA: ficha canônica (mesmo componente do editor de análise) ── #}
+    <div x-show="!edit">
+      {% include "partials/_ficha_artigo.html" with ficha=registro.ficha realce_termos=realce_termos %}
     </div>
 
-    {# Autores · Ano #}
-    <div x-show="!edit" class="ie-read ie-sub" style="margin:2px 0 16px;">{{ form.autores.value|default_if_none:''|default:'(autores)' }} · {{ form.ano.value|default_if_none:'s.d.' }}</div>
-    <div x-show="edit" x-cloak style="display:flex;flex-wrap:wrap;gap:14px;margin:12px 0 18px;">
-      <div class="ie-campo" style="flex:1;min-width:220px;">
-        <label class="ie-lbl">Autores</label>
-        <input name="autores" class="ie-box" placeholder="(autores)" value="{{ form.autores.value|default_if_none:'' }}">
+    {# ── EDIÇÃO: os mesmos campos, agora editáveis ─────────────────────── #}
+    <div x-show="edit" x-cloak style="display:grid;gap:14px;">
+      <div class="ie-campo"><label class="ie-lbl">Título</label>
+        <input name="titulo" class="ie-box ie-title" placeholder="(sem título)" value="{{ form.titulo.value|default_if_none:'' }}"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;">
+        <div class="ie-campo" style="flex:1;min-width:220px;"><label class="ie-lbl">Autores</label>
+          <input name="autores" class="ie-box" placeholder="(autores)" value="{{ form.autores.value|default_if_none:'' }}"></div>
+        <div class="ie-campo" style="width:120px;"><label class="ie-lbl">Ano</label>
+          <input name="ano" type="number" class="ie-box" placeholder="ano" value="{{ form.ano.value|default_if_none:'' }}"></div>
       </div>
-      <div class="ie-campo" style="width:120px;">
-        <label class="ie-lbl">Ano</label>
-        <input name="ano" type="number" class="ie-box" placeholder="ano" value="{{ form.ano.value|default_if_none:'' }}">
+      <div class="ie-campo"><label class="ie-lbl">Periódico / Fonte</label>
+        <input name="titulo_periodico" class="ie-box" placeholder="—" value="{{ form.titulo_periodico.value|default_if_none:'' }}"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;">
+        <div class="ie-campo" style="flex:1;min-width:160px;"><label class="ie-lbl">Tipo</label>
+          <input name="tipo" class="ie-box" placeholder="—" value="{{ form.tipo.value|default_if_none:'' }}"></div>
+        <div class="ie-campo" style="flex:1;min-width:160px;"><label class="ie-lbl">Idioma</label>
+          <input name="idioma" class="ie-box" placeholder="—" value="{{ form.idioma.value|default_if_none:'' }}"></div>
       </div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;">
+        <div class="ie-campo" style="flex:1;min-width:160px;"><label class="ie-lbl">DOI</label>
+          <input name="doi" class="ie-box" placeholder="—" value="{{ form.doi.value|default_if_none:'' }}"></div>
+        <div class="ie-campo" style="flex:1;min-width:160px;"><label class="ie-lbl">ISBN / ISSN</label>
+          <input name="isbn" class="ie-box" placeholder="—" value="{{ form.isbn.value|default_if_none:'' }}"></div>
+      </div>
+      <div class="ie-campo"><label class="ie-lbl">Link de acesso</label>
+        <input name="link" class="ie-box" placeholder="—" value="{{ form.link.value|default_if_none:'' }}"></div>
+      <div class="ie-campo"><label class="ie-lbl">Palavras-chave</label>
+        <textarea name="palavras_chaves" rows="1" class="ie-box" placeholder="—" @input="grow($el)">{{ form.palavras_chaves.value|default_if_none:'' }}</textarea></div>
+      <div class="ie-campo"><label class="ie-lbl">Resumo</label>
+        <textarea name="resumo" rows="4" class="ie-box" placeholder="(sem resumo)" @input="grow($el)">{{ form.resumo.value|default_if_none:'' }}</textarea></div>
     </div>
-
-    <dl style="margin-top:4px;">
-      <div class="meta-row"><dt>Periódico / Fonte</dt><dd>
-        <div x-show="!edit" class="ie-read">{{ form.titulo_periodico.value|default_if_none:''|realce:realce_termos|default:'—' }}</div>
-        <input x-show="edit" x-cloak name="titulo_periodico" class="ie-field" placeholder="—" value="{{ form.titulo_periodico.value|default_if_none:'' }}">
-      </dd></div>
-      <div class="meta-row"><dt>Tipo</dt><dd><input name="tipo" class="ie-field" placeholder="—" :readonly="!edit" value="{{ form.tipo.value|default_if_none:'' }}"></dd></div>
-      <div class="meta-row"><dt>DOI</dt><dd style="display:flex;align-items:center;gap:12px;">
-        <input name="doi" class="ie-field mono" placeholder="—" :readonly="!edit" x-model="doi" style="flex:1;">
-        <a x-show="doi.trim()" :href="'https://doi.org/' + doi.trim()" target="_blank" rel="noopener" class="link" style="white-space:nowrap;font-size:13px;">abrir ↗</a>
-      </dd></div>
-      <div class="meta-row"><dt>ISBN / ISSN</dt><dd><input name="isbn" class="ie-field mono" placeholder="—" :readonly="!edit" value="{{ form.isbn.value|default_if_none:'' }}"></dd></div>
-      <div class="meta-row"><dt>Idioma</dt><dd><input name="idioma" class="ie-field" placeholder="—" :readonly="!edit" value="{{ form.idioma.value|default_if_none:'' }}"></dd></div>
-      <div class="meta-row"><dt>Link de acesso</dt><dd style="display:flex;align-items:center;gap:12px;">
-        <input name="link" class="ie-field mono" placeholder="—" :readonly="!edit" x-model="link" style="flex:1;">
-        <a x-show="link.trim()" :href="link.trim()" target="_blank" rel="noopener" class="link" style="white-space:nowrap;font-size:13px;">abrir ↗</a>
-      </dd></div>
-      <div class="meta-row"><dt>Palavras-chave</dt><dd>
-        <div x-show="!edit" class="ie-read">{{ form.palavras_chaves.value|default_if_none:''|realce:realce_termos|default:'—' }}</div>
-        <textarea x-show="edit" x-cloak name="palavras_chaves" rows="1" class="ie-field" placeholder="—" @input="grow($el)">{{ form.palavras_chaves.value|default_if_none:'' }}</textarea>
-      </dd></div>
-      <div class="meta-row">
-        <dt>Resumo</dt>
-        <dd>
-          <details open>
-            <summary style="font-family:var(--font-sans);font-size:13px;color:var(--color-ink-3);cursor:pointer;">resumo (<span x-text="nres"></span> caracteres)</summary>
-            <div x-show="!edit" class="ie-read ie-prose" style="margin-top:8px;">{{ form.resumo.value|default_if_none:''|realce:realce_termos|default:'(sem resumo)' }}</div>
-            <textarea x-show="edit" x-cloak name="resumo" rows="1" class="ie-field" placeholder="(sem resumo)" @input="nres = $event.target.value.length; grow($el)" style="margin-top:8px;">{{ form.resumo.value|default_if_none:'' }}</textarea>
-          </details>
-        </dd>
-      </div>
-    </dl>
   </form>
   {% else %}
     <p class="t-small" style="color:var(--color-ink-3);margin-top:16px;">Esta importação não tem fontes.</p>

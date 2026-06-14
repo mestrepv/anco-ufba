@@ -97,7 +97,7 @@ def test_painel_anco_sem_triagem_mostra_corpus(client, proj_anco):
     resp = client.get(reverse("triagem_painel", args=[proj_anco.slug]))
     corpo = resp.content.decode()
     assert "Revisão ANCO" in corpo
-    assert "Ver corpus" in corpo  # nova ação (sem triagem)
+    assert "Ver artigos" in corpo  # nova ação (sem triagem)
     assert "Triar minha base" not in corpo  # autotriagem descontinuada
     assert "Iniciar triagem" not in corpo  # ação do modo rigoroso, oculta
 

@@ -74,6 +74,11 @@
   .projeto-papel { font-family: var(--font-sans); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--color-gold-deep); vertical-align: middle; }
   .projeto-meta { font-family: var(--font-sans); font-size: 14px; line-height: 1.55; color: var(--color-ink-2); margin: 10px 0 0; }
   .projeto-meta .rotulo { color: var(--color-ink-3); }
+  .sol-banner { margin-top: 16px; padding: 13px 18px; border-radius: 8px; font-family: var(--font-sans);
+                font-size: 14px; line-height: 1.5; color: var(--color-ink-2); border: 1px solid var(--color-rule); }
+  .sol-pendente { background: var(--color-review-bg); border-color: var(--color-review-rule); }
+  .sol-rejeitada { background: #fdf2f0; border-color: #e6c9c2; }
+  .sol-tarefa { background: var(--color-paper-2); border-color: var(--color-gold-deep); }
 </style>
 {% endblock %}
 
@@ -92,6 +97,49 @@
   <div style="margin-top:20px;padding:14px 18px;border-radius:8px;background:var(--color-review-bg);border:1px solid var(--color-gold-deep);font-family:var(--font-sans);font-size:14px;color:var(--color-ink-2);">
     Seu perfil está incompleto. <a href="{% url 'perfil' %}" style="color:var(--color-gold-deep);font-weight:600;">Complete o perfil</a> para aparecer no diretório.
   </div>
+  {% endif %}
+
+  {# ── Status das minhas solicitações (pendente / aprovada / rejeitada) ── #}
+  {% for s in solicitacoes_status %}
+    {% if s.status == 'pendente' %}
+    <div class="sol-banner sol-pendente">
+      <strong>Solicitação para {{ s.tipo_display }}: aguardando aprovação.</strong>
+      A curadoria foi avisada — você receberá o acesso assim que for aprovada. Enquanto isso, pode navegar o acervo normalmente.
+    </div>
+    {% elif s.status == 'rejeitada' %}
+    <div class="sol-banner sol-rejeitada">
+      <strong>Solicitação para {{ s.tipo_display }}: não aprovada.</strong>
+      {% if s.motivo_rejeicao %} Motivo: {{ s.motivo_rejeicao }}.{% endif %}
+      Você pode ajustar o perfil e <a href="{% url 'perfil' %}" style="color:var(--color-gold-deep);font-weight:600;">solicitar novamente</a>.
+    </div>
+    {% endif %}
+  {% endfor %}
+
+  {# ── Tarefa de curador: solicitações pendentes de aprovação ──────────── #}
+  {% if n_solicitacoes_pendentes %}
+  <div class="sol-banner sol-tarefa">
+    <strong>{{ n_solicitacoes_pendentes }} solicitação(ões) de cadastro aguardando você.</strong>
+    Aprove ou recuse novos analistas/revisores.
+    <a href="/admin/core/solicitacaocadastro/?status__exact=pendente" style="color:var(--color-gold-deep);font-weight:600;">Revisar solicitações →</a>
+  </div>
+  {% endif %}
+
+  {# ── Análises devolvidas pela curadoria (precisam de correção) ────────── #}
+  {% if devolvidas %}
+  <section class="painel-secao" style="margin-top:28px;">
+    <h2 style="color:var(--color-gold-deep);">Devolvidas para ajuste</h2>
+    <p class="secao-desc">A curadoria pediu correções. Ajuste e envie de novo.</p>
+    {% for a in devolvidas %}
+    <div class="lista-item" style="background:var(--color-review-bg);border:1px solid var(--color-review-rule);border-radius:8px;padding:14px 16px;margin-bottom:8px;">
+      <div>
+        <a href="{% url 'editar_analise' a.pk %}" class="item-titulo">{{ a.artigo.titulo|truncatechars:110 }}</a>
+        <div class="item-meta" style="color:var(--color-ink-2);">Pedido da curadoria: {{ a.motivo_curadoria|truncatechars:160 }}</div>
+      </div>
+      <span></span>
+      <a href="{% url 'editar_analise' a.pk %}" class="btn btn-sm btn-primary">Corrigir →</a>
+    </div>
+    {% endfor %}
+  </section>
   {% endif %}
 
   {% if user.eh_analista %}

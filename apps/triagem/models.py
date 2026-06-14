@@ -544,6 +544,27 @@ class RegistroTriagem(models.Model):
             )
         super().save(*args, **kwargs)
 
+    def ficha(self) -> dict:
+        """Dados bibliográficos normalizados para o componente de ficha único
+        (templates/partials/_ficha_artigo.html). Mesmas chaves que
+        acervo.Artigo.ficha(), para a ficha ser idêntica nas duas origens."""
+        return {
+            "titulo": self.titulo,
+            "autores": self.autores,
+            "ano": self.ano,
+            "periodico": self.titulo_periodico,
+            "tipo": self.tipo or "",  # CharField livre (sem choices)
+            "doi": self.doi or "",
+            "isbn": self.isbn or "",
+            "idioma": self.idioma or "",
+            "link": self.link,
+            "link_alt": "",
+            "palavras_chaves": self.palavras_chaves,
+            "resumo": self.resumo,
+            "base": "",  # base é por importação (origem_buscas), não do registro
+            "area": "",  # registro não tem grande área (é metadado do Artigo)
+        }
+
     @property
     def procedencia(self) -> list[dict]:
         """Bases e importadores de origem (para informar a decisão de dedup)."""

@@ -62,11 +62,23 @@ def test_import_persiste_contagens_na_busca(protocolo, base_termo):
 
 
 def test_ja_no_acervo_contado(protocolo, base_termo):
+    # Isenção do acervo só vale no modo ANCO; no rigoroso tudo é triado.
+    protocolo.modo = ProtocoloTriagem.Modo.ANCO
+    protocolo.save(update_fields=["modo"])
     Artigo.objects.create(doi="10.1/abc", titulo="x", ano=2020, base_consulta=base_termo)
     b = Busca.objects.create(protocolo=protocolo, base_consulta=base_termo)
     importar_para_busca(b, parse_ris(RIS))
     b.refresh_from_db()
     assert b.n_ja_no_acervo == 1 and b.n_novos == 0
+
+
+def test_ja_no_acervo_triado_no_rigoroso(protocolo, base_termo):
+    """PRISMA-ScR: registro que casa com o acervo conta como novo (vai à triagem)."""
+    Artigo.objects.create(doi="10.1/abc", titulo="x", ano=2020, base_consulta=base_termo)
+    b = Busca.objects.create(protocolo=protocolo, base_consulta=base_termo)
+    importar_para_busca(b, parse_ris(RIS))
+    b.refresh_from_db()
+    assert b.n_ja_no_acervo == 0 and b.n_novos == 1
 
 
 def _upload(client, base_termo, n_identificados, conteudo=RIS, **extra):
@@ -200,7 +212,7 @@ def test_detalhe_mostra_ja_no_acervo_e_data(client, analista, base_termo, settin
     client.force_login(analista)
     resp = _upload(client, base_termo, 1)  # RIS tem doi 10.1/abc → já no acervo
     detalhe = client.get(resp.headers["Location"])
-    assert "já no acervo".encode() in detalhe.content  # contador de isentos
+    assert "já cadastrados antes".encode() in detalhe.content  # contador de isentos
     assert b"Importada em" in detalhe.content
     assert b"Excluir importa" in detalhe.content  # botão presente (intocada)
 

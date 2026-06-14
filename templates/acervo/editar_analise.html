@@ -1,5 +1,5 @@
 {% extends "_base_publico.html" %}
-{% load static %}
+{% load static triagem_extras %}
 
 {% block title %}Editar análise — AnCo{% endblock %}
 
@@ -68,51 +68,30 @@
       Confirme os metadados do artigo. A <strong>grande área</strong> pode ser
       ajustada aqui; os demais metadados são editados no admin (curador).
     </p>
-    <form method="post">
+    <p class="t-small" style="color: var(--color-ink-4); margin: 0 0 14px; display: flex; align-items: center; gap: 6px;">
+      <mark style="padding: 0 3px; background:#ffe9a8; border-radius:3px;">Termos da Análise Cognitiva</mark> aparecem destacados — ajuda a julgar presença e pertinência na próxima aba.
+    </p>
+
+    {# Ficha bibliográfica canônica (mesmo componente das telas de fontes/triagem) #}
+    {% include "partials/_ficha_artigo.html" with ficha=ficha realce_termos=termos_realce %}
+
+    {# Único campo editável aqui: a grande área (os demais metadados são do curador). #}
+    <form method="post" style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--color-paper-3);">
       {% csrf_token %}
-      <dl style="margin-top: 8px;">
-        <div class="meta-row"><dt>Título</dt><dd>{{ analise.artigo.titulo }}</dd></div>
-        {% if analise.artigo.titulo_periodico %}
-        <div class="meta-row"><dt>Periódico</dt><dd>{{ analise.artigo.titulo_periodico }}</dd></div>
-        {% endif %}
-        <div class="meta-row"><dt>Ano</dt><dd>{{ analise.artigo.ano|default:"—" }}</dd></div>
-        {% if analise.artigo.doi %}
-        <div class="meta-row"><dt>DOI</dt><dd><a href="https://doi.org/{{ analise.artigo.doi }}" target="_blank" rel="noopener noreferrer" class="link mono">{{ analise.artigo.doi }} ↗</a></dd></div>
-        {% endif %}
-        {% if analise.artigo.isbn %}
-        <div class="meta-row"><dt>ISBN</dt><dd><span class="mono">{{ analise.artigo.isbn }}</span></dd></div>
-        {% endif %}
-        <div class="meta-row"><dt>Link alternativo</dt><dd>
-          {% if analise.artigo.link_acesso_alternativo %}<a href="{{ analise.artigo.link_acesso_alternativo }}" target="_blank" rel="noopener noreferrer" class="link">{{ analise.artigo.link_acesso_alternativo }} ↗</a>
-          {% else %}<span class="t-meta" style="color: var(--color-ink-4); font-style:italic;">—</span>{% endif %}
-        </dd></div>
-        <div class="meta-row"><dt>Autores</dt><dd>{{ analise.artigo.autores|truncatechars:300|default:"—" }}</dd></div>
-        <div class="meta-row"><dt>Base</dt><dd>{{ analise.artigo.base_consulta.nome|default:"—" }}</dd></div>
-        {% if analise.artigo.palavras_chaves %}
-        <div class="meta-row"><dt>Palavras-chave</dt><dd>{{ analise.artigo.palavras_chaves }}</dd></div>
-        {% endif %}
-        <div class="meta-row">
-          <dt>Resumo</dt>
-          <dd>
-            {% if analise.artigo.resumo %}<div style="line-height:1.65; white-space:pre-wrap;">{{ analise.artigo.resumo }}</div>
-            {% else %}<span class="t-meta" style="color: var(--color-ink-4); font-style:italic;">não disponível</span>{% endif %}
-          </dd>
+      <div class="field-row">
+        <label for="{{ artigo_form.area.id_for_label }}" class="field-label" style="cursor:pointer;">Grande área (você define)</label>
+        <div x-data="{ outros: '{{ artigo_form.area.value|default_if_none:'' }}' === 'Outros' }"
+             @change="outros = ($event.target.name === 'area' && $event.target.value === 'Outros')">
+          {{ artigo_form.area }}
+          {% if artigo_form.area.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ artigo_form.area.errors|join:" / " }}</p>{% endif %}
+          <div x-show="outros" x-cloak style="margin-top: 8px;">
+            <label for="{{ artigo_form.area_outra.id_for_label }}" class="field-label">Especifique a área</label>
+            {{ artigo_form.area_outra }}
+            {% if artigo_form.area_outra.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ artigo_form.area_outra.errors|join:" / " }}</p>{% endif %}
+          </div>
         </div>
-        <div class="meta-row">
-          <dt><label for="{{ artigo_form.area.id_for_label }}" style="cursor:pointer;">Área de conhecimento</label></dt>
-          <dd x-data="{ outros: '{{ artigo_form.area.value|default_if_none:'' }}' === 'Outros' }"
-              @change="outros = ($event.target.name === 'area' && $event.target.value === 'Outros')">
-            {{ artigo_form.area }}
-            {% if artigo_form.area.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ artigo_form.area.errors|join:" / " }}</p>{% endif %}
-            <div x-show="outros" x-cloak style="margin-top: 8px;">
-              <label for="{{ artigo_form.area_outra.id_for_label }}" class="field-label">Especifique a área</label>
-              {{ artigo_form.area_outra }}
-              {% if artigo_form.area_outra.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ artigo_form.area_outra.errors|join:" / " }}</p>{% endif %}
-            </div>
-          </dd>
-        </div>
-      </dl>
-      <div style="display: flex; justify-content: flex-end; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--color-paper-3);">
+      </div>
+      <div style="display: flex; justify-content: flex-end; padding-top: 16px; margin-top: 8px;">
         <button type="submit" class="btn btn-primary">Salvar e avançar →</button>
       </div>
     </form>
@@ -121,34 +100,25 @@
   {# ── Passos 2/3: form com auto-save ─────────────────────────── #}
   {% else %}
   <form method="post"
-        x-init="
-            const form = $el;
-            const url = '{% url 'autosave_analise' analise.pk %}';
-            setInterval(async () => {
-                const fd = new FormData(form);
-                const resp = await fetch(url, { method: 'POST', body: fd,
-                    headers: { 'X-CSRFToken': fd.get('csrfmiddlewaretoken') } });
-                if (resp.ok) { const data = await resp.json(); ultimoSave = data.salvo_em; }
-            }, 30000);
-        "
+        x-data="autosaveForm('{% url 'autosave_analise' analise.pk %}')"
+        x-init="iniciar()"
+        @input="marcarSujo()" @change="marcarSujo()" @submit="sujo = false"
         class="meta-card">
     {% csrf_token %}
     <header style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--color-paper-3); margin-bottom: 18px;">
       <h2 class="t-h2">{% for codigo, label in passos %}{% if codigo == passo_atual %}{{ label }}{% endif %}{% endfor %}</h2>
-      <span class="t-meta" style="color: var(--color-ink-4); display: flex; align-items: center; gap: 6px;" x-show="ultimoSave" x-cloak>
-        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--color-ok);"></span>
-        Auto-salvo às <span x-text="ultimoSave"></span>
-      </span>
+      {% include "acervo/_autosave_status.html" %}
     </header>
 
     {% if passo_atual == "presenca" %}
-    <p class="t-small" style="color: var(--color-ink-3); margin: -6px 0 18px;">
-      Indique se o termo <strong>Análise Cognitiva</strong> aparece em cada parte da obra e avalie sua pertinência. Os campos em branco contam como não respondidos.
-    </p>
+    <div class="ajuda-aba">
+      <p style="margin:0 0 4px;"><strong>Como preencher.</strong> As 5 primeiras perguntas só <em>localizam</em> o termo <strong>Análise Cognitiva</strong> na obra — não decidem nada sozinhas.</p>
+      <p style="margin:0;">A decisão-chave é a <strong>pertinência</strong>: a obra dialoga com o campo? O campo é emergente — <strong>na dúvida, reconheça e justifique</strong> (em Aspectos relevantes), em vez de excluir pela área. Campos em branco contam como não respondidos.</p>
+    </div>
     {% elif passo_atual == "estrutura" %}
-    <p class="t-small" style="color: var(--color-ink-3); margin: -6px 0 18px;">
-      Descreva a estrutura analítica da obra segundo a grade AnCo. As dicas abaixo de cada campo orientam o preenchimento.
-    </p>
+    <div class="ajuda-aba">
+      <p style="margin:0;">Descreva a estrutura analítica da obra segundo a grade AnCo. <strong>As dicas abaixo de cada campo</strong> trazem o que registrar. Lembre: <strong>Foco</strong> é o subcampo cognitivo (≠ grande área CAPES da aba 1); <strong>Epistemologia</strong> e <strong>Teoria</strong> usam o vocabulário controlado para que as análises se agreguem.</p>
+    </div>
     {% endif %}
 
     <div style="display: grid; gap: 16px;">
@@ -200,6 +170,15 @@
 
 <style>
   [x-cloak] { display: none !important; }
+  /* Realce dos termos AnCo no título/resumo/palavras-chave (aba Identificação) */
+  .meta-row mark, .ajuda-aba mark, p mark {
+    background: #ffe9a8; color: var(--color-ink); border-radius: 3px;
+    padding: 0 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  }
+  /* Caixa de orientação do Protocolo ANCO no topo de cada aba */
+  .ajuda-aba { margin: -6px 0 18px; padding: 12px 14px; border-radius: 8px;
+    background: var(--color-review-bg); border: 1px solid var(--color-review-rule);
+    font-family: var(--font-sans); font-size: 13px; line-height: 1.55; color: var(--color-ink-2); }
   /* Booleanos como Sim/Não (radio em formato de pílula) */
   .sim-nao { display: flex; gap: 10px; margin-top: 4px; }
   .sim-nao-opt {
@@ -230,4 +209,8 @@
     .mono { overflow-wrap: anywhere; }
   }
 </style>
+{% endblock %}
+
+{% block extra_scripts %}
+{% include "acervo/_autosave_script.html" %}
 {% endblock %}

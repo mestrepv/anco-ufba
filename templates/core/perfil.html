@@ -267,11 +267,19 @@
     {# ── Vínculo institucional ────────────────────────────────────── #}
     <section class="perfil-bloco">
       <h2>Vínculo institucional</h2>
-      <p class="bloco-desc">Selecione sua instituição.</p>
-      <div class="field-row">
+      <p class="bloco-desc">Selecione sua instituição (ou escolha “Outra”).</p>
+      <div class="field-row" x-data="{ outra: '{{ form.vinculo_institucional.value|default_if_none:'' }}' === 'outra' }">
         <label for="{{ form.vinculo_institucional.id_for_label }}">{{ form.vinculo_institucional.label }}</label>
-        {{ form.vinculo_institucional }}
+        <div @change="outra = ($event.target.name === 'vinculo_institucional' && $event.target.value === 'outra')">
+          {{ form.vinculo_institucional }}
+        </div>
         {% if form.vinculo_institucional.errors %}<p class="field-error">{{ form.vinculo_institucional.errors|join:" / " }}</p>{% endif %}
+        <div x-show="outra" x-cloak style="margin-top:10px;">
+          <label for="{{ form.vinculo_outro.id_for_label }}">{{ form.vinculo_outro.label }}</label>
+          {{ form.vinculo_outro }}
+          <p class="bloco-desc" style="margin-top:4px;">{{ form.vinculo_outro.help_text }}</p>
+          {% if form.vinculo_outro.errors %}<p class="field-error">{{ form.vinculo_outro.errors|join:" / " }}</p>{% endif %}
+        </div>
       </div>
     </section>
 

@@ -379,6 +379,37 @@ PASSOS = [
     ("estrutura", "Análise do artigo"),
 ]
 
+# Termos AnCo destacados (<mark>) na aba Identificação para ajudar o analista a
+# ver onde o termo aparece (apoia a decisão de presença/pertinência).
+_TERMOS_REALCE_PADRAO = "análise cognitiva, cognitive analysis, cognitive analytics, cognição, cognition"
+
+
+def _termos_realce_do_artigo(artigo) -> str:
+    """Termos a destacar no título/resumo. Usa os `termos_realce` do projeto de
+    triagem do artigo (se houver) ou o padrão AnCo."""
+    try:
+        from apps.triagem.models import RegistroTriagem
+
+        reg = (
+            RegistroTriagem.objects.filter(artigo=artigo)
+            .exclude(protocolo__termos_realce="")
+            .select_related("protocolo")
+            .first()
+        )
+        if reg and reg.protocolo.termos_realce.strip():
+            return reg.protocolo.termos_realce
+    except Exception:  # noqa: BLE001 — triagem é opcional; nunca quebra o editor
+        pass
+    return _TERMOS_REALCE_PADRAO
+
+
+def _ficha_sem_area(artigo) -> dict:
+    """Ficha do artigo p/ o componente único, sem a 'área' — que no editor é um
+    campo EDITÁVEL à parte (evita mostrar duas vezes)."""
+    f = artigo.ficha()
+    f["area"] = ""
+    return f
+
 
 # Abas do stepper: os 3 passos da análise + a resenha (entidade própria, em
 # página dedicada). Hrefs absolutos para o stepper funcionar igual nas duas
@@ -480,6 +511,8 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
             "resenha": getattr(analise, "resenha", None),
             "eh_admin_edit": eh_admin and analise.analista_id != user.id,
             "campos_faltantes": analise.campos_faltantes_submissao(),
+            "termos_realce": _termos_realce_do_artigo(analise.artigo),
+            "ficha": _ficha_sem_area(analise.artigo),
         },
     )
 
@@ -631,6 +664,35 @@ def editar_resenha_view(request: HttpRequest, analise_id: int) -> HttpResponse:
             "passo_atual": "resenha",
         },
     )
+
+
+@_exige_analista
+@require_POST
+def autosave_resenha_view(request: HttpRequest, analise_id: int) -> HttpResponse:
+    """Auto-save do texto da resenha. Resposta JSON com timestamp do save.
+
+    Espelha `autosave_analise_view`: evita que o analista perca um texto longo.
+    Não salva enquanto a resenha está em revisão cega (não é editável então).
+    """
+    try:
+        resenha = _get_resenha_editavel(request, analise_id)
+    except PermissionError:
+        return HttpResponseForbidden("Apenas o autor pode salvar a resenha.")
+
+    if resenha.analise.artigo.eh_legado and not _eh_admin(request.user):
+        return HttpResponseForbidden("O acervo histórico (legado) não é editável por analistas.")
+
+    if resenha.status == Resenha.Status.EM_REVISAO:
+        return JsonResponse(
+            {"ok": False, "error": "Resenha em revisão cega — não editável agora."},
+            status=400,
+        )
+
+    form = ResenhaForm(request.POST, instance=resenha)
+    if form.is_valid():
+        form.save()
+        return JsonResponse({"ok": True, "salvo_em": timezone.now().strftime("%H:%M:%S")})
+    return JsonResponse({"ok": False, "errors": form.errors}, status=400)
 
 
 @_exige_analista

@@ -43,6 +43,30 @@ def _busca_com_fontes(proj, dono, n):
     return busca, regs
 
 
+def test_fonte_renderiza_ficha_com_tipo(client, proj_anco):
+    """Regressão: a ficha canônica não pode quebrar quando o registro tem `tipo`
+    (CharField livre, sem choices — não existe get_tipo_display)."""
+    dono = _user("dono_tipo")
+    busca = Busca.objects.create(protocolo=proj_anco, criado_por=dono, outra_base="WoS")
+    r = RegistroTriagem.objects.create(
+        protocolo=proj_anco,
+        titulo="Estudo sobre cognição",
+        doi="10/tipo",
+        identificador="idtipo",
+        tipo="Artigo",
+        autores="Fulano de Tal",
+        ano=2020,
+        titulo_periodico="Revista Y",
+    )
+    r.origem_buscas.add(busca)
+    client.force_login(dono)
+    url = reverse("triagem_busca_fonte", args=[proj_anco.slug, busca.pk])
+    resp = client.get(url + "?i=0")
+    assert resp.status_code == 200
+    assert b"Estudo sobre cogni" in resp.content  # título da ficha aparece
+    assert b"Artigo" in resp.content  # tipo aparece (branch que quebrava)
+
+
 def test_navega_fontes_com_indice(client, proj_anco):
     dono = _user("dono")
     busca, regs = _busca_com_fontes(proj_anco, dono, 3)

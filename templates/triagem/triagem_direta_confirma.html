@@ -1,0 +1,47 @@
+{% extends "_base_publico.html" %}
+
+{% block title %}Triagem direta · AnCo{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+
+{% block content %}
+<div class="tg-wrap narrow">
+  <a href="{% url 'triagem_registros' projeto.slug %}" class="tg-back">&larr; Registros</a>
+  <h1 class="tg-h1" style="margin-top:6px;">Triagem direta <span class="tg-meta">(sem sorteio)</span></h1>
+
+  {% if n_disponiveis %}
+    <p style="font-family:var(--font-sans);font-size:15px;color:var(--color-ink-2);margin:12px 0 4px;">
+      Atribuir a triagem de <strong>{{ n_disponiveis }}</strong> registro(s)
+      identificado(s) aos revisores que você escolher. Não há sorteio: cada
+      revisor selecionado triará <strong>todos</strong> os registros.
+    </p>
+    <p class="tg-desc">
+      Consenso, desempate e promoção ao acervo funcionam normalmente. Registros já
+      no acervo ou marcados como duplicata não entram (prazo {{ protocolo.prazo_dias }} dias).
+      <strong>Escolha já todos os revisores</strong> (idealmente ≥2): registros
+      decididos não recebem revisores adicionados depois.
+    </p>
+
+    <form method="post" style="margin-top:14px;">
+      {% csrf_token %}
+      <fieldset style="border:1px solid var(--color-rule);border-radius:8px;padding:12px 14px;margin:0 0 14px;">
+        <legend style="font-family:var(--font-sans);font-size:13px;color:var(--color-ink-2);padding:0 6px;">Revisores (membros do projeto)</legend>
+        {% for m in membros %}
+          <label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-family:var(--font-sans);font-size:15px;color:var(--color-ink);">
+            <input type="checkbox" name="revisores" value="{{ m.usuario_id }}">
+            {{ m.usuario.nome_exibicao|default:m.usuario.email }}
+            {% if m.papel == 'curador' %}<span class="papel">curador</span>{% endif %}
+          </label>
+        {% empty %}
+          <p class="tg-meta" style="margin:4px 0;">Sem membros designados.
+            <a href="{% url 'triagem_equipe' projeto.slug %}" style="color:var(--color-gold-deep);">Gerenciar equipe →</a></p>
+        {% endfor %}
+      </fieldset>
+      {% if membros %}
+        <button type="submit" class="btn btn-primary">Atribuir triagem direta</button>
+      {% endif %}
+    </form>
+  {% else %}
+    <p class="tg-empty">Nenhum registro identificado disponível para triar agora.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% comment %}
+Componente Alpine `autosaveForm(url)` para auto-save robusto de formulários.
+Inclua dentro de {% block extra_scripts %}. Salva:
+  - a cada 30s SE houver alterações pendentes;
+  - ao sair de qualquer campo (focusout), se houver pendência;
+  - na navegação (beforeunload) avisa se há alterações não salvas.
+Mostra estado via templates/acervo/_autosave_status.html.
+{% endcomment %}
+<script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('autosaveForm', (url) => ({
+      url,
+      ultimoSave: null,
+      estado: 'idle',   // idle | salvando | erro | salvo
+      sujo: false,
+      marcarSujo() { this.sujo = true; if (this.estado !== 'salvando') this.estado = 'idle'; },
+      async salvar() {
+        if (this.estado === 'salvando') return;
+        this.estado = 'salvando';
+        const fd = new FormData(this.$el);
+        try {
+          const resp = await fetch(this.url, {
+            method: 'POST', body: fd, keepalive: true,
+            headers: { 'X-CSRFToken': fd.get('csrfmiddlewaretoken') },
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            this.ultimoSave = data.salvo_em;
+            this.sujo = false;
+            this.estado = 'salvo';
+          } else {
+            this.estado = 'erro';
+          }
+        } catch (e) {
+          this.estado = 'erro';
+        }
+      },
+      iniciar() {
+        setInterval(() => { if (this.sujo) this.salvar(); }, 30000);
+        // Salva ao sair de um campo (não espera os 30s).
+        this.$el.addEventListener('focusout', () => { if (this.sujo) this.salvar(); });
+        // Rede de segurança: avisa antes de sair com pendências.
+        window.addEventListener('beforeunload', (e) => {
+          if (this.sujo) { e.preventDefault(); e.returnValue = ''; }
+        });
+      },
+    }));
+  });
+</script>

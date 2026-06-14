@@ -85,17 +85,13 @@
             {% for sub in form.campos_busca %}<label>{{ sub.tag }} <span>{{ sub.choice_label }}</span></label>{% endfor %}
           </div>
         </div>
-        <div class="tg-row-2">
-          <div class="tg-field">
-            <label for="{{ form.data_busca.id_for_label }}">{{ form.data_busca.label }}</label>
-            {{ form.data_busca }}
-          </div>
-          <div class="tg-field">
-            <label for="{{ form.formato.id_for_label }}">{{ form.formato.label }}</label>
-            {{ form.formato }}
-            <p class="tg-help">Deixe em "Inferir" — detecto automaticamente.</p>
-          </div>
+        <div class="tg-field">
+          <label for="{{ form.data_busca.id_for_label }}">{{ form.data_busca.label }}</label>
+          {{ form.data_busca }}
         </div>
+        {# Formato é detectado automaticamente (RIS/BibTeX/CSV) — não pedimos ao
+           usuário. O campo segue no form, oculto, para o fallback do servidor. #}
+        <div style="display:none;">{{ form.formato }}</div>
         <div class="tg-field"
              x-data="{ de: {{ form.ano_inicio.value|default:ano_min }}, ate: {{ form.ano_fim.value|default:ano_max }} }">
           <label>Período: <strong x-text="de"></strong> – <strong x-text="ate"></strong></label>

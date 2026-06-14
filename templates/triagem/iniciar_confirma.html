@@ -14,14 +14,15 @@
       <strong>{{ n_disponiveis }}</strong> registro(s) identificado(s).
     </p>
     <p class="tg-desc">
-      Cada registro será sorteado para <strong>{{ protocolo.n_revisores }}</strong>
-      revisores independentes (prazo {{ protocolo.prazo_dias }} dias). Registros já no
-      acervo ou marcados como duplicata não entram. Você pode importar mais bases e
+      Cada registro será atribuído aos <strong>{{ n_membros }}</strong>
+      membro(s) do projeto, que triam de forma independente — incluir/excluir/dúvida,
+      prazo {{ protocolo.prazo_dias }} dias. <strong>Sem sorteio.</strong> Registros já
+      no acervo ou marcados como duplicata não entram. Você pode importar mais bases e
       iniciar de novo depois — a revisão é cumulativa.
     </p>
     <form method="post">
       {% csrf_token %}
-      <button type="submit" class="btn btn-primary">Confirmar e sortear revisores</button>
+      <button type="submit" class="btn btn-primary">Confirmar e iniciar triagem</button>
     </form>
   {% else %}
     <p class="tg-empty">Nenhum registro identificado disponível para triar agora.</p>

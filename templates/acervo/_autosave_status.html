@@ -1,0 +1,21 @@
+{% comment %}
+Indicador de estado do auto-save. Usado dentro de um form com x-data="autosaveForm(url)".
+Estados: salvando / erro / sujo (alterações não salvas) / salvo.
+{% endcomment %}
+<span class="t-meta" style="display: flex; align-items: center; gap: 6px; min-height: 18px;" x-cloak>
+  <template x-if="estado === 'salvando'">
+    <span style="color: var(--color-ink-4);">Salvando…</span>
+  </template>
+  <template x-if="estado === 'erro'">
+    <span style="color: var(--color-danger); font-weight: 600;">⚠ Não consegui salvar — clique em “Salvar”</span>
+  </template>
+  <template x-if="estado !== 'salvando' && estado !== 'erro' && sujo">
+    <span style="color: var(--color-gold-deep);">Alterações não salvas…</span>
+  </template>
+  <template x-if="estado !== 'salvando' && estado !== 'erro' && !sujo && ultimoSave">
+    <span style="color: var(--color-ink-4); display: flex; align-items: center; gap: 6px;">
+      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--color-ok);"></span>
+      Salvo às <span x-text="ultimoSave"></span>
+    </span>
+  </template>
+</span>

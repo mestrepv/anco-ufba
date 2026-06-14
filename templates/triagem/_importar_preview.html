@@ -2,6 +2,15 @@
 {% if info.ok %}
   <div class="tg-note" style="border-color:var(--color-ok);background:#eef4ea;color:#2f5a32;">
     ✓ <strong>{{ info.n }} registro{{ info.n|pluralize }}</strong> lido{{ info.n|pluralize }} no arquivo ({{ info.formato|upper }}). Pronto para importar.
+    {% if info.amostra %}
+    <div style="margin-top:8px;color:var(--color-ink-2);">
+      <span style="font-weight:600;">Confira se é a lista certa — primeiros títulos:</span>
+      <ul style="margin:6px 0 0;padding-left:20px;line-height:1.5;">
+        {% for t in info.amostra %}<li>{{ t|truncatechars:120 }}</li>{% endfor %}
+        {% if info.n > info.amostra|length %}<li style="color:var(--color-ink-3);list-style:none;margin-left:-20px;">…e os demais.</li>{% endif %}
+      </ul>
+    </div>
+    {% endif %}
   </div>
 {% else %}
   <div class="tg-note" style="border-color:var(--color-danger);background:#fdf2f0;color:var(--color-danger);">

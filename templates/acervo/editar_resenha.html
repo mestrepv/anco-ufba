@@ -23,10 +23,16 @@
     A publicação da análise é independente disso.
   </div>
 
-  <form method="post" class="meta-card">
+  <form method="post" class="meta-card"
+        x-data="autosaveForm('{% url 'autosave_resenha' analise.pk %}')"
+        x-init="iniciar()"
+        @input="marcarSujo()" @change="marcarSujo()" @submit="sujo = false">
     {% csrf_token %}
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
+      <label class="field-label" for="{{ form.texto.id_for_label }}" style="margin:0;">{{ form.texto.label }}</label>
+      {% include "acervo/_autosave_status.html" %}
+    </div>
     <div>
-      <label class="field-label" for="{{ form.texto.id_for_label }}">{{ form.texto.label }}</label>
       {{ form.texto }}
       {% if form.texto.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ form.texto.errors|join:" / " }}</p>{% endif %}
     </div>
@@ -56,4 +62,9 @@
   {% endif %}
 
 </main>
+<style>[x-cloak] { display: none !important; }</style>
+{% endblock %}
+
+{% block extra_scripts %}
+{% include "acervo/_autosave_script.html" %}
 {% endblock %}

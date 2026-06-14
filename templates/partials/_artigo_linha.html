@@ -1,0 +1,20 @@
+{% comment %}
+Linha/bloco esquerdo de um artigo em LISTAS (Corpus e Registros de triagem).
+Padrão visual único — estilos em templates/triagem/_estilos.html (.al-*).
+
+Parâmetro:
+  r — RegistroTriagem (título, autores, ano, tipo, titulo_periodico, doi, resumo).
+      Lê r.eh_individual se a view tiver anotado (some onde não existir).
+{% endcomment %}
+<div class="al-main">
+  <div class="al-titulo">{{ r.titulo|truncatechars:140 }}</div>
+  {% if r.autores %}<div class="al-meta">{{ r.autores|truncatechars:100 }}</div>{% endif %}
+  <div class="al-chips">
+    <span class="al-chip">{{ r.ano|default:"s.d." }}</span>
+    {% if r.tipo %}<span class="al-chip">{{ r.tipo }}</span>{% endif %}
+    {% if r.titulo_periodico %}<span class="al-chip">{{ r.titulo_periodico|truncatechars:40 }}</span>{% endif %}
+    {% if r.eh_individual %}<span class="al-chip al-chip-ind">individual</span>{% endif %}
+    <span class="al-chip">DOI {% if r.doi %}<span class="al-ok">✓</span>{% else %}<span class="al-no">✗</span>{% endif %}</span>
+    <span class="al-chip">resumo {% if r.resumo %}<span class="al-ok">✓</span>{% else %}<span class="al-no">✗</span>{% endif %}</span>
+  </div>
+</div>

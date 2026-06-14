@@ -6,8 +6,8 @@
 {% block content %}
 <div class="tg-wrap">
   <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; Triagem</a>
-  <div class="tg-head">
-    <h1 class="tg-h1">Registros de triagem</h1>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;">
+    <h1 class="tg-h1" style="margin-top:6px;">Registros de triagem <span class="tg-meta">· {{ pagina.paginator.count }} registro{{ pagina.paginator.count|pluralize }}</span></h1>
     <div class="tg-actions">
       {% if n_para_triar and pode_curar %}
         <a href="{% url 'triagem_iniciar' projeto.slug %}" class="btn btn-primary">Iniciar triagem ({{ n_para_triar }})</a>
@@ -15,37 +15,45 @@
       <a href="{% url 'triagem_importar' projeto.slug %}" class="btn btn-secondary">Importar lista</a>
     </div>
   </div>
+  <p class="tg-desc" style="margin:4px 0 0;">Todos os registros importados e o <strong>status de cada um na triagem</strong>. Para trabalhar nos artigos do corpus, use <a href="{% url 'triagem_incluidos' projeto.slug %}" style="color:var(--color-gold-deep);">Ver artigos</a>.</p>
 
-  <div class="tg-chips" style="margin-top:18px;">
-    <a href="{% url 'triagem_registros' projeto.slug %}" class="tg-chip {% if not status_atual %}on{% endif %}">Todos</a>
+  {% if busca_filtro or acervo_atual %}
+    <div class="tg-note" style="margin-top:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span>Filtrando por
+        {% if busca_filtro %}importação <strong>{{ busca_filtro.base_nome|default:"sem nome" }}</strong>{% endif %}
+        {% if acervo_atual == '0' %}{% if busca_filtro %} · {% endif %}<strong>novos no corpus</strong>{% endif %}
+        {% if acervo_atual == '1' %}{% if busca_filtro %} · {% endif %}<strong>já no acervo</strong>{% endif %}.</span>
+      {% if busca_filtro %}<a href="{% url 'triagem_busca_resumo' projeto.slug busca_filtro.pk %}" style="color:var(--color-gold-deep);">ver importação</a>{% endif %}
+      <a href="{% url 'triagem_registros' projeto.slug %}" style="color:var(--color-gold-deep);">limpar filtro</a>
+    </div>
+  {% endif %}
+
+  <div class="tg-chips" style="margin-top:18px;align-items:center;">
+    <span class="tg-meta" style="font-weight:600;margin-right:2px;">Status:</span>
+    <a href="?{% if busca_filtro %}busca={{ busca_filtro.pk }}{% endif %}{% if acervo_atual %}&acervo={{ acervo_atual }}{% endif %}" class="tg-chip {% if not status_atual %}on{% endif %}">Todos</a>
     {% for codigo, rotulo in status_choices %}
-      <a href="?status={{ codigo }}" class="tg-chip {% if status_atual == codigo %}on{% endif %}">{{ rotulo }}</a>
+      <a href="?status={{ codigo }}{% if busca_filtro %}&busca={{ busca_filtro.pk }}{% endif %}{% if acervo_atual %}&acervo={{ acervo_atual }}{% endif %}" class="tg-chip {% if status_atual == codigo %}on{% endif %}">{{ rotulo }}</a>
     {% endfor %}
   </div>
 
   {% if pagina.object_list %}
-    <div class="tg-table-scroll">
-    <table class="tg-table" style="min-width:520px;">
-      <thead><tr><th>Título</th><th>Ano</th><th>Status</th><th>Acervo</th></tr></thead>
-      <tbody>
-        {% for r in pagina %}
-          <tr>
-            <td>{{ r.titulo|truncatechars:120 }}
-              {% if r.doi %}<div class="tg-meta">{{ r.doi }}</div>{% endif %}</td>
-            <td>{{ r.ano|default:"—" }}</td>
-            <td>{{ r.get_status_display }}</td>
-            <td style="white-space:nowrap;">{% if r.ja_no_acervo %}<span style="color:var(--color-gold-deep);">já no acervo</span>{% else %}—{% endif %}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    </div>
+    <ul class="tg-list" style="margin-top:18px;">
+      {% for r in pagina %}
+        <li class="tg-card" style="display:flex;align-items:flex-start;gap:12px;justify-content:space-between;">
+          {% include "partials/_artigo_linha.html" with r=r %}
+          <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+            <span class="al-estado {% if 'incluido' in r.status %}ok{% elif 'excluido' in r.status %}muted{% else %}info{% endif %}">{{ r.get_status_display }}</span>
+            {% if r.ja_no_acervo %}<span class="tg-meta" style="color:var(--color-gold-deep);white-space:nowrap;">já no acervo</span>{% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
 
     {% if pagina.has_other_pages %}
       <div class="tg-actions" style="margin-top:18px;align-items:center;">
-        {% if pagina.has_previous %}<a href="?status={{ status_atual }}&page={{ pagina.previous_page_number }}" style="color:var(--color-gold-deep);font-family:var(--font-sans);font-size:14px;">&larr; anterior</a>{% endif %}
+        {% if pagina.has_previous %}<a href="?status={{ status_atual }}{% if busca_filtro %}&busca={{ busca_filtro.pk }}{% endif %}{% if acervo_atual %}&acervo={{ acervo_atual }}{% endif %}&page={{ pagina.previous_page_number }}" style="color:var(--color-gold-deep);font-family:var(--font-sans);font-size:14px;">&larr; anterior</a>{% endif %}
         <span class="tg-meta">página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
-        {% if pagina.has_next %}<a href="?status={{ status_atual }}&page={{ pagina.next_page_number }}" style="color:var(--color-gold-deep);font-family:var(--font-sans);font-size:14px;">próxima &rarr;</a>{% endif %}
+        {% if pagina.has_next %}<a href="?status={{ status_atual }}{% if busca_filtro %}&busca={{ busca_filtro.pk }}{% endif %}{% if acervo_atual %}&acervo={{ acervo_atual }}{% endif %}&page={{ pagina.next_page_number }}" style="color:var(--color-gold-deep);font-family:var(--font-sans);font-size:14px;">próxima &rarr;</a>{% endif %}
       </div>
     {% endif %}
   {% else %}

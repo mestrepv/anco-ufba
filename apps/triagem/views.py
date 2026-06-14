@@ -61,7 +61,8 @@ from .sorteio_analise import (
     desfazer_sorteio,
     executar_sorteio_analise,
 )
-from .tasks import avancar_apos_status, iniciar_triagem
+from .tasks import avancar_apos_status
+from .triagem_direta import atribuir_triagem_direta, revisores_validos
 
 
 def _eh_curador(user) -> bool:
@@ -642,6 +643,21 @@ def registros_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
     if status in dict(RegistroTriagem.Status.choices):
         qs = qs.filter(status=status)
 
+    # Filtro opcional por importação (cards clicáveis da página de detalhe da busca).
+    busca_filtro = None
+    busca_id = request.GET.get("busca", "")
+    if busca_id:
+        busca_filtro = projeto.buscas.filter(pk=busca_id).first()
+        if busca_filtro:
+            qs = qs.filter(origem_buscas=busca_filtro)
+
+    # Recorte por situação no acervo: 0 = novos no corpus, 1 = já no acervo.
+    acervo = request.GET.get("acervo", "")
+    if acervo == "1":
+        qs = qs.filter(ja_no_acervo=True)
+    elif acervo == "0":
+        qs = qs.filter(ja_no_acervo=False)
+
     pagina = Paginator(qs, 50).get_page(request.GET.get("page"))
     n_identificados = projeto.registros.filter(
         status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
@@ -654,6 +670,8 @@ def registros_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
         "status_choices": RegistroTriagem.Status.choices,
         "n_para_triar": n_identificados,
         "pode_curar": projeto.eh_curador_no(request.user),
+        "busca_filtro": busca_filtro,
+        "acervo_atual": acervo,
     }
     return render(request, "triagem/registros.html", contexto)
 
@@ -779,15 +797,31 @@ def desfazer_mescla_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Htt
 
 @_projeto_curador
 def iniciar_triagem_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
-    """Curador fecha a coleta e dispara o sorteio dos identificados."""
+    """Curador fecha a coleta e inicia a triagem para todos os membros — sem sorteio.
+
+    PRISMA-ScR: cada registro identificado é atribuído a **todos os membros do
+    projeto** (≥2 revisores independentes), que triam de forma independente. Não
+    há distribuição aleatória; reaproveita `atribuir_triagem_direta`.
+    """
     n_disponiveis = projeto.registros.filter(
         status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
     ).count()
+    membros = [m.usuario for m in projeto.membros.select_related("usuario")]
 
     if request.method == "POST":
-        n = iniciar_triagem(projeto)
-        if n:
-            messages.success(request, f"Triagem iniciada para {n} registro(s).")
+        if not membros:
+            messages.error(
+                request,
+                "O projeto não tem membros para triar. Adicione revisores em Equipe.",
+            )
+            return redirect("triagem_registros", slug=projeto.slug)
+        res = atribuir_triagem_direta(projeto, membros)
+        if res.registros:
+            messages.success(
+                request,
+                f"Triagem iniciada para {res.registros} registro(s) "
+                f"({res.revisores} revisor(es)).",
+            )
         else:
             messages.info(request, "Nenhum registro identificado disponível para triar.")
         return redirect("triagem_registros", slug=projeto.slug)
@@ -795,7 +829,62 @@ def iniciar_triagem_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Htt
     return render(
         request,
         "triagem/iniciar_confirma.html",
-        {"projeto": projeto, "protocolo": projeto, "n_disponiveis": n_disponiveis},
+        {
+            "projeto": projeto,
+            "protocolo": projeto,
+            "n_disponiveis": n_disponiveis,
+            "n_membros": len(membros),
+        },
+    )
+
+
+@_projeto_curador
+def triagem_direta_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
+    """Triagem **sem sorteio**: o curador designa os revisores e todos triam tudo.
+
+    Atribui os revisores escolhidos a cada registro identificado (ver
+    `triagem_direta.atribuir_triagem_direta`). Recomenda-se escolher todos os
+    revisores de uma vez (≥2) antes de iniciar — registros já decididos não
+    recebem revisores adicionados depois.
+    """
+    n_disponiveis = projeto.registros.filter(
+        status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
+    ).count()
+    membros = list(
+        projeto.membros.select_related("usuario").order_by(
+            "-papel", "usuario__nome_exibicao"
+        )
+    )
+
+    if request.method == "POST":
+        ids = [int(i) for i in request.POST.getlist("revisores") if i.isdigit()]
+        revisores = revisores_validos(projeto, ids)
+        if not revisores:
+            messages.error(request, "Selecione ao menos um revisor (membro do projeto).")
+            return redirect("triagem_direta", slug=projeto.slug)
+        res = atribuir_triagem_direta(projeto, revisores)
+        if res.registros:
+            messages.success(
+                request,
+                f"Triagem direta atribuída: {res.registros} registro(s) para "
+                f"{res.revisores} revisor(es) ({res.decisoes} decisão/ões criadas).",
+            )
+        else:
+            messages.info(
+                request,
+                "Nenhum registro novo para atribuir (os disponíveis já estavam em triagem).",
+            )
+        return redirect("triagem_registros", slug=projeto.slug)
+
+    return render(
+        request,
+        "triagem/triagem_direta_confirma.html",
+        {
+            "projeto": projeto,
+            "protocolo": projeto,
+            "n_disponiveis": n_disponiveis,
+            "membros": membros,
+        },
     )
 
 
@@ -1276,6 +1365,12 @@ def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
 
     # Nome do analista atribuído (só os da página).
     page_art_ids = [r.artigo_id for r in pagina.object_list]
+    # Análise do PRÓPRIO usuário em cada artigo da página (curador/admin pode
+    # analisar qualquer artigo sem sorteio — o botão usa isto p/ Analisar/Continuar/Ver).
+    minha_analise: dict[int, Analise] = {
+        an.artigo_id: an
+        for an in Analise.objects.filter(analista=request.user, artigo_id__in=page_art_ids)
+    }
     atrib_nome: dict[int, str] = {}
     for a in (
         AtribuicaoAnalise.objects.filter(sorteio__projeto=projeto, artigo_id__in=page_art_ids)
@@ -1287,6 +1382,7 @@ def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
     # Estado de análise por item (o template não lê atributos com "_").
     for r in pagina.object_list:
         nome = atrib_nome.get(r.artigo_id, "")
+        r.minha_analise = minha_analise.get(r.artigo_id)
         if r._analisado:
             r.estado_rotulo, r.estado_cor = "● analisado", "ok"
         elif r._rascunho:
@@ -1486,11 +1582,11 @@ def sorteio_analise_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Htt
             ),
             key=lambda g: (g["analista"].nome_exibicao or g["analista"].email or "").lower(),
         )
+    from .sorteio_analise import filtrar_completos
+
     incluidos = projeto.registros.filter(status=RegistroTriagem.Status.INCLUIDO)
     n_incluidos = incluidos.count()
-    n_completos = (
-        incluidos.exclude(doi="").exclude(resumo="").exclude(palavras_chaves="").count()
-    )
+    n_completos = filtrar_completos(incluidos).count()
     ja_atribuidos = (
         AtribuicaoAnalise.objects.filter(sorteio__projeto=projeto)
         .values("artigo_id")
@@ -1513,22 +1609,31 @@ def sorteio_analise_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Htt
     )
 
 
-def _artigos_para_consenso(projeto: ProtocoloTriagem):
-    """Artigos de sorteios `dupla` com ≥2 análises enviadas e sem consenso ainda."""
+def _artigos_para_consenso(projeto: ProtocoloTriagem) -> dict:
+    """Artigos de sorteios `dupla` agrupados por situação de conciliação.
+
+    Retorna {"pendentes": [...], "parciais": [...]}:
+    - `pendentes`: ≥2 análises enviadas e sem consenso → prontos para conciliar.
+    - `parciais`: só 1 das 2 análises enviada ainda → aguardando o outro analista
+      (antes esses artigos sumiam da tela, parecendo que não havia nada a fazer).
+    """
     from apps.acervo.models import Analise
 
-    artigo_ids = set(
-        AtribuicaoAnalise.objects.filter(
-            sorteio__projeto=projeto,
-            sorteio__modo_revisao=SorteioAnalise.ModoRevisao.DUPLA,
-        ).values_list("artigo_id", flat=True)
-    )
+    atribuicoes = AtribuicaoAnalise.objects.filter(
+        sorteio__projeto=projeto,
+        sorteio__modo_revisao=SorteioAnalise.ModoRevisao.DUPLA,
+    ).select_related("artigo")
+    artigo_ids = set(a.artigo_id for a in atribuicoes)
     ja_conciliados = set(
         ConsensoAnalise.objects.filter(
             artigo_id__in=artigo_ids, conciliado_em__isnull=False
         ).values_list("artigo_id", flat=True)
     )
-    pendentes = []
+    n_atribuidos = {}
+    for a in atribuicoes:
+        n_atribuidos[a.artigo_id] = n_atribuidos.get(a.artigo_id, 0) + 1
+
+    pendentes, parciais = [], []
     enviadas = (Analise.Status.SUBMETIDA, Analise.Status.PUBLICADA)
     for aid in artigo_ids - ja_conciliados:
         analises = list(
@@ -1538,7 +1643,16 @@ def _artigos_para_consenso(projeto: ProtocoloTriagem):
         )
         if len(analises) >= 2:
             pendentes.append({"artigo": analises[0].artigo, "analises": analises})
-    return pendentes
+        elif analises:
+            # 1 enviada, ainda falta a outra: mostra como "aguardando".
+            parciais.append(
+                {
+                    "artigo": analises[0].artigo,
+                    "enviadas": len(analises),
+                    "esperadas": n_atribuidos.get(aid, 2),
+                }
+            )
+    return {"pendentes": pendentes, "parciais": parciais}
 
 
 @_projeto_curador
@@ -1568,12 +1682,134 @@ def consenso_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespon
         messages.success(request, "Consenso registrado.")
         return redirect("triagem_consenso", slug=projeto.slug)
 
+    grupos = _artigos_para_consenso(projeto)
     return render(
         request,
         "triagem/consenso.html",
         {
             "projeto": projeto,
             "protocolo": projeto,
-            "pendentes": _artigos_para_consenso(projeto),
+            "pendentes": grupos["pendentes"],
+            "parciais": grupos["parciais"],
         },
     )
+
+
+# --------------------------------------------------------------------------- #
+# Equipe do projeto (gerenciar membros sem passar pelo admin)
+# --------------------------------------------------------------------------- #
+
+
+def _candidatos_equipe(projeto: ProtocoloTriagem, termo: str = "", limite: int = 12):
+    """Usuários elegíveis a entrar na equipe: analistas/curadores ativos que
+    ainda **não** são membros. `termo` filtra por e-mail ou nome (case-insensitive).
+    """
+    from django.contrib.auth import get_user_model
+    from django.db.models import Q
+
+    User = get_user_model()
+    ja_membros = projeto.membros.values_list("usuario_id", flat=True)
+    qs = User.objects.filter(
+        is_active=True,
+        papel__in=[User.Papel.ANALISTA, User.Papel.CURADOR],
+    ).exclude(pk__in=ja_membros)
+    termo = (termo or "").strip()
+    if termo:
+        qs = qs.filter(
+            Q(email__icontains=termo)
+            | Q(nome_exibicao__icontains=termo)
+            | Q(first_name__icontains=termo)
+            | Q(last_name__icontains=termo)
+        )
+    return qs.order_by("nome_exibicao", "email")[:limite]
+
+
+@_projeto_curador
+def equipe_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
+    """Gerencia a equipe do projeto: adicionar por e-mail/nome, trocar papel,
+    remover. Substitui o link antigo para o Django admin.
+    """
+    if request.method == "POST":
+        acao = request.POST.get("acao")
+
+        if acao == "adicionar":
+            from django.contrib.auth import get_user_model
+
+            User = get_user_model()
+            usuario_id = request.POST.get("usuario_id")
+            papel = request.POST.get("papel")
+            if papel not in dict(ProjetoMembro.Papel.choices):
+                papel = ProjetoMembro.Papel.ANALISTA
+            usuario = User.objects.filter(
+                pk=usuario_id,
+                is_active=True,
+                papel__in=[User.Papel.ANALISTA, User.Papel.CURADOR],
+            ).first()
+            if not usuario:
+                messages.error(request, "Usuário inválido ou não habilitado para a triagem.")
+            else:
+                _, criado = ProjetoMembro.objects.get_or_create(
+                    projeto=projeto, usuario=usuario, defaults={"papel": papel}
+                )
+                nome = usuario.nome_exibicao or usuario.email
+                if criado:
+                    messages.success(request, f"{nome} adicionado(a) como {papel}.")
+                else:
+                    messages.info(request, f"{nome} já era membro.")
+
+        elif acao in {"remover", "papel"}:
+            membro = projeto.membros.filter(pk=request.POST.get("membro_id")).first()
+            if not membro:
+                messages.error(request, "Membro não encontrado.")
+            elif acao == "remover":
+                if _eh_ultimo_curador(projeto, membro):
+                    messages.error(request, "Não dá para remover o último curador do projeto.")
+                else:
+                    nome = membro.usuario.nome_exibicao or membro.usuario.email
+                    membro.delete()
+                    messages.success(request, f"{nome} removido(a) da equipe.")
+            else:  # papel
+                novo = request.POST.get("papel")
+                if novo not in dict(ProjetoMembro.Papel.choices):
+                    messages.error(request, "Papel inválido.")
+                elif novo != ProjetoMembro.Papel.CURADOR and _eh_ultimo_curador(projeto, membro):
+                    messages.error(request, "O projeto precisa de ao menos um curador.")
+                else:
+                    membro.papel = novo
+                    membro.save(update_fields=["papel"])
+                    nome = membro.usuario.nome_exibicao or membro.usuario.email
+                    messages.success(request, f"{nome} agora é {novo}.")
+
+        return redirect("triagem_equipe", slug=projeto.slug)
+
+    membros = projeto.membros.select_related("usuario").order_by("-papel", "usuario__nome_exibicao")
+    return render(
+        request,
+        "triagem/equipe.html",
+        {
+            "projeto": projeto,
+            "protocolo": projeto,
+            "membros": membros,
+            "n_membros": membros.count(),
+            "candidatos": _candidatos_equipe(projeto),
+        },
+    )
+
+
+@_projeto_curador
+def equipe_buscar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
+    """Fragmento HTMX: lista de candidatos que casam com o termo digitado."""
+    candidatos = _candidatos_equipe(projeto, request.GET.get("q", ""))
+    return render(
+        request,
+        "triagem/_equipe_candidatos.html",
+        {"projeto": projeto, "candidatos": candidatos, "q": request.GET.get("q", "")},
+    )
+
+
+def _eh_ultimo_curador(projeto: ProtocoloTriagem, membro: ProjetoMembro) -> bool:
+    """True se `membro` é curador e é o único curador do projeto."""
+    if membro.papel != ProjetoMembro.Papel.CURADOR:
+        return False
+    outros = projeto.membros.filter(papel=ProjetoMembro.Papel.CURADOR).exclude(pk=membro.pk)
+    return not outros.exists()

@@ -243,6 +243,32 @@ class Artigo(models.Model):
         """Retorna o melhor identificador disponível: DOI > ISBN > interno."""
         return self.doi or self.isbn or self.identificador_interno or ""
 
+    def ficha(self) -> dict:
+        """Dados bibliográficos normalizados para o componente de ficha único
+        (templates/partials/_ficha_artigo.html). Mesmas chaves que
+        RegistroTriagem.ficha(), para a ficha ser idêntica nas duas origens."""
+        if self.base_consulta_id:
+            base = self.base_consulta.nome
+        else:
+            base = self.outra_base_consulta or ""
+        area = self.area_outra if self.area == self.Area.OUTROS else self.area
+        return {
+            "titulo": self.titulo,
+            "autores": self.autores,
+            "ano": self.ano,
+            "periodico": self.titulo_periodico,
+            "tipo": "",  # Artigo não guarda tipo de documento
+            "doi": self.doi or "",
+            "isbn": self.isbn or "",
+            "idioma": self.get_idioma_display() if self.idioma else "",
+            "link": self.link_acesso,
+            "link_alt": self.link_acesso_alternativo,
+            "palavras_chaves": self.palavras_chaves,
+            "resumo": self.resumo,
+            "base": base,
+            "area": area or "",
+        }
+
     def save(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
         """
         Normaliza identificadores e gera `identificador_interno` quando
@@ -465,6 +491,9 @@ class Analise(models.Model):
         "pertinencia": "Pertinência",
         "define_conceito": "Define o conceito",
     }
+    # `contexto_producao` e `observacoes` são acessórios (anotações de apoio) e
+    # ficaram OPCIONAIS para reduzir a carga de campos obrigatórios na submissão.
+    # Pendência de confirmação das coordenadoras (ver relatório de melhorias).
     _SUBMISSAO_TEXTO = {
         "aspectos_relevantes": "Aspectos relevantes",
         "objeto": "Objeto",
@@ -473,8 +502,6 @@ class Analise(models.Model):
         "metodologia": "Metodologia",
         "referenciais": "Referenciais",
         "resultados": "Resultados",
-        "contexto_producao": "Contexto de produção",
-        "observacoes": "Observações",
     }
 
     def campos_faltantes_submissao(self) -> list[str]:

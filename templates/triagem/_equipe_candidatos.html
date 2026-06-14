@@ -1,0 +1,23 @@
+{# Fragmento HTMX: candidatos a entrar na equipe (ainda não membros). #}
+{% for u in candidatos %}
+  <form method="post" action="{% url 'triagem_equipe' projeto.slug %}" class="eq-cand">
+    {% csrf_token %}
+    <input type="hidden" name="acao" value="adicionar">
+    <input type="hidden" name="usuario_id" value="{{ u.pk }}">
+    <div class="eq-cand-id">
+      <span class="eq-nome">{{ u.nome_exibicao|default:u.email }}</span>
+      <span class="eq-email">{{ u.email }}{% if u.papel == 'curador' %} · curador (global){% endif %}</span>
+    </div>
+    <select name="papel" class="eq-select" aria-label="Papel no projeto">
+      <option value="analista">analista</option>
+      <option value="curador">curador</option>
+    </select>
+    <button type="submit" class="btn btn-sm btn-manter">+ Adicionar</button>
+  </form>
+{% empty %}
+  {% if q %}
+    <p class="tg-empty" style="padding:12px 0;">Nenhum usuário habilitado casa com “{{ q }}”.</p>
+  {% else %}
+    <p class="tg-empty" style="padding:12px 0;">Todos os analistas/curadores já estão na equipe.</p>
+  {% endif %}
+{% endfor %}

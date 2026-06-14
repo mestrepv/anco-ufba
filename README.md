@@ -30,7 +30,7 @@ facetada e busca semântica.
 5. [Aspectos metodológicos](#5-aspectos-metodológicos)
 6. [Busca semântica](#6-busca-semântica)
 7. [Stack tecnológica — vantagens, desvantagens e substitutos](#7-stack-tecnológica--vantagens-desvantagens-e-substitutos)
-8. [Triagem PRISMA-ScR (Fases 9–12) — seleção de fontes antes da análise, por projeto](#8-triagem-prisma-scr-fases-912--seleção-de-fontes-antes-da-análise-por-projeto)
+8. [Dois modos por projeto: Triagem PRISMA-ScR (rigoroso) e Revisão ANCO (simplificado)](#8-dois-modos-por-projeto-triagem-prisma-scr-rigoroso-e-revisão-anco-simplificado)
 9. [Bootstrap local e comandos](#9-bootstrap-local-e-comandos)
 10. [Como citar, autoria e licença](#10-como-citar-autoria-e-licença)
 
@@ -133,25 +133,35 @@ Detalhes em [apps/acervo/models.py](apps/acervo/models.py),
 **Camada de triagem (`apps/triagem`, aditiva — não toca o schema do acervo):**
 
 ```
-  ProtocoloTriagem (= projeto) ──< ProjetoMembro >── User (papel por projeto)
+  ProtocoloTriagem (= projeto, modo: rigoroso|anco) ──< ProjetoMembro >── User (papel por projeto)
         │  │  │
         │  │  └─< Busca (importação: base, arquivo, filtros, contagens, criado_por)
         │  └────< RegistroTriagem ──< DecisaoTriagem >── User (revisor, por etapa)
         │              └─ FK Artigo (proveniência: só os incluídos viram Artigo)
-        └─< SnapshotProtocolo · RodadaCalibracao
+        ├─< SnapshotProtocolo · RodadaCalibracao            (modo rigoroso)
+        └─< SorteioAnalise ──< AtribuicaoAnalise >── User   (modo ANCO)
+                  └─ ConsensoAnalise (revisão dupla)
 ```
 
 - **`ProtocoloTriagem`** = **o projeto** (revisão de escopo): `nome/slug`, pergunta,
   `estrategia_busca`, critérios de inclusão/exclusão, `n_revisores`/prazo, `versao`/
   `travado_em` (protocolo a priori), `registro_externo` (OSF), `usa_texto_completo`.
+  **`modo`** comuta o fluxo do projeto entre **`rigoroso`** (PRISMA-ScR, Fases 9–12)
+  e **`anco`** (Revisão ANCO simplificada, Fase 13) — default `rigoroso`; ver §8.
 - **`ProjetoMembro`** — vínculo usuário↔projeto com **papel por projeto** (analista/curador).
 - **`Busca`** — uma importação (base, arquivo cru, filtros, contagens de dedup, **`criado_por`**).
 - **`RegistroTriagem`** — candidato pré-`Artigo` (`identificado → em triagem → incluído/
   excluído/duplicado`); dedup determinística + `pg_trgm`; proveniência em `artigo`.
+  `relevancia_score` cacheia, no modo ANCO, a correspondência de termos da estratégia de
+  busca (sem embeddings), para ordenar a lista de incluídos.
 - **`DecisaoTriagem`** — parecer de um revisor por **etapa** (título/resumo, texto completo
   ou calibração); concordância **κ de Fleiss**.
 - **`SnapshotProtocolo`**, **`RodadaCalibracao`**, **`ParDuplicataDescartado`** — versão a
-  priori congelada, piloto de calibração e pares marcados como **não**-duplicata.
+  priori congelada, piloto de calibração e pares marcados como **não**-duplicata (modo rigoroso).
+- **`SorteioAnalise` / `AtribuicaoAnalise` / `ConsensoAnalise`** (modo ANCO) — distribuição
+  da análise por **cota** (5/analista), em revisão **única** ou **dupla** (`modo_revisao`);
+  cada `AtribuicaoAnalise` liga analista↔artigo; na dupla, `ConsensoAnalise` registra a
+  conciliação das duas análises independentes pelo curador.
 
 ---
 
@@ -165,11 +175,14 @@ Detalhes em [apps/acervo/models.py](apps/acervo/models.py),
 3. **Curadoria aprova** a solicitação (admin) → o usuário vira `analista` e pode
    criar análises. (Habilitação como revisor é análoga.)
 
-### 4.2. Entrada de artigos: importação + triagem (PRISMA-ScR)
+### 4.2. Entrada de artigos: importação + triagem (dois modos por projeto)
 
 O analista **não cadastra mais artigos um a um por DOI**. A entrada agora é por
 **importação de arquivo**, dentro de um **projeto** de revisão de escopo
-(`/triagem/p/<slug>/`):
+(`/triagem/p/<slug>/`). Cada projeto é criado em um de **dois modos** (`modo`,
+default `rigoroso`), que comuta o fluxo de seleção **sem remover** o outro:
+
+**Comum aos dois modos:**
 
 1. **Importa** o arquivo de exportação da base — **RIS / BibTeX / CSV** — ou, para
    bases sem exportação direta (ex.: repositórios institucionais), usa o **Zotero**
@@ -178,18 +191,30 @@ O analista **não cadastra mais artigos um a um por DOI**. A entrada agora é po
    duplicatas** por similaridade de título para confirmação humana (com trilha de
    auditoria e reversão). Quem já casa com o acervo — inclusive o **legado** — é
    marcado e **isento** de triagem.
-3. **Triagem PRISMA-ScR**: o **curador inicia a triagem**; cada registro é sorteado
-   para **≥2 revisores membros**, que decidem **incluir / excluir / dúvida** numa
-   interface **mascarada** (cega ao coletor e aos pares). **Consenso** resolve;
-   **divergência** vai a **desempate** do curador. (Opcional por projeto: 2 etapas,
-   título/resumo → texto completo.)
-4. Os **incluídos viram `Artigo`** e aparecem em **"A analisar"**, de onde o analista
-   abre a **análise pela Matriz AnCo** (§4.3).
+
+**Modo `rigoroso` (Triagem PRISMA-ScR):** o **curador inicia a triagem**; cada
+registro é sorteado para **≥2 revisores membros**, que decidem **incluir / excluir /
+dúvida** numa interface **mascarada** (cega ao coletor e aos pares). **Consenso**
+resolve; **divergência** vai a **desempate** do curador. (Opcional por projeto: 2
+etapas, título/resumo → texto completo; calibração-piloto e protocolo a priori.)
+
+**Modo `anco` (Revisão ANCO simplificada):** reproduz o fluxo da disciplina de
+Análise Cognitiva. O **dono da base autotria** seus próprios registros
+(incluir/excluir, revisor único); os **incluídos** ficam em uma lista **ordenada por
+relevância** (correspondência de termos da estratégia de busca, sem embeddings); e o
+curador roda um **sorteio de análise** que distribui uma **cota (5 por analista)**,
+preferindo **bases distintas** e priorizando relevância — em revisão **única** ou
+**dupla** (§4.3). Não há triagem dupla mascarada, κ, checklist nem calibração — esses
+painéis ficam ocultos.
+
+Em ambos, os **incluídos viram `Artigo`**; no modo `anco` com sorteio, o analista vê
+em **"A analisar"** apenas os **artigos atribuídos a ele**, de onde abre a **análise
+pela Matriz AnCo** (§4.3).
 
 O **cadastro avulso** por DOI/ISBN (lookup **Crossref**/cache 24h e **OpenLibrary**/
 cache 30d, com reaproveitamento quando o identificador já existe) **continua existindo,
 mas restrito a curador/admin** — é exceção, não o caminho do analista. Detalhe completo
-da triagem, dos projetos e do rigor metodológico na **§8**.
+dos dois modos, dos projetos e do rigor metodológico na **§8**.
 
 ### 4.3. Análise estruturada (4 abas)
 
@@ -205,6 +230,13 @@ da triagem, dos projetos e do rigor metodológico na **§8**.
 Auto-save a cada 30s. O botão **"Submeter para curadoria" só aparece quando todos
 os campos das abas 1–3 estão preenchidos** (a aba 4 é opcional), com trava também
 no servidor.
+
+No modo `anco`, o sorteio define se cada artigo recebe **revisão única** (uma
+análise → curadoria normal, §4.4) ou **dupla** (duas análises **independentes** de
+analistas distintos → o **curador concilia** em `ConsensoAnalise`, registrando a
+análise final; as duas de origem são preservadas como insumo). A constraint
+`(artigo, analista)` continua valendo: a pluralidade interpretativa é a base da
+revisão dupla.
 
 ### 4.4. Aprovação editorial por curadoria
 
@@ -311,13 +343,28 @@ dependência de Alpine/CDN no cliente; (iv) Compose não cobre alta disponibilid
 
 ---
 
-## 8. Triagem PRISMA-ScR (Fases 9–12) — seleção de fontes antes da análise, por projeto
+## 8. Dois modos por projeto: Triagem PRISMA-ScR (rigoroso) e Revisão ANCO (simplificado)
 
-A AnCo inclui uma etapa de **triagem (screening) por ≥2 revisores independentes**,
-anterior à análise — tornando a **seleção do acervo equivalente ao PRISMA-ScR**
-(*PRISMA extension for Scoping Reviews*). App nativo **aditivo** (`apps/triagem`),
-sem alterar o schema do acervo: candidatos vivem em tabelas próprias e **só os
-incluídos viram `Artigo`**.
+A seleção de fontes **anterior à análise** vive no app nativo **aditivo**
+(`apps/triagem`), sem alterar o schema do acervo: candidatos vivem em tabelas
+próprias e **só os incluídos viram `Artigo`**. Cada **projeto** escolhe **um de dois
+modos** (`ProtocoloTriagem.modo`, default `rigoroso`) — um **toggle por projeto**,
+**aditivo e reversível**, em que **nenhum dos fluxos remove o outro**:
+
+- **`rigoroso` — Triagem PRISMA-ScR (Fases 9–12):** triagem por **≥2 revisores
+  independentes** com mascaramento, consenso/desempate, concordância e protocolo a
+  priori — tornando a seleção **equivalente ao PRISMA-ScR** (*PRISMA extension for
+  Scoping Reviews*). Detalhado em §8.1.
+- **`anco` — Revisão ANCO (Fase 13):** fluxo **simplificado** que reproduz a prática
+  da disciplina de Análise Cognitiva — autotriagem pelo dono da base, lista por
+  relevância e sorteio de cota para análise (única/dupla). Detalhado em §8.2.
+
+Em ambos, a **importação** (RIS/BibTeX/CSV) e a **dedup** (DOI > ISBN > hash +
+`pg_trgm`, com auditoria, procedência e reversão) são idênticas, e o **acervo
+histórico (legado)** — base de fundação curada por Eneida Santana — **não passa por
+triagem nem é editável por analistas**, por construção.
+
+### 8.1. Modo `rigoroso` — Triagem PRISMA-ScR
 
 **Projetos (Fase 12).** Cada **projeto** é uma revisão de escopo independente —
 pergunta, estratégia de busca, protocolo registrado, corpus, fluxograma e
@@ -349,13 +396,45 @@ de bases que **ele importou** e exclui apenas as **próprias** importações; a 
 é no servidor (não só na UI). O **acervo histórico (legado)** — base de fundação curada
 por Eneida Santana — **não passa por triagem nem é editável por analistas**, por construção.
 
-Com isso, o acervo é não só uma base navegável, mas um **protocolo de revisão de escopo
-reprodutível e reportável** de ponta a ponta. Detalhes em
+Com isso, no modo rigoroso o acervo é não só uma base navegável, mas um **protocolo de
+revisão de escopo reprodutível e reportável** de ponta a ponta. Detalhes em
 [docs/relatorios/fase-9.md](docs/relatorios/fase-9.md) … [fase-12.md](docs/relatorios/fase-12.md)
 e em [docs/planos/fase-12-projetos.md](docs/planos/fase-12-projetos.md).
 
-Demais frentes de roadmap: calibração ativa da busca semântica; edição da estratégia de
-busca direto na página do protocolo; fusão de contas de analistas legado.
+### 8.2. Modo `anco` — Revisão ANCO (simplificado)
+
+Para grupos que seguem a prática da **disciplina de Análise Cognitiva** (Profas.
+Teresinha Fróes e Leliana), o modo `anco` automatiza um fluxo mais leve, **sem o
+aparato PRISMA-ScR** — meta de UX: o analista vê **pouco, ordenado e com cota fixa**,
+não a pilha inteira. Tudo vive atrás do `modo` do projeto; o código rigoroso
+permanece intacto.
+
+1. **Importação + dedup** idênticas ao modo rigoroso (acima).
+2. **Autotriagem:** o **dono da base tria os próprios registros** (incluir/excluir,
+   **revisor único**; sem "dúvida", para não gerar desempate), reusando a
+   consolidação e a promoção ao acervo. Gate de propriedade espelha a dedup
+   (`importadores`); curador/admin podem agir sobre qualquer base.
+3. **Relevância por termos (sem embeddings):** `relevancia_score` = nº de termos
+   distintos da estratégia de busca presentes em título/resumo/palavras-chave. A
+   tela de **incluídos** (`/triagem/p/<slug>/incluidos/`) ordena por relevância, com
+   badge explicável ("casou com N termos"). Comando `recalcular_relevancia`.
+4. **Sorteio de análise** (`/triagem/p/<slug>/sorteio-analise/`): o curador escolhe
+   **única** ou **dupla** e a **cota (5/analista)**; o algoritmo guloso distribui
+   priorizando relevância e **preferindo bases distintas** (preferência, **nunca**
+   bloqueia a cota), sem reatribuir o que o analista já analisou. **Idempotente**;
+   **faltas são logadas** (pool insuficiente) — sem truncamento silencioso.
+5. **Análise pela Matriz AnCo:** em **"A analisar"** o analista vê **só os artigos
+   atribuídos** a ele. **Única** → curadoria normal; **dupla** → 2 análises
+   independentes → o curador **concilia** em `ConsensoAnalise`
+   (`/triagem/p/<slug>/consenso/`), registrando a análise final.
+
+Detalhes em [docs/relatorios/fase-13.md](docs/relatorios/fase-13.md) e
+[docs/planos/fase-13-revisao-anco.md](docs/planos/fase-13-revisao-anco.md).
+
+Demais frentes de roadmap: relevância **semântica** por embeddings/base referencial no
+modo ANCO; comparação lado a lado na tela de consenso; calibração ativa da busca
+semântica; edição da estratégia de busca direto na página do protocolo; fusão de contas
+de analistas legado.
 
 ---
 

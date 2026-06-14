@@ -1,0 +1,93 @@
+{% extends "_base_publico.html" %}
+
+{% block title %}Equipe · {{ projeto.nome }} · Triagem{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}
+<style>
+  .eq-grid { display:grid; gap:10px; margin:6px 0 28px; }
+  .eq-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+            border:1px solid var(--color-rule); border-radius:10px; padding:12px 14px; background:var(--color-paper); }
+  .eq-id { flex:1; min-width:200px; display:flex; flex-direction:column; gap:1px; }
+  .eq-nome { font-family:var(--font-sans); font-size:14px; color:var(--color-ink); font-weight:600; }
+  .eq-email { font-family:var(--font-sans); font-size:12px; color:var(--color-ink-3); overflow-wrap:anywhere; }
+  .eq-acts { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .eq-acts form { display:inline-flex; gap:6px; align-items:center; margin:0; }
+  .eq-select { font-family:var(--font-sans); font-size:13px; padding:5px 8px; border:1px solid var(--color-rule);
+               border-radius:6px; background:var(--color-paper); color:var(--color-ink); }
+  .eq-tag { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--color-gold-deep);
+            border:1px solid var(--color-rule); border-radius:999px; padding:2px 8px; }
+  .eq-link { background:none; border:none; cursor:pointer; font-family:var(--font-sans); font-size:13px;
+             color:var(--color-danger); text-decoration:underline; padding:0; }
+  .eq-add { border:1px solid var(--color-rule); border-radius:12px; padding:16px 18px; background:var(--color-paper-2); }
+  .eq-input { width:100%; box-sizing:border-box; font-family:var(--font-sans); font-size:15px; padding:10px 12px;
+              border:1px solid var(--color-rule); border-radius:8px; background:var(--color-paper); color:var(--color-ink); }
+  .eq-cands { margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .eq-cand { display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+             border:1px dashed var(--color-rule); border-radius:8px; padding:8px 12px; margin:0; }
+  .eq-cand-id { flex:1; min-width:200px; display:flex; flex-direction:column; gap:1px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tg-wrap">
+  <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome }}</a>
+  <div class="tg-head">
+    <div>
+      <p class="t-eyebrow" style="margin:0 0 4px;">Triagem · gerenciar equipe</p>
+      <h1 class="tg-h1">Equipe <span class="tg-meta">({{ n_membros }})</span></h1>
+      <p class="tg-meta" style="margin-top:6px;">Curadores gerenciam quem participa da triagem deste projeto.
+        Só analistas e curadores da plataforma podem ser adicionados.</p>
+    </div>
+  </div>
+
+  {# ── Adicionar ─────────────────────────────────────────────── #}
+  <h2 class="tg-h2">Adicionar membro</h2>
+  <div class="eq-add">
+    <input class="eq-input" type="search" name="q" placeholder="Digite o e-mail ou nome…"
+           autocomplete="off"
+           hx-get="{% url 'triagem_equipe_buscar' projeto.slug %}"
+           hx-trigger="keyup changed delay:250ms, search"
+           hx-target="#eq-cands"
+           hx-swap="innerHTML"
+           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    <p class="tg-meta" style="margin-top:8px;">Mostra apenas quem ainda não está na equipe. Escolha o papel e clique em adicionar.</p>
+    <div id="eq-cands" class="eq-cands">
+      {% include "triagem/_equipe_candidatos.html" %}
+    </div>
+  </div>
+
+  {# ── Membros atuais ────────────────────────────────────────── #}
+  <h2 class="tg-h2">Membros atuais</h2>
+  <div class="eq-grid">
+    {% for m in membros %}
+      <div class="eq-row">
+        <div class="eq-id">
+          <span class="eq-nome">{{ m.usuario.nome_exibicao|default:m.usuario.email }}</span>
+          <span class="eq-email">{{ m.usuario.email }}</span>
+        </div>
+        <span class="eq-tag">{{ m.papel }}</span>
+        <div class="eq-acts">
+          <form method="post" action="{% url 'triagem_equipe' projeto.slug %}">
+            {% csrf_token %}
+            <input type="hidden" name="acao" value="papel">
+            <input type="hidden" name="membro_id" value="{{ m.pk }}">
+            <select name="papel" class="eq-select" onchange="this.form.submit()" aria-label="Trocar papel">
+              <option value="analista" {% if m.papel == 'analista' %}selected{% endif %}>analista</option>
+              <option value="curador" {% if m.papel == 'curador' %}selected{% endif %}>curador</option>
+            </select>
+            <noscript><button type="submit" class="btn btn-sm btn-secondary">salvar</button></noscript>
+          </form>
+          <form method="post" action="{% url 'triagem_equipe' projeto.slug %}"
+                onsubmit="return confirm('Remover {{ m.usuario.nome_exibicao|default:m.usuario.email|escapejs }} da equipe?');">
+            {% csrf_token %}
+            <input type="hidden" name="acao" value="remover">
+            <input type="hidden" name="membro_id" value="{{ m.pk }}">
+            <button type="submit" class="eq-link">remover</button>
+          </form>
+        </div>
+      </div>
+    {% empty %}
+      <p class="tg-empty">Sem membros designados.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

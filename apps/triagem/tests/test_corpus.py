@@ -49,6 +49,23 @@ def _incluido(proj, doi, ano=2020, tipo="Artigo"):
     return reg, promover_para_acervo(reg)
 
 
+def test_registros_renderiza_cards(client, proj_anco):
+    """A página /registros/ usa o componente de linha unificado (sem 500) e
+    mostra título + status de triagem de cada registro."""
+    ana = _user("ana_reg")
+    _incluido(proj_anco, "10/reg1", ano=2019)
+    RegistroTriagem.objects.create(
+        protocolo=proj_anco, titulo="Excluído X", doi="10/exc",
+        status=RegistroTriagem.Status.EXCLUIDO,
+    )
+    client.force_login(ana)
+    resp = client.get(reverse("triagem_registros", args=[proj_anco.slug]))
+    assert resp.status_code == 200
+    corpo = resp.content.decode()
+    assert "Art 10/reg1" in corpo and "Excluído X" in corpo
+    assert "al-chip" in corpo  # padrão visual unificado aplicado
+
+
 def test_resumo_e_status_por_item(client, proj_anco):
     ana = _user("ana")
     _, art_sem = _incluido(proj_anco, "10/sem", ano=2010)

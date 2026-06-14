@@ -58,10 +58,18 @@ class PerfilForm(forms.ModelForm):
     SolicitacaoCadastro tipo correspondente quando marcados.
     """
 
+    OUTRA = "outra"
+
     vinculo_institucional = forms.ChoiceField(
-        choices=[("", "— selecione —")] + INSTITUICOES_PERMITIDAS,
+        choices=[("", "— selecione —")] + INSTITUICOES_PERMITIDAS + [(OUTRA, "Outra instituição")],
         required=False,
         label="Instituição",
+    )
+    vinculo_outro = forms.CharField(
+        required=False,
+        max_length=300,
+        label="Qual instituição?",
+        help_text="Preencha se a sua instituição não está na lista.",
     )
 
     quer_ser_analista = forms.BooleanField(
@@ -103,6 +111,14 @@ class PerfilForm(forms.ModelForm):
         # - já é analista OU tem solicitação ativa (pendente/aprovada) → marcado
         from .models import SolicitacaoCadastro
 
+        # Instituição "Outra": se o valor salvo não está na lista fixa, pré-seleciona
+        # "Outra" e mostra o texto atual no campo livre (P10 — não prender quem é de fora).
+        _codigos = {c for c, _ in INSTITUICOES_PERMITIDAS}
+        atual = (self.instance.vinculo_institucional or "").strip() if self.instance else ""
+        if atual and atual not in _codigos:
+            self.fields["vinculo_institucional"].initial = self.OUTRA
+            self.fields["vinculo_outro"].initial = atual
+
         user = self.instance
         if user and user.pk:
             self.fields["quer_ser_analista"].initial = (
@@ -125,6 +141,17 @@ class PerfilForm(forms.ModelForm):
                     ],
                 ).exists()
             )
+
+    def clean(self):
+        cleaned = super().clean()
+        # Resolve a opção "Outra instituição": grava o texto livre no campo real.
+        if cleaned.get("vinculo_institucional") == self.OUTRA:
+            outro = (cleaned.get("vinculo_outro") or "").strip()
+            if not outro:
+                self.add_error("vinculo_outro", "Informe o nome da instituição.")
+            else:
+                cleaned["vinculo_institucional"] = outro
+        return cleaned
 
     def save(self, commit=True):
 

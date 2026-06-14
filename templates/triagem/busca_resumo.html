@@ -32,13 +32,14 @@
     {% endif %}
   {% endif %}
 
-  <div class="tg-grid-stats" style="margin-bottom:18px;">
-    <div class="tg-stat"><div class="n">{{ busca.n_lidos }}</div><div class="l">lidos do arquivo</div></div>
-    <div class="tg-stat" style="border-color:var(--color-ok);"><div class="n" style="color:var(--color-ok);">{{ n_novos }}</div><div class="l">novos no corpus</div></div>
-    <div class="tg-stat"><div class="n">{{ n_ja_acervo }}</div><div class="l">já no acervo</div></div>
-    <div class="tg-stat" style="border-color:var(--color-review-rule);"><div class="n" style="color:var(--color-gold-deep);">{{ busca.n_duplicados }}</div><div class="l">duplicados (outras bases)</div></div>
-    <div class="tg-stat"><div class="n" style="color:var(--color-ink-3);">{{ busca.n_ignorados }}</div><div class="l">ignorados</div></div>
+  <div class="tg-grid-stats" style="margin-bottom:8px;">
+    <a class="tg-stat" href="{% url 'triagem_registros' projeto.slug %}?busca={{ busca.pk }}"><div class="n">{{ busca.n_lidos }}</div><div class="l">lidos do arquivo</div></a>
+    <a class="tg-stat" style="border-color:var(--color-ok);" href="{% url 'triagem_fontes' projeto.slug %}?i=0" title="Artigos inéditos que entraram na lista do projeto"><div class="n" style="color:var(--color-ok);">{{ n_novos }}</div><div class="l">artigos novos</div></a>
+    <a class="tg-stat" href="{% url 'triagem_registros' projeto.slug %}?busca={{ busca.pk }}&acervo=1" title="Já estavam no acervo — não entram de novo"><div class="n">{{ n_ja_acervo }}</div><div class="l">já cadastrados antes</div></a>
+    <div class="tg-stat" style="border-color:var(--color-review-rule);" title="A mesma referência veio de outra base e já foi contada lá"><div class="n" style="color:var(--color-gold-deep);">{{ busca.n_duplicados }}</div><div class="l">repetidos entre bases</div></div>
+    <div class="tg-stat" title="Registros sem título no arquivo — não dá para identificá-los"><div class="n" style="color:var(--color-ink-3);">{{ busca.n_ignorados }}</div><div class="l">ignorados (sem título)</div></div>
   </div>
+  <p class="tg-meta" style="margin:0 0 18px;">“Repetidos entre bases” e “já cadastrados antes” <strong>não são problema</strong> — é a checagem automática evitando contar o mesmo trabalho duas vezes.</p>
 
   {% if busca.string_busca or busca.periodo or busca.idiomas or busca.tipos_documento or busca.filtros or busca.campos_busca %}
   <h2 class="tg-h2">Estratégia registrada</h2>

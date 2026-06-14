@@ -92,22 +92,25 @@
     <ul class="tg-list">
       {% for r in pagina %}
         <li class="tg-card inc-card" x-data="{ aberto: false }">
-          <div class="inc-head" :class="aberto && 'aberto'" @click="aberto = !aberto">
-            <span class="chevron" x-html="'&#9656;'"></span>
-            <div style="flex:1;min-width:0;">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-                <div class="tg-item-title">{{ r.titulo|truncatechars:140 }}</div>
-                <span class="estado {{ r.estado_cor }}">{{ r.estado_rotulo }}</span>
-              </div>
-              {% if r.autores %}<div class="tg-meta">{{ r.autores|truncatechars:90 }}</div>{% endif %}
-              <div class="chips">
-                <span class="chip">{{ r.ano|default:"s.d." }}</span>
-                {% if r.tipo %}<span class="chip">{{ r.tipo }}</span>{% endif %}
-                {% if r.artigo.base_consulta %}<span class="chip">{{ r.artigo.base_consulta.nome }}</span>{% endif %}
-                {% if r.eh_individual %}<span class="chip" style="background:#f0e8d2;border-color:#e0cf9a;color:#7a531a;">individual</span>{% endif %}
-                <span class="chip">DOI {% if r.doi %}<span class="sinal-ok">✓</span>{% else %}<span class="sinal-falta">✗</span>{% endif %}</span>
-                <span class="chip">resumo {% if r.resumo %}<span class="sinal-ok">✓</span>{% else %}<span class="sinal-falta">✗</span>{% endif %}</span>
-              </div>
+          <div class="inc-head" :class="aberto && 'aberto'" @click="aberto = !aberto"
+               style="display:flex;align-items:flex-start;gap:12px;justify-content:space-between;">
+            <div style="display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0;">
+              <span class="chevron" x-html="'&#9656;'"></span>
+              {% include "partials/_artigo_linha.html" with r=r %}
+            </div>
+            <div @click.stop style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+              <span class="al-estado {{ r.estado_cor }}">{{ r.estado_rotulo }}</span>
+              {% if pode_curar and user.eh_analista %}
+                {% if r.minha_analise %}
+                  {% if r.minha_analise.pode_ser_modificada %}
+                    <a href="{% url 'editar_analise' r.minha_analise.pk %}" class="btn btn-sm btn-primary">Continuar</a>
+                  {% else %}
+                    <a href="{% url 'pagina_analise' r.minha_analise.pk %}" class="btn btn-sm btn-secondary">Ver análise</a>
+                  {% endif %}
+                {% else %}
+                  <a href="{% url 'iniciar_analise' r.artigo.pk %}" class="btn btn-sm btn-primary">Analisar</a>
+                {% endif %}
+              {% endif %}
             </div>
           </div>
 

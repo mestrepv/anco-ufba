@@ -67,12 +67,12 @@
   {# Andamento — cards clicáveis #}
   <h2 class="tg-h2">Andamento</h2>
   <div class="tg-grid-stats" style="margin-bottom:8px;">
-    <a class="tg-stat" href="{% url 'triagem_registros' projeto.slug %}"><div class="n">{{ c.importados }}</div><div class="l">importados</div></a>
-    <a class="tg-stat" href="{% url 'triagem_fontes' projeto.slug %}?i=0" style="border-color:var(--color-ok);" title="Suas fontes para navegar/completar"><div class="n" style="color:var(--color-ok);">{{ meu_corpus }}</div><div class="l">novos artigos (seus)</div></a>
-    <a class="tg-stat" href="{% url 'triagem_registros' projeto.slug %}?status=identificado"><div class="n">{{ c.ja_no_acervo }}</div><div class="l">já no acervo (isentos)</div></a>
-    <a class="tg-stat" href="{% url 'triagem_duplicatas' projeto.slug %}?escopo={% if eh_curador %}todas{% else %}minhas{% endif %}&i=0"><div class="n" style="color:var(--color-gold-deep);">{{ c.duplicados_entre_bases }}</div><div class="l">duplicados</div></a>
+    <a class="tg-stat" href="{% url 'triagem_registros' projeto.slug %}"><div class="n">{{ c.importados }}</div><div class="l">registros importados</div></a>
+    <a class="tg-stat" href="{% url 'triagem_fontes' projeto.slug %}?i=0" style="border-color:var(--color-ok);" title="Suas fontes para navegar/completar"><div class="n" style="color:var(--color-ok);">{{ meu_corpus }}</div><div class="l">artigos novos (seus)</div></a>
+    <a class="tg-stat" href="{% url 'triagem_registros' projeto.slug %}?status=identificado" title="Já estavam no acervo — não precisam ser analisados de novo"><div class="n">{{ c.ja_no_acervo }}</div><div class="l">já cadastrados antes</div></a>
+    <a class="tg-stat" href="{% url 'triagem_duplicatas' projeto.slug %}?escopo={% if eh_curador %}todas{% else %}minhas{% endif %}&i=0" title="Referências repetidas entre bases (já contadas uma vez)"><div class="n" style="color:var(--color-gold-deep);">{{ c.duplicados_entre_bases }}</div><div class="l">repetidos entre bases</div></a>
   </div>
-  <p class="tg-meta" style="margin:0 0 22px;">Sem triagem: tudo que é importado entra no corpus. <a href="{% url 'triagem_estatisticas' projeto.slug %}" style="color:var(--color-gold-deep);">Estatística artigos × bases →</a></p>
+  <p class="tg-meta" style="margin:0 0 22px;">Não há triagem: tudo que você importa já entra na lista de artigos do projeto. <a href="{% url 'triagem_estatisticas' projeto.slug %}" style="color:var(--color-gold-deep);">Artigos por base →</a></p>
 
   {# Fluxo em 3 passos #}
   <div class="fluxo3">
@@ -89,9 +89,9 @@
     <div class="fluxo3-row">
       <div class="fluxo3-num">2</div>
       <div class="fluxo3-body">
-        <p class="fluxo3-tit">Corpus &middot; {{ n_corpus }} artigo{{ n_corpus|pluralize }}</p>
+        <p class="fluxo3-tit">Lista de artigos &middot; {{ n_corpus }} artigo{{ n_corpus|pluralize }}</p>
         <div class="fluxo3-acts">
-          <a href="{% url 'triagem_incluidos' projeto.slug %}" class="btn btn-secondary">Ver corpus</a>
+          <a href="{% url 'triagem_incluidos' projeto.slug %}" class="btn btn-secondary">Ver artigos</a>
           {% if minha_dup %}<a href="{% url 'triagem_duplicatas' projeto.slug %}?escopo={% if eh_curador %}todas{% else %}minhas{% endif %}&i=0" class="btn btn-secondary">Revisar duplicatas ({{ minha_dup }})</a>{% endif %}
           {% if eh_curador and pendentes_corpus %}
           <form method="post" action="{% url 'triagem_incluir_corpus' projeto.slug %}" style="display:inline;"
@@ -135,7 +135,7 @@
     {% empty %}
       <span class="tg-meta">Sem membros designados.</span>
     {% endfor %}
-    {% if eh_curador %}<a href="/admin/triagem/protocolotriagem/{{ projeto.pk }}/change/" class="pj-membro" style="border-style:dashed;color:var(--color-gold-deep);">+ gerenciar equipe</a>{% endif %}
+    {% if eh_curador %}<a href="{% url 'triagem_equipe' projeto.slug %}" class="pj-membro" style="border-style:dashed;color:var(--color-gold-deep);">+ gerenciar equipe</a>{% endif %}
   </div>
 
 {% else %}
@@ -206,7 +206,7 @@
     {% empty %}
       <span class="tg-meta">Sem membros designados.</span>
     {% endfor %}
-    {% if eh_curador %}<a href="/admin/triagem/protocolotriagem/{{ projeto.pk }}/change/" class="pj-membro" style="border-style:dashed;color:var(--color-gold-deep);">+ gerenciar equipe</a>{% endif %}
+    {% if eh_curador %}<a href="{% url 'triagem_equipe' projeto.slug %}" class="pj-membro" style="border-style:dashed;color:var(--color-gold-deep);">+ gerenciar equipe</a>{% endif %}
   </div>
 {% endif %}
 </div>

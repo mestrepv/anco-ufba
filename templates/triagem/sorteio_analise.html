@@ -20,14 +20,14 @@
   <a href="{% url 'triagem_incluidos' projeto.slug %}" class="tg-back">&larr; Incluídos</a>
   <h1 class="tg-h1" style="margin-top:6px;">Sorteio da análise</h1>
   <p class="tg-desc">
-    Distribui o corpus entre os analistas de forma <strong>aleatória</strong>: uma
-    <strong>cota</strong> por pessoa. Você decide aqui se cada artigo terá
-    <strong>revisão única ou dupla</strong> e se entram só os <strong>artigos
-    completos</strong>.
+    Reparte os artigos do projeto entre os analistas <strong>por sorteio</strong>
+    (aleatório e auditável): uma <strong>quantidade fixa por pessoa</strong> (a cota).
+    Você decide se cada artigo será analisado por <strong>uma ou duas pessoas</strong>
+    e se entram só os <strong>artigos completos</strong>.
   </p>
 
   <div class="tg-card" style="margin-bottom:18px;display:flex;gap:22px;flex-wrap:wrap;">
-    <div><div class="tg-meta">No corpus</div><div style="font-size:22px;font-weight:700;">{{ n_incluidos }}</div></div>
+    <div><div class="tg-meta">Artigos do projeto</div><div style="font-size:22px;font-weight:700;">{{ n_incluidos }}</div></div>
     <div><div class="tg-meta">Completos (DOI+resumo+palavras-chave)</div><div style="font-size:22px;font-weight:700;color:var(--color-ok);">{{ n_completos }}</div></div>
     <div><div class="tg-meta">Ainda não atribuídos</div><div style="font-size:22px;font-weight:700;">{{ n_disponiveis }}</div></div>
     <div><div class="tg-meta">Analistas no projeto</div><div style="font-size:22px;font-weight:700;">{{ n_analistas }}</div></div>

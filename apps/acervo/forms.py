@@ -292,8 +292,23 @@ class AnalisePresencaForm(_AnaliseFormBase):
             "definicao_extraida": "Definição extraída",
         }
         help_texts = {
-            "aspectos_relevantes": "Em que a obra dialoga com a Análise Cognitiva.",
-            "definicao_extraida": "Se a obra define o conceito, transcreva a definição.",
+            "pertinencia": (
+                "Responda SIM quando a obra trabalha com/sobre o conhecimento de modo "
+                "que dialoga com a AnCo — mesmo que não use o termo. O campo é "
+                "emergente: na dúvida, RECONHEÇA e justifique (em Aspectos relevantes) "
+                "em vez de excluir pela área/disciplina."
+            ),
+            "aspectos_relevantes": (
+                "Em QUE e COMO a obra dialoga com a Análise Cognitiva — que dimensões e "
+                "processos do trabalho com o conhecimento ela mobiliza. É aqui que a "
+                "decisão de pertinência se fundamenta."
+            ),
+            "define_conceito": (
+                "Marque SIM só para uma definição genuína (a obra enuncia o que entende "
+                "por AnCo), não para menção vaga/alusiva. A ausência de definição é dado "
+                "descritivo de um campo emergente — registre, não penalize."
+            ),
+            "definicao_extraida": "Se a obra define o conceito, transcreva a definição tal como ela a enuncia.",
         }
 
 
@@ -312,20 +327,28 @@ class AnaliseEstruturaForm(_AnaliseFormBase):
         }
         labels = {
             "teoria": "Teoria de referência",
-            "contexto_producao": "Contexto de produção",
-            "observacoes": "Observações",
+            "contexto_producao": "Contexto de produção (opcional)",
+            "observacoes": "Observações (opcional)",
         }
         help_texts = {
             "objeto": "O que (ou quem) a obra investiga.",
             "objetivo": "O que a obra se propõe a alcançar.",
-            "foco": "Recorte ou ângulo central da abordagem.",
+            "foco": (
+                "Recorte ou ângulo central — o SUBCAMPO cognitivo da obra (ex.: "
+                "Linguística Cognitiva, Neurociência Cognitiva, Engenharia Cognitiva). "
+                "NÃO confunda com a grande área CAPES (aba 1)."
+            ),
             "metodologia": "Métodos e procedimentos de pesquisa.",
-            "epistemologia": "Posições epistemológicas — digite para buscar e selecione.",
-            "teoria": "Teorias mobilizadas — digite para buscar e selecione.",
+            "epistemologia": (
+                "Posições epistemológicas — digite para buscar e selecione termos do "
+                "vocabulário. Use os termos existentes para que as análises sejam "
+                "agregáveis; glosas longas vão em Observações."
+            ),
+            "teoria": "Teorias mobilizadas — digite para buscar e selecione termos do vocabulário.",
             "referenciais": "Principais autores e obras de referência.",
             "resultados": "Principais achados ou conclusões.",
-            "contexto_producao": "Onde/como a obra foi produzida (país, área, projeto).",
-            "observacoes": "Anotações livres do analista.",
+            "contexto_producao": "Onde/como a obra foi produzida (país, área, projeto). Opcional.",
+            "observacoes": "Anotações livres do analista. Opcional.",
         }
 
 

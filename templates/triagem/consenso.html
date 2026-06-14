@@ -8,11 +8,13 @@
   <a href="{% url 'triagem_sorteio_analise' projeto.slug %}" class="tg-back">&larr; Sorteio</a>
   <h1 class="tg-h1" style="margin-top:6px;">Consenso da revisão dupla</h1>
   <p class="tg-desc">
-    Artigos analisados por dois analistas. Escolha qual análise vale como
-    <strong>final</strong>; as duas ficam guardadas como insumo da conciliação.
+    Artigos analisados por dois analistas. Abra as duas análises (em nova aba),
+    compare e escolha qual vale como <strong>final</strong>; a outra fica guardada
+    como insumo da conciliação.
   </p>
 
   {% if pendentes %}
+    <h2 class="tg-h2">Prontos para conciliar <span class="tg-meta">({{ pendentes|length }})</span></h2>
     {% for item in pendentes %}
       <form method="post" class="tg-card" style="margin-bottom:18px;">
         {% csrf_token %}
@@ -20,20 +22,33 @@
         <div class="tg-item-title">{{ item.artigo.titulo|truncatechars:140 }}</div>
         <div class="tg-meta" style="margin-bottom:10px;">{{ item.artigo.ano|default:"s.d." }}{% if item.artigo.titulo_periodico %} · {{ item.artigo.titulo_periodico }}{% endif %}</div>
         <div class="tg-field">
-          <label>Análise final</label>
+          <label>Qual análise vale como final?</label>
           {% for a in item.analises %}
             <label style="display:flex;gap:8px;align-items:center;margin:4px 0;font-family:var(--font-sans);font-size:14px;">
               <input type="radio" name="analise_final" value="{{ a.pk }}" required>
               <span>Análise de <strong>{{ a.analista.nome_exibicao|default:a.analista.email }}</strong>
-                — <a href="{% url 'pagina_analise' a.pk %}" target="_blank" rel="noopener">ver</a> ({{ a.get_status_display }})</span>
+                — <a href="{% url 'pagina_analise' a.pk %}" target="_blank" rel="noopener">abrir para comparar ↗</a> ({{ a.get_status_display }})</span>
             </label>
           {% endfor %}
         </div>
         <button type="submit" class="btn btn-sm btn-primary">Registrar consenso</button>
       </form>
     {% endfor %}
-  {% else %}
-    <p class="tg-empty">Nenhum artigo aguardando conciliação no momento.</p>
+  {% endif %}
+
+  {% if parciais %}
+    <h2 class="tg-h2" style="margin-top:24px;">Aguardando o segundo analista <span class="tg-meta">({{ parciais|length }})</span></h2>
+    <p class="tg-meta" style="margin:-6px 0 12px;">Estes artigos já têm uma análise enviada — a conciliação aparece quando a segunda chegar.</p>
+    {% for item in parciais %}
+      <div class="tg-card" style="margin-bottom:10px;opacity:.85;">
+        <div class="tg-item-title">{{ item.artigo.titulo|truncatechars:140 }}</div>
+        <div class="tg-meta">{{ item.artigo.ano|default:"s.d." }} · <strong>{{ item.enviadas }} de {{ item.esperadas }}</strong> análise(s) enviada(s) — aguardando a(s) restante(s).</div>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if not pendentes and not parciais %}
+    <p class="tg-empty">Nenhum artigo em revisão dupla aguardando conciliação no momento.</p>
   {% endif %}
 </div>
 {% endblock %}

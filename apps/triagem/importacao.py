@@ -310,7 +310,12 @@ def analisar_arquivo(nome: str, raw: bytes) -> dict:
             "erro": "O arquivo foi lido, mas tem 0 registros.",
             "dica": "Verifique se você exportou os resultados (não uma página vazia).",
         }
-    return {"ok": True, "formato": formato, "n": n}
+    # Amostra dos primeiros títulos: deixa o usuário conferir que subiu o
+    # arquivo certo ANTES de importar (evita importar a lista errada).
+    amostra = [
+        (r.get("titulo") or "").strip() for r in registros[:4] if (r.get("titulo") or "").strip()
+    ]
+    return {"ok": True, "formato": formato, "n": n, "amostra": amostra}
 
 
 # --------------------------------------------------------------------------- #
@@ -449,11 +454,18 @@ def importar_para_busca(busca: Busca, registros_brutos: list[dict]) -> Resultado
             tipo=_txt(bruto.get("tipo"))[:40],
             identificador=ident,
         )
-        if artigo is not None:
+        if artigo is not None and protocolo.eh_anco:
+            # Modo ANCO (Análise AnCo): o que já está no acervo é isento — o legado
+            # curado não é re-triado; vincula ao Artigo e fica fora da triagem.
             reg.ja_no_acervo = True
             reg.artigo = artigo
             res.ja_no_acervo += 1
         else:
+            # Modo rigoroso (PRISMA-ScR): triagem ≠ análise AnCo. TODO registro é
+            # triado para o fluxograma PRISMA ficar completo, inclusive o que já
+            # existe no acervo. Não vincula o Artigo agora (triagem cega/uniforme);
+            # a correspondência é reusada só na promoção (promover_para_acervo),
+            # que nunca cria nem altera o acervo curado.
             res.criados += 1
         reg.save()
         reg.origem_buscas.add(busca)

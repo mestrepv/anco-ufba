@@ -58,3 +58,7 @@ static/css/output.css
 
 # Exports da base (dump de dados, padrão base-anco-revisada.json)
 /base-anco-export-*.json
+
+# Auditorias/correções de DOI em produção e backups (dados, não versionar)
+/prod_doi_*.csv
+/backup_triagem_pre_delete.json

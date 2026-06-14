@@ -62,6 +62,12 @@ def _base_key(artigo) -> str:
     return f"art:{artigo.pk}"
 
 
+def filtrar_completos(qs):
+    """Mantém só os registros 'completos' p/ análise: com DOI, resumo e
+    palavras-chave. Fonte única da regra (usada no pool e nos contadores)."""
+    return qs.exclude(doi="").exclude(resumo="").exclude(palavras_chaves="")
+
+
 def analistas_do_projeto(projeto: ProtocoloTriagem):
     """Usuários com papel analista **no projeto**, ativos."""
     from django.contrib.auth import get_user_model
@@ -91,7 +97,7 @@ def _pool(
     )
     if exigir_completos:
         # Só artigos com DOI, resumo e palavras-chave preenchidos entram no sorteio.
-        regs = regs.exclude(doi="").exclude(resumo="").exclude(palavras_chaves="")
+        regs = filtrar_completos(regs)
     pool, vistos = [], set()
     for r in regs:
         if r.artigo_id in vistos or r.artigo_id in excluir_artigos:

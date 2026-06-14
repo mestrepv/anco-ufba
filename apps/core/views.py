@@ -118,6 +118,8 @@ def painel_view(request: HttpRequest) -> HttpResponse:
 
     from apps.acervo.models import Analise, Revisao
 
+    from .models import SolicitacaoCadastro
+
     user = request.user
 
     minhas_analises = (
@@ -128,6 +130,38 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         for a in minhas_analises
         if a.status in (Analise.Status.RASCUNHO, Analise.Status.SUBMETIDA)
     )
+
+    # ── Status das solicitações do próprio usuário (P1: visibilidade) ──────
+    # A última solicitação de cada tipo, para mostrar pendente/aprovada/rejeitada
+    # no painel — antes isso ficava invisível ao usuário.
+    solicitacoes_status = []
+    for sol in user.solicitacoes.order_by("tipo", "-criado_em"):
+        if any(s["tipo"] == sol.tipo for s in solicitacoes_status):
+            continue
+        solicitacoes_status.append(
+            {
+                "tipo": sol.tipo,
+                "tipo_display": sol.get_tipo_display(),
+                "status": sol.status,
+                "status_display": sol.get_status_display(),
+                "motivo_rejeicao": sol.motivo_rejeicao,
+            }
+        )
+
+    # ── Análises devolvidas pela curadoria (rascunho com motivo) ───────────
+    # Tarefa de alta prioridade que antes ficava escondida em "Minhas análises".
+    devolvidas = [
+        a
+        for a in minhas_analises
+        if a.status == Analise.Status.RASCUNHO and (a.motivo_curadoria or "").strip()
+    ]
+
+    # ── Tarefas de curadoria (P2: caixa de entrada do curador) ─────────────
+    n_solicitacoes_pendentes = 0
+    if getattr(user, "eh_curador", False) or user.is_staff:
+        n_solicitacoes_pendentes = SolicitacaoCadastro.objects.filter(
+            status=SolicitacaoCadastro.Status.PENDENTE
+        ).count()
 
     revisoes_pendentes = (
         Revisao.objects.filter(revisor=user, concluido_em__isnull=True)
@@ -316,6 +350,9 @@ def painel_view(request: HttpRequest) -> HttpResponse:
             "n_rascunhos": n_rascunhos,
             "revisoes_pendentes": revisoes_pendentes,
             "revisoes_concluidas": revisoes_concluidas,
+            "solicitacoes_status": solicitacoes_status,
+            "devolvidas": devolvidas,
+            "n_solicitacoes_pendentes": n_solicitacoes_pendentes,
             "agora": datetime.now(tz=UTC),
             **contexto_triagem,
         },

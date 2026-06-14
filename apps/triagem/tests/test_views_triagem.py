@@ -61,14 +61,16 @@ def leitor(db):
 # ---- iniciar triagem -------------------------------------------------------
 
 
-def test_iniciar_triagem_sorteia(client, protocolo, revisores, curador):
+def test_iniciar_triagem_atribui_todos_membros(client, protocolo, revisores, curador):
+    """PRISMA-ScR: iniciar atribui o registro a todos os membros, sem sorteio."""
     RegistroTriagem.objects.create(protocolo=protocolo, titulo="A", doi="10.1/a")
     client.force_login(curador)
     resp = client.post(turl("triagem_iniciar"))
     assert resp.status_code == 302
     reg = RegistroTriagem.objects.get(doi="10.1/a")
     assert reg.status == RegistroTriagem.Status.EM_TRIAGEM
-    assert DecisaoTriagem.objects.filter(registro=reg).count() == protocolo.n_revisores
+    # Todos os membros (3 revisores + 1 curador) viram revisores do registro.
+    assert DecisaoTriagem.objects.filter(registro=reg).count() == protocolo.membros.count()
 
 
 def test_iniciar_exige_curador(client, protocolo, revisores):

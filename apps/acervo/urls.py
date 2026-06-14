@@ -50,6 +50,11 @@ urlpatterns = [
         name="editar_resenha",
     ),
     path(
+        "analise/<int:analise_id>/resenha/autosave/",
+        views.autosave_resenha_view,
+        name="autosave_resenha",
+    ),
+    path(
         "analise/<int:analise_id>/resenha/submeter/",
         views.submeter_resenha_view,
         name="submeter_resenha",

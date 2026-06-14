@@ -33,7 +33,7 @@
       </div>
     {% endif %}
     <div class="tg-note" style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;">
-      <span>Similaridade de título: <strong>{{ par.sim }}</strong></span>
+      <span title="Índice de similaridade do título: {{ par.sim }}"><strong>Títulos muito parecidos</strong></span>
       <span style="color:{% if comp.mesmo_ano %}var(--color-ok){% else %}var(--color-danger){% endif %};">
         {% if comp.mesmo_ano %}✔ mesmo ano{% else %}✗ anos diferentes{% endif %}</span>
       <span style="color:{% if comp.mesmo_autor %}var(--color-ok){% else %}var(--color-danger){% endif %};">
