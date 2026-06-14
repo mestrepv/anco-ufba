@@ -76,7 +76,9 @@ Terreno já preparado:
    ```
    docker compose -f infra/docker-compose.yml --profile asreview up -d asreview
    ```
-   Acessar via **túnel SSH** (`ssh -L 5000:127.0.0.1:5000 servidor`) → http://localhost:5000.
+   Acessar via **túnel SSH** (`ssh -L 9091:127.0.0.1:9091 servidor`) → http://localhost:9091.
+   (porta host **9091**: milhar 9000 deste projeto — web=9090, asreview=9091; a 5000 já é
+   usada pelo dev server Vite de outro projeto neste servidor.)
    > **Não** publicar pelo Caddy sem auth — o ASReview LAB v1 não tem login.
    > Para acesso multiusuário/remoto, avaliar o ASReview LAB v2 (com autenticação).
 

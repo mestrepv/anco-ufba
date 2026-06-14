@@ -22,7 +22,8 @@ docker compose -f infra/docker-compose.yml cp web:/tmp/corpus.csv ./corpus.csv
 
 # subir o ASReview LAB (opt-in, só localhost por segurança)
 docker compose -f infra/docker-compose.yml --profile asreview up -d asreview
-# acessar via túnel:  ssh -L 5000:127.0.0.1:5000 <servidor>  →  http://localhost:5000
+# acessar via túnel:  ssh -L 9091:127.0.0.1:9091 <servidor>  →  http://localhost:9091
+#   (porta host 9091: milhar 9000 deste projeto — web=9090, asreview=9091)
 ```
 Triar um trecho com active learning; anotar a **regra de parada (SAFE)** e o **recall**.
 > Alternativa mais simples para o 1º teste: rodar o ASReview **localmente**
