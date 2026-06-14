@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "apps.vocabulario",
     "apps.acervo",
     "apps.triagem",
+    "apps.anco",
     "apps.publico",
     "apps.busca_semantica",
 ]
