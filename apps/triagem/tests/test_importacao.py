@@ -140,31 +140,11 @@ def test_registro_sem_titulo_e_ignorado(protocolo, base_termo):
     assert res.ignorados == 1 and res.criados == 0
 
 
-# ---- isenção do legado -----------------------------------------------------
+# ---- acervo também é triado (PRISMA-ScR) -----------------------------------
 
 
-def test_candidato_ja_no_acervo_isento_no_modo_anco(protocolo, base_termo):
-    """Modo ANCO: quem casa com o acervo é isento (legado não re-triado)."""
-    protocolo.modo = ProtocoloTriagem.Modo.ANCO
-    protocolo.save(update_fields=["modo"])
-    artigo = Artigo.objects.create(
-        doi="10.1000/abc123",
-        titulo="X",
-        ano=2020,
-        base_consulta=base_termo,
-        eh_legado=True,
-    )
-    b = Busca.objects.create(protocolo=protocolo, base_consulta=base_termo)
-    res = importar_para_busca(b, parse_ris(RIS))
-    assert res.ja_no_acervo == 1 and res.criados == 0
-    reg = RegistroTriagem.objects.get(protocolo=protocolo, doi="10.1000/abc123")
-    assert reg.ja_no_acervo is True
-    assert reg.artigo_id == artigo.pk
-
-
-def test_candidato_ja_no_acervo_e_triado_no_modo_rigoroso(protocolo, base_termo):
+def test_candidato_ja_no_acervo_e_triado(protocolo, base_termo):
     """PRISMA-ScR: o que já está no acervo TAMBÉM é triado (fluxograma completo)."""
-    assert not protocolo.eh_anco  # ativo() é rigoroso por padrão
     Artigo.objects.create(
         doi="10.1000/abc123",
         titulo="X",

@@ -181,7 +181,6 @@ def painel_view(request: HttpRequest) -> HttpResponse:
 
         from apps.acervo.models import Artigo
         from apps.triagem.aprovacao import registros_para_desempate
-        from apps.triagem.autotriagem import registros_para_autotriar
         from apps.triagem.duplicatas import contar_pares_do_usuario
         from apps.triagem.models import (
             AtribuicaoAnalise,
@@ -232,16 +231,6 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         def _resumo_projeto(p):
             eh_cur = p.eh_curador_no(user)
             n_dup = contar_pares_do_usuario(p, user, eh_cur)
-            if p.eh_anco:
-                return {
-                    "projeto": p,
-                    "eh_curador": eh_cur,
-                    "eh_anco": True,
-                    "n_dup": n_dup,
-                    "n_autotriar": registros_para_autotriar(p, user).count(),
-                    "n_ident": 0,
-                    "n_desemp": 0,
-                }
             n_ident = (
                 p.registros.filter(
                     status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
@@ -252,11 +241,9 @@ def painel_view(request: HttpRequest) -> HttpResponse:
             return {
                 "projeto": p,
                 "eh_curador": eh_cur,
-                "eh_anco": False,
                 "n_dup": n_dup,
                 "n_ident": n_ident,
                 "n_desemp": len(registros_para_desempate(p)) if eh_cur else 0,
-                "n_autotriar": 0,
             }
 
         projetos_painel = [_resumo_projeto(p) for p in meus_projetos]
@@ -266,11 +253,9 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         ativo = projetos_painel[0] if projetos_painel else None
         sl = protocolo.slug if protocolo is not None else None
         eh_curador = ativo["eh_curador"] if ativo else False
-        eh_anco = ativo.get("eh_anco", False) if ativo else False
         n_duplicatas = ativo["n_dup"] if ativo else 0
         n_identificados = ativo["n_ident"] if ativo else 0
         n_desempates = ativo["n_desemp"] if ativo else 0
-        n_autotriar = ativo.get("n_autotriar", 0) if ativo else 0
 
         # Próximo passo: a única coisa óbvia a fazer agora (por prioridade).
         if n_triagens:
@@ -300,13 +285,6 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                 "sub": "Confirme quais registros são o mesmo trabalho antes de triar.",
                 "href": reverse("triagem_duplicatas", args=[sl]),
                 "label": "Revisar duplicatas",
-            }
-        elif eh_anco and n_autotriar:
-            proxima = {
-                "titulo": f"{n_autotriar} registro(s) da sua base para triar",
-                "sub": "Decida incluir ou excluir cada artigo por título e resumo.",
-                "href": reverse("triagem_autotriar", args=[sl]),
-                "label": "Triar minha base",
             }
         elif eh_curador and n_identificados:
             proxima = {

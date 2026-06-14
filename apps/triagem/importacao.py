@@ -438,7 +438,6 @@ def importar_para_busca(busca: Busca, registros_brutos: list[dict]) -> Resultado
             res.duplicados += 1
             continue
 
-        artigo = _artigo_no_acervo(doi, isbn, titulo, ano, periodico)
         reg = RegistroTriagem(
             protocolo=protocolo,
             titulo=titulo,
@@ -454,19 +453,11 @@ def importar_para_busca(busca: Busca, registros_brutos: list[dict]) -> Resultado
             tipo=_txt(bruto.get("tipo"))[:40],
             identificador=ident,
         )
-        if artigo is not None and protocolo.eh_anco:
-            # Modo ANCO (Análise AnCo): o que já está no acervo é isento — o legado
-            # curado não é re-triado; vincula ao Artigo e fica fora da triagem.
-            reg.ja_no_acervo = True
-            reg.artigo = artigo
-            res.ja_no_acervo += 1
-        else:
-            # Modo rigoroso (PRISMA-ScR): triagem ≠ análise AnCo. TODO registro é
-            # triado para o fluxograma PRISMA ficar completo, inclusive o que já
-            # existe no acervo. Não vincula o Artigo agora (triagem cega/uniforme);
-            # a correspondência é reusada só na promoção (promover_para_acervo),
-            # que nunca cria nem altera o acervo curado.
-            res.criados += 1
+        # PRISMA-ScR: TODO registro novo é triado para o fluxograma ficar completo,
+        # inclusive o que já existe no acervo. Não vincula o Artigo agora (triagem
+        # cega/uniforme); a correspondência é reusada só na promoção
+        # (promover_para_acervo), que nunca cria nem altera o acervo curado.
+        res.criados += 1
         reg.save()
         reg.origem_buscas.add(busca)
 
@@ -498,15 +489,4 @@ def importar_para_busca(busca: Busca, registros_brutos: list[dict]) -> Resultado
         res.ja_no_acervo,
         res.ignorados,
     )
-
-    # Modo ANCO: sem triagem prévia — todo registro novo entra direto no corpus.
-    # Import local evita ciclo importacao→aprovacao→promocao→importacao.
-    if protocolo.eh_anco:
-        from .aprovacao import incluir_automaticamente
-
-        for reg in busca.registros.filter(
-            status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
-        ):
-            incluir_automaticamente(reg)
-
     return res

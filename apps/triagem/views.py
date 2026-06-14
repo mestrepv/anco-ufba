@@ -29,9 +29,7 @@ from django.views.decorators.http import require_POST
 
 from . import duplicatas as dup
 from . import prisma
-from .aprovacao import consolidar_registro, incluir_corpus_total, registros_para_desempate
-from .autotriagem import pode_autotriar, reverter_inclusao
-from .estatisticas import estatisticas_por_base
+from .aprovacao import consolidar_registro, registros_para_desempate
 from .forms import (
     DecisaoTriagemForm,
     DesempateForm,
@@ -50,17 +48,10 @@ from .importacao import (
 from .models import (
     AtribuicaoAnalise,
     Busca,
-    ConsensoAnalise,
     DecisaoTriagem,
     ProjetoMembro,
     ProtocoloTriagem,
     RegistroTriagem,
-    SorteioAnalise,
-)
-from .sorteio_analise import (
-    analistas_do_projeto,
-    desfazer_sorteio,
-    executar_sorteio_analise,
 )
 from .tasks import avancar_apos_status
 from .triagem_direta import atribuir_triagem_direta, revisores_validos
@@ -218,12 +209,9 @@ def novo_projeto_view(request: HttpRequest) -> HttpResponse:
 
 @_projeto_analista
 def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
-    from django.db.models import Count
 
     from . import concordancia as conc
 
-    # Só os status com registros (não polui com zeros).
-    contagens = dict(projeto.registros.values_list("status").annotate(n=Count("id")))
     _St = RegistroTriagem.Status
     eh_curador = projeto.eh_curador_no(request.user)
 
@@ -250,43 +238,7 @@ def painel_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
         "acordo": conc.calcular(projeto),
     }
 
-    if projeto.eh_anco:
-        # Fluxo simplificado (sem triagem): Adicionar fontes → Corpus → Sortear →
-        # Analisar. Uma página só, sem abas; ações de curador ficam marcadas.
-        from apps.acervo.models import Analise, Artigo
-
-        ja_minhas = Analise.objects.filter(analista=request.user).values_list(
-            "artigo_id", flat=True
-        )
-        atribuidos = list(
-            AtribuicaoAnalise.objects.filter(
-                analista=request.user, sorteio__projeto=projeto
-            ).values_list("artigo_id", flat=True)
-        )
-        contexto["minha_a_analisar"] = (
-            Artigo.objects.filter(pk__in=atribuidos).exclude(pk__in=ja_minhas).distinct().count()
-            if atribuidos
-            else 0
-        )
-        contexto["n_corpus"] = contagens.get(_St.INCLUIDO, 0)
-        # Os incluídos pelo próprio usuário (o que ele pode navegar/completar).
-        contexto["meu_corpus"] = (
-            projeto.registros.filter(
-                status=_St.INCLUIDO, origem_buscas__criado_por=request.user
-            )
-            .distinct()
-            .count()
-        )
-        contexto["isentos"] = projeto.registros.filter(ja_no_acervo=True).count()
-        # Registros importados que ainda não entraram no corpus (legado do fluxo
-        # antigo / falha de auto-inclusão) — habilitam o botão "Incluir corpus".
-        contexto["pendentes_corpus"] = projeto.registros.filter(
-            status__in=(_St.IDENTIFICADO, _St.EXCLUIDO), ja_no_acervo=False
-        ).count()
-        contexto["minha_dup"] = dup.contar_pares_do_usuario(projeto, request.user, eh_curador)
-        return render(request, "triagem/painel.html", contexto)
-
-    # Modo rigoroso (PRISMA-ScR): painel guiado em 5 passos. Calcula o estado de
+    # PRISMA-ScR: painel guiado em 5 passos. Calcula o estado de
     # cada passo para acender/apagar o botão certo (ver painel.html).
     # ① protocolo completo? (tem critério de inclusão/exclusão registrado)
     contexto["protocolo_incompleto"] = not (
@@ -594,9 +546,6 @@ def _navegar_fontes(request, projeto, ids, *, base_url, voltar_url, voltar_label
         if form.is_valid():
             form.save()
             _sincronizar_artigo(registro)
-            from .relevancia import atualizar_relevancia
-
-            atualizar_relevancia(registro)
             messages.success(request, "Fonte atualizada.")
             # Edição inline: fica na mesma fonte (a navegação é por Voltar/Avançar).
             return redirect(f"{base_url}?i={i}")
@@ -1073,9 +1022,9 @@ def protocolo_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
             projeto.save(update_fields=["registro_externo", "usa_texto_completo"])
             messages.success(request, "Protocolo atualizado.")
         elif acao == "salvar_criterios":
-            # Objetivo, estratégia e critérios. No ANCO sempre editável; no
-            # rigoroso só com a versão destravada (preserva o protocolo a priori).
-            if not projeto.eh_anco and projeto.travado_em:
+            # Objetivo, estratégia e critérios: editáveis só com a versão
+            # destravada (preserva o protocolo a priori do PRISMA-ScR).
+            if projeto.travado_em:
                 messages.error(
                     request, "Protocolo travado: abra uma nova versão para editar os critérios."
                 )
@@ -1293,31 +1242,8 @@ def prisma_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse
 
 
 # --------------------------------------------------------------------------- #
-# Revisão ANCO (Fase 13): autotriagem · pool por relevância · sorteio · consenso
+# Incluídos (corpus PRISMA)
 # --------------------------------------------------------------------------- #
-
-
-def _autotriar_url(slug: str, lista: str, i: int, escopo: str = "minhas") -> str:
-    return f"{reverse('triagem_autotriar', args=[slug])}?escopo={escopo}&lista={lista}&i={i}"
-
-
-@_projeto_analista
-def autotriar_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
-    """Rota legada da autotriagem.
-
-    No modo ANCO a triagem prévia foi **descontinuada**: a importação já inclui
-    tudo no corpus. A rota é mantida viva (compat de links) e redireciona para o
-    corpus. No modo rigoroso, autotriagem nunca se aplicou.
-    """
-    if not projeto.eh_anco:
-        messages.info(request, "Este projeto usa triagem por revisores independentes.")
-        return redirect("triagem_registros", slug=projeto.slug)
-
-    messages.info(
-        request,
-        "A triagem prévia foi descontinuada; todos os registros importados entram no corpus.",
-    )
-    return redirect("triagem_incluidos", slug=projeto.slug)
 
 
 @_projeto_analista
@@ -1505,241 +1431,6 @@ def incluidos_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpRespo
             "querystring": querystring,
             "pode_curar": eh_cur,
             "excluiveis_ids": excluiveis_ids,
-        },
-    )
-
-
-@_projeto_analista
-@require_POST
-def excluir_incluido_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
-    """Exclui um incluído do pool (Revisão ANCO): reverte a inclusão."""
-    if not projeto.eh_anco:
-        return HttpResponseForbidden("Disponível apenas na Revisão ANCO.")
-    registro = get_object_or_404(
-        RegistroTriagem, pk=request.POST.get("registro_id"), protocolo=projeto
-    )
-    if not pode_autotriar(projeto, request.user, registro):
-        return HttpResponseForbidden("Você só exclui incluídos de bases que importou.")
-    if reverter_inclusao(registro, por=request.user, motivo=request.POST.get("motivo", "").strip()):
-        messages.success(request, "Artigo excluído do pool de análise.")
-    else:
-        messages.info(request, "Este registro não estava incluído.")
-    return redirect("triagem_incluidos", slug=projeto.slug)
-
-
-@_projeto_curador
-@require_POST
-def incluir_corpus_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
-    """Inclui no corpus todos os registros pendentes (sem triagem prévia)."""
-    if not projeto.eh_anco:
-        return HttpResponseForbidden("Disponível apenas na Revisão ANCO.")
-    n = incluir_corpus_total(projeto)
-    if n:
-        messages.success(request, f"{n} registro(s) incluído(s) no corpus.")
-    else:
-        messages.info(request, "Nenhum registro pendente — o corpus já está completo.")
-    return redirect("triagem_painel", slug=projeto.slug)
-
-
-@_projeto_analista
-def estatisticas_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
-    """Estatística consolidada artigos × bases do corpus (modo ANCO)."""
-    if not projeto.eh_anco:
-        messages.info(request, "A estatística por base está disponível na Revisão ANCO.")
-        return redirect("triagem_prisma", slug=projeto.slug)
-    return render(
-        request,
-        "triagem/estatisticas.html",
-        {
-            "projeto": projeto,
-            "protocolo": projeto,
-            "est": estatisticas_por_base(projeto),
-        },
-    )
-
-
-@_projeto_curador
-def sorteio_analise_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
-    """Curador sorteia os incluídos entre os analistas (cota, única/dupla)."""
-    if not projeto.eh_anco:
-        # Sorteio de cotas de análise é do modo Revisão ANCO. No PRISMA-ScR, os
-        # incluídos são analisados direto pela fila (sem sorteio) — ver painel.
-        messages.info(request, "O sorteio de análise é do modo Revisão ANCO.")
-        return redirect("triagem_incluidos", slug=projeto.slug)
-    if request.method == "POST":
-        if request.POST.get("acao") == "desfazer":
-            sorteio = get_object_or_404(
-                SorteioAnalise, pk=request.POST.get("sorteio_id"), projeto=projeto
-            )
-            n = desfazer_sorteio(sorteio)
-            messages.success(request, f"Sorteio desfeito ({n} atribuição(ões) removida(s)).")
-            return redirect("triagem_sorteio_analise", slug=projeto.slug)
-
-        modo = request.POST.get("modo_revisao", SorteioAnalise.ModoRevisao.UNICA)
-        if modo not in dict(SorteioAnalise.ModoRevisao.choices):
-            modo = SorteioAnalise.ModoRevisao.UNICA
-        try:
-            cota = max(1, int(request.POST.get("cota") or 5))
-        except (TypeError, ValueError):
-            cota = 5
-        res = executar_sorteio_analise(
-            projeto,
-            modo_revisao=modo,
-            cota=cota,
-            por=request.user,
-            observacoes=request.POST.get("observacoes", "").strip(),
-            aleatorio=projeto.eh_anco,
-            exigir_completos=bool(request.POST.get("exigir_completos")),
-        )
-        if res.sorteio is not None:
-            msg = f"Sorteio criado: {res.atribuidas} atribuições para {res.analistas} analista(s)."
-            faltaram = sum(1 for v in res.faltas.values() if v)
-            if faltaram:
-                msg += f" {faltaram} analista(s) não completaram a cota (pool insuficiente)."
-            messages.success(request, msg)
-        else:
-            messages.info(request, res.motivo or "Nada a sortear.")
-        return redirect("triagem_sorteio_analise", slug=projeto.slug)
-
-    from apps.publico.services import doi_to_slug
-
-    sorteios = list(
-        projeto.sorteios_analise.prefetch_related(
-            "atribuicoes__analista", "atribuicoes__artigo"
-        ).all()
-    )
-    # Distribuição por analista (quem recebeu quais artigos) em cada sorteio.
-    for s in sorteios:
-        grupos: dict = {}
-        for a in s.atribuicoes.all():
-            grupos.setdefault(a.analista, []).append(a.artigo)
-        s.distribuicao = sorted(
-            (
-                {
-                    "analista": u,
-                    "artigos": [
-                        {"obj": art, "slug": doi_to_slug(art.identificador_canonico)}
-                        for art in sorted(arts, key=lambda x: (x.titulo or "").lower())
-                    ],
-                }
-                for u, arts in grupos.items()
-            ),
-            key=lambda g: (g["analista"].nome_exibicao or g["analista"].email or "").lower(),
-        )
-    from .sorteio_analise import filtrar_completos
-
-    incluidos = projeto.registros.filter(status=RegistroTriagem.Status.INCLUIDO)
-    n_incluidos = incluidos.count()
-    n_completos = filtrar_completos(incluidos).count()
-    ja_atribuidos = (
-        AtribuicaoAnalise.objects.filter(sorteio__projeto=projeto)
-        .values("artigo_id")
-        .distinct()
-        .count()
-    )
-    return render(
-        request,
-        "triagem/sorteio_analise.html",
-        {
-            "projeto": projeto,
-            "protocolo": projeto,
-            "sorteios": sorteios,
-            "n_incluidos": n_incluidos,
-            "n_completos": n_completos,
-            "n_disponiveis": n_incluidos - ja_atribuidos,
-            "n_analistas": len(analistas_do_projeto(projeto)),
-            "modos": SorteioAnalise.ModoRevisao.choices,
-        },
-    )
-
-
-def _artigos_para_consenso(projeto: ProtocoloTriagem) -> dict:
-    """Artigos de sorteios `dupla` agrupados por situação de conciliação.
-
-    Retorna {"pendentes": [...], "parciais": [...]}:
-    - `pendentes`: ≥2 análises enviadas e sem consenso → prontos para conciliar.
-    - `parciais`: só 1 das 2 análises enviada ainda → aguardando o outro analista
-      (antes esses artigos sumiam da tela, parecendo que não havia nada a fazer).
-    """
-    from apps.acervo.models import Analise
-
-    atribuicoes = AtribuicaoAnalise.objects.filter(
-        sorteio__projeto=projeto,
-        sorteio__modo_revisao=SorteioAnalise.ModoRevisao.DUPLA,
-    ).select_related("artigo")
-    artigo_ids = set(a.artigo_id for a in atribuicoes)
-    ja_conciliados = set(
-        ConsensoAnalise.objects.filter(
-            artigo_id__in=artigo_ids, conciliado_em__isnull=False
-        ).values_list("artigo_id", flat=True)
-    )
-    n_atribuidos = {}
-    for a in atribuicoes:
-        n_atribuidos[a.artigo_id] = n_atribuidos.get(a.artigo_id, 0) + 1
-
-    pendentes, parciais = [], []
-    enviadas = (Analise.Status.SUBMETIDA, Analise.Status.PUBLICADA)
-    for aid in artigo_ids - ja_conciliados:
-        analises = list(
-            Analise.objects.filter(artigo_id=aid, status__in=enviadas).select_related(
-                "analista", "artigo"
-            )
-        )
-        if len(analises) >= 2:
-            pendentes.append({"artigo": analises[0].artigo, "analises": analises})
-        elif analises:
-            # 1 enviada, ainda falta a outra: mostra como "aguardando".
-            parciais.append(
-                {
-                    "artigo": analises[0].artigo,
-                    "enviadas": len(analises),
-                    "esperadas": n_atribuidos.get(aid, 2),
-                }
-            )
-    return {"pendentes": pendentes, "parciais": parciais}
-
-
-@_projeto_curador
-def consenso_view(request: HttpRequest, projeto: ProtocoloTriagem) -> HttpResponse:
-    """Conciliação da revisão dupla (curador): registra a análise final."""
-    if not projeto.eh_anco:
-        # Conciliação da análise dupla é do modo Revisão ANCO. No PRISMA-ScR, a
-        # divergência relevante é a da triagem (desempate), não da análise.
-        messages.info(request, "O consenso de análise é do modo Revisão ANCO.")
-        return redirect("triagem_incluidos", slug=projeto.slug)
-    if request.method == "POST":
-        from apps.acervo.models import Analise
-
-        artigo_id = request.POST.get("artigo_id")
-        final_id = request.POST.get("analise_final")
-        analises = list(
-            Analise.objects.filter(
-                artigo_id=artigo_id,
-                status__in=(Analise.Status.SUBMETIDA, Analise.Status.PUBLICADA),
-            )
-        )
-        if len(analises) < 2 or str(final_id) not in {str(a.pk) for a in analises}:
-            messages.error(request, "Selecione a análise final entre as enviadas.")
-            return redirect("triagem_consenso", slug=projeto.slug)
-        consenso = ConsensoAnalise.objects.create(
-            artigo_id=artigo_id,
-            analise_final_id=final_id,
-            conciliado_por=request.user,
-            conciliado_em=timezone.now(),
-        )
-        consenso.analises.set(analises)
-        messages.success(request, "Consenso registrado.")
-        return redirect("triagem_consenso", slug=projeto.slug)
-
-    grupos = _artigos_para_consenso(projeto)
-    return render(
-        request,
-        "triagem/consenso.html",
-        {
-            "projeto": projeto,
-            "protocolo": projeto,
-            "pendentes": grupos["pendentes"],
-            "parciais": grupos["parciais"],
         },
     )
 

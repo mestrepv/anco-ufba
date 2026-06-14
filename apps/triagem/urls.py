@@ -84,7 +84,6 @@ urlpatterns = [
     ),
     path("p/<slug:slug>/iniciar/", views.iniciar_triagem_view, name="triagem_iniciar"),
     path("p/<slug:slug>/triagem-direta/", views.triagem_direta_view, name="triagem_direta"),
-    path("p/<slug:slug>/autotriar/", views.autotriar_view, name="triagem_autotriar"),
     path("p/<slug:slug>/desempate/", views.fila_desempate_view, name="triagem_desempate"),
     path(
         "p/<slug:slug>/desempate/<int:registro_id>/",
@@ -92,21 +91,6 @@ urlpatterns = [
         name="triagem_desempatar",
     ),
     path("p/<slug:slug>/incluidos/", views.incluidos_view, name="triagem_incluidos"),
-    path(
-        "p/<slug:slug>/incluidos/excluir/",
-        views.excluir_incluido_view,
-        name="triagem_incluido_excluir",
-    ),
-    path(
-        "p/<slug:slug>/incluir-corpus/",
-        views.incluir_corpus_view,
-        name="triagem_incluir_corpus",
-    ),
-    path("p/<slug:slug>/estatisticas/", views.estatisticas_view, name="triagem_estatisticas"),
-    path(
-        "p/<slug:slug>/sorteio-analise/", views.sorteio_analise_view, name="triagem_sorteio_analise"
-    ),
-    path("p/<slug:slug>/consenso/", views.consenso_view, name="triagem_consenso"),
     path("p/<slug:slug>/prisma/", views.prisma_view, name="triagem_prisma"),
     path("p/<slug:slug>/equipe/", views.equipe_view, name="triagem_equipe"),
     path("p/<slug:slug>/equipe/buscar/", views.equipe_buscar_view, name="triagem_equipe_buscar"),

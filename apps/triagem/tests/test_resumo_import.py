@@ -61,17 +61,6 @@ def test_import_persiste_contagens_na_busca(protocolo, base_termo):
     assert b.importado_em is not None
 
 
-def test_ja_no_acervo_contado(protocolo, base_termo):
-    # Isenção do acervo só vale no modo ANCO; no rigoroso tudo é triado.
-    protocolo.modo = ProtocoloTriagem.Modo.ANCO
-    protocolo.save(update_fields=["modo"])
-    Artigo.objects.create(doi="10.1/abc", titulo="x", ano=2020, base_consulta=base_termo)
-    b = Busca.objects.create(protocolo=protocolo, base_consulta=base_termo)
-    importar_para_busca(b, parse_ris(RIS))
-    b.refresh_from_db()
-    assert b.n_ja_no_acervo == 1 and b.n_novos == 0
-
-
 def test_ja_no_acervo_triado_no_rigoroso(protocolo, base_termo):
     """PRISMA-ScR: registro que casa com o acervo conta como novo (vai à triagem)."""
     Artigo.objects.create(doi="10.1/abc", titulo="x", ano=2020, base_consulta=base_termo)
