@@ -3,7 +3,7 @@
 Uso:
     manage.py exportar_corpus <slug> [--saida arquivo.csv]
 
-Colunas compatíveis com o ASReview LAB: `record_id`, `title`, `abstract`,
+Colunas compatíveis com o ASReview LAB: `anco_id`, `title`, `abstract`,
 `authors`, `year`, `doi`, `keywords`, `journal`, `label_included`
 (1=incluído, 0=excluído, vazio=ainda sem decisão — útil como *prior knowledge*
 ou para avaliar recall). Duplicatas são omitidas.
@@ -50,9 +50,12 @@ class Command(BaseCommand):
         n = 0
         with cm as saida:
             w = csv.writer(saida)
+            # `anco_id` (nao `record_id`): `record_id` e um nome reservado do
+            # ASReview LAB (ele gera o proprio) e colide no type casting. Mantemos
+            # nosso pk como `anco_id` p/ reimportar os rotulos depois.
             w.writerow(
                 [
-                    "record_id", "title", "abstract", "authors", "year",
+                    "anco_id", "title", "abstract", "authors", "year",
                     "doi", "keywords", "journal", "label_included",
                 ]
             )
