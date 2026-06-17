@@ -154,8 +154,8 @@
   {% endif %}
 
   {# ── Suas revisões: tabs separando PRISMA-ScR e Revisão ANCO ── #}
-  {% if projetos_painel or projetos_anco or pode_criar_projeto %}
-  <section class="painel-secao" x-data="{ tab: '{% if projetos_painel or not projetos_anco %}prisma{% else %}anco{% endif %}' }">
+  {% if mostra_prisma or mostra_anco %}
+  <section class="painel-secao" x-data="{ tab: '{% if mostra_prisma %}prisma{% else %}anco{% endif %}' }">
     <style>
       .rev-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 14px; }
       .rev-tab { font-family:var(--font-sans); font-size:13.5px; padding:7px 14px; border-radius:999px;
@@ -168,7 +168,7 @@
       {% if pode_criar_projeto %}<a href="{% url 'triagem_novo_projeto' %}" class="btn btn-sm btn-primary">+ Novo projeto</a>{% endif %}
     </div>
 
-    {% if projetos_anco %}
+    {% if mostra_abas %}
     <div class="rev-tabs">
       <button type="button" class="rev-tab" :class="tab==='prisma' && 'ativa'" @click="tab='prisma'">Revisão de escopo · PRISMA-ScR ({{ projetos_painel|length }})</button>
       <button type="button" class="rev-tab" :class="tab==='anco' && 'ativa'" @click="tab='anco'">Revisão ANCO · Análise Cognitiva ({{ projetos_anco|length }})</button>
@@ -176,7 +176,8 @@
     {% endif %}
 
     {# ── PRISMA-ScR ── #}
-    <div x-show="tab==='prisma'"{% if projetos_anco %} x-cloak{% endif %}>
+    {% if mostra_prisma %}
+    <div x-show="tab==='prisma'"{% if mostra_abas %} x-cloak{% endif %}>
       <p class="secao-desc">Revisões de escopo (triagem por ≥2 revisores). <a href="{% url 'triagem_ajuda' %}" style="color:var(--color-gold-deep);">Como funciona →</a></p>
       {% for item in projetos_painel %}
       <div class="projeto-bloco">
@@ -192,10 +193,11 @@
       <p class="empty">Você não participa de nenhuma revisão PRISMA-ScR.{% if pode_criar_projeto %} Crie a primeira em <a href="{% url 'triagem_novo_projeto' %}" style="color:var(--color-gold-deep);font-style:normal;">Novo projeto →</a>{% endif %}</p>
       {% endfor %}
     </div>
+    {% endif %}
 
     {# ── Revisão ANCO ── #}
-    {% if projetos_anco %}
-    <div x-show="tab==='anco'" x-cloak>
+    {% if mostra_anco %}
+    <div x-show="tab==='anco'"{% if mostra_abas %} x-cloak{% endif %}>
       <p class="secao-desc">Revisões ANCO (análise cognitiva, sem triagem prévia).</p>
       {% for item in projetos_anco %}
       <div class="projeto-bloco">

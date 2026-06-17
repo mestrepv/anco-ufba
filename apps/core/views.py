@@ -179,11 +179,9 @@ def painel_view(request: HttpRequest) -> HttpResponse:
     if getattr(user, "eh_analista", False):
         from django.urls import reverse
 
-        from apps.acervo.models import Artigo
         from apps.triagem.aprovacao import registros_para_desempate
         from apps.triagem.duplicatas import contar_pares_do_usuario
         from apps.triagem.models import (
-            DecisaoTriagem,
             ProtocoloTriagem,
             RegistroTriagem,
         )
@@ -195,20 +193,17 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         meus_projetos = list(projetos_qs.order_by("nome"))
         protocolo = meus_projetos[0] if meus_projetos else None
 
-        # Trabalho do revisor é global (atravessa projetos).
+        # Trabalho do revisor: atravessa projetos, mas só os ativos dos quais
+        # ele ainda é membro (sorteio é restrito a membros — Fase 12).
+        from apps.triagem.fila import decisoes_pendentes
+
         triagens_pendentes = (
-            DecisaoTriagem.objects.filter(revisor=user, concluido_em__isnull=True)
-            .select_related("registro")
-            .order_by("prazo_em")
+            decisoes_pendentes(user).select_related("registro").order_by("prazo_em")
         )
         n_triagens = triagens_pendentes.count()
-        ja_minhas = Analise.objects.filter(analista=user).values_list("artigo_id", flat=True)
-        n_a_analisar = (
-            Artigo.objects.filter(registros_triagem__status=RegistroTriagem.Status.INCLUIDO)
-            .exclude(pk__in=ja_minhas)
-            .distinct()
-            .count()
-        )
+        from apps.triagem.analise import artigos_a_analisar
+
+        n_a_analisar = artigos_a_analisar(user).count()
 
         # Um bloco por projeto: objetivo, estratégia e as 7 etapas com OS
         # contadores do usuário NAQUELE projeto (painel consolidado).
@@ -319,12 +314,21 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                 for pa in anco_qs.order_by("nome")
             ]
 
+        pode_criar_projeto = user.is_staff or user.eh_curador
+        # Cada lado só aparece quando há algo nele. PRISMA também aparece p/ quem
+        # pode criar projeto (estado vazio com "Novo projeto"). As abas (pills)
+        # só fazem sentido quando os DOIS lados estão visíveis.
+        mostra_prisma = bool(projetos_painel) or pode_criar_projeto
+        mostra_anco = bool(projetos_anco)
         contexto_triagem = {
             "projetos_painel": projetos_painel,
             "projetos_anco": projetos_anco,
             "n_projetos": len(meus_projetos),
             "proxima": proxima,
-            "pode_criar_projeto": user.is_staff or user.eh_curador,
+            "pode_criar_projeto": pode_criar_projeto,
+            "mostra_prisma": mostra_prisma,
+            "mostra_anco": mostra_anco,
+            "mostra_abas": mostra_prisma and mostra_anco,
         }
 
     return render(
