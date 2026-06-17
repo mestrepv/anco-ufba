@@ -142,3 +142,31 @@ def test_avaliacao_espera_todas_decisoes(protocolo, registro, revisores):
     assert res.decidida is False
     registro.refresh_from_db()
     assert registro.status == RegistroTriagem.Status.EM_TRIAGEM
+
+
+# ---- fila do revisor: escopo por membership ativo --------------------------
+
+
+def test_fila_exclui_decisao_de_nao_membro(protocolo, registro, revisores):
+    """Decisão pendente de quem NÃO é (mais) membro do projeto não conta como
+    trabalho na fila (regressão: sorteio órfão em projeto ativo)."""
+    from apps.triagem.fila import decisoes_pendentes
+    from apps.triagem.models import DecisaoTriagem, ProjetoMembro
+
+    executar_sorteio(registro)
+    rev = DecisaoTriagem.objects.filter(registro=registro).first().revisor
+    assert decisoes_pendentes(rev).count() >= 1  # membro: conta
+
+    ProjetoMembro.objects.filter(projeto=protocolo, usuario=rev).delete()
+    assert decisoes_pendentes(rev).count() == 0  # ex-membro: some da fila
+
+
+def test_fila_exclui_projeto_arquivado(protocolo, registro, revisores):
+    from apps.triagem.fila import decisoes_pendentes
+    from apps.triagem.models import DecisaoTriagem
+
+    executar_sorteio(registro)
+    rev = DecisaoTriagem.objects.filter(registro=registro).first().revisor
+    protocolo.arquivado = True
+    protocolo.save(update_fields=["arquivado"])
+    assert decisoes_pendentes(rev).count() == 0

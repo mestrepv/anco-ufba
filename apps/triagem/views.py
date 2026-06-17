@@ -881,17 +881,18 @@ def triagem_direta_view(request: HttpRequest, projeto: ProtocoloTriagem) -> Http
 
 @_exige_analista
 def minhas_triagens_view(request: HttpRequest) -> HttpResponse:
+    from .fila import decisoes_do_revisor
+
+    minhas = decisoes_do_revisor(request.user)
     pendentes = list(
-        DecisaoTriagem.objects.filter(revisor=request.user, concluido_em__isnull=True)
-        .select_related("registro")
-        .order_by("prazo_em")
+        minhas.filter(concluido_em__isnull=True).select_related("registro").order_by("prazo_em")
     )
     concluidas = (
-        DecisaoTriagem.objects.filter(revisor=request.user, concluido_em__isnull=False)
+        minhas.filter(concluido_em__isnull=False)
         .select_related("registro")
         .order_by("-concluido_em")[:20]
     )
-    total = DecisaoTriagem.objects.filter(revisor=request.user).count()
+    total = minhas.count()
     feitas = total - len(pendentes)
     return render(
         request,
@@ -929,8 +930,10 @@ def triar_view(request: HttpRequest, decisao_id: int) -> HttpResponse:
             decisao.concluido_em = timezone.now()
             decisao.save()  # signal dispara a avaliação
             # Auto-avançar: vai direto ao próximo pendente (fluxo guiado).
+            from .fila import decisoes_pendentes
+
             prox = (
-                DecisaoTriagem.objects.filter(revisor=request.user, concluido_em__isnull=True)
+                decisoes_pendentes(request.user)
                 .exclude(pk=decisao.pk)
                 .order_by("prazo_em")
                 .first()
@@ -945,11 +948,14 @@ def triar_view(request: HttpRequest, decisao_id: int) -> HttpResponse:
         form = DecisaoTriagemForm()
 
     # Progresso do revisor (X de Y) para o fluxo guiado.
-    total = DecisaoTriagem.objects.filter(revisor=request.user).count()
-    feitas = DecisaoTriagem.objects.filter(revisor=request.user, concluido_em__isnull=False).count()
+    from .fila import decisoes_do_revisor
+
+    minhas = decisoes_do_revisor(request.user)
+    total = minhas.count()
+    feitas = minhas.filter(concluido_em__isnull=False).count()
     pct = round(feitas * 100 / total) if total else 0
     proximo = (
-        DecisaoTriagem.objects.filter(revisor=request.user, concluido_em__isnull=True)
+        minhas.filter(concluido_em__isnull=True)
         .exclude(pk=decisao.pk)
         .order_by("prazo_em")
         .first()
@@ -1148,17 +1154,14 @@ def ajuda_view(request: HttpRequest) -> HttpResponse:
 
 @_exige_analista
 def a_analisar_view(request: HttpRequest) -> HttpResponse:
-    """Artigos a analisar: pool self-serve dos incluídos pela triagem (some o que
-    o usuário já analisou)."""
-    from apps.acervo.models import Analise, Artigo
+    """Artigos a analisar: pool PRISMA dos incluídos pela triagem em projetos
+    ativos dos quais o usuário é membro (some o que ele já analisou). A fila de
+    análise do módulo ANCO é servida por `apps/anco`, não aqui."""
+    from apps.acervo.models import Analise
 
-    minhas = Analise.objects.filter(analista=request.user).values_list("artigo_id", flat=True)
-    artigos = (
-        Artigo.objects.filter(registros_triagem__status=RegistroTriagem.Status.INCLUIDO)
-        .exclude(pk__in=minhas)
-        .distinct()
-        .order_by("-ano", "titulo")
-    )
+    from .analise import artigos_a_analisar
+
+    artigos = artigos_a_analisar(request.user).order_by("-ano", "titulo")
     pagina = Paginator(artigos, 50).get_page(request.GET.get("page"))
 
     # Anexa a análise do usuário a cada artigo da página (status + ação certa).

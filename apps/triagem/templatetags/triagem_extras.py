@@ -17,17 +17,9 @@ def a_analisar_count(user) -> int:
     pela triagem que o usuário ainda não analisou."""
     if not getattr(user, "is_authenticated", False) or not getattr(user, "eh_analista", False):
         return 0
-    from apps.acervo.models import Analise, Artigo
+    from ..analise import artigos_a_analisar
 
-    from ..models import RegistroTriagem
-
-    ja = Analise.objects.filter(analista=user).values_list("artigo_id", flat=True)
-    return (
-        Artigo.objects.filter(registros_triagem__status=RegistroTriagem.Status.INCLUIDO)
-        .exclude(pk__in=ja)
-        .distinct()
-        .count()
-    )
+    return artigos_a_analisar(user).count()
 
 
 @register.filter

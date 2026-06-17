@@ -98,6 +98,17 @@ def test_a_analisar_lista_incluidos(client, protocolo, analista):
     assert artigo in list(resp.context["pagina"].object_list)
 
 
+def test_a_analisar_ignora_projeto_arquivado(client, analista):
+    """Incluídos de projeto PRISMA arquivado não vazam para a fila (regressão:
+    registros legados de projetos ANCO migrados para apps/anco e arquivados)."""
+    arquivado = ProtocoloTriagem.objects.create(titulo="Arquivado", arquivado=True)
+    artigo = _artigo_incluido(arquivado, doi="10.3/arquivado")
+    client.force_login(analista)
+    resp = client.get(turl("triagem_a_analisar"))
+    assert resp.status_code == 200
+    assert artigo not in list(resp.context["pagina"].object_list)
+
+
 def test_a_analisar_oculta_ja_analisados(client, protocolo, analista):
     artigo = _artigo_incluido(protocolo, doi="10.3/ja")
     Analise.objects.create(artigo=artigo, analista=analista, status=Analise.Status.RASCUNHO)
