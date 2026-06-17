@@ -139,6 +139,36 @@ def importar_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
     return render(request, "anco/importar.html", {"projeto": projeto, "form": form})
 
 
+@_projeto_curador
+def fonte_excluir_view(request: HttpRequest, projeto: ProjetoANCO, fonte_id: int) -> HttpResponse:
+    """Curador exclui uma lista (FonteImport) com tela de confirmação. Itens novos
+    sem análise e só desta fonte saem do corpus; conteúdo no acervo é mantido."""
+    from .importacao import excluir_fonte, resumo_exclusao_fonte
+
+    fonte = get_object_or_404(FonteImport, pk=fonte_id, projeto=projeto)
+    if request.method == "POST":
+        nome = fonte.base_nome or "(sem base)"
+        removidos = excluir_fonte(fonte, request.user)
+        messages.success(
+            request,
+            f"Lista “{nome}” excluída. {removidos} item(ns) novo(s) removido(s) do corpus; "
+            "conteúdo no acervo/analisado foi mantido.",
+        )
+        return redirect("anco_painel", slug=projeto.slug)
+    total, mantidos, removidos = resumo_exclusao_fonte(fonte)
+    return render(
+        request,
+        "anco/fonte_excluir.html",
+        {
+            "projeto": projeto,
+            "fonte": fonte,
+            "total": total,
+            "mantidos": mantidos,
+            "removidos": removidos,
+        },
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Corpus
 # --------------------------------------------------------------------------- #
@@ -202,11 +232,28 @@ def corpus_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
     return render(request, "anco/corpus.html", contexto)
 
 
+def _no_acervo(item: ItemCorpus) -> bool:
+    """Item cujo artigo já está no acervo: legado curado ou com análise publicada.
+    Uma vez no acervo, só curador edita/remove."""
+    from apps.acervo.models import Analise
+
+    art = item.artigo
+    if not art:
+        return False
+    if art.eh_legado:
+        return True
+    return Analise.objects.filter(
+        artigo=art, status__in=[Analise.Status.PUBLICADA, Analise.Status.LEGADO]
+    ).exists()
+
+
 def _pode_gerenciar_item(projeto: ProjetoANCO, item: ItemCorpus, user) -> bool:
-    """Quem edita/remove um item do corpus: quem o adicionou (importador de
-    alguma das fontes do item) ou curador/admin."""
+    """Quem edita/remove um item do corpus: curador/admin sempre; quem o adicionou
+    desde que o item ainda **não esteja no acervo** (acervo é só do curador)."""
     if projeto.eh_curador_no(user) or user.is_staff:
         return True
+    if _no_acervo(item):
+        return False
     return item.origem_fontes.filter(criado_por=user).exists()
 
 
@@ -217,7 +264,9 @@ def corpus_excluir_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpRespo
 
     item = get_object_or_404(ItemCorpus, pk=request.POST.get("item_id"), projeto=projeto)
     if not _pode_gerenciar_item(projeto, item, request.user):
-        return HttpResponseForbidden("Só quem adicionou (ou curador/admin) remove este item.")
+        return HttpResponseForbidden(
+            "Sem permissão: itens no acervo são geridos só pelo curador."
+        )
     item.removido = True
     item.removido_por = request.user
     item.removido_em = timezone.now()
@@ -407,6 +456,23 @@ def equipe_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
         if acao == "remover":
             MembroANCO.objects.filter(projeto=projeto, pk=request.POST.get("membro_id")).delete()
             messages.info(request, "Membro removido.")
+        elif acao == "mudar_papel":
+            m = (
+                MembroANCO.objects.filter(projeto=projeto, pk=request.POST.get("membro_id"))
+                .select_related("usuario")
+                .first()
+            )
+            novo = request.POST.get("papel")
+            if m is None or novo not in dict(MembroANCO.Papel.choices):
+                messages.error(request, "Papel inválido.")
+            elif m.usuario_id == request.user.id and novo != MembroANCO.Papel.CURADOR:
+                messages.error(request, "Você não pode rebaixar a si mesmo.")
+            else:
+                m.papel = novo
+                m.save(update_fields=["papel"])
+                messages.success(
+                    request, f"{m.usuario.nome_exibicao or m.usuario.email} agora é {m.get_papel_display()}."
+                )
         elif acao == "adicionar":
             email = (request.POST.get("email") or "").strip().lower()
             papel = request.POST.get("papel", MembroANCO.Papel.ANALISTA)

@@ -319,3 +319,77 @@ def test_item_navegacao_e_link_artigo(client, projeto, curador):
     # os links de navegação apontam para itens vizinhos do corpus
     assert reverse("anco_corpus_editar", args=[projeto.slug, its[0].pk]) in html
     assert reverse("anco_corpus_editar", args=[projeto.slug, its[2].pk]) in html
+
+
+def test_fonte_excluir_confirma_e_executa(client, projeto, curador):
+    from apps.anco.importacao import importar_para_fonte
+    from apps.anco.models import FonteImport, ItemCorpus
+
+    f = FonteImport.objects.create(projeto=projeto, outra_base="Lista X", criado_por=curador)
+    importar_para_fonte(f, [{"titulo": "A", "doi": "10.2/a"}, {"titulo": "B", "doi": "10.2/b"}])
+    client.force_login(curador)
+    url = reverse("anco_fonte_excluir", args=[projeto.slug, f.pk])
+    # GET: tela de confirmação com o resumo
+    html = client.get(url).content.decode()
+    assert "Excluir lista de fontes" in html and "Lista X" in html
+    # POST: executa, redireciona ao painel; itens novos saem
+    resp = client.post(url)
+    assert resp.status_code == 302
+    assert not FonteImport.objects.filter(pk=f.pk).exists()
+    assert ItemCorpus.objects.filter(doi__in=["10.2/a", "10.2/b"], removido=True).count() == 2
+
+
+def test_fonte_excluir_so_curador(client, projeto, analista):
+    from apps.anco.models import FonteImport
+
+    f = FonteImport.objects.create(projeto=projeto, outra_base="L", criado_por=analista)
+    client.force_login(analista)  # membro analista, não curador
+    assert client.get(reverse("anco_fonte_excluir", args=[projeto.slug, f.pk])).status_code == 403
+
+
+def test_nao_curador_nao_remove_item_no_acervo(client, projeto, analista):
+    from apps.acervo.models import Analise
+    from apps.anco.models import ItemCorpus
+
+    item = _item_com_fonte(projeto, analista, doi="10.3/pub")
+    Analise.objects.create(artigo=item.artigo, analista=analista, status=Analise.Status.PUBLICADA)
+    client.force_login(analista)  # importou, mas item está no acervo (publicado)
+    resp = client.post(reverse("anco_corpus_excluir", args=[projeto.slug]), {"item_id": item.pk})
+    assert resp.status_code == 403  # acervo = só curador
+
+
+def test_equipe_mudar_papel(client, projeto, curador):
+    from apps.anco.models import MembroANCO
+
+    ana = User.objects.create_user(username="anap", email="anap@u.edu", password="x", pode_anco=True)
+    m = MembroANCO.objects.create(projeto=projeto, usuario=ana, papel=MembroANCO.Papel.ANALISTA)
+    cur_m = MembroANCO.objects.get(projeto=projeto, usuario=curador)
+    client.force_login(curador)
+    url = reverse("anco_equipe", args=[projeto.slug])
+
+    # promover analista → curador
+    client.post(url, {"acao": "mudar_papel", "membro_id": m.pk, "papel": "curador"})
+    m.refresh_from_db()
+    assert m.papel == "curador"
+    # rebaixar curador → analista
+    client.post(url, {"acao": "mudar_papel", "membro_id": m.pk, "papel": "analista"})
+    m.refresh_from_db()
+    assert m.papel == "analista"
+    # curador NÃO pode rebaixar a si mesmo
+    client.post(url, {"acao": "mudar_papel", "membro_id": cur_m.pk, "papel": "analista"})
+    cur_m.refresh_from_db()
+    assert cur_m.papel == "curador"
+
+
+def test_equipe_mudar_papel_so_curador(client, projeto, analista):
+    from apps.anco.models import MembroANCO
+
+    m = MembroANCO.objects.get(projeto=projeto, usuario=analista)
+    client.force_login(analista)  # membro analista, não curador
+    resp = client.post(
+        reverse("anco_equipe", args=[projeto.slug]),
+        {"acao": "mudar_papel", "membro_id": m.pk, "papel": "curador"},
+    )
+    assert resp.status_code == 403
+    m.refresh_from_db()
+    assert m.papel == "analista"

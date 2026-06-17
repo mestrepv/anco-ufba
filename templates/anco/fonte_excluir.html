@@ -1,0 +1,34 @@
+{% extends "_base_publico.html" %}
+{% block title %}Excluir lista · {{ projeto.nome }}{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+{% block content %}
+<div class="tg-wrap" style="max-width:640px;">
+  <a href="{% url 'anco_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome }}</a>
+  <h1 class="tg-h1" style="margin-top:6px;">Excluir lista de fontes</h1>
+
+  <div class="tg-card" style="margin:14px 0;">
+    <p style="margin:0 0 4px;font-family:var(--font-serif);font-size:17px;color:var(--color-ink);">
+      {{ fonte.base_nome|default:"(sem base)" }}
+    </p>
+    <p class="tg-meta" style="margin:0;">
+      {% if fonte.criado_por %}por {{ fonte.criado_por.nome_exibicao|default:fonte.criado_por.email }} · {% endif %}
+      {% if fonte.importado_em %}{{ fonte.importado_em|date:"d/m/Y H:i" }} · {% endif %}{{ total }} item(ns) no corpus
+    </p>
+  </div>
+
+  <div class="tg-card" style="margin:14px 0;border-color:var(--color-rule-strong);">
+    <p style="margin:0 0 10px;font-family:var(--font-sans);font-size:14px;color:var(--color-ink);">O que acontece ao excluir:</p>
+    <ul style="margin:0;padding-left:20px;font-family:var(--font-sans);font-size:14px;color:var(--color-ink-2);line-height:1.7;">
+      <li><strong style="color:var(--color-danger);">{{ removidos }}</strong> item(ns) novo(s) sem análise (e só desta lista) serão <strong>removidos do corpus</strong>.</li>
+      <li><strong style="color:var(--color-ok);">{{ mantidos }}</strong> item(ns) <strong>mantidos</strong> — já no acervo, já analisados ou com outra fonte de origem.</li>
+    </ul>
+    <p class="tg-meta" style="margin:12px 0 0;">Conteúdo que passou pela análise e entrou no acervo permanece intacto. Esta ação não pode ser desfeita.</p>
+  </div>
+
+  <form method="post" style="display:flex;gap:10px;margin-top:8px;">
+    {% csrf_token %}
+    <button type="submit" class="btn" style="background:var(--color-danger);color:#fff;border-color:var(--color-danger);">Excluir lista{% if removidos %} e remover {{ removidos }} item(ns){% endif %}</button>
+    <a href="{% url 'anco_painel' projeto.slug %}" class="btn btn-secondary">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

@@ -52,11 +52,12 @@
         <div x-show="imp" x-cloak style="margin-top:12px;">
           <p class="tg-meta" style="margin:0 0 10px;">Quem importou, quando e quantos itens da fonte seguem no corpus (mais recentes primeiro).</p>
           {% for f in fontes %}
-          <div class="tg-card" style="display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;">
+          <div class="tg-card" style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px;">
             <div>
               <strong>{{ f.base_nome|default:"(sem base)" }}</strong>
               <span class="tg-meta">· {{ f.n_itens }} no corpus{% if f.criado_por %} · por {{ f.criado_por.nome_exibicao|default:f.criado_por.email }}{% endif %}{% if f.importado_em %} · {{ f.importado_em|date:"d/m/Y H:i" }}{% endif %}</span>
             </div>
+            {% if eh_curador %}<a href="{% url 'anco_fonte_excluir' projeto.slug f.pk %}" class="btn btn-sm" style="flex-shrink:0;border-color:var(--color-danger);color:var(--color-danger);">Excluir lista</a>{% endif %}
           </div>
           {% endfor %}
         </div>

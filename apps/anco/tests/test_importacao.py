@@ -73,3 +73,36 @@ def test_registrar_artigo_no_corpus_idempotente_e_legado():
     legado = Artigo.objects.create(titulo="Curado", ano=2010, doi="10.5/leg", eh_legado=True)
     assert registrar_artigo_no_corpus(proj, legado, por) is None  # legado isento
     assert proj.itens.count() == 1
+
+
+def test_excluir_fonte_preserva_acervo_e_analisados():
+    from apps.acervo.models import Analise, Artigo
+    from apps.anco.importacao import excluir_fonte, importar_para_fonte, resumo_exclusao_fonte
+    from apps.anco.models import FonteImport
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    proj = ProjetoANCO.objects.create(nome="Excl")
+    cur = User.objects.create_user(username="c", email="c@u.edu", password="x")
+    f = FonteImport.objects.create(projeto=proj, outra_base="Base", criado_por=cur)
+    importar_para_fonte(f, [
+        {"titulo": "Novo sem análise", "doi": "10.1/novo"},
+        {"titulo": "Já analisado", "doi": "10.1/ana"},
+        {"titulo": "Vira legado", "doi": "10.1/leg"},
+    ])
+    ana = ItemCorpus.objects.get(projeto=proj, doi="10.1/ana")
+    Analise.objects.create(artigo=ana.artigo, analista=cur, status=Analise.Status.PUBLICADA)
+    leg = ItemCorpus.objects.get(projeto=proj, doi="10.1/leg")
+    leg.artigo.eh_legado = True
+    leg.artigo.save(update_fields=["eh_legado"])
+
+    total, mantidos, removidos = resumo_exclusao_fonte(f)
+    assert (total, mantidos, removidos) == (3, 2, 1)
+
+    n = excluir_fonte(f, cur)
+    assert n == 1
+    assert not FonteImport.objects.filter(pk=f.pk).exists()  # lista some
+    # o novo sem análise saiu do corpus; analisado e legado ficam
+    assert ItemCorpus.objects.get(doi="10.1/novo").removido is True
+    assert ItemCorpus.objects.get(doi="10.1/ana").removido is False
+    assert ItemCorpus.objects.get(doi="10.1/leg").removido is False

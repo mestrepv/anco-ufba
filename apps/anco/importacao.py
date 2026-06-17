@@ -253,3 +253,41 @@ def registrar_artigo_no_corpus(projeto: ProjetoANCO, artigo: Artigo, por) -> Ite
     else:
         FonteImport.objects.filter(pk=fonte.pk).update(importado_em=timezone.now())
     return item
+
+
+def _preservar_na_exclusao(item: ItemCorpus, fonte: FonteImport) -> bool:
+    """Item que NÃO deve ser removido ao excluir a fonte: já no acervo curado,
+    já analisado (qualquer Analise) ou com outra fonte de origem além desta."""
+    from apps.acervo.models import Analise
+
+    art = item.artigo
+    if art and (art.eh_legado or Analise.objects.filter(artigo=art).exists()):
+        return True
+    return item.origem_fontes.exclude(pk=fonte.pk).exists()
+
+
+def resumo_exclusao_fonte(fonte: FonteImport) -> tuple[int, int, int]:
+    """(total, mantidos, removidos) ao excluir a fonte — para a tela de confirmação."""
+    itens = list(fonte.itens.filter(removido=False).select_related("artigo"))
+    mantidos = sum(1 for it in itens if _preservar_na_exclusao(it, fonte))
+    return len(itens), mantidos, len(itens) - mantidos
+
+
+@transaction.atomic
+def excluir_fonte(fonte: FonteImport, por) -> int:
+    """Exclui a lista (FonteImport). Itens novos sem análise e só desta fonte são
+    removidos do corpus (soft-delete); **conteúdo no acervo ou já analisado é
+    mantido** (perde só esta procedência). Retorna o nº de itens removidos."""
+    removidos = 0
+    for it in fonte.itens.filter(removido=False).select_related("artigo"):
+        if _preservar_na_exclusao(it, fonte):
+            continue
+        it.removido = True
+        it.removido_por = por
+        it.removido_em = timezone.now()
+        it.motivo_remocao = "Lista de fontes excluída pela curadoria"[:300]
+        it.save(update_fields=["removido", "removido_por", "removido_em", "motivo_remocao"])
+        removidos += 1
+    logger.info("Fonte ANCO %s excluída por %s; %d item(ns) removido(s)", fonte.pk, por, removidos)
+    fonte.delete()
+    return removidos

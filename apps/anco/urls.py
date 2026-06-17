@@ -8,6 +8,11 @@ urlpatterns = [
     path("", views.projetos_view, name="anco_projetos"),
     path("p/<slug:slug>/", views.painel_view, name="anco_painel"),
     path("p/<slug:slug>/importar/", views.importar_view, name="anco_importar"),
+    path(
+        "p/<slug:slug>/fonte/<int:fonte_id>/excluir/",
+        views.fonte_excluir_view,
+        name="anco_fonte_excluir",
+    ),
     path("p/<slug:slug>/corpus/", views.corpus_view, name="anco_corpus"),
     path("p/<slug:slug>/corpus/excluir/", views.corpus_excluir_view, name="anco_corpus_excluir"),
     path(

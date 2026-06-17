@@ -8,12 +8,27 @@
 
   <div style="margin:16px 0;">
     {% for m in membros %}
-      <div class="tg-card" style="display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;">
+      <div class="tg-card" style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px;">
         <div>{{ m.usuario.nome_exibicao|default:m.usuario.email }} <span class="tg-meta">· {{ m.get_papel_display }}</span></div>
-        <form method="post" onsubmit="return confirm('Remover membro?');">
-          {% csrf_token %}<input type="hidden" name="acao" value="remover"><input type="hidden" name="membro_id" value="{{ m.pk }}">
-          <button type="submit" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Remover</button>
-        </form>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          {% if m.usuario_id != user.pk %}
+          {% if m.papel == 'curador' %}
+          <form method="post" onsubmit="return confirm('Rebaixar a analista?');">
+            {% csrf_token %}<input type="hidden" name="acao" value="mudar_papel"><input type="hidden" name="membro_id" value="{{ m.pk }}"><input type="hidden" name="papel" value="analista">
+            <button type="submit" class="btn btn-sm btn-secondary">Rebaixar a analista</button>
+          </form>
+          {% else %}
+          <form method="post" onsubmit="return confirm('Tornar curador deste projeto?');">
+            {% csrf_token %}<input type="hidden" name="acao" value="mudar_papel"><input type="hidden" name="membro_id" value="{{ m.pk }}"><input type="hidden" name="papel" value="curador">
+            <button type="submit" class="btn btn-sm btn-secondary">Tornar curador</button>
+          </form>
+          {% endif %}
+          {% endif %}
+          <form method="post" onsubmit="return confirm('Remover membro?');">
+            {% csrf_token %}<input type="hidden" name="acao" value="remover"><input type="hidden" name="membro_id" value="{{ m.pk }}">
+            <button type="submit" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Remover</button>
+          </form>
+        </div>
       </div>
     {% empty %}
       <p class="tg-empty">Sem membros.</p>
