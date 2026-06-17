@@ -50,6 +50,8 @@ def slug_to_doi(slug: str) -> str:
 
     >>> slug_to_doi("10.1234__abc.456")
     '10.1234/abc.456'
+    >>> slug_to_doi("10.54103__2037-3597__29116")
+    '10.54103/2037-3597/29116'
     >>> slug_to_doi("legacy__abcdef")
     'legacy:abcdef'
     """
@@ -57,10 +59,11 @@ def slug_to_doi(slug: str) -> str:
         return ""
     s = str(slug).strip()
     if s.startswith("legacy" + _SUBST):
-        # legacy__HASH -> legacy:HASH
+        # legacy__HASH -> legacy:HASH (só o prefixo)
         return s.replace(_SUBST, ":", 1)
-    # DOI canonico: troca o primeiro '__' por '/'
-    return s.replace(_SUBST, "/", 1)
+    # DOI canonico: repõe TODAS as barras (doi_to_slug troca toda '/' por '__';
+    # DOIs com >1 barra, ex. 10.x/a/b, exigem reverter todas).
+    return s.replace(_SUBST, "/")
 
 
 # ---------------------------------------------------------------------------

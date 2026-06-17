@@ -21,6 +21,11 @@ class TestDoiSlug:
         d = "10.1234/abc.456"
         assert slug_to_doi(doi_to_slug(d)) == d
 
+    def test_doi_multi_barra_round_trip(self):
+        # DOI com 2 barras (ex.: revistas OJS) — regressão do slug_to_doi.
+        d = "10.54103/2037-3597/29116"
+        assert slug_to_doi(doi_to_slug(d)) == d
+
     def test_legacy_round_trip(self):
         d = "legacy:abcdef0123456789"
         assert slug_to_doi(doi_to_slug(d)) == d
