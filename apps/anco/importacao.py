@@ -17,7 +17,7 @@ from django.utils import timezone
 from apps.acervo.models import Artigo, _gerar_identificador_interno
 
 from .dedup import chave_dedup, normalizar_doi
-from .models import FonteImport, ItemCorpus
+from .models import FonteImport, ItemCorpus, ProjetoANCO
 
 logger = logging.getLogger(__name__)
 
@@ -154,3 +154,102 @@ def importar_para_fonte(fonte: FonteImport, registros_brutos: list[dict]) -> Res
         res.ignorados,
     )
     return res
+
+
+def sincronizar_artigo(item: ItemCorpus) -> None:
+    """Propaga os campos bibliográficos do item para o `Artigo` vinculado.
+
+    Port do `_sincronizar_artigo` da triagem: mantém a análise em sincronia com
+    as correções no item. **Nunca toca o acervo legado** (`eh_legado`). Se o
+    DOI/ISBN editado colidir com outro artigo, salva o resto e preserva a chave.
+    """
+    from django.db import IntegrityError
+
+    artigo = item.artigo
+    if artigo is None or artigo.eh_legado:
+        return
+    artigo.titulo = item.titulo
+    artigo.autores = item.autores
+    artigo.ano = item.ano
+    artigo.resumo = item.resumo
+    artigo.palavras_chaves = item.palavras_chaves
+    artigo.titulo_periodico = item.titulo_periodico
+    artigo.idioma = _idioma(item.idioma)
+    artigo.link_acesso = item.link or ""
+    artigo.doi = item.doi or None
+    artigo.isbn = item.isbn or None
+    comuns = [
+        "titulo",
+        "autores",
+        "ano",
+        "resumo",
+        "palavras_chaves",
+        "titulo_periodico",
+        "idioma",
+        "link_acesso",
+    ]
+    try:
+        artigo.save(update_fields=[*comuns, "doi", "isbn"])
+    except IntegrityError:
+        artigo.refresh_from_db(fields=["doi", "isbn"])
+        artigo.idioma = _idioma(item.idioma)
+        artigo.link_acesso = item.link or ""
+        artigo.save(update_fields=comuns)
+
+
+@transaction.atomic
+def registrar_artigo_no_corpus(projeto: ProjetoANCO, artigo: Artigo, por) -> ItemCorpus | None:
+    """Inclui um `Artigo` já existente no corpus ANCO (entrada "Artigo individual",
+    via DOI ou manual). Cria/garante um `ItemCorpus` apontando para o artigo, com
+    proveniência numa `FonteImport` "Artigos individuais" do usuário. Idempotente.
+
+    Legado é isento (já está no acervo curado): retorna None.
+    """
+    from django.db.models import F
+
+    if getattr(artigo, "eh_legado", False):
+        return None
+
+    ident = chave_dedup(
+        artigo.doi or "", artigo.isbn or "", artigo.titulo, artigo.ano, artigo.titulo_periodico
+    )
+    fonte, _ = FonteImport.objects.get_or_create(
+        projeto=projeto,
+        criado_por=por,
+        outra_base="Artigos individuais",
+        defaults={"importado_em": timezone.now()},
+    )
+    item, criado = ItemCorpus.objects.get_or_create(
+        projeto=projeto,
+        identificador=ident,
+        defaults={
+            "titulo": artigo.titulo,
+            "autores": artigo.autores,
+            "ano": artigo.ano,
+            "doi": artigo.doi or "",
+            "isbn": artigo.isbn or "",
+            "resumo": artigo.resumo,
+            "palavras_chaves": artigo.palavras_chaves,
+            "titulo_periodico": artigo.titulo_periodico,
+            "idioma": artigo.idioma or "",
+            "artigo": artigo,
+        },
+    )
+    campos = []
+    if item.artigo_id is None:
+        item.artigo = artigo
+        campos.append("artigo")
+    if item.removido:  # reabilita item removido antes
+        item.removido, item.removido_por, item.removido_em = False, None, None
+        campos += ["removido", "removido_por", "removido_em"]
+    if campos:
+        item.save(update_fields=campos)
+    item.origem_fontes.add(fonte)
+
+    if criado:
+        FonteImport.objects.filter(pk=fonte.pk).update(
+            n_lidos=F("n_lidos") + 1, n_novos=F("n_novos") + 1, importado_em=timezone.now()
+        )
+    else:
+        FonteImport.objects.filter(pk=fonte.pk).update(importado_em=timezone.now())
+    return item

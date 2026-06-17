@@ -5,28 +5,66 @@
 <div class="tg-wrap">
   <a href="{% url 'anco_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome }}</a>
   <h1 class="tg-h1" style="margin-top:6px;">Corpus do projeto <span class="tg-meta">· {{ total }} artigo{{ total|pluralize }}</span></h1>
+  <p class="tg-meta" style="margin-top:2px;">
+    <strong>{{ n_acervo }}</strong> já no acervo · <strong>{{ n_novos }}</strong> novo{{ n_novos|pluralize }} (entram no sorteio)
+  </p>
 
   <form method="get" style="margin:14px 0;">
     <input type="search" name="q" value="{{ q }}" placeholder="buscar por título…"
            style="font-family:var(--font-sans);font-size:14px;padding:8px 12px;border:1px solid var(--color-rule-strong);border-radius:6px;min-width:260px;">
+    {% if filtro %}<input type="hidden" name="filtro" value="{{ filtro }}">{% endif %}
+    {% if fonte_sel %}<input type="hidden" name="fonte" value="{{ fonte_sel }}">{% endif %}
     <button type="submit" class="btn btn-sm btn-secondary">Buscar</button>
-    {% if q %}<a href="{% url 'anco_corpus' projeto.slug %}" class="tg-meta" style="color:var(--color-gold-deep);">limpar</a>{% endif %}
+    {% if q %}<a href="{% url 'anco_corpus' projeto.slug %}?{% if filtro %}filtro={{ filtro }}&{% endif %}{% if fonte_sel %}fonte={{ fonte_sel }}{% endif %}" class="tg-meta" style="color:var(--color-gold-deep);">limpar</a>{% endif %}
   </form>
+
+  {% comment %}Filtro 1 — estado no acervo. Preserva q e fonte.{% endcomment %}
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px;align-items:center;">
+    <a href="?{% if q %}q={{ q }}&{% endif %}{% if fonte_sel %}fonte={{ fonte_sel }}{% endif %}" class="btn btn-sm {% if not filtro %}btn-primary{% else %}btn-secondary{% endif %}">Todos ({{ total }})</a>
+    <a href="?filtro=acervo{% if q %}&q={{ q }}{% endif %}{% if fonte_sel %}&fonte={{ fonte_sel }}{% endif %}" class="btn btn-sm {% if filtro == 'acervo' %}btn-primary{% else %}btn-secondary{% endif %}">No acervo ({{ n_acervo }})</a>
+    <a href="?filtro=novos{% if q %}&q={{ q }}{% endif %}{% if fonte_sel %}&fonte={{ fonte_sel }}{% endif %}" class="btn btn-sm {% if filtro == 'novos' %}btn-primary{% else %}btn-secondary{% endif %}">Aguardando análise ({{ n_novos }})</a>
+  </div>
+
+  {% comment %}Filtro 2 — procedência (fonte). Preserva q e filtro.{% endcomment %}
+  {% if fontes %}
+  <form method="get" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px;">
+    {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+    {% if filtro %}<input type="hidden" name="filtro" value="{{ filtro }}">{% endif %}
+    <label class="tg-meta" for="fonte-sel">Fonte:</label>
+    <select id="fonte-sel" name="fonte" onchange="this.form.submit()"
+            style="font-family:var(--font-sans);font-size:13px;padding:6px 10px;border:1px solid var(--color-rule-strong);border-radius:6px;">
+      <option value="">Todas as fontes</option>
+      {% for f in fontes %}
+        <option value="{{ f.pk }}" {% if fonte_sel == f.pk|stringformat:'s' %}selected{% endif %}>{{ f.base_nome|default:"(sem base)" }}{% if f.importado_em %} · {{ f.importado_em|date:"d/m/y" }}{% endif %} ({{ f.n_itens }})</option>
+      {% endfor %}
+    </select>
+    {% if fonte_sel %}<a href="?{% if q %}q={{ q }}&{% endif %}{% if filtro %}filtro={{ filtro }}{% endif %}" class="tg-meta" style="color:var(--color-gold-deep);">limpar fonte</a>{% endif %}
+  </form>
+  {% endif %}
 
   <ul class="tg-list">
     {% for it in itens %}
       <li class="tg-card" style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:8px;">
         <div style="min-width:0;">
-          <div style="font-family:var(--font-serif);color:var(--color-ink);">{{ it.titulo }}</div>
+          <div style="font-family:var(--font-serif);color:var(--color-ink);"><a href="{% url 'anco_corpus_editar' projeto.slug it.pk %}" style="color:var(--color-ink);text-decoration:none;border-bottom:1px solid var(--color-rule);">{{ it.titulo }}</a>
+            {% if it.artigo.eh_legado %}<span class="tg-meta" style="border:1px solid var(--color-rule-strong);border-radius:999px;padding:1px 8px;font-size:11px;">no acervo</span>{% else %}<span class="tg-meta" style="border:1px solid var(--color-gold-deep);color:var(--color-gold-deep);border-radius:999px;padding:1px 8px;font-size:11px;">novo</span>{% endif %}
+          </div>
           <div class="tg-meta">{{ it.autores|truncatechars:80 }}{% if it.ano %} · {{ it.ano }}{% endif %}{% if it.doi %} · {{ it.doi }}{% endif %}</div>
         </div>
         <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
-          {% if it.artigo_id %}<a href="{% url 'iniciar_analise' it.artigo_id %}" class="btn btn-sm btn-primary">Analisar</a>{% endif %}
-          {% if eh_curador %}
-          <form method="post" action="{% url 'anco_corpus_excluir' projeto.slug %}" onsubmit="return confirm('Remover do corpus?');">
-            {% csrf_token %}<input type="hidden" name="item_id" value="{{ it.pk }}">
-            <button type="submit" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Remover</button>
-          </form>
+          {% if it.artigo_id and not it.artigo.eh_legado %}
+            {% if eh_curador %}<a href="{% url 'iniciar_analise' it.artigo_id %}" class="btn btn-sm btn-primary">Analisar</a>
+            {% elif it.artigo_id in atribuidos %}<a href="{% url 'iniciar_analise' it.artigo_id %}" class="btn btn-sm btn-primary">Analisar</a>
+            {% else %}<span class="tg-meta" title="Disponível só para quem foi sorteado">aguardando sorteio</span>{% endif %}
+          {% endif %}
+          {% if pode_gerir_todos or it.pk in geridos %}
+          <div style="display:flex;gap:6px;align-items:center;">
+            {% if not it.artigo.eh_legado %}<a href="{% url 'anco_corpus_editar' projeto.slug it.pk %}" class="btn btn-sm btn-secondary">Editar</a>{% endif %}
+            <form method="post" action="{% url 'anco_corpus_excluir' projeto.slug %}" onsubmit="return confirm('Remover do corpus?');">
+              {% csrf_token %}<input type="hidden" name="item_id" value="{{ it.pk }}">
+              <button type="submit" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Remover</button>
+            </form>
+          </div>
           {% endif %}
         </div>
       </li>

@@ -5,14 +5,18 @@
 <div class="tg-wrap narrow">
   <a href="{% url 'anco_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome }}</a>
   <h1 class="tg-h1" style="margin-top:6px;">Sortear análise</h1>
-  <p class="tg-meta" style="margin:6px 0 16px;">{{ n_corpus }} artigo(s) no corpus · {{ n_analistas }} analista(s). Distribuição aleatória por cota.</p>
+  <p class="tg-meta" style="margin:6px 0 16px;">Ajuste os filtros e veja os artigos elegíveis ao vivo; depois sorteie só o que sobrou.{% if n_acervo %} ({{ n_acervo }} já no acervo nunca entram.){% endif %} Distribuição aleatória por cota.</p>
 
-  <form method="post" class="tg-card" style="margin-bottom:24px;">
+  {# Filtros em GET (hx-get) atualizam o painel; o botão Sortear faz POST nativo. #}
+  <form method="post" action="{% url 'anco_sorteio' projeto.slug %}" class="tg-card" style="margin-bottom:24px;"
+        hx-get="{% url 'anco_sorteio_elegiveis' projeto.slug %}"
+        hx-trigger="change, keyup changed delay:400ms"
+        hx-target="#painel-elegiveis" hx-swap="innerHTML">
     {% csrf_token %}
     <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:end;">
       <div>
         <label class="tg-meta" style="display:block;">Cota por analista</label>
-        <input type="number" name="cota" value="5" min="1" style="width:90px;padding:7px;border:1px solid var(--color-rule-strong);border-radius:6px;">
+        <input type="number" name="cota" value="{{ cota }}" min="1" style="width:90px;padding:7px;border:1px solid var(--color-rule-strong);border-radius:6px;">
       </div>
       <div>
         <label class="tg-meta" style="display:block;">Modo</label>
@@ -20,7 +24,27 @@
           {% for val, rotulo in modos %}<option value="{{ val }}">{{ rotulo }}</option>{% endfor %}
         </select>
       </div>
-      <button type="submit" class="btn btn-primary">Sortear</button>
+    </div>
+
+    <div style="margin-top:16px;">
+      <label class="tg-meta" style="display:block;">Exigir termo (opcional)</label>
+      <input type="text" name="termo" value="{{ termo }}" placeholder="ex.: análise cognitiva" style="width:240px;padding:7px;border:1px solid var(--color-rule-strong);border-radius:6px;">
+    </div>
+
+    <div style="margin-top:14px;">
+      <label class="tg-meta" style="display:block;margin-bottom:4px;">Onde o termo aparece <span style="opacity:.7;">(nenhum marcado = todos os campos)</span></label>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;">
+        {% for val, rotulo in campos_choices %}
+        <label style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-sans);font-size:14px;">
+          <input type="checkbox" name="campos" value="{{ val }}" {% if val in campos_sel %}checked{% endif %}> {{ rotulo }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Painel de elegíveis (atualizado pelo HTMX). O botão Sortear vive aqui dentro. #}
+    <div id="painel-elegiveis">
+      {% include "anco/_sorteio_elegiveis.html" %}
     </div>
   </form>
 

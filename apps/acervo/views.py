@@ -93,24 +93,32 @@ def buscar_artigo_view(request: HttpRequest) -> HttpResponse:
 def _projeto_corpus(request: HttpRequest):
     """Projeto ANCO de destino do "Artigo individual" (slug em ?projeto=/POST).
 
-    Só retorna o projeto se o usuário for membro (ou admin) e o projeto for ANCO;
+    Só retorna o projeto se for ANCO ativo e o usuário for membro (ou admin);
     caso contrário, o cadastro segue o fluxo avulso (inicia a própria análise).
     """
-    # ANCO migrou para apps/anco; o "Artigo individual → corpus" não usa mais
-    # projetos da triagem (PRISMA não recebe artigos avulsos no corpus).
+    slug = (request.GET.get("projeto") or request.POST.get("projeto") or "").strip()
+    if not slug:
+        return None
+    from apps.anco.models import ProjetoANCO
+
+    projeto = ProjetoANCO.objects.filter(slug=slug, arquivado=False).first()
+    if projeto is None:
+        return None
+    if projeto.eh_membro(request.user) or _eh_admin(request.user):
+        return projeto
     return None
 
 
 def _adicionar_ao_corpus(request: HttpRequest, projeto, artigo) -> HttpResponse:
-    """Inclui o artigo no corpus do projeto e volta para o corpus."""
-    from apps.triagem.promocao import registrar_artigo_no_corpus
+    """Inclui o artigo no corpus ANCO do projeto e volta para o corpus."""
+    from apps.anco.importacao import registrar_artigo_no_corpus
 
-    reg = registrar_artigo_no_corpus(projeto, artigo, request.user)
-    if reg is not None:
+    item = registrar_artigo_no_corpus(projeto, artigo, request.user)
+    if item is not None:
         messages.success(request, f"Artigo adicionado ao corpus de “{projeto.nome}”.")
     else:
         messages.info(request, "Este artigo já está no acervo histórico (legado).")
-    return redirect("triagem_incluidos", slug=projeto.slug)
+    return redirect("anco_corpus", slug=projeto.slug)
 
 
 @_exige_analista
@@ -340,6 +348,27 @@ def iniciar_analise_view(request: HttpRequest, artigo_id: int) -> HttpResponse:
         return HttpResponseForbidden(
             "O acervo histórico (legado) é pré-validado e não é analisável por analistas."
         )
+    # Gate ANCO: artigo de corpus ANCO só é analisável por quem foi sorteado.
+    # Curador (admin/global OU curador do projeto ANCO) analisa em qualquer tempo.
+    if not _eh_admin(request.user):
+        from apps.anco.models import AtribuicaoANCO, ItemCorpus, MembroANCO
+
+        em_corpus_anco = ItemCorpus.objects.filter(artigo=artigo, removido=False).exists()
+        if em_corpus_anco:
+            eh_curador_anco = MembroANCO.objects.filter(
+                projeto__itens__artigo=artigo,
+                projeto__itens__removido=False,
+                usuario=request.user,
+                papel=MembroANCO.Papel.CURADOR,
+            ).exists()
+            tem_sorteio = AtribuicaoANCO.objects.filter(
+                analista=request.user, artigo=artigo
+            ).exists()
+            if not (eh_curador_anco or tem_sorteio):
+                return HttpResponseForbidden(
+                    "Este artigo do corpus ANCO só pode ser analisado por quem foi sorteado. "
+                    "Aguarde o sorteio do curador."
+                )
     analise, criada = Analise.objects.get_or_create(
         artigo=artigo,
         analista=request.user,

@@ -48,3 +48,28 @@ def test_import_dedup_funde_origem():
     assert res.duplicados == 1 and res.novos == 0
     item = ItemCorpus.objects.get(projeto=proj)
     assert item.origem_fontes.count() == 2  # as duas fontes
+
+
+def test_registrar_artigo_no_corpus_idempotente_e_legado():
+    """Artigo individual (DOI/manual): entra no corpus 1x; legado é isento."""
+    from apps.acervo.models import Artigo
+    from apps.anco.importacao import registrar_artigo_no_corpus
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    proj = ProjetoANCO.objects.create(nome="Indiv")
+    por = User.objects.create_user(username="u", email="u@u.edu", password="x")
+
+    art = Artigo.objects.create(titulo="Avulso", ano=2024, doi="10.5/ind", eh_legado=False)
+    it1 = registrar_artigo_no_corpus(proj, art, por)
+    it2 = registrar_artigo_no_corpus(proj, art, por)  # idempotente
+    assert it1.pk == it2.pk
+    assert proj.itens.count() == 1
+    assert it1.artigo_id == art.pk
+    fonte = it1.origem_fontes.get()
+    assert fonte.base_nome == "Artigos individuais"
+    assert fonte.n_novos == 1  # não incrementa no 2º registro
+
+    legado = Artigo.objects.create(titulo="Curado", ano=2010, doi="10.5/leg", eh_legado=True)
+    assert registrar_artigo_no_corpus(proj, legado, por) is None  # legado isento
+    assert proj.itens.count() == 1

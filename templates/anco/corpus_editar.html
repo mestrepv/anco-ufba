@@ -1,0 +1,94 @@
+{% extends "_base_publico.html" %}
+{% load triagem_extras %}
+{% block title %}Item do corpus · {{ projeto.nome }}{% endblock %}
+{% block content %}
+<main style="max-width:760px;margin:32px auto 80px;padding:0 24px;">
+
+  <a href="{{ voltar_url }}" class="link" style="font-size:13px;">&larr; Corpus</a>
+
+  {# ── Navegação avançar/voltar entre os itens do corpus ───────────── #}
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 16px;">
+    {% if url_anterior %}<a href="{{ url_anterior }}" class="btn btn-ghost btn-sm">← Voltar</a>{% else %}<span class="btn btn-ghost btn-sm" style="opacity:.4;pointer-events:none;">← Voltar</span>{% endif %}
+    <span class="t-meta" style="color:var(--color-ink-3);">Item <strong style="color:var(--color-ink);">{{ pos }}</strong> de <strong style="color:var(--color-ink);">{{ total }}</strong>{% if doi_slug %} · <a href="{% url 'pagina_artigo' doi_slug %}" target="_blank" rel="noopener" class="link">Ver artigo →</a>{% endif %}</span>
+    {% if url_proximo %}<a href="{{ url_proximo }}" class="btn btn-ghost btn-sm">Avançar →</a>{% else %}<span class="btn btn-ghost btn-sm" style="opacity:.4;pointer-events:none;">Avançar →</span>{% endif %}
+  </div>
+
+  {% if pode_editar %}
+  {# ── Card de metadados (só-leitura; destrava ao Ativar edição) ──── #}
+  <form method="post" class="meta-card"
+        x-data="{ edit:false, grow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight)+'px'; }, growAll(){ this.$root.querySelectorAll('textarea').forEach(t=>this.grow(t)); } }"
+        :class="edit && 'ie-editando'"
+        @submit="if (!confirm('Confirmar as alterações deste item?')) $event.preventDefault();">
+    {% csrf_token %}
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+      <span class="badge" :class="edit ? 'badge-warn' : 'badge-ok'"
+            x-text="edit ? 'edição ativa — confirme ao salvar' : 'item {{ pos }} de {{ total }} · somente leitura'"></span>
+      <div style="display:flex;gap:10px;">
+        <button type="button" class="btn btn-secondary btn-sm" x-show="!edit" @click="edit = true; $nextTick(() => growAll())">Ativar edição</button>
+        <a href="{% url 'anco_corpus_editar' projeto.slug item.pk %}" class="btn btn-ghost btn-sm" x-show="edit" x-cloak>Cancelar</a>
+        <button type="submit" class="btn btn-primary btn-sm" x-show="edit" x-cloak>Salvar alterações</button>
+      </div>
+    </div>
+
+    {% for erro in form.non_field_errors %}<p class="t-meta" style="color:var(--color-danger);">{{ erro }}</p>{% endfor %}
+
+    {# ── LEITURA: ficha canônica (mesmo componente do editor de análise) ── #}
+    <div x-show="!edit">
+      {% include "partials/_ficha_artigo.html" with ficha=item.artigo.ficha realce_termos=realce_termos %}
+    </div>
+
+    {# ── EDIÇÃO: os mesmos campos, agora editáveis ─────────────────────── #}
+    <div x-show="edit" x-cloak style="display:grid;gap:14px;">
+      <div class="ie-campo"><label class="ie-lbl">Título</label>
+        <input name="titulo" class="ie-box ie-title" placeholder="(sem título)" value="{{ form.titulo.value|default_if_none:'' }}"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;">
+        <div class="ie-campo" style="flex:1;min-width:220px;"><label class="ie-lbl">Autores</label>
+          <input name="autores" class="ie-box" placeholder="(autores)" value="{{ form.autores.value|default_if_none:'' }}"></div>
+        <div class="ie-campo" style="width:120px;"><label class="ie-lbl">Ano</label>
+          <input name="ano" type="number" class="ie-box" placeholder="ano" value="{{ form.ano.value|default_if_none:'' }}"></div>
+      </div>
+      <div class="ie-campo"><label class="ie-lbl">Periódico / Fonte</label>
+        <input name="titulo_periodico" class="ie-box" placeholder="—" value="{{ form.titulo_periodico.value|default_if_none:'' }}"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;">
+        <div class="ie-campo" style="flex:1;min-width:160px;"><label class="ie-lbl">Tipo</label>
+          <input name="tipo" class="ie-box" placeholder="—" value="{{ form.tipo.value|default_if_none:'' }}"></div>
+        <div class="ie-campo" style="flex:1;min-width:160px;"><label class="ie-lbl">Idioma</label>
+          <input name="idioma" class="ie-box" placeholder="—" value="{{ form.idioma.value|default_if_none:'' }}"></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;">
+        <div class="ie-campo" style="flex:1;min-width:160px;"><label class="ie-lbl">DOI</label>
+          <input name="doi" class="ie-box" placeholder="—" value="{{ form.doi.value|default_if_none:'' }}"></div>
+        <div class="ie-campo" style="flex:1;min-width:160px;"><label class="ie-lbl">ISBN / ISSN</label>
+          <input name="isbn" class="ie-box" placeholder="—" value="{{ form.isbn.value|default_if_none:'' }}"></div>
+      </div>
+      <div class="ie-campo"><label class="ie-lbl">Link de acesso</label>
+        <input name="link" class="ie-box" placeholder="—" value="{{ form.link.value|default_if_none:'' }}"></div>
+      <div class="ie-campo"><label class="ie-lbl">Palavras-chave</label>
+        <textarea name="palavras_chaves" rows="1" class="ie-box" placeholder="—" @input="grow($el)">{{ form.palavras_chaves.value|default_if_none:'' }}</textarea></div>
+      <div class="ie-campo"><label class="ie-lbl">Resumo</label>
+        <textarea name="resumo" rows="4" class="ie-box" placeholder="(sem resumo)" @input="grow($el)">{{ form.resumo.value|default_if_none:'' }}</textarea></div>
+    </div>
+  </form>
+  {% else %}
+  {# Só-leitura: legado curado ou sem permissão de edição. #}
+  <div class="meta-card">
+    <span class="badge badge-ok" style="margin-bottom:14px;display:inline-block;">{% if eh_legado %}item já no acervo curado · somente leitura{% else %}somente leitura{% endif %}</span>
+    {% if item.artigo %}{% include "partials/_ficha_artigo.html" with ficha=item.artigo.ficha realce_termos=realce_termos %}{% endif %}
+  </div>
+  {% endif %}
+
+</main>
+
+<style>
+  [x-cloak] { display:none !important; }
+  .ie-campo { display:block; }
+  .ie-lbl { display:block; font-family:var(--font-sans); font-size:12px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.04em; color:var(--color-ink-3); margin:0 0 5px; }
+  .ie-box { width:100%; box-sizing:border-box; font-family:var(--font-sans); font-size:14px;
+    color:var(--color-ink); background:#fff; border:1px solid var(--color-rule-strong); border-radius:7px;
+    padding:9px 11px; line-height:1.4; }
+  .ie-box:focus { outline:none; border-color:var(--color-gold); }
+  .ie-box.ie-title { font-family:var(--font-serif); font-size:20px; line-height:1.3; padding:10px 12px; }
+  mark { background:#ffe9a8; color:var(--color-ink); padding:0 2px; border-radius:3px; }
+</style>
+{% endblock %}

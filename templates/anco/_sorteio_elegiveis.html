@@ -1,0 +1,34 @@
+{% comment %}Painel de artigos elegíveis (parcial HTMX). Vive dentro do <form> do
+sorteio: contadores + capacidade + lista + botão "Sortear estes N".{% endcomment %}
+<div style="margin:18px 0 10px;">
+  <p style="font-family:var(--font-sans);font-size:15px;color:var(--color-ink);margin:0 0 4px;">
+    <strong style="font-size:18px;">{{ n_elegiveis }}</strong> elegíve{{ n_elegiveis|pluralize:"l,is" }}
+    <span class="tg-meta">· de {{ n_novos }} novo{{ n_novos|pluralize }}
+      {% if n_fora_filtro %}· {{ n_fora_filtro }} fora por filtro{% endif %}
+      {% if n_ja_atribuidos %}· {{ n_ja_atribuidos }} já atribuído{{ n_ja_atribuidos|pluralize }}{% endif %}
+    </span>
+  </p>
+  <p class="tg-meta" style="margin:0;">
+    Capacidade: {{ n_analistas }} analista{{ n_analistas|pluralize }} × cota {{ cota }} = {{ vagas_demanda }} vaga{{ vagas_demanda|pluralize }}
+    {% if insuficiente %}<span style="color:var(--color-danger);">· ⚠ pool insuficiente (alguns não completam a cota)</span>
+    {% else %}<span style="color:var(--color-ok);">· ✓ dá para a cota de todos</span>{% endif %}
+  </p>
+</div>
+
+{% if elegiveis %}
+<div style="max-height:380px;overflow:auto;border:1px solid var(--color-rule);border-radius:8px;">
+  {% for it in elegiveis %}
+  <div style="padding:8px 12px;border-bottom:1px solid var(--color-rule);">
+    <div style="font-family:var(--font-serif);color:var(--color-ink);font-size:14px;">{{ it.titulo|truncatechars:140 }}</div>
+    <div class="tg-meta">{% if it.ano %}{{ it.ano }} · {% endif %}{{ it.tipo|default:"—" }}{% if it.casou_em %} · <span style="color:var(--color-gold-deep);">casou em: {{ it.casou_em }}</span>{% endif %}</div>
+  </div>
+  {% endfor %}
+</div>
+{% if n_elegiveis > n_mostrando %}<p class="tg-meta" style="margin:8px 0 0;">Mostrando {{ n_mostrando }} de {{ n_elegiveis }}.</p>{% endif %}
+
+<div style="margin-top:18px;">
+  <button type="submit" class="btn btn-primary">Sortear est{{ n_elegiveis|pluralize:"e,es" }} {{ n_elegiveis }}</button>
+</div>
+{% else %}
+<p class="tg-empty" style="margin-top:8px;">Nenhum artigo elegível com esses filtros. Afrouxe o termo ou inclua mais tipos.</p>
+{% endif %}

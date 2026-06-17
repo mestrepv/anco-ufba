@@ -11,6 +11,7 @@
   .pj-membros { display:flex; flex-wrap:wrap; gap:8px; }
   .pj-membro { display:inline-flex; gap:6px; font-family:var(--font-sans); font-size:13px; padding:5px 11px; border-radius:999px; border:1px solid var(--color-rule); background:var(--color-paper); color:var(--color-ink-2); }
   .pj-membro .papel { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--color-gold-deep); }
+  [x-cloak]{ display:none !important; }
 </style>
 {% endblock %}
 
@@ -33,13 +34,33 @@
   <p class="tg-meta" style="margin:14px 0 4px;">Sem triagem: tudo que você importa entra direto no corpus.</p>
 
   <div class="fluxo3">
-    <div class="fluxo3-row">
+    <div class="fluxo3-row" x-data="{ imp: false }">
       <div class="fluxo3-num">1</div>
       <div class="fluxo3-body">
-        <p class="fluxo3-tit">Adicionar fontes {% if n_fontes %}<span class="tg-meta">· {{ n_fontes }} importação{{ n_fontes|pluralize:"ão,ões" }}</span>{% endif %}</p>
+        <p class="fluxo3-tit">Adicionar fontes {% if n_fontes %}<span class="tg-meta">· {{ n_fontes }} importaç{{ n_fontes|pluralize:"ão,ões" }}</span>{% endif %}</p>
         <div class="fluxo3-acts">
           <a href="{% url 'anco_importar' projeto.slug %}" class="btn {% if not n_corpus %}btn-primary{% else %}btn-secondary{% endif %}">Importar lista</a>
+          <a href="{% url 'cadastrar_artigo' %}?projeto={{ projeto.slug }}" class="btn btn-secondary">Artigo individual</a>
+          {% if fontes %}
+          <button type="button" @click="imp = !imp" style="background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-sans);font-size:13px;color:var(--color-gold-deep);align-self:center;">
+            <span x-show="!imp">▸ ver {{ n_fontes }} importaç{{ n_fontes|pluralize:"ão,ões" }}</span>
+            <span x-show="imp" x-cloak>▾ ocultar importações</span>
+          </button>
+          {% endif %}
         </div>
+        {% if fontes %}
+        <div x-show="imp" x-cloak style="margin-top:12px;">
+          <p class="tg-meta" style="margin:0 0 10px;">Quem importou, quando e quantos itens da fonte seguem no corpus (mais recentes primeiro).</p>
+          {% for f in fontes %}
+          <div class="tg-card" style="display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;">
+            <div>
+              <strong>{{ f.base_nome|default:"(sem base)" }}</strong>
+              <span class="tg-meta">· {{ f.n_itens }} no corpus{% if f.criado_por %} · por {{ f.criado_por.nome_exibicao|default:f.criado_por.email }}{% endif %}{% if f.importado_em %} · {{ f.importado_em|date:"d/m/Y H:i" }}{% endif %}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
       </div>
     </div>
     <div class="fluxo3-row">
@@ -62,20 +83,6 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <h2 class="tg-h2">Importações <span class="tg-meta">({{ n_fontes }})</span></h2>
-  <div style="margin-bottom:28px;">
-    {% for f in fontes %}
-      <div class="tg-card" style="display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;">
-        <div>
-          <strong>{{ f.base_nome|default:"(sem base)" }}</strong>
-          <span class="tg-meta">· {{ f.n_novos }} novo(s){% if f.criado_por %} · por {{ f.criado_por.nome_exibicao|default:f.criado_por.email }}{% endif %}{% if f.importado_em %} · {{ f.importado_em|date:"d/m/Y" }}{% endif %}</span>
-        </div>
-      </div>
-    {% empty %}
-      <p class="tg-empty">Nenhuma importação ainda. Comece em <a href="{% url 'anco_importar' projeto.slug %}" style="color:var(--color-gold-deep);">Importar lista</a>.</p>
-    {% endfor %}
   </div>
 
   <h2 class="tg-h2">Equipe <span class="tg-meta">({{ n_membros }})</span></h2>

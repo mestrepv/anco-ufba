@@ -9,6 +9,8 @@ Puramente **aleatório** (embaralha o pool com `random.Random(semente)`; a semen
 from __future__ import annotations
 
 import random
+import re
+import unicodedata
 from dataclasses import dataclass, field
 
 from django.db import transaction
@@ -16,6 +18,71 @@ from django.db import transaction
 from apps.acervo.models import Analise
 
 from .models import AtribuicaoANCO, MembroANCO, ProjetoANCO, SorteioANCO
+
+# "Onde o termo aparece": campos selecionáveis (checkboxes). Nenhum = todos.
+CAMPOS_CHOICES = [
+    ("titulo", "Título"),
+    ("resumo", "Resumo"),
+    ("palavras_chave", "Palavras-chave"),
+]
+_CAMPOS_VALIDOS = [c for c, _ in CAMPOS_CHOICES]
+_ROTULO_CAMPO = {"titulo": "título", "resumo": "resumo", "palavras_chave": "palavras-chave"}
+
+# Grupos de sinônimos (normalizados, sem acento): digitar qualquer termo do
+# grupo casa com TODOS os outros — ex.: "análise cognitiva" ≡ "cognitive analysis".
+_SINONIMOS = [
+    {
+        "analise cognitiva",
+        "analises cognitivas",
+        "cognitive analysis",
+        "cognitive analyses",
+        "cognitive analytics",
+    },
+]
+
+
+def _normalizar(texto: str) -> str:
+    """Caixa-baixa, sem acento, espaços colapsados (port de relevancia.py)."""
+    if not texto:
+        return ""
+    nfkd = unicodedata.normalize("NFKD", texto)
+    sem_acento = "".join(c for c in nfkd if not unicodedata.combining(c))
+    return re.sub(r"\s+", " ", sem_acento.lower()).strip()
+
+
+def _campos_efetivos(campos: list[str] | None) -> list[str]:
+    """Campos válidos selecionados; vazio = todos os campos."""
+    sel = [c for c in (campos or []) if c in _CAMPOS_VALIDOS]
+    return sel or list(_CAMPOS_VALIDOS)
+
+
+def _termos_equivalentes(termo_norm: str) -> set[str]:
+    """O termo + seus sinônimos (PT↔EN). Vazio se o termo for vazio."""
+    if not termo_norm:
+        return set()
+    termos = {termo_norm}
+    for grupo in _SINONIMOS:
+        if termo_norm in grupo:
+            termos |= grupo
+    return termos
+
+
+def _texto_do_campo(item, campo: str) -> str:
+    if campo == "titulo":
+        return item.titulo or ""
+    if campo == "resumo":
+        return item.resumo or ""
+    return item.palavras_chaves or ""  # palavras_chave
+
+
+def _campo_casado(item, termos: set[str], campos: list[str] | None) -> str:
+    """Rótulo do 1º campo (entre os selecionados) onde casa QUALQUER um dos
+    termos (equivalentes), ou ''."""
+    for chave in _campos_efetivos(campos):
+        texto = _normalizar(_texto_do_campo(item, chave))
+        if any(t in texto for t in termos):
+            return _ROTULO_CAMPO[chave]
+    return ""
 
 
 @dataclass
@@ -53,18 +120,59 @@ def analistas_do_projeto(projeto: ProjetoANCO):
     return list(User.objects.filter(pk__in=ids, is_active=True).order_by("pk"))
 
 
-def _pool(projeto: ProjetoANCO, excluir_artigos: set[int], semente: int | None) -> list[_ItemPool]:
+def itens_elegiveis(
+    projeto: ProjetoANCO,
+    *,
+    termo: str = "",
+    campos: list[str] | None = None,
+    ja_atribuidos: set[int] | None = None,
+):
+    """`ItemCorpus` que entrariam no sorteio AGORA — fonte única do preview e do
+    sorteio. Regra: novos (não acervo `eh_legado`), não removidos, ainda **não
+    atribuídos** em sorteios anteriores, e que contêm `termo` em algum dos
+    `campos` selecionados (vazio = todos). Dedup por artigo. Cada item recebe
+    `.casou_em` (campo onde o termo bateu)."""
+    if ja_atribuidos is None:
+        ja_atribuidos = set(
+            AtribuicaoANCO.objects.filter(sorteio__projeto=projeto).values_list(
+                "artigo_id", flat=True
+            )
+        )
     itens = (
-        projeto.itens.filter(removido=False, artigo__isnull=False)
+        projeto.itens.filter(removido=False, artigo__isnull=False, artigo__eh_legado=False)
         .select_related("artigo")
-        .order_by("pk")
+        .order_by("titulo")
     )
-    pool, vistos = [], set()
+    termos = _termos_equivalentes(_normalizar(termo))
+    elegiveis, vistos = [], set()
     for it in itens:
-        if it.artigo_id in vistos or it.artigo_id in excluir_artigos:
+        if it.artigo_id in ja_atribuidos or it.artigo_id in vistos:
             continue
+        if termos:
+            campo = _campo_casado(it, termos, campos)
+            if not campo:
+                continue
+            it.casou_em = campo
+        else:
+            it.casou_em = ""
         vistos.add(it.artigo_id)
-        pool.append(_ItemPool(artigo_id=it.artigo_id, base=_base_key(it.artigo)))
+        elegiveis.append(it)
+    return elegiveis
+
+
+def _pool(
+    projeto: ProjetoANCO,
+    excluir_artigos: set[int],
+    semente: int | None,
+    *,
+    termo: str = "",
+    campos: list[str] | None = None,
+) -> list[_ItemPool]:
+    # Pool = itens elegíveis (mesma regra do preview), embaralhado pela semente.
+    elegiveis = itens_elegiveis(
+        projeto, termo=termo, campos=campos, ja_atribuidos=excluir_artigos
+    )
+    pool = [_ItemPool(artigo_id=it.artigo_id, base=_base_key(it.artigo)) for it in elegiveis]
     random.Random(semente).shuffle(pool)
     return pool
 
@@ -79,8 +187,14 @@ def executar_sorteio(
     observacoes: str = "",
     analistas=None,
     semente: int | None = None,
+    termo: str = "",
+    campos: list[str] | None = None,
 ) -> ResultadoSorteio:
-    """Cria um `SorteioANCO` e aloca as `AtribuicaoANCO` (idempotente por artigo)."""
+    """Cria um `SorteioANCO` e aloca as `AtribuicaoANCO` (idempotente por artigo).
+
+    `termo`/`campos` exigem a presença do termo em algum dos campos selecionados
+    (título/resumo/palavras-chave; vazio = todos).
+    """
     if analistas is None:
         analistas = analistas_do_projeto(projeto)
     if not analistas:
@@ -91,9 +205,9 @@ def executar_sorteio(
     ja_atribuidos = set(
         AtribuicaoANCO.objects.filter(sorteio__projeto=projeto).values_list("artigo_id", flat=True)
     )
-    pool = _pool(projeto, ja_atribuidos, semente)
+    pool = _pool(projeto, ja_atribuidos, semente, termo=termo, campos=campos)
     if not pool:
-        return ResultadoSorteio(None, motivo="Nenhum artigo no corpus disponível.")
+        return ResultadoSorteio(None, motivo="Nenhum artigo disponível com esses filtros.")
 
     assentos = 2 if modo_revisao == SorteioANCO.ModoRevisao.DUPLA else 1
     vagas = {item.artigo_id: assentos for item in pool}
