@@ -146,8 +146,9 @@ def test_corpus_filtro_por_fonte(client, projeto, curador):
     client.force_login(curador)
     url = reverse("anco_corpus", args=[projeto.slug])
 
-    assert client.get(url + f"?fonte={f1.pk}").content.count(b'class="tg-card"') == 2
-    assert client.get(url + f"?fonte={f2.pk}").content.count(b'class="tg-card"') == 1
+    # Filtro agora é por NOME da base (agrupa importações), não por id de fonte.
+    assert client.get(url + "?fonte=Base A").content.count(b'class="tg-card"') == 2
+    assert client.get(url + "?fonte=Base B").content.count(b'class="tg-card"') == 1
     # "Todas" inclui também o item do fixture (sem fonte) → 1 + 2 + 1 = 4
     assert client.get(url).content.count(b'class="tg-card"') == 4
 
@@ -339,11 +340,17 @@ def test_fonte_excluir_confirma_e_executa(client, projeto, curador):
     assert ItemCorpus.objects.filter(doi__in=["10.2/a", "10.2/b"], removido=True).count() == 2
 
 
-def test_fonte_excluir_so_curador(client, projeto, analista):
-    from apps.anco.models import FonteImport
+def test_fonte_excluir_importador_ou_curador(client, projeto, analista):
+    from apps.anco.models import FonteImport, MembroANCO
 
     f = FonteImport.objects.create(projeto=projeto, outra_base="L", criado_por=analista)
-    client.force_login(analista)  # membro analista, não curador
+    # quem importou (analista, não curador) PODE excluir
+    client.force_login(analista)
+    assert client.get(reverse("anco_fonte_excluir", args=[projeto.slug, f.pk])).status_code == 200
+    # outro membro que não importou nem é curador → 403
+    outro = User.objects.create_user(username="outroana", email="oa@u.edu", password="x", pode_anco=True)
+    MembroANCO.objects.create(projeto=projeto, usuario=outro, papel=MembroANCO.Papel.ANALISTA)
+    client.force_login(outro)
     assert client.get(reverse("anco_fonte_excluir", args=[projeto.slug, f.pk])).status_code == 403
 
 

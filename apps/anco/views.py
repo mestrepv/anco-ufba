@@ -14,6 +14,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, F, Q
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from . import estatisticas as stats
@@ -139,13 +140,21 @@ def importar_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
     return render(request, "anco/importar.html", {"projeto": projeto, "form": form})
 
 
-@_projeto_curador
+def _pode_excluir_fonte(projeto: ProjetoANCO, fonte: FonteImport, user) -> bool:
+    """Quem exclui uma lista importada: quem a importou (`criado_por`) ou curador/admin."""
+    return projeto.eh_curador_no(user) or fonte.criado_por_id == user.id
+
+
+@_projeto_membro
 def fonte_excluir_view(request: HttpRequest, projeto: ProjetoANCO, fonte_id: int) -> HttpResponse:
-    """Curador exclui uma lista (FonteImport) com tela de confirmação. Itens novos
-    sem análise e só desta fonte saem do corpus; conteúdo no acervo é mantido."""
+    """Exclui uma lista (FonteImport) com tela de confirmação — quem importou ou
+    um curador. Itens novos sem análise e só desta fonte saem do corpus;
+    conteúdo no acervo é mantido."""
     from .importacao import excluir_fonte, resumo_exclusao_fonte
 
     fonte = get_object_or_404(FonteImport, pk=fonte_id, projeto=projeto)
+    if not _pode_excluir_fonte(projeto, fonte, request.user):
+        return HttpResponseForbidden("Só quem importou a lista (ou um curador) pode excluí-la.")
     if request.method == "POST":
         nome = fonte.base_nome or "(sem base)"
         removidos = excluir_fonte(fonte, request.user)
@@ -186,9 +195,37 @@ def corpus_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
         itens = itens.filter(artigo__eh_legado=True)
     elif filtro == "novos":
         itens = itens.filter(artigo__eh_legado=False)
-    if fonte_sel.isdigit():
-        itens = itens.filter(origem_fontes__pk=int(fonte_sel))
-    itens = itens.order_by("-criado_em").distinct()
+    # `fonte` no filtro passou a ser o NOME da base (agrupa importações da mesma
+    # base, independente de data/quem importou), não mais um id de importação.
+    if fonte_sel:
+        itens = itens.filter(
+            Q(origem_fontes__base_consulta__nome=fonte_sel)
+            | Q(origem_fontes__base_consulta__isnull=True, origem_fontes__outra_base=fonte_sel)
+        )
+    # `import` = uma importação específica (fonte por pk), vindo dos links do painel:
+    # mostra só os itens daquela importação.
+    import_sel = (request.GET.get("import") or "").strip()
+    import_fonte = None
+    if import_sel.isdigit():
+        import_fonte = (
+            projeto.fontes.select_related("base_consulta", "criado_por")
+            .filter(pk=int(import_sel))
+            .first()
+        )
+        if import_fonte is not None:
+            itens = itens.filter(origem_fontes__pk=import_fonte.pk)
+    itens = list(
+        itens.order_by("-criado_em").distinct().prefetch_related("origem_fontes__criado_por")
+    )
+    # Nome(s) de quem importou cada item (distintos, das fontes de origem).
+    for it in itens:
+        nomes = []
+        for f in it.origem_fontes.all():
+            if f.criado_por_id:
+                nome = f.criado_por.nome_exibicao or f.criado_por.email
+                if nome and nome not in nomes:
+                    nomes.append(nome)
+        it.importado_por = ", ".join(nomes)
     atribuidos = set(
         AtribuicaoANCO.objects.filter(
             analista=request.user, sorteio__projeto=projeto
@@ -207,13 +244,17 @@ def corpus_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
             base.filter(origem_fontes__criado_por=request.user).values_list("pk", flat=True)
         )
     )
-    # Fontes do projeto p/ o filtro de procedência (lista x "Artigos individuais").
-    # n_itens = itens não removidos vindos da fonte (casa com o que o filtro mostra).
-    fontes = (
-        projeto.fontes.select_related("base_consulta")
-        .annotate(n_itens=Count("itens", filter=Q(itens__removido=False)))
-        .order_by(F("importado_em").desc(nulls_last=True), "-criado_em")
-    )
+    # Filtro de procedência agrupado POR BASE (não por importação/data). Várias
+    # importações da mesma base viram uma opção só, com o total de itens distintos.
+    grupos: dict[str, list[int]] = {}
+    for f in projeto.fontes.select_related("base_consulta"):
+        grupos.setdefault(f.base_nome or "(sem base)", []).append(f.pk)
+    bases = []
+    for nome, pks in grupos.items():
+        n = projeto.itens.filter(removido=False, origem_fontes__in=pks).distinct().count()
+        if n:
+            bases.append({"nome": nome, "n": n})
+    bases.sort(key=lambda b: (-b["n"], b["nome"]))
     contexto = {
         "projeto": projeto,
         "eh_curador": projeto.eh_curador_no(request.user),
@@ -223,8 +264,10 @@ def corpus_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
         "n_novos": total - n_acervo,
         "q": q,
         "filtro": filtro,
-        "fontes": fontes,
+        "bases": bases,
         "fonte_sel": fonte_sel,
+        "import_sel": import_sel,
+        "import_fonte": import_fonte,
         "atribuidos": atribuidos,
         "pode_gerir_todos": pode_gerir_todos,
         "geridos": geridos,
@@ -273,6 +316,13 @@ def corpus_excluir_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpRespo
     item.motivo_remocao = (request.POST.get("motivo") or "")[:300]
     item.save(update_fields=["removido", "removido_por", "removido_em", "motivo_remocao"])
     messages.info(request, "Item removido do corpus.")
+    # Volta para a tela de origem quando informada e segura (ex.: o painel de
+    # "Artigo individual"), preservando o loop de adição.
+    destino = request.POST.get("next") or ""
+    if destino and url_has_allowed_host_and_scheme(
+        destino, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        return redirect(destino)
     return redirect("anco_corpus", slug=projeto.slug)
 
 

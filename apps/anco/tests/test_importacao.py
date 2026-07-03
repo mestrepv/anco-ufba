@@ -61,8 +61,9 @@ def test_registrar_artigo_no_corpus_idempotente_e_legado():
     por = User.objects.create_user(username="u", email="u@u.edu", password="x")
 
     art = Artigo.objects.create(titulo="Avulso", ano=2024, doi="10.5/ind", eh_legado=False)
-    it1 = registrar_artigo_no_corpus(proj, art, por)
-    it2 = registrar_artigo_no_corpus(proj, art, por)  # idempotente
+    it1, criado1 = registrar_artigo_no_corpus(proj, art, por)
+    it2, criado2 = registrar_artigo_no_corpus(proj, art, por)  # idempotente
+    assert criado1 is True and criado2 is False  # 1º entra; 2º já estava no corpus
     assert it1.pk == it2.pk
     assert proj.itens.count() == 1
     assert it1.artigo_id == art.pk
@@ -71,7 +72,7 @@ def test_registrar_artigo_no_corpus_idempotente_e_legado():
     assert fonte.n_novos == 1  # não incrementa no 2º registro
 
     legado = Artigo.objects.create(titulo="Curado", ano=2010, doi="10.5/leg", eh_legado=True)
-    assert registrar_artigo_no_corpus(proj, legado, por) is None  # legado isento
+    assert registrar_artigo_no_corpus(proj, legado, por) == (None, False)  # legado isento
     assert proj.itens.count() == 1
 
 

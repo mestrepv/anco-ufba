@@ -54,10 +54,12 @@
           {% for f in fontes %}
           <div class="tg-card" style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px;">
             <div>
-              <strong>{{ f.base_nome|default:"(sem base)" }}</strong>
-              <span class="tg-meta">· {{ f.n_itens }} no corpus{% if f.criado_por %} · por {{ f.criado_por.nome_exibicao|default:f.criado_por.email }}{% endif %}{% if f.importado_em %} · {{ f.importado_em|date:"d/m/Y H:i" }}{% endif %}</span>
+              <a href="{% url 'anco_corpus' projeto.slug %}?import={{ f.pk }}" style="color:var(--color-ink);text-decoration:none;" title="Ver no corpus só os itens desta importação">
+                <strong style="border-bottom:1px solid var(--color-rule);">{{ f.base_nome|default:"(sem base)" }}</strong>
+                <span class="tg-meta">· {{ f.n_itens }} no corpus{% if f.criado_por %} · por {{ f.criado_por.nome_exibicao|default:f.criado_por.email }}{% endif %}{% if f.importado_em %} · {{ f.importado_em|date:"d/m/Y H:i" }}{% endif %}</span>
+              </a>
             </div>
-            {% if eh_curador %}<a href="{% url 'anco_fonte_excluir' projeto.slug f.pk %}" class="btn btn-sm" style="flex-shrink:0;border-color:var(--color-danger);color:var(--color-danger);">Excluir lista</a>{% endif %}
+            {% if eh_curador or f.criado_por_id == user.pk %}<a href="{% url 'anco_fonte_excluir' projeto.slug f.pk %}" class="btn btn-sm" style="flex-shrink:0;border-color:var(--color-danger);color:var(--color-danger);">Excluir lista</a>{% endif %}
           </div>
           {% endfor %}
         </div>

@@ -111,6 +111,10 @@ class FonteImport(models.Model):
         help_text="Base bibliográfica (reusa o vocabulário `base`).",
     )
     outra_base = models.CharField(max_length=200, blank=True)
+    # Fonte criada pela entrada "Artigo individual" (não é um import de lista).
+    # Distingue de uma importação em lote da mesma base/usuário: a estatística é
+    # por base, mas a proveniência (individual vs. lote) não deve se misturar.
+    individual = models.BooleanField(default=False)
     string_busca = models.TextField(blank=True)
     data_busca = models.DateField(null=True, blank=True)
     formato = models.CharField(max_length=10, choices=Formato.choices, blank=True)

@@ -9,36 +9,48 @@
     <strong>{{ n_acervo }}</strong> já no acervo · <strong>{{ n_novos }}</strong> novo{{ n_novos|pluralize }} (entram no sorteio)
   </p>
 
+  <div style="margin-top:10px;">
+    <a href="{% url 'cadastrar_artigo' %}?projeto={{ projeto.slug }}" class="btn btn-sm btn-secondary">＋ Adicionar artigo individual</a>
+  </div>
+
+  {% if import_fonte %}
+  <div style="margin-top:12px;padding:10px 14px;border:1px solid var(--color-gold-deep);border-radius:8px;background:var(--color-review-bg);font-family:var(--font-sans);font-size:14px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;">
+    <span>Mostrando só a importação <strong>{{ import_fonte.base_nome|default:"(sem base)" }}</strong>{% if import_fonte.criado_por %} · por {{ import_fonte.criado_por.nome_exibicao|default:import_fonte.criado_por.email }}{% endif %}{% if import_fonte.importado_em %} · {{ import_fonte.importado_em|date:"d/m/Y H:i" }}{% endif %} <span class="tg-meta">({{ itens|length }} artigo{{ itens|length|pluralize }})</span></span>
+    <a href="{% url 'anco_corpus' projeto.slug %}" class="tg-meta" style="color:var(--color-gold-deep);">× ver todo o corpus</a>
+  </div>
+  {% endif %}
+
   <form method="get" style="margin:14px 0;">
     <input type="search" name="q" value="{{ q }}" placeholder="buscar por título…"
            style="font-family:var(--font-sans);font-size:14px;padding:8px 12px;border:1px solid var(--color-rule-strong);border-radius:6px;min-width:260px;">
     {% if filtro %}<input type="hidden" name="filtro" value="{{ filtro }}">{% endif %}
     {% if fonte_sel %}<input type="hidden" name="fonte" value="{{ fonte_sel }}">{% endif %}
+    {% if import_sel %}<input type="hidden" name="import" value="{{ import_sel }}">{% endif %}
     <button type="submit" class="btn btn-sm btn-secondary">Buscar</button>
-    {% if q %}<a href="{% url 'anco_corpus' projeto.slug %}?{% if filtro %}filtro={{ filtro }}&{% endif %}{% if fonte_sel %}fonte={{ fonte_sel }}{% endif %}" class="tg-meta" style="color:var(--color-gold-deep);">limpar</a>{% endif %}
+    {% if q %}<a href="{% url 'anco_corpus' projeto.slug %}?{% if filtro %}filtro={{ filtro }}&{% endif %}{% if fonte_sel %}fonte={{ fonte_sel|urlencode }}&{% endif %}{% if import_sel %}import={{ import_sel }}{% endif %}" class="tg-meta" style="color:var(--color-gold-deep);">limpar</a>{% endif %}
   </form>
 
-  {% comment %}Filtro 1 — estado no acervo. Preserva q e fonte.{% endcomment %}
+  {% comment %}Filtro 1 — estado no acervo. Preserva q, fonte e import.{% endcomment %}
   <div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px;align-items:center;">
-    <a href="?{% if q %}q={{ q }}&{% endif %}{% if fonte_sel %}fonte={{ fonte_sel }}{% endif %}" class="btn btn-sm {% if not filtro %}btn-primary{% else %}btn-secondary{% endif %}">Todos ({{ total }})</a>
-    <a href="?filtro=acervo{% if q %}&q={{ q }}{% endif %}{% if fonte_sel %}&fonte={{ fonte_sel }}{% endif %}" class="btn btn-sm {% if filtro == 'acervo' %}btn-primary{% else %}btn-secondary{% endif %}">No acervo ({{ n_acervo }})</a>
-    <a href="?filtro=novos{% if q %}&q={{ q }}{% endif %}{% if fonte_sel %}&fonte={{ fonte_sel }}{% endif %}" class="btn btn-sm {% if filtro == 'novos' %}btn-primary{% else %}btn-secondary{% endif %}">Aguardando análise ({{ n_novos }})</a>
+    <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}{% if fonte_sel %}fonte={{ fonte_sel|urlencode }}&{% endif %}{% if import_sel %}import={{ import_sel }}{% endif %}" class="btn btn-sm {% if not filtro %}btn-primary{% else %}btn-secondary{% endif %}">Todos ({{ total }})</a>
+    <a href="?filtro=acervo{% if q %}&q={{ q|urlencode }}{% endif %}{% if fonte_sel %}&fonte={{ fonte_sel|urlencode }}{% endif %}{% if import_sel %}&import={{ import_sel }}{% endif %}" class="btn btn-sm {% if filtro == 'acervo' %}btn-primary{% else %}btn-secondary{% endif %}">No acervo ({{ n_acervo }})</a>
+    <a href="?filtro=novos{% if q %}&q={{ q|urlencode }}{% endif %}{% if fonte_sel %}&fonte={{ fonte_sel|urlencode }}{% endif %}{% if import_sel %}&import={{ import_sel }}{% endif %}" class="btn btn-sm {% if filtro == 'novos' %}btn-primary{% else %}btn-secondary{% endif %}">Aguardando análise ({{ n_novos }})</a>
   </div>
 
-  {% comment %}Filtro 2 — procedência (fonte). Preserva q e filtro.{% endcomment %}
-  {% if fontes %}
+  {% comment %}Filtro 2 — base de procedência (agrupa importações da mesma base). Preserva q e filtro.{% endcomment %}
+  {% if bases %}
   <form method="get" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px;">
     {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
     {% if filtro %}<input type="hidden" name="filtro" value="{{ filtro }}">{% endif %}
-    <label class="tg-meta" for="fonte-sel">Fonte:</label>
+    <label class="tg-meta" for="fonte-sel">Base:</label>
     <select id="fonte-sel" name="fonte" onchange="this.form.submit()"
             style="font-family:var(--font-sans);font-size:13px;padding:6px 10px;border:1px solid var(--color-rule-strong);border-radius:6px;">
-      <option value="">Todas as fontes</option>
-      {% for f in fontes %}
-        <option value="{{ f.pk }}" {% if fonte_sel == f.pk|stringformat:'s' %}selected{% endif %}>{{ f.base_nome|default:"(sem base)" }}{% if f.importado_em %} · {{ f.importado_em|date:"d/m/y" }}{% endif %} ({{ f.n_itens }})</option>
+      <option value="">Todas as bases</option>
+      {% for b in bases %}
+        <option value="{{ b.nome }}" {% if fonte_sel == b.nome %}selected{% endif %}>{{ b.nome }} ({{ b.n }})</option>
       {% endfor %}
     </select>
-    {% if fonte_sel %}<a href="?{% if q %}q={{ q }}&{% endif %}{% if filtro %}filtro={{ filtro }}{% endif %}" class="tg-meta" style="color:var(--color-gold-deep);">limpar fonte</a>{% endif %}
+    {% if fonte_sel %}<a href="?{% if q %}q={{ q|urlencode }}&{% endif %}{% if filtro %}filtro={{ filtro }}{% endif %}" class="tg-meta" style="color:var(--color-gold-deep);">limpar base</a>{% endif %}
   </form>
   {% endif %}
 
@@ -50,6 +62,7 @@
             {% if it.artigo.eh_legado %}<span class="tg-meta" style="border:1px solid var(--color-rule-strong);border-radius:999px;padding:1px 8px;font-size:11px;">no acervo</span>{% else %}<span class="tg-meta" style="border:1px solid var(--color-gold-deep);color:var(--color-gold-deep);border-radius:999px;padding:1px 8px;font-size:11px;">novo</span>{% endif %}
           </div>
           <div class="tg-meta">{{ it.autores|truncatechars:80 }}{% if it.ano %} · {{ it.ano }}{% endif %}{% if it.doi %} · {{ it.doi }}{% endif %}</div>
+          {% if it.importado_por %}<div class="tg-meta">importado por {{ it.importado_por }}</div>{% endif %}
         </div>
         <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
           {% if it.artigo_id and not it.artigo.eh_legado %}

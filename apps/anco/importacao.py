@@ -198,26 +198,43 @@ def sincronizar_artigo(item: ItemCorpus) -> None:
 
 
 @transaction.atomic
-def registrar_artigo_no_corpus(projeto: ProjetoANCO, artigo: Artigo, por) -> ItemCorpus | None:
+def registrar_artigo_no_corpus(
+    projeto: ProjetoANCO, artigo: Artigo, por
+) -> tuple[ItemCorpus | None, bool]:
     """Inclui um `Artigo` já existente no corpus ANCO (entrada "Artigo individual",
     via DOI ou manual). Cria/garante um `ItemCorpus` apontando para o artigo, com
     proveniência numa `FonteImport` "Artigos individuais" do usuário. Idempotente.
 
-    Legado é isento (já está no acervo curado): retorna None.
+    Retorna `(item, criado)`: `criado=True` quando o item entrou agora, `False`
+    quando já estava no corpus (idempotência). Legado é isento (já está no acervo
+    curado): retorna `(None, False)`.
     """
     from django.db.models import F
 
     if getattr(artigo, "eh_legado", False):
-        return None
+        return None, False
 
     ident = chave_dedup(
         artigo.doi or "", artigo.isbn or "", artigo.titulo, artigo.ano, artigo.titulo_periodico
     )
+    # A fonte do artigo individual herda a base REAL declarada no artigo, para a
+    # estatística ficar POR BASE (RIAnCo, PubMed, Redalyc…) e não pela forma de
+    # inclusão. Só cai no balde genérico "Artigos individuais" quando o artigo não
+    # tem base alguma. `individual=True` separa de um import em lote da mesma base.
+    base_fk = getattr(artigo, "base_consulta", None)
+    outra = (getattr(artigo, "outra_base_consulta", "") or "").strip()
+    if base_fk is not None:
+        chave = {"base_consulta": base_fk, "outra_base": ""}
+    elif outra:
+        chave = {"base_consulta": None, "outra_base": outra[:200]}
+    else:
+        chave = {"base_consulta": None, "outra_base": "Artigos individuais"}
     fonte, _ = FonteImport.objects.get_or_create(
         projeto=projeto,
         criado_por=por,
-        outra_base="Artigos individuais",
+        individual=True,
         defaults={"importado_em": timezone.now()},
+        **chave,
     )
     item, criado = ItemCorpus.objects.get_or_create(
         projeto=projeto,
@@ -252,7 +269,7 @@ def registrar_artigo_no_corpus(projeto: ProjetoANCO, artigo: Artigo, por) -> Ite
         )
     else:
         FonteImport.objects.filter(pk=fonte.pk).update(importado_em=timezone.now())
-    return item
+    return item, criado
 
 
 def _preservar_na_exclusao(item: ItemCorpus, fonte: FonteImport) -> bool:
