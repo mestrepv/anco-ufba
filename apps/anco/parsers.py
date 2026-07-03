@@ -14,7 +14,7 @@ import csv
 import io
 import re
 
-FORMATOS = {"ris", "bibtex", "csv"}
+FORMATOS = {"ris", "bibtex", "csv", "medline"}
 
 
 # --------------------------------------------------------------------------- #
@@ -191,6 +191,66 @@ def parse_csv(conteudo: str) -> list[dict]:
     return registros
 
 
+_MEDLINE_TAG = re.compile(r"^([A-Z][A-Z0-9]{1,3})\s*- (.*)$")
+
+
+def _medline_get(campos: dict[str, list[str]], *tags: str) -> list[str]:
+    """Primeiro valor não-vazio dentre as tags MEDLINE candidatas."""
+    for t in tags:
+        if campos.get(t):
+            return campos[t]
+    return []
+
+
+def parse_medline(conteudo: str) -> list[dict]:
+    """Parser do formato MEDLINE (arquivos `.nbib` exportados do PubMed).
+
+    MEDLINE parece RIS (tags `TI  - `, `AB  - `) mas não tem `TY  - `/`ER  - `;
+    os registros são separados por linha em branco e há linhas de continuação
+    (indentadas). Mapeia as tags do PubMed para o dict normalizado padrão.
+    """
+    registros: list[dict] = []
+    for bloco in re.split(r"\n[ \t]*\n", conteudo.strip()):
+        campos: dict[str, list[str]] = {}
+        tag = None
+        for linha in bloco.splitlines():
+            m = _MEDLINE_TAG.match(linha)
+            if m:
+                tag = m.group(1)
+                campos.setdefault(tag, []).append(m.group(2).strip())
+            elif tag and linha[:1].isspace() and campos.get(tag):
+                campos[tag][-1] += " " + linha.strip()
+        if not campos:
+            continue
+
+        # DOI: das tags LID/AID marcadas com [doi]
+        doi = ""
+        for val in campos.get("LID", []) + campos.get("AID", []):
+            mm = re.match(r"(10\.\S+?)\s*\[doi\]", val, re.I)
+            if mm:
+                doi = mm.group(1)
+                break
+
+        pmid = (campos.get("PMID") or [""])[0].strip()
+        kws = campos.get("OT", []) + campos.get("MH", [])  # keywords do autor + MeSH
+        registros.append(
+            {
+                "titulo": " ".join(_medline_get(campos, "TI")),
+                "autores": "; ".join(_medline_get(campos, "FAU", "AU")),
+                "ano": _parse_ano((_medline_get(campos, "DP", "DA") or [""])[0]),
+                "doi": doi,
+                "isbn": "",
+                "resumo": " ".join(_medline_get(campos, "AB")),
+                "palavras_chaves": "; ".join(k for k in kws if k),
+                "titulo_periodico": (_medline_get(campos, "JT", "TA") or [""])[0],
+                "idioma": (_medline_get(campos, "LA") or [""])[0],
+                "link": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if pmid else "",
+                "tipo": _tipo_legivel((_medline_get(campos, "PT") or ["Artigo"])[0]),
+            }
+        )
+    return registros
+
+
 def parse_conteudo(conteudo: str, formato: str) -> list[dict]:
     if formato == "ris":
         return parse_ris(conteudo)
@@ -198,17 +258,21 @@ def parse_conteudo(conteudo: str, formato: str) -> list[dict]:
         return parse_bibtex(conteudo)
     if formato == "csv":
         return parse_csv(conteudo)
+    if formato == "medline":
+        return parse_medline(conteudo)
     raise ValueError(f"Formato não suportado: {formato!r}")
 
 
 def detectar_formato(nome_arquivo: str) -> str | None:
     nome = (nome_arquivo or "").lower()
-    if nome.endswith(".ris") or nome.endswith(".nbib"):
+    if nome.endswith(".ris"):
         return "ris"
     if nome.endswith(".bib") or nome.endswith(".bibtex"):
         return "bibtex"
     if nome.endswith(".csv") or nome.endswith(".tsv"):
         return "csv"
+    # `.nbib` fica para a detecção por conteúdo: o PubMed exporta MEDLINE nesse
+    # nome, mas alguns gerenciadores salvam RIS com a mesma extensão.
     return None
 
 
@@ -240,6 +304,9 @@ def _tipo_binario(raw: bytes) -> str | None:
 def detectar_formato_conteudo(texto: str) -> str | None:
     """Detecta o formato pelo conteúdo, quando a extensão não resolve."""
     t = texto.lstrip()[:4000]
+    # MEDLINE (PubMed .nbib): tem PMID- e NÃO tem TY  - (que marca RIS).
+    if re.search(r"(^|\n)PMID- ", t) and not re.search(r"(^|\n)TY  - ", t):
+        return "medline"
     if re.search(r"(^|\n)TY  - ", t) or re.search(r"(^|\n)ER  -", t):
         return "ris"
     if re.search(r"@\w+\s*\{", t):
@@ -269,7 +336,7 @@ def analisar_arquivo(nome: str, raw: bytes) -> dict:
         return {
             "ok": False,
             "erro": "Não reconheci o formato do arquivo.",
-            "dica": "Aceitamos RIS (.ris/.nbib), BibTeX (.bib) e CSV (.csv).",
+            "dica": "Aceitamos RIS (.ris), BibTeX (.bib), CSV (.csv) e PubMed (.nbib).",
         }
     try:
         registros = parse_conteudo(texto, formato)

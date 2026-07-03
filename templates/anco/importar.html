@@ -1,23 +1,68 @@
 {% extends "_base_publico.html" %}
 {% block title %}Importar lista · {{ projeto.nome }}{% endblock %}
-{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}
+<style>
+  .imp-summary { cursor:pointer; font-family:var(--font-sans); font-size:12px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.04em; color:var(--color-ink-3);
+    padding:10px 0; border-top:1px solid var(--color-rule); }
+  input[type=file].imp-file { width:100%; font-family:var(--font-sans); font-size:14px;
+    padding:10px 11px; border:1px dashed var(--color-rule-strong); border-radius:8px;
+    background:var(--color-paper-2); color:var(--color-ink-2); box-sizing:border-box; cursor:pointer; }
+</style>
+{% endblock %}
 {% block content %}
 <div class="tg-wrap narrow">
   <a href="{% url 'anco_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome }}</a>
   <h1 class="tg-h1" style="margin-top:6px;">Importar lista</h1>
-  <p class="tg-meta" style="margin:6px 0 16px;">RIS, BibTeX ou CSV exportado de uma base. Todo registro novo entra direto no corpus.</p>
+  <p class="tg-desc">
+    Envie um arquivo <strong>RIS, BibTeX, CSV ou PubMed (.nbib)</strong> exportado de uma base.
+    Todo registro novo entra direto no corpus.
+  </p>
 
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    {% if form.non_field_errors %}<div class="tg-note" style="border-color:var(--color-danger);">{{ form.non_field_errors }}</div>{% endif %}
-    {% for field in form %}
-      <div style="margin-bottom:14px;">
-        <label style="display:block;font-family:var(--font-sans);font-size:13px;color:var(--color-ink-2);margin-bottom:4px;">{{ field.label }}</label>
-        {{ field }}
-        {% if field.help_text %}<div class="tg-meta" style="margin-top:3px;">{{ field.help_text }}</div>{% endif %}
-        {% if field.errors %}<div style="color:var(--color-danger);font-size:13px;margin-top:3px;">{{ field.errors }}</div>{% endif %}
-      </div>
-    {% endfor %}
+    {% for erro in form.non_field_errors %}<p class="tg-err">{{ erro }}</p>{% endfor %}
+
+    {# 1 · Arquivo #}
+    <div class="tg-fieldset-title" style="margin-top:0;">1 · Arquivo da base</div>
+    <div class="tg-field">
+      <label for="{{ form.arquivo.id_for_label }}">{{ form.arquivo.label }} <span style="color:var(--color-danger);">*</span></label>
+      <input type="file" name="{{ form.arquivo.html_name }}" id="{{ form.arquivo.id_for_label }}"
+             class="imp-file" accept=".ris,.nbib,.bib,.bibtex,.csv,.tsv,.txt">
+      <p class="tg-help">RIS (.ris), BibTeX (.bib), CSV (.csv) ou PubMed (.nbib). Nunca PDF, Word ou Excel.</p>
+      {% for e in form.arquivo.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
+    </div>
+
+    {# 2 · Base #}
+    <div class="tg-fieldset-title">2 · De qual base?</div>
+    <div class="tg-field">
+      <label for="{{ form.base_consulta.id_for_label }}">{{ form.base_consulta.label }}</label>
+      {{ form.base_consulta }}
+      {% for e in form.base_consulta.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
+    </div>
+    <div class="tg-field">
+      <label for="{{ form.outra_base.id_for_label }}">{{ form.outra_base.label }}</label>
+      {{ form.outra_base }}
+      <p class="tg-help">Use só se a base não estiver na lista acima.</p>
+      {% for e in form.outra_base.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
+    </div>
+
+    {# 3 · Auditoria da busca (obrigatório) #}
+    <div class="tg-fieldset-title">3 · Auditoria da busca</div>
+    <div class="tg-field">
+      <label for="{{ form.string_busca.id_for_label }}">{{ form.string_busca.label }} <span style="color:var(--color-danger);">*</span></label>
+      {{ form.string_busca }}
+      <p class="tg-help">{{ form.string_busca.help_text }}</p>
+      {% for e in form.string_busca.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
+    </div>
+    <div class="tg-field">
+      <label for="{{ form.data_busca.id_for_label }}">{{ form.data_busca.label }} <span style="color:var(--color-danger);">*</span></label>
+      {{ form.data_busca }}
+      {% for e in form.data_busca.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
+    </div>
+    {# Formato é detectado pela extensão; campo oculto p/ fallback do servidor. #}
+    <div style="display:none;">{{ form.formato }}</div>
+
     <button type="submit" class="btn btn-primary">Importar</button>
   </form>
 </div>

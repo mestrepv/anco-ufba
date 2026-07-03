@@ -17,7 +17,7 @@
   <a href="{% url 'triagem_painel' projeto.slug %}" class="tg-back">&larr; Triagem</a>
   <h1 class="tg-h1" style="margin-top:6px;">Importar lista</h1>
   <p class="tg-desc">
-    Envie o arquivo exportado de uma base (RIS, BibTeX ou CSV). Assim que você
+    Envie o arquivo exportado de uma base (RIS, BibTeX, CSV ou PubMed .nbib). Assim que você
     escolher o arquivo, eu confiro e mostro <strong>quantos registros</strong> tem —
     antes de importar.
   </p>
@@ -46,7 +46,7 @@
              hx-swap="innerHTML"
              hx-encoding="multipart/form-data"
              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-      <p class="tg-help">RIS (.ris/.nbib), BibTeX (.bib) ou CSV (.csv). Nunca PDF, Word ou Excel.</p>
+      <p class="tg-help">RIS (.ris), BibTeX (.bib), CSV (.csv) ou PubMed (.nbib). Nunca PDF, Word ou Excel.</p>
       <div id="arquivo-preview" style="margin-top:10px;"></div>
       {% for e in form.arquivo.errors %}<p class="tg-err">{{ e }}</p>{% endfor %}
     </div>

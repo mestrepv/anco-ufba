@@ -23,22 +23,34 @@ class ImportarFonteForm(forms.Form):
         required=False, label="Outra base (fora do vocabulário)", max_length=200
     )
     string_busca = forms.CharField(
-        required=False,
+        required=True,
         label="String de busca",
         widget=forms.Textarea(attrs={"rows": 2}),
         help_text="A query usada na base (registro/auditoria).",
     )
     data_busca = forms.DateField(
-        required=False,
+        required=True,
         label="Data da busca",
         widget=forms.DateInput(attrs={"type": "date"}),
     )
     formato = forms.ChoiceField(
         required=False,
         label="Formato",
-        choices=[("", "Inferir pela extensão"), ("ris", "RIS"), ("bibtex", "BibTeX"), ("csv", "CSV")],
+        choices=[
+            ("", "Inferir pela extensão"),
+            ("ris", "RIS"),
+            ("bibtex", "BibTeX"),
+            ("csv", "CSV"),
+            ("medline", "PubMed (MEDLINE / .nbib)"),
+        ],
     )
-    arquivo = forms.FileField(label="Arquivo (RIS/BibTeX/CSV)")
+    arquivo = forms.FileField(label="Arquivo (RIS/BibTeX/CSV/PubMed)")
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        # O `__str__` do termo é "base:Scopus" (prefixo do vocabulário); no
+        # formulário queremos só o nome legível da base.
+        self.fields["base_consulta"].label_from_instance = lambda obj: obj.nome
 
     def clean(self):
         cd = super().clean()

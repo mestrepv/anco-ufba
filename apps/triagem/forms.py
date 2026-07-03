@@ -98,6 +98,7 @@ class ImportarBuscaForm(forms.Form):
             ("ris", "RIS"),
             ("bibtex", "BibTeX"),
             ("csv", "CSV"),
+            ("medline", "PubMed (MEDLINE / .nbib)"),
         ],
     )
     arquivo = forms.FileField(label="Arquivo exportado")
