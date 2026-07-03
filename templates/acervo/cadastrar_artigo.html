@@ -25,6 +25,57 @@
     {% endif %}
   </header>
 
+  {# ── Progresso: artigos adicionados nesta sessão ─────────────────── #}
+  {% if projeto_corpus and sessao_add %}
+  <section aria-live="polite"
+           style="margin-top: 24px; padding: 16px 18px; border: 1px solid var(--color-gold-deep); border-radius: 8px; background: var(--color-review-bg);">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap;">
+      <strong style="font-family: var(--font-sans); font-size: 15px; color: var(--color-ink);">
+        ✔ Adicionados nesta sessão ({{ sessao_add|length }})
+      </strong>
+      <span style="display: flex; gap: 14px; align-items: center;">
+        <a href="{% url 'anco_corpus' projeto_corpus.slug %}" class="link t-small">
+          Ver corpus{% if n_corpus is not None %} ({{ n_corpus }}){% endif %}
+        </a>
+        <a href="{% url 'cadastrar_artigo' %}?projeto={{ projeto_corpus.slug }}&concluir=1"
+           class="btn btn-sm btn-secondary">Concluir</a>
+      </span>
+    </div>
+    {# Confirmação explícita do último artigo adicionado (integrada à página). #}
+    {% with ultimo=sessao_add.0 %}
+    {% if ultimo and not ultimo.removido_corpus %}
+    <p role="status" style="margin: 12px 0 0; padding: 9px 12px; border-radius: 6px; background: #e0ebd9; font-family: var(--font-sans); font-size: 13px; color: var(--color-ink);">
+      ✓ <strong>{{ ultimo.titulo|truncatechars:64 }}</strong> {% if ultimo.status == 'repetido' %}já estava no corpus.{% elif ultimo.status == 'legado' %}já está no acervo (isento).{% else %}foi adicionado ao corpus.{% endif %}
+    </p>
+    {% endif %}
+    {% endwith %}
+    <ul style="list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 0;">
+      {% for a in sessao_add %}
+      <li style="display: flex; gap: 8px; align-items: baseline; font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2); border-top: 1px solid var(--color-rule); padding: 7px 0;">
+        <span aria-hidden="true">{% if a.removido_corpus %}✕{% elif a.status == 'legado' or a.link_falhou %}⚠{% else %}✔{% endif %}</span>
+        <span style="min-width: 0;">
+          {% if a.item_id %}<a href="{% url 'anco_corpus_editar' projeto_corpus.slug a.item_id %}" style="color: var(--color-ink); border-bottom: 1px solid var(--color-rule);" title="Abrir para conferir / editar">{{ a.titulo|truncatechars:70 }}</a>{% elif a.removido_corpus %}<span style="color: var(--color-ink-4); text-decoration: line-through;">{{ a.titulo|truncatechars:70 }}</span>{% else %}<span style="color: var(--color-ink);">{{ a.titulo|truncatechars:70 }}</span>{% endif %}{% if a.ano %} · {{ a.ano }}{% endif %}{% if a.doi %} · <span class="mono">{{ a.doi }}</span>{% endif %}
+          {% if a.removido_corpus %}<span class="t-meta" style="display: inline-block; margin-left: 4px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--color-rule-strong); font-size: 11px; color: var(--color-gold-deep);">removido do corpus</span>{% else %}<span class="t-meta" style="display: inline-block; margin-left: 4px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--color-rule-strong); font-size: 11px; color: var(--color-ink-3);">{% if a.status == 'novo' %}novo{% elif a.status == 'repetido' %}já estava no corpus{% elif a.status == 'legado' %}já no acervo — isento{% endif %}</span>{% endif %}{% if a.link_falhou %}<span class="t-meta" style="color: var(--color-gold-deep);"> · link não respondeu (confira depois)</span>{% endif %}{% if a.item_id %}
+          <form method="post" action="{% url 'anco_corpus_excluir' projeto_corpus.slug %}" onsubmit="return confirm('Remover este artigo do corpus?');" style="display: inline;">{% csrf_token %}<input type="hidden" name="item_id" value="{{ a.item_id }}"><input type="hidden" name="next" value="{% url 'cadastrar_artigo' %}?projeto={{ projeto_corpus.slug }}"><button type="submit" style="background: none; border: none; color: var(--color-danger); cursor: pointer; padding: 0; margin-left: 8px; font-size: 12px; font-family: var(--font-sans);">remover</button></form>{% endif %}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {# ── Falha: não salvou (visível fora do controle do Alpine) ──────── #}
+  {% if form.errors %}
+  <div class="badge badge-err" role="alert"
+       style="display: block; margin-top: 24px; padding: 14px 16px; border-radius: 6px;">
+    <strong>Não salvei este artigo.</strong> Corrija abaixo e envie de novo:
+    <ul style="margin: 8px 0 0; padding-left: 18px;">
+      {% for field in form %}{% if field.errors %}<li>{{ field.label }}: {{ field.errors|join:", " }}</li>{% endif %}{% endfor %}
+      {% for erro in form.non_field_errors %}<li>{{ erro }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
   {# ── Passo 1: identificador ─────────────────────────────────────── #}
   <section style="margin-top: 32px;">
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
@@ -42,6 +93,7 @@
            autocomplete="off"
            spellcheck="false"
            hx-get="{% url 'lookup_identificador' %}"
+           hx-vals='{"projeto": "{{ projeto_slug|escapejs }}"}'
            hx-target="#preview-card"
            hx-swap="innerHTML"
            hx-trigger="keyup changed delay:700ms, paste delay:200ms, blur"
@@ -78,7 +130,7 @@
   </section>
 
   {# ── Passo 3: form de cadastro ────────────────────────────────── #}
-  <section style="margin-top: 36px;" x-show="lookupOk || modoManual" x-cloak>
+  <section style="margin-top: 36px;" x-show="lookupOk || modoManual{% if form.errors %} || true{% endif %}" x-cloak>
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
       <span class="step-indicator">3</span>
       <h2 class="t-h3" x-text="modoManual ? 'Preencha manualmente' : 'Complemente as informações'"></h2>
@@ -86,21 +138,17 @@
 
     <p class="t-small" style="color: var(--color-ink-3); margin-bottom: 16px;" x-show="!modoManual">
       Os metadados detectados ficam abaixo, em "Metadados detectados —
-      clique para corrigir". <strong>Link de acesso</strong> e
-      <strong>base de consulta</strong> são obrigatórios.
+      clique para corrigir". Obrigatórios: <strong>link de acesso</strong>,
+      <strong>base de consulta</strong>, <strong>área</strong>,
+      <strong>resumo</strong>, <strong>autores</strong> e
+      <strong>palavras-chave</strong>.
     </p>
 
     <form method="post" id="form-cadastrar-artigo" class="meta-card" style="display: grid; gap: 18px;">{% csrf_token %}
       {% if projeto_slug %}<input type="hidden" name="projeto" value="{{ projeto_slug }}">{% endif %}
 
-      {% if form.non_field_errors %}
-      <div class="badge badge-err" style="display: block; padding: 12px 14px; border-radius: 6px;">
-        {{ form.non_field_errors|join:" / " }}
-      </div>
-      {% endif %}
-
       {# Bloco 3a: Metadados detectados (escondidos no caminho feliz; visíveis no manual) #}
-      <details :open="modoManual"
+      <details :open="modoManual{% if form.errors %} || true{% endif %}"
                style="border: 1px solid var(--color-rule); border-radius: 6px; padding: 12px 14px;">
         <summary style="cursor: pointer; font-family: var(--font-sans); font-size: 13px; color: var(--color-ink-3); font-weight: 500;"
                  x-text="modoManual ? 'Metadados do artigo' : 'Metadados detectados — clique para corrigir'"></summary>
@@ -177,15 +225,17 @@
           </div>
 
           <div>
-            <label class="field-label" for="id_autores">Autores</label>
+            <label class="field-label" for="id_autores">Autores *</label>
             <textarea name="autores" id="id_autores" class="field-textarea" rows="2" x-text="meta.autores_str || ''"></textarea>
+            {% if form.autores.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ form.autores.errors|join:" / " }}</p>{% endif %}
           </div>
 
           <div>
-            <label class="field-label" for="id_resumo">Resumo</label>
+            <label class="field-label" for="id_resumo">Resumo *</label>
             <textarea name="resumo" id="id_resumo" class="field-textarea" rows="4" x-text="meta.resumo || ''"></textarea>
+            {% if form.resumo.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ form.resumo.errors|join:" / " }}</p>{% endif %}
             <p class="t-meta" style="color: var(--color-ink-4); margin-top: 4px;">
-              Quando o lookup não traz, cole o resumo do PDF (opcional).
+              Quando o lookup não traz, cole o resumo do PDF.
             </p>
           </div>
         </div>
@@ -225,8 +275,9 @@
       </div>
 
       <div>
-        <label class="field-label" for="id_palavras_chaves">Palavras-chave</label>
+        <label class="field-label" for="id_palavras_chaves">Palavras-chave *</label>
         <textarea name="palavras_chaves" id="id_palavras_chaves" class="field-textarea" rows="2" x-text="meta.palavras_chave_str || ''"></textarea>
+        {% if form.palavras_chaves.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ form.palavras_chaves.errors|join:" / " }}</p>{% endif %}
       </div>
 
       <div>
@@ -256,7 +307,7 @@
 
   {# ── Passo 4: ação ─────────────────────────────────────────────── #}
   <section style="margin-top: 24px; display: flex; align-items: center; justify-content: flex-end; gap: 12px;"
-           x-show="lookupOk || modoManual" x-cloak>
+           x-show="lookupOk || modoManual{% if form.errors %} || true{% endif %}" x-cloak>
     <button type="submit" form="form-cadastrar-artigo" class="btn btn-primary">
       {% if projeto_corpus %}Adicionar ao corpus →{% else %}Cadastrar e iniciar análise →{% endif %}
     </button>

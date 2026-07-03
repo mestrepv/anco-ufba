@@ -39,13 +39,24 @@
     </p>
     <p class="t-body" style="color: var(--color-gold-deep);">
       Este artigo <strong>já existe no acervo</strong>.
-      {% if analise_existente_id %}
+      {% if projeto_slug %}
+      Você ainda pode adicioná-lo ao corpus deste projeto.
+      {% elif analise_existente_id %}
       Você já iniciou uma análise sobre ele — deseja continuar?
       {% else %}
       Deseja revisar / iniciar sua análise sobre ele?
       {% endif %}
     </p>
     <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+      {% if projeto_slug %}
+      <form method="post" action="{% url 'cadastrar_artigo' %}?projeto={{ projeto_slug }}" style="display: inline;">
+        {% csrf_token %}
+        <input type="hidden" name="projeto" value="{{ projeto_slug }}">
+        <input type="hidden" name="doi" value="{{ dados.doi }}">
+        <input type="hidden" name="isbn" value="{{ dados.isbn }}">
+        <button type="submit" class="btn btn-primary btn-sm">Adicionar ao corpus assim mesmo →</button>
+      </form>
+      {% endif %}
       {% if analise_existente_id %}
       <a href="{% url 'editar_analise' analise_existente_id %}" class="btn btn-primary btn-sm">
         Continuar minha análise →

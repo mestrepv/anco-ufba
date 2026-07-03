@@ -95,6 +95,9 @@ def _payload_minimo(base_consulta_id, **overrides):
         "base_consulta": str(base_consulta_id),
         "tipo_publicacao": "artigo",
         "area": "Psicologia",
+        "resumo": "Resumo do artigo de teste.",
+        "autores": "Fulano; Beltrano",
+        "palavras_chaves": "cognição; teste",
     }
     base.update(overrides)
     return base
@@ -110,6 +113,14 @@ class TestArtigoMetadadosForm:
         f = ArtigoMetadadosForm(data=_payload_minimo(base_consulta.pk, doi="10.1016/x", area=""))
         assert not f.is_valid()
         assert "area" in f.errors
+
+    def test_resumo_autores_palavras_obrigatorios(self, db, base_consulta):
+        for campo in ("resumo", "autores", "palavras_chaves"):
+            data = _payload_minimo(base_consulta.pk, doi="10.1016/x")
+            data[campo] = ""
+            f = ArtigoMetadadosForm(data=data)
+            assert not f.is_valid(), campo
+            assert campo in f.errors, campo
 
     def test_area_rejeita_valor_fora_da_lista(self, db, base_consulta):
         f = ArtigoMetadadosForm(

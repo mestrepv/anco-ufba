@@ -128,6 +128,10 @@ class ArtigoMetadadosForm(forms.ModelForm):
         self.fields["base_consulta"].label_from_instance = lambda termo: termo.nome
         # Área (grande área CNPq/CAPES) é obrigatória no cadastro de artigos.
         self.fields["area"].required = True
+        # Completude para a análise: resumo, autores e palavras-chave passam a ser
+        # obrigatórios (o sorteio "só completos" depende deles).
+        for _obrig in ("resumo", "autores", "palavras_chaves"):
+            self.fields[_obrig].required = True
         # DOI e ISBN ficam opcionais — clean() valida que pelo menos um existe
         self.fields["doi"].required = False
         self.fields["isbn"].required = False

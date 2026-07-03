@@ -109,16 +109,102 @@ def _projeto_corpus(request: HttpRequest):
     return None
 
 
-def _adicionar_ao_corpus(request: HttpRequest, projeto, artigo) -> HttpResponse:
-    """Inclui o artigo no corpus ANCO do projeto e volta para o corpus."""
+# Lista de artigos adicionados na sessão do analista, por projeto (slug). Serve de
+# "progresso" visível no loop de "Artigo individual": some só ao concluir. Ver
+# cadastrar_artigo_view.
+_SESSAO_ADD = "anco_sessao_add"
+_SESSAO_ADD_MAX = 60
+
+
+def _sessao_add_lista(request: HttpRequest, slug: str) -> list[dict]:
+    return (request.session.get(_SESSAO_ADD) or {}).get(slug, [])
+
+
+def _sessao_add_push(request: HttpRequest, slug: str, entrada: dict) -> None:
+    todos = request.session.get(_SESSAO_ADD) or {}
+    lista = todos.get(slug, [])
+    lista.insert(0, entrada)  # mais recente no topo
+    todos[slug] = lista[:_SESSAO_ADD_MAX]
+    request.session[_SESSAO_ADD] = todos
+    request.session.modified = True
+
+
+def _sessao_add_limpar(request: HttpRequest, slug: str) -> None:
+    todos = request.session.get(_SESSAO_ADD) or {}
+    if slug in todos:
+        del todos[slug]
+        request.session[_SESSAO_ADD] = todos
+        request.session.modified = True
+
+
+def _sessao_add_render(request: HttpRequest, projeto) -> list[dict]:
+    """Lista da sessão pronta para o template. Reconcilia cada entrada com o estado
+    ATUAL do corpus: resolve `item_id` (linha clicável/editável) só quando o item
+    ainda existe e não foi removido; marca `removido_corpus` quando o item saiu do
+    corpus (ex.: a lista de fontes foi excluída). Cobre entradas antigas sem id."""
+    from apps.anco.models import ItemCorpus
+
+    lista = _sessao_add_lista(request, projeto.slug)
+    dois = {e.get("doi") for e in lista if e.get("doi")}
+    ids = {e.get("item_id") for e in lista if e.get("item_id")}
+    ativos_por_doi: dict[str, int] = {}
+    if dois:
+        ativos_por_doi = dict(
+            ItemCorpus.objects.filter(
+                projeto=projeto, removido=False, doi__in=dois
+            ).values_list("doi", "pk")
+        )
+    ativos_ids: set[int] = set()
+    if ids:
+        ativos_ids = set(
+            ItemCorpus.objects.filter(
+                projeto=projeto, removido=False, pk__in=ids
+            ).values_list("pk", flat=True)
+        )
+    saida = []
+    for e in lista:
+        item = dict(e)
+        iid = None
+        if item.get("doi") and item["doi"] in ativos_por_doi:
+            iid = ativos_por_doi[item["doi"]]
+        elif item.get("item_id") in ativos_ids:
+            iid = item["item_id"]
+        item["item_id"] = iid
+        # Estava no corpus (novo/repetido) e agora não está mais → removido.
+        item["removido_corpus"] = iid is None and item.get("status") in {"novo", "repetido"}
+        saida.append(item)
+    return saida
+
+
+def _adicionar_ao_corpus(
+    request: HttpRequest, projeto, artigo, *, link_falhou: bool = False
+) -> HttpResponse:
+    """Inclui o artigo no corpus ANCO do projeto, registra o resultado na lista da
+    sessão (progresso visível) e volta ao formulário para adicionar o próximo (PRG)."""
     from apps.anco.importacao import registrar_artigo_no_corpus
 
-    item = registrar_artigo_no_corpus(projeto, artigo, request.user)
-    if item is not None:
-        messages.success(request, f"Artigo adicionado ao corpus de “{projeto.nome}”.")
+    item, criado = registrar_artigo_no_corpus(projeto, artigo, request.user)
+    if item is None:
+        status = "legado"  # já no acervo curado: isento
+    elif criado:
+        status = "novo"
     else:
-        messages.info(request, "Este artigo já está no acervo histórico (legado).")
-    return redirect("anco_corpus", slug=projeto.slug)
+        status = "repetido"  # já estava no corpus
+    _sessao_add_push(
+        request,
+        projeto.slug,
+        {
+            "titulo": artigo.titulo or "(sem título)",
+            "doi": artigo.doi or "",
+            "ano": artigo.ano or "",
+            "status": status,
+            "link_falhou": bool(link_falhou),
+            # id do item no corpus → torna a linha clicável/editável na sessão.
+            # Legado (item None) fica só-leitura, sem link.
+            "item_id": item.pk if item is not None else None,
+        },
+    )
+    return redirect(f"{reverse('cadastrar_artigo')}?projeto={projeto.slug}")
 
 
 @_exige_analista
@@ -134,6 +220,10 @@ def cadastrar_artigo_view(request: HttpRequest) -> HttpResponse:
     valida link em background e redireciona para a edição da análise.
     """
     projeto_corpus = _projeto_corpus(request)
+    # "Concluir": limpa a lista da sessão e leva ao corpus do projeto.
+    if request.method == "GET" and projeto_corpus is not None and request.GET.get("concluir"):
+        _sessao_add_limpar(request, projeto_corpus.slug)
+        return redirect("anco_corpus", slug=projeto_corpus.slug)
     if request.method == "POST":
         # Se o artigo (DOI/ISBN) já existe, reaproveita em vez de barrar com
         # "já existe": recupera (ou inicia) a análise do usuário e abre para
@@ -174,14 +264,19 @@ def cadastrar_artigo_view(request: HttpRequest) -> HttpResponse:
             artigo = form.save(commit=False)
             artigo.eh_legado = False
             artigo.save()
-            # Valida link e aplica resultado no Artigo (silencioso em erro)
+            # Valida link e aplica resultado no Artigo. Salvar NÃO deve falhar por
+            # causa do link: se a verificação der erro, sinaliza (link_falhou) para
+            # a lista da sessão avisar, mas o artigo já está salvo.
+            link_falhou = False
             try:
                 resultado = validar_link(artigo.link_acesso)
                 aplicar_resultado_no_artigo(artigo, resultado)
             except Exception:  # noqa: BLE001
-                pass
+                link_falhou = True
             if projeto_corpus is not None:
-                return _adicionar_ao_corpus(request, projeto_corpus, artigo)
+                return _adicionar_ao_corpus(
+                    request, projeto_corpus, artigo, link_falhou=link_falhou
+                )
             analise, _ = Analise.objects.get_or_create(
                 artigo=artigo,
                 analista=request.user,
@@ -225,6 +320,10 @@ def cadastrar_artigo_view(request: HttpRequest) -> HttpResponse:
             "lookup_form": lookup_form,
             "projeto_corpus": projeto_corpus,
             "projeto_slug": request.GET.get("projeto") or request.POST.get("projeto") or "",
+            "sessao_add": _sessao_add_render(request, projeto_corpus) if projeto_corpus else [],
+            "n_corpus": (
+                projeto_corpus.itens.filter(removido=False).count() if projeto_corpus else None
+            ),
         },
     )
 
@@ -249,6 +348,9 @@ def lookup_identificador_view(request: HttpRequest) -> HttpResponse:
         "tipo": "vazio",
         "ja_no_acervo": False,
         "analise_existente_id": None,
+        # Contexto de projeto ("Artigo individual"): habilita o botão
+        # "Adicionar ao corpus assim mesmo" quando o artigo já existe.
+        "projeto_slug": (request.GET.get("projeto") or "").strip(),
     }
 
     if not contexto["identificador_raw"]:

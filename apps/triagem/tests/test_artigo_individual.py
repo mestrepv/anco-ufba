@@ -73,6 +73,9 @@ def test_cadastro_sem_projeto_inicia_analise(client, base):
             "base_consulta": str(base.pk),
             "tipo_publicacao": "artigo",
             "area": "Psicologia",
+            "autores": "Autor Z",
+            "resumo": "Resumo de teste.",
+            "palavras_chaves": "cognição; teste",
         },
     )
     assert resp.status_code == 302

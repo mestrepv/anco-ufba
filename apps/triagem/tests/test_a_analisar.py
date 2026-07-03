@@ -67,6 +67,9 @@ def test_analista_cria_artigo_avulso(client, analista, vocab):
             "area": "Psicologia",
             "base_consulta": vocab.pk,
             "link_acesso": "https://e.org/x",
+            "autores": "Autor X",
+            "resumo": "Resumo de teste.",
+            "palavras_chaves": "cognição; teste",
         },
     )
     assert resp.status_code == 302
@@ -84,6 +87,9 @@ def test_curador_cria_artigo_avulso(client, curador, vocab):
             "area": "Psicologia",
             "base_consulta": vocab.pk,
             "link_acesso": "https://e.org/c",
+            "autores": "Autor Y",
+            "resumo": "Resumo de teste.",
+            "palavras_chaves": "cognição; teste",
         },
     )
     assert resp.status_code == 302
