@@ -57,6 +57,13 @@ def test_parse_medline_campos():
     assert regs[1]["doi"] == "10.2000/second"
 
 
+def test_parse_medline_crlf():
+    # PubMed exporta com CRLF; os registros não podem colapsar num só.
+    regs = parse_medline(MEDLINE.replace("\n", "\r\n"))
+    assert len(regs) == 2
+    assert regs[1]["doi"] == "10.2000/second"
+
+
 def test_analisar_arquivo_nbib_e_bib():
     a = analisar_arquivo("pubmed.nbib", MEDLINE.encode("utf-8"))
     assert a["ok"] and a["formato"] == "medline" and a["n"] == 2

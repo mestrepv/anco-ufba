@@ -74,6 +74,14 @@ def test_parse_medline_campos():
     assert regs[1]["ano"] == 2021
 
 
+def test_parse_medline_crlf():
+    # PubMed exporta com CRLF; os registros não podem colapsar num só.
+    regs = parse_medline(MEDLINE.replace("\n", "\r\n"))
+    assert len(regs) == 2
+    assert regs[0]["titulo"] == "Cognitive analysis of decision making in clinical practice: a study."
+    assert regs[1]["doi"] == "10.2000/second"
+
+
 def test_analisar_arquivo_nbib_ok():
     r = analisar_arquivo("pubmed_result.nbib", MEDLINE.encode("utf-8"))
     assert r["ok"] is True

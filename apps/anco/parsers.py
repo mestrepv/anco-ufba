@@ -53,18 +53,25 @@ def _limpa_chaves(valor: str) -> str:
 _TIPO_MAP = {
     "jour": "Artigo",
     "article": "Artigo",
+    "journalarticle": "Artigo",  # Zotero
+    "journal article": "Artigo",  # MEDLINE PT
     "book": "Livro",
     "chap": "Capítulo",
     "inbook": "Capítulo",
     "incollection": "Capítulo",
+    "booksection": "Capítulo",  # Zotero
     "cpaper": "Trabalho de evento",
     "conf": "Trabalho de evento",
+    "conferencepaper": "Trabalho de evento",  # Zotero
     "inproceedings": "Trabalho de evento",
     "conference": "Trabalho de evento",
     "thes": "Tese/Dissertação",
+    "thesis": "Tese/Dissertação",  # Zotero
     "phdthesis": "Tese/Dissertação",
+    "doctoralthesis": "Tese/Dissertação",
     "mastersthesis": "Tese/Dissertação",
     "rprt": "Relatório",
+    "report": "Relatório",  # Zotero
     "techreport": "Relatório",
     "review": "Resenha",
 }
@@ -140,8 +147,23 @@ _CSV_MAPA = {
     "ano": ("ano", "year", "py", "data", "date"),
     "doi": ("doi", "do"),
     "isbn": ("isbn", "issn", "sn"),
-    "resumo": ("resumo", "abstract", "ab"),
-    "palavras_chaves": ("palavras_chaves", "palavras-chave", "keywords", "kw"),
+    # "abstract note" = Zotero; "resumen" = bases em espanhol.
+    "resumo": ("resumo", "abstract", "abstract note", "resumen", "ab"),
+    # "author keywords"/"index keywords"/"keywords plus" = WoS/Scopus;
+    # "manual tags"/"automatic tags" = Zotero; "de"/"id" = códigos WoS.
+    "palavras_chaves": (
+        "palavras_chaves",
+        "palavras-chave",
+        "keywords",
+        "author keywords",
+        "index keywords",
+        "keywords plus",
+        "manual tags",
+        "automatic tags",
+        "de",
+        "id",
+        "kw",
+    ),
     "titulo_periodico": (
         "titulo_periodico",
         "periodico",
@@ -152,7 +174,7 @@ _CSV_MAPA = {
     ),
     "idioma": ("idioma", "language", "la"),
     "link": ("link", "url", "ur", "link_acesso"),
-    "tipo": ("tipo", "tipo_documento", "type", "document type", "dt", "ty"),
+    "tipo": ("tipo", "tipo_documento", "item type", "type", "document type", "dt", "ty"),
 }
 
 
@@ -166,9 +188,13 @@ def parse_csv(conteudo: str) -> list[dict]:
     cabecalhos = {(h or "").strip().lower(): h for h in (leitor.fieldnames or [])}
 
     def col(linha: dict, canonico: str) -> str:
+        # Primeiro variante presente **e não-vazio** (ex.: "manual tags" vazia não
+        # deve mascarar "automatic tags" preenchida).
         for variante in _CSV_MAPA[canonico]:
             if variante in cabecalhos:
-                return _txt(linha.get(cabecalhos[variante]))
+                valor = _txt(linha.get(cabecalhos[variante]))
+                if valor:
+                    return valor
         return ""
 
     registros: list[dict] = []
@@ -210,6 +236,10 @@ def parse_medline(conteudo: str) -> list[dict]:
     (indentadas). Mapeia as tags do PubMed para o dict normalizado padrão.
     """
     registros: list[dict] = []
+    # PubMed exporta com CRLF; sem normalizar, o separador de registros vira
+    # `\r\n\r\n` e o split abaixo não casa (o `\r` não está em `[ \t]`),
+    # colapsando todos os registros num só.
+    conteudo = conteudo.replace("\r\n", "\n").replace("\r", "\n")
     for bloco in re.split(r"\n[ \t]*\n", conteudo.strip()):
         campos: dict[str, list[str]] = {}
         tag = None
