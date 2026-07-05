@@ -4,7 +4,7 @@
 {% block content %}
 <main style="max-width:760px;margin:32px auto 80px;padding:0 24px;">
 
-  <a href="{{ voltar_url }}" class="link" style="font-size:13px;">&larr; {% if rotulo_nav == "Elegível" %}Sorteio{% else %}Corpus{% endif %}</a>
+  <a href="{{ voltar_url }}" class="link" style="font-size:13px;">&larr; {{ voltar_rotulo|default:"Corpus" }}</a>
 
   {# ── Navegação avançar/voltar (corpus inteiro ou só elegíveis) ────── #}
   <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 16px;">

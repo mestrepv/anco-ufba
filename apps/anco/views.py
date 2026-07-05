@@ -355,13 +355,17 @@ def corpus_editar_view(request: HttpRequest, projeto: ProjetoANCO, item_id: int)
     else:
         form = ItemCorpusForm(instance=item) if pode_editar else None
 
-    # Navegação avançar/voltar. Por padrão percorre todo o corpus (ordem da
-    # listagem); vindo do sorteio (`ctx=elegiveis`), percorre **só os elegíveis**
-    # com os filtros ativos, preservando o contexto nos links.
-    ctx_eleg = request.GET.get("ctx") == "elegiveis"
+    # Navegação avançar/voltar. Por padrão percorre todo o corpus; com contexto
+    # (`ctx`) percorre um subconjunto e preserva o estado nos links:
+    #   - `elegiveis`: pool do sorteio com os filtros ativos (ordem do painel);
+    #   - `import`: itens de uma importação (ordem da listagem do corpus).
+    ctx = request.GET.get("ctx")
     nav_qs = ""
     ids = None
-    if ctx_eleg:
+    rotulo_nav = "Item"
+    voltar_url = reverse("anco_corpus", args=[projeto.slug])
+    voltar_rotulo = "Corpus"
+    if ctx == "elegiveis":
         com_resumo, tipos_sel = _ler_filtros(request.GET)
         eleg_ids = [
             it.pk
@@ -376,8 +380,25 @@ def corpus_editar_view(request: HttpRequest, projeto: ProjetoANCO, item_id: int)
                 qs.append("com_resumo=1")
             qs += [f"tipos={t}" for t in tipos_sel]
             nav_qs = "&".join(qs)
-    if ids is None:  # sem contexto de elegíveis (ou item saiu do conjunto)
-        ctx_eleg = False
+            rotulo_nav = "Elegível"
+            voltar_url = reverse("anco_sorteio", args=[projeto.slug])
+            voltar_rotulo = "Sorteio"
+    elif ctx == "import":
+        fonte_id = (request.GET.get("import") or "").strip()
+        fonte = projeto.fontes.filter(pk=int(fonte_id)).first() if fonte_id.isdigit() else None
+        if fonte is not None:
+            imp_ids = list(
+                projeto.itens.filter(removido=False, origem_fontes=fonte)
+                .order_by("-criado_em")
+                .values_list("pk", flat=True)
+            )
+            if item.pk in imp_ids:  # item ainda pertence a esta importação
+                ids = imp_ids
+                nav_qs = f"ctx=import&import={fonte.pk}"
+                rotulo_nav = "Item da importação"
+                voltar_url = reverse("anco_painel", args=[projeto.slug])
+                voltar_rotulo = "Painel"
+    if ids is None:  # sem contexto (ou item saiu do subconjunto): corpus inteiro
         ids = list(projeto.itens.filter(removido=False).values_list("pk", flat=True))
 
     i = ids.index(item.pk)
@@ -405,17 +426,33 @@ def corpus_editar_view(request: HttpRequest, projeto: ProjetoANCO, item_id: int)
             "url_proximo": url_proximo,
             "pos": i + 1,
             "total": len(ids),
-            "rotulo_nav": "Elegível" if ctx_eleg else "Item",
-            "voltar_url": (
-                reverse("anco_sorteio", args=[projeto.slug])
-                if ctx_eleg
-                else reverse("anco_corpus", args=[projeto.slug])
-            ),
+            "rotulo_nav": rotulo_nav,
+            "voltar_url": voltar_url,
+            "voltar_rotulo": voltar_rotulo,
             # Destaca o termo AnCo (PT/EN) na ficha em leitura.
             "realce_termos": "análise cognitiva, cognitive analysis, cognitive analytics,"
             " cognição, cognition",
         },
     )
+
+
+@_projeto_membro
+def corpus_import_nav_view(
+    request: HttpRequest, projeto: ProjetoANCO, fonte_id: int
+) -> HttpResponse:
+    """Abre a ficha do 1º item de uma importação, com navegação avançar/voltar
+    restrita a essa importação (`ctx=import`). Link vindo do painel."""
+    from django.urls import reverse
+
+    fonte = get_object_or_404(FonteImport, pk=fonte_id, projeto=projeto)
+    primeiro = (
+        projeto.itens.filter(removido=False, origem_fontes=fonte).order_by("-criado_em").first()
+    )
+    if primeiro is None:
+        messages.info(request, "Esta importação não tem itens no corpus.")
+        return redirect("anco_corpus", slug=projeto.slug)
+    url = reverse("anco_corpus_editar", args=[projeto.slug, primeiro.pk])
+    return redirect(f"{url}?ctx=import&import={fonte.pk}")
 
 
 # --------------------------------------------------------------------------- #

@@ -16,6 +16,11 @@ urlpatterns = [
     path("p/<slug:slug>/corpus/", views.corpus_view, name="anco_corpus"),
     path("p/<slug:slug>/corpus/excluir/", views.corpus_excluir_view, name="anco_corpus_excluir"),
     path(
+        "p/<slug:slug>/corpus/import/<int:fonte_id>/",
+        views.corpus_import_nav_view,
+        name="anco_corpus_import_nav",
+    ),
+    path(
         "p/<slug:slug>/corpus/<int:item_id>/editar/",
         views.corpus_editar_view,
         name="anco_corpus_editar",

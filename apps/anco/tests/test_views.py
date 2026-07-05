@@ -312,6 +312,45 @@ def test_sorteio_parcial_elegiveis_reflete_filtro(client, projeto, curador):
     assert b">1</strong> eleg" in client.get(url + "?filtros=1&tipos=livro").content
 
 
+def test_navega_por_importacao(client, projeto, curador):
+    """Clicar num import abre a ficha do 1º item e navega só entre os itens
+    daquela importação (não o corpus inteiro), com volta ao painel."""
+    import re
+
+    from apps.anco.importacao import importar_para_fonte
+    from apps.anco.models import FonteImport
+
+    fonte = FonteImport.objects.create(projeto=projeto, outra_base="Scopus", criado_por=curador)
+    importar_para_fonte(fonte, [
+        {"titulo": "Imp 1", "doi": "10.7/1", "resumo": "r"},
+        {"titulo": "Imp 2", "doi": "10.7/2", "resumo": "r"},
+        {"titulo": "Imp 3", "doi": "10.7/3", "resumo": "r"},
+    ])
+    client.force_login(curador)
+
+    # clicar no import redireciona à ficha do 1º item, com ctx=import
+    r = client.get(reverse("anco_corpus_import_nav", args=[projeto.slug, fonte.pk]))
+    assert r.status_code == 302
+    assert "ctx=import" in r.headers["Location"] and f"import={fonte.pk}" in r.headers["Location"]
+
+    # a navegação percorre só os 3 dessa importação (não o "Artigo X" da fixture)
+    html = client.get(r.headers["Location"]).content.decode()
+    assert "Item da importação <strong" in html
+    assert 'de <strong style="color:var(--color-ink);">3</strong>' in html
+    nxt = re.search(r'href="([^"]*editar/[^"]*)"[^>]*>Avançar', html)
+    assert nxt and "ctx=import" in nxt.group(1) and f"import={fonte.pk}" in nxt.group(1)
+    assert "Painel</a>" in html  # volta para o painel
+
+
+def test_import_nav_sem_itens_redireciona(client, projeto, curador):
+    from apps.anco.models import FonteImport
+
+    fonte = FonteImport.objects.create(projeto=projeto, outra_base="Vazia", criado_por=curador)
+    client.force_login(curador)
+    r = client.get(reverse("anco_corpus_import_nav", args=[projeto.slug, fonte.pk]))
+    assert r.status_code == 302 and reverse("anco_corpus", args=[projeto.slug]) in r.headers["Location"]
+
+
 def test_editar_navega_so_entre_elegiveis(client, projeto, curador):
     """Com ctx=elegiveis, a navegação anterior/próximo anda só no subconjunto
     elegível (com os filtros ativos), não no corpus inteiro."""
@@ -395,7 +434,6 @@ def test_fonte_excluir_importador_ou_curador(client, projeto, analista):
 
 def test_nao_curador_nao_remove_item_no_acervo(client, projeto, analista):
     from apps.acervo.models import Analise
-    from apps.anco.models import ItemCorpus
 
     item = _item_com_fonte(projeto, analista, doi="10.3/pub")
     Analise.objects.create(artigo=item.artigo, analista=analista, status=Analise.Status.PUBLICADA)
