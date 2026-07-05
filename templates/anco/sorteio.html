@@ -13,6 +13,8 @@
         hx-trigger="change, keyup changed delay:400ms"
         hx-target="#painel-elegiveis" hx-swap="innerHTML">
     {% csrf_token %}
+    {# Marcador: distingue "primeira carga" (defaults) de "usuário mexeu nos filtros". #}
+    <input type="hidden" name="filtros" value="1">
     <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:end;">
       <div>
         <label class="tg-meta" style="display:block;">Cota por analista</label>
@@ -27,19 +29,21 @@
     </div>
 
     <div style="margin-top:16px;">
-      <label class="tg-meta" style="display:block;">Exigir termo (opcional)</label>
-      <input type="text" name="termo" value="{{ termo }}" placeholder="ex.: análise cognitiva" style="width:240px;padding:7px;border:1px solid var(--color-rule-strong);border-radius:6px;">
-    </div>
-
-    <div style="margin-top:14px;">
-      <label class="tg-meta" style="display:block;margin-bottom:4px;">Onde o termo aparece <span style="opacity:.7;">(nenhum marcado = todos os campos)</span></label>
+      <label class="tg-meta" style="display:block;margin-bottom:4px;">Tipos de documento a incluir</label>
       <div style="display:flex;flex-wrap:wrap;gap:14px;">
-        {% for val, rotulo in campos_choices %}
-        <label style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-sans);font-size:14px;">
-          <input type="checkbox" name="campos" value="{{ val }}" {% if val in campos_sel %}checked{% endif %}> {{ rotulo }}
+        {% for t in tipos_choices %}
+        <label style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-sans);font-size:14px;{% if not t.n %}opacity:.45;{% endif %}">
+          <input type="checkbox" name="tipos" value="{{ t.val }}" {% if t.sel %}checked{% endif %}> {{ t.rotulo }} <span class="tg-meta">({{ t.n }})</span>
         </label>
         {% endfor %}
       </div>
+    </div>
+
+    <div style="margin-top:14px;">
+      <label style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-sans);font-size:14px;">
+        <input type="checkbox" name="com_resumo" value="1" {% if com_resumo %}checked{% endif %}>
+        Somente com resumo <span class="tg-meta">(a análise AnCo precisa do resumo)</span>
+      </label>
     </div>
 
     {# Painel de elegíveis (atualizado pelo HTMX). O botão Sortear vive aqui dentro. #}

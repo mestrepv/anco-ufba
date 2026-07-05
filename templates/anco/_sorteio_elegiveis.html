@@ -3,8 +3,8 @@ sorteio: contadores + capacidade + lista + botão "Sortear estes N".{% endcommen
 <div style="margin:18px 0 10px;">
   <p style="font-family:var(--font-sans);font-size:15px;color:var(--color-ink);margin:0 0 4px;">
     <strong style="font-size:18px;">{{ n_elegiveis }}</strong> elegíve{{ n_elegiveis|pluralize:"l,is" }}
-    <span class="tg-meta">· de {{ n_novos }} novo{{ n_novos|pluralize }}
-      {% if n_fora_filtro %}· {{ n_fora_filtro }} fora por filtro{% endif %}
+    <span class="tg-meta">· de {{ n_disponivel }} disponíve{{ n_disponivel|pluralize:"l,is" }}
+      {% if n_sem_resumo %}· {{ n_sem_resumo }} sem resumo (excluído{{ n_sem_resumo|pluralize }}){% endif %}
       {% if n_ja_atribuidos %}· {{ n_ja_atribuidos }} já atribuído{{ n_ja_atribuidos|pluralize }}{% endif %}
     </span>
   </p>
@@ -20,7 +20,7 @@ sorteio: contadores + capacidade + lista + botão "Sortear estes N".{% endcommen
   {% for it in elegiveis %}
   <div style="padding:8px 12px;border-bottom:1px solid var(--color-rule);">
     <div style="font-family:var(--font-serif);color:var(--color-ink);font-size:14px;">{{ it.titulo|truncatechars:140 }}</div>
-    <div class="tg-meta">{% if it.ano %}{{ it.ano }} · {% endif %}{{ it.tipo|default:"—" }}{% if it.casou_em %} · <span style="color:var(--color-gold-deep);">casou em: {{ it.casou_em }}</span>{% endif %}</div>
+    <div class="tg-meta">{% if it.ano %}{{ it.ano }} · {% endif %}{{ it.tipo|default:"—" }}</div>
   </div>
   {% endfor %}
 </div>
@@ -30,5 +30,5 @@ sorteio: contadores + capacidade + lista + botão "Sortear estes N".{% endcommen
   <button type="submit" class="btn btn-primary">Sortear est{{ n_elegiveis|pluralize:"e,es" }} {{ n_elegiveis }}</button>
 </div>
 {% else %}
-<p class="tg-empty" style="margin-top:8px;">Nenhum artigo elegível com esses filtros. Afrouxe o termo ou inclua mais tipos.</p>
+<p class="tg-empty" style="margin-top:8px;">Nenhum artigo elegível com esses filtros. Marque mais tipos de documento ou desmarque "somente com resumo".</p>
 {% endif %}

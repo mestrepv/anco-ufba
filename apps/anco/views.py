@@ -6,6 +6,7 @@ via apps/acervo). Escopo por projeto (`/anco/p/<slug>/…`).
 
 from __future__ import annotations
 
+from collections import Counter
 from functools import wraps
 
 from django.contrib import messages
@@ -405,15 +406,14 @@ def sorteio_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
             cota = max(1, int(request.POST.get("cota", 5)))
         except (TypeError, ValueError):
             cota = 5
-        termo = (request.POST.get("termo") or "").strip()
-        campos = request.POST.getlist("campos")
+        com_resumo, tipos_sel = _ler_filtros(request.POST)
         res = sorteio_mod.executar_sorteio(
             projeto,
             modo_revisao=modo,
             cota=cota,
             por=request.user,
-            termo=termo,
-            campos=campos,
+            tipos=tipos_sel,
+            exigir_resumo=com_resumo,
         )
         if res.sorteio:
             messages.success(
@@ -432,17 +432,28 @@ def sorteio_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
         "sorteios": sorteios,
         "n_acervo": n_acervo,
         "modos": SorteioANCO.ModoRevisao.choices,
-        "campos_choices": sorteio_mod.CAMPOS_CHOICES,
         **_contexto_elegiveis(projeto, request),
     }
     return render(request, "anco/sorteio.html", contexto)
 
 
+def _ler_filtros(params) -> tuple[bool, list[str]]:
+    """Lê os filtros do formulário (GET ou POST). Um marcador `filtros` distingue
+    "primeira carga" (defaults) de "usuário mexeu": sem o marcador, vale o padrão
+    — só resumo ligado, todos os tipos marcados; com o marcador, valem os
+    checkboxes literais (desmarcar tudo = nenhum tipo)."""
+    todas = [c for c, _ in sorteio_mod.CATEGORIAS_TIPO]
+    if "filtros" not in params:
+        return True, todas  # padrão: exige resumo, todos os tipos
+    com_resumo = "com_resumo" in params
+    tipos = [t for t in params.getlist("tipos") if t in todas]
+    return com_resumo, tipos
+
+
 def _contexto_elegiveis(projeto: ProjetoANCO, request: HttpRequest) -> dict:
     """Calcula o pool elegível + contadores p/ os filtros atuais (GET).
     Usado tanto na página cheia quanto no parcial HTMX `_sorteio_elegiveis`."""
-    termo = (request.GET.get("termo") or "").strip()
-    campos = request.GET.getlist("campos")
+    com_resumo, tipos_sel = _ler_filtros(request.GET)
     try:
         cota = max(1, int(request.GET.get("cota", 5)))
     except (TypeError, ValueError):
@@ -454,12 +465,30 @@ def _contexto_elegiveis(projeto: ProjetoANCO, request: HttpRequest) -> dict:
     ja_atribuidos = set(
         AtribuicaoANCO.objects.filter(sorteio__projeto=projeto).values_list("artigo_id", flat=True)
     )
-    elegiveis = sorteio_mod.itens_elegiveis(
-        projeto, termo=termo, campos=campos, ja_atribuidos=ja_atribuidos
+    # Pool que passa no filtro de resumo (todos os tipos) — base para contar por
+    # categoria e para aplicar o filtro de tipo (literal) por cima.
+    base = sorteio_mod.itens_elegiveis(
+        projeto, tipos=None, exigir_resumo=com_resumo, ja_atribuidos=ja_atribuidos
     )
+    sel = set(tipos_sel)
+    elegiveis = [it for it in base if it.categoria in sel]
     n_eleg = len(elegiveis)
+
+    # Contagem por categoria (dentro do pool que passou no filtro de resumo).
+    cont_cat = Counter(it.categoria for it in base)
+    tipos_choices = [
+        {"val": val, "rotulo": rotulo, "n": cont_cat.get(val, 0), "sel": val in sel}
+        for val, rotulo in sorteio_mod.CATEGORIAS_TIPO
+    ]
+
+    # Total de novos disponíveis (não atribuídos, qualquer tipo, sem exigir resumo).
+    n_disponivel = len(
+        sorteio_mod.itens_elegiveis(
+            projeto, tipos=None, exigir_resumo=False, ja_atribuidos=ja_atribuidos
+        )
+    )
     n_ja = len(novos_ids & ja_atribuidos)
-    n_fora_filtro = (len(novos_ids) - n_ja) - n_eleg
+    n_sem_resumo = (n_disponivel - len(base)) if com_resumo else 0
     n_analistas = projeto.membros.filter(papel=MembroANCO.Papel.ANALISTA).count()
     assentos = 2 if modo == SorteioANCO.ModoRevisao.DUPLA else 1
     return {
@@ -467,15 +496,16 @@ def _contexto_elegiveis(projeto: ProjetoANCO, request: HttpRequest) -> dict:
         "n_elegiveis": n_eleg,
         "n_mostrando": min(n_eleg, 100),
         "n_novos": len(novos_ids),
+        "n_disponivel": n_disponivel,
         "n_ja_atribuidos": n_ja,
-        "n_fora_filtro": n_fora_filtro,
+        "n_sem_resumo": n_sem_resumo,
         "n_analistas": n_analistas,
         "cota": cota,
         "vagas_demanda": n_analistas * cota,
         "capacidade": n_eleg * assentos,
         "insuficiente": n_analistas > 0 and n_eleg * assentos < n_analistas * cota,
-        "termo": termo,
-        "campos_sel": campos,
+        "com_resumo": com_resumo,
+        "tipos_choices": tipos_choices,
     }
 
 

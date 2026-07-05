@@ -23,7 +23,10 @@ def projeto(db, curador):
     p = ProjetoANCO.objects.create(nome="Piloto ANCO", pergunta_pesquisa="Q?")
     MembroANCO.objects.create(projeto=p, usuario=curador, papel=MembroANCO.Papel.CURADOR)
     art = Artigo.objects.create(titulo="Artigo X", ano=2021)
-    ItemCorpus.objects.create(projeto=p, titulo="Artigo X", identificador="doi:10.1/x", artigo=art)
+    ItemCorpus.objects.create(
+        projeto=p, titulo="Artigo X", identificador="doi:10.1/x", artigo=art,
+        resumo="resumo do Artigo X",
+    )
     return p
 
 
@@ -242,7 +245,7 @@ def test_tela_sorteio_conta_so_novos(client, projeto, curador):
     html = client.get(reverse("anco_sorteio", args=[projeto.slug])).content.decode()
     assert "1 já no acervo nunca entram" in html  # acervo fora do sorteio
     assert ">1</strong> elegíve" in html  # só o novo ("Artigo X") é elegível
-    assert "de 1 novo" in html
+    assert "de 1 disponíve" in html
 
 
 def test_sorteio_filtros_na_tela_e_no_post(client, projeto, curador):
@@ -251,56 +254,62 @@ def test_sorteio_filtros_na_tela_e_no_post(client, projeto, curador):
 
     ana = User.objects.create_user(username="anaf", email="anaf@u.edu", password="x")
     MembroANCO.objects.create(projeto=projeto, usuario=ana, papel=MembroANCO.Papel.ANALISTA)
-    # fixture já tem "Artigo X" (sem o termo). Adiciona 1 com o termo no resumo.
-    a = Artigo.objects.create(titulo="Tem termo", ano=2021)
-    ItemCorpus.objects.create(
-        projeto=projeto, titulo="Tem termo", identificador="i:t", artigo=a,
-        resumo="trata de análise cognitiva",
-    )
+    # fixture já tem "Artigo X" (tipo vazio = "outro"). Adiciona um artigo e um livro.
+    for titulo, tipo in [("Um artigo", "Artigo"), ("Um livro", "Livro")]:
+        a = Artigo.objects.create(titulo=titulo, ano=2021)
+        ItemCorpus.objects.create(
+            projeto=projeto, titulo=titulo, identificador=f"i:{titulo}", artigo=a,
+            resumo="r", tipo=tipo,
+        )
     client.force_login(curador)
     url = reverse("anco_sorteio", args=[projeto.slug])
 
-    # GET: a tela oferece os campos como checkboxes (não há mais filtro de tipos)
+    # GET: a tela oferece o filtro por tipo e o toggle de resumo (não há mais termo).
     html = client.get(url).content.decode()
-    assert "Onde o termo aparece" in html
-    assert 'name="campos" value="resumo"' in html
-    assert "Tipos de documento" not in html
+    assert "Tipos de documento" in html
+    assert 'name="tipos" value="artigo"' in html
+    assert "Somente com resumo" in html
+    assert "Onde o termo aparece" not in html
 
-    # POST exigindo o termo no resumo: o sorteio só atribui o que casa
+    # POST restringindo a artigos: só o item tipo Artigo é atribuído.
     resp = client.post(
-        url, {"cota": 5, "modo_revisao": "unica", "termo": "cognitiva", "campos": ["resumo"]}
+        url,
+        {"cota": 5, "modo_revisao": "unica", "filtros": "1", "com_resumo": "1", "tipos": ["artigo"]},
     )
     assert resp.status_code == 302
     atribuidos = set(
         AtribuicaoANCO.objects.filter(sorteio__projeto=projeto).values_list("artigo__titulo", flat=True)
     )
-    assert atribuidos == {"Tem termo"}
+    assert atribuidos == {"Um artigo"}
 
 
 def test_sorteio_parcial_elegiveis_reflete_filtro(client, projeto, curador):
     from apps.acervo.models import Artigo
     from apps.anco.models import ItemCorpus
 
-    for titulo, resumo, palavras in [
-        ("Art A", "fala de análise cognitiva", ""),
-        ("Art B", "outro assunto", ""),
-        ("Art C", "nada", "cognitiva"),
+    for titulo, tipo, resumo in [
+        ("Art A", "Artigo", "r"),
+        ("Art B", "Tese", "r"),
+        ("Art C", "Livro", ""),  # sem resumo
     ]:
         a = Artigo.objects.create(titulo=titulo, ano=2021)
         ItemCorpus.objects.create(
             projeto=projeto, titulo=titulo, identificador=f"e:{titulo}", artigo=a,
-            resumo=resumo, palavras_chaves=palavras,
+            resumo=resumo, tipo=tipo,
         )
     client.force_login(curador)
     url = reverse("anco_sorteio_elegiveis", args=[projeto.slug])
 
-    # sem filtro: fixture "Artigo X" + 3 = 4 elegíveis
-    assert b">4</strong> eleg" in client.get(url).content
-    # termo só no resumo: 1 (Art A)
-    r = client.get(url + "?termo=cognitiva&campos=resumo").content
-    assert b">1</strong> eleg" in r and b"casou em" in r
-    # termo no resumo OU palavras-chave: 2 (Art A + Art C)
-    assert b">2</strong> eleg" in client.get(url + "?termo=cognitiva&campos=resumo&campos=palavras_chave").content
+    # primeira carga (defaults: resumo ligado, todos os tipos): Artigo X + A + B = 3
+    # (Art C fica fora por não ter resumo).
+    assert b">3</strong> eleg" in client.get(url).content
+    # só artigos: 1 (Art A); "Artigo X" é categoria "outro" e fica fora.
+    r = client.get(url + "?filtros=1&com_resumo=1&tipos=artigo").content
+    assert b">1</strong> eleg" in r
+    # artigos + teses: 2 (Art A + Art B)
+    assert b">2</strong> eleg" in client.get(url + "?filtros=1&com_resumo=1&tipos=artigo&tipos=tese").content
+    # livros, sem exigir resumo: 1 (Art C entra porque o toggle de resumo foi desligado)
+    assert b">1</strong> eleg" in client.get(url + "?filtros=1&tipos=livro").content
 
 
 def test_item_navegacao_e_link_artigo(client, projeto, curador):

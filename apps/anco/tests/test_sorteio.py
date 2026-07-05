@@ -19,7 +19,8 @@ def _projeto(n_itens: int, n_analistas: int) -> ProjetoANCO:
     for i in range(n_itens):
         art = Artigo.objects.create(titulo=f"Art {i}", ano=2020)
         ItemCorpus.objects.create(
-            projeto=proj, titulo=f"Art {i}", identificador=f"doi:10.1/{i}", artigo=art
+            projeto=proj, titulo=f"Art {i}", identificador=f"doi:10.1/{i}",
+            artigo=art, resumo=f"resumo do artigo {i}",
         )
     return proj
 
@@ -62,11 +63,15 @@ def test_sorteio_exclui_artigos_no_acervo():
     legados, novos = [], []
     for i in range(4):
         art = Artigo.objects.create(titulo=f"Leg {i}", ano=2019, eh_legado=True)
-        ItemCorpus.objects.create(projeto=proj, titulo=art.titulo, identificador=f"l:{i}", artigo=art)
+        ItemCorpus.objects.create(
+            projeto=proj, titulo=art.titulo, identificador=f"l:{i}", artigo=art, resumo="r"
+        )
         legados.append(art.pk)
     for i in range(4):
         art = Artigo.objects.create(titulo=f"Novo {i}", ano=2021, eh_legado=False)
-        ItemCorpus.objects.create(projeto=proj, titulo=art.titulo, identificador=f"n:{i}", artigo=art)
+        ItemCorpus.objects.create(
+            projeto=proj, titulo=art.titulo, identificador=f"n:{i}", artigo=art, resumo="r"
+        )
         novos.append(art.pk)
 
     res = executar_sorteio(proj, cota=10, semente=7)
@@ -77,31 +82,40 @@ def test_sorteio_exclui_artigos_no_acervo():
     assert not (atribuidos & set(legados))  # nenhum do acervo
 
 
-def test_pool_filtra_por_termo_e_campos():
+def test_categoria_tipo():
+    from apps.anco.sorteio import categoria_tipo
+
+    assert categoria_tipo("Artigo") == "artigo"
+    assert categoria_tipo("Journal Article") == "artigo"
+    assert categoria_tipo("journalArticle") == "artigo"
+    assert categoria_tipo("Periodico") == "artigo"
+    assert categoria_tipo("Tese") == "tese"
+    assert categoria_tipo("Doctoralthesis") == "tese"
+    assert categoria_tipo("Livro") == "livro"
+    assert categoria_tipo("Capítulo") == "capitulo"
+    assert categoria_tipo("bookSection") == "capitulo"
+    assert categoria_tipo("") == "outro"
+    assert categoria_tipo("qualquer coisa") == "outro"
+
+
+def test_pool_filtra_por_tipo():
     from apps.anco.sorteio import _pool
 
     proj = ProjetoANCO.objects.create(nome="Filtros")
-    def _item(titulo, resumo="", palavras=""):
+    def _item(titulo, tipo):
         art = Artigo.objects.create(titulo=titulo, ano=2021)
         ItemCorpus.objects.create(
             projeto=proj, titulo=titulo, identificador=f"id:{titulo}",
-            artigo=art, resumo=resumo, palavras_chaves=palavras,
+            artigo=art, resumo="r", tipo=tipo,
         )
-    _item("Cognição em jogos", resumo="trata de análise cognitiva")
-    _item("Outro tema", resumo="sem o termo", palavras="cognitiva")
-    _item("Mais um", resumo="nada aqui")
+    _item("Um artigo", "Artigo")
+    _item("Uma tese", "Tese")
+    _item("Um livro", "Livro")
 
-    assert len(_pool(proj, set(), 1)) == 3  # sem termo = todos
-    # termo "cognitiva" em todos os campos (campos vazio): resumo OU palavras → 2
-    assert len(_pool(proj, set(), 1, termo="cognitiva")) == 2
-    # só no resumo: casa 1 ("Cognição em jogos")
-    assert len(_pool(proj, set(), 1, termo="cognitiva", campos=["resumo"])) == 1
-    # só nas palavras-chave: casa 1 ("Outro tema")
-    assert len(_pool(proj, set(), 1, termo="cognitiva", campos=["palavras_chave"])) == 1
-    # resumo OU palavras-chave: casa 2
-    assert len(_pool(proj, set(), 1, termo="cognitiva", campos=["resumo", "palavras_chave"])) == 2
-    # só no título: 0 ("cognitiva" != "cognição")
-    assert len(_pool(proj, set(), 1, termo="cognitiva", campos=["titulo"])) == 0
+    assert len(_pool(proj, set(), 1)) == 3  # tipos=None = todos
+    assert len(_pool(proj, set(), 1, tipos=["artigo"])) == 1
+    assert len(_pool(proj, set(), 1, tipos=["artigo", "tese"])) == 2
+    assert len(_pool(proj, set(), 1, tipos=[])) == 0  # lista vazia = nenhum
 
 
 def test_itens_elegiveis_e_pool_coincidem():
@@ -131,18 +145,38 @@ def test_itens_elegiveis_exclui_ja_atribuidos():
     assert depois == 3  # os 2 atribuídos saem do pool elegível
 
 
-def test_termo_sinonimo_pt_en_mesmos_resultados():
-    """Digitar 'análise cognitiva' ou 'cognitive analysis' casa o MESMO conjunto."""
+def test_exclui_itens_sem_resumo():
+    """A análise AnCo exige resumo: itens sem resumo ficam fora do sorteio."""
     from apps.anco.sorteio import itens_elegiveis
 
-    proj = ProjetoANCO.objects.create(nome="Sinônimos")
-    a1 = Artigo.objects.create(titulo="Estudo de análise cognitiva", ano=2021)
-    ItemCorpus.objects.create(projeto=proj, titulo=a1.titulo, identificador="s:1", artigo=a1)
-    a2 = Artigo.objects.create(titulo="A cognitive analysis of games", ano=2021)
-    ItemCorpus.objects.create(projeto=proj, titulo=a2.titulo, identificador="s:2", artigo=a2)
-    a3 = Artigo.objects.create(titulo="Tema sem relação", ano=2021)
-    ItemCorpus.objects.create(projeto=proj, titulo=a3.titulo, identificador="s:3", artigo=a3)
+    proj = ProjetoANCO.objects.create(nome="Sem resumo")
+    com = Artigo.objects.create(titulo="Com resumo", ano=2021)
+    ItemCorpus.objects.create(projeto=proj, titulo=com.titulo, identificador="c:1", artigo=com, resumo="tem")
+    sem = Artigo.objects.create(titulo="Sem resumo", ano=2021)
+    ItemCorpus.objects.create(projeto=proj, titulo=sem.titulo, identificador="s:1", artigo=sem, resumo="")
+    branco = Artigo.objects.create(titulo="Só espaços", ano=2021)
+    ItemCorpus.objects.create(projeto=proj, titulo=branco.titulo, identificador="b:1", artigo=branco, resumo="   ")
 
-    pt = {it.artigo_id for it in itens_elegiveis(proj, termo="análise cognitiva")}
-    en = {it.artigo_id for it in itens_elegiveis(proj, termo="cognitive analysis")}
-    assert pt == en == {a1.pk, a2.pk}  # os dois casam; o "sem relação" fica fora
+    ids = {it.artigo_id for it in itens_elegiveis(proj)}
+    assert ids == {com.pk}  # só o que tem resumo
+    # desligando a exigência, entram os 3
+    assert len(itens_elegiveis(proj, exigir_resumo=False)) == 3
+
+
+def test_itens_elegiveis_filtra_por_tipo():
+    """Filtro por tipo: seleção explícita restringe; None = todos; [] = nenhum."""
+    from apps.anco.sorteio import itens_elegiveis
+
+    proj = ProjetoANCO.objects.create(nome="Tipos")
+    art = Artigo.objects.create(titulo="Artigo", ano=2021)
+    ItemCorpus.objects.create(projeto=proj, titulo="Artigo", identificador="t:1", artigo=art, resumo="r", tipo="Artigo")
+    tese = Artigo.objects.create(titulo="Tese", ano=2021)
+    ItemCorpus.objects.create(projeto=proj, titulo="Tese", identificador="t:2", artigo=tese, resumo="r", tipo="Tese")
+    livro = Artigo.objects.create(titulo="Livro", ano=2021)
+    ItemCorpus.objects.create(projeto=proj, titulo="Livro", identificador="t:3", artigo=livro, resumo="r", tipo="Livro")
+
+    todos = {it.artigo_id for it in itens_elegiveis(proj)}
+    assert todos == {art.pk, tese.pk, livro.pk}  # None = todos
+    art_tese = {it.artigo_id for it in itens_elegiveis(proj, tipos=["artigo", "tese"])}
+    assert art_tese == {art.pk, tese.pk}  # artigos e teses (livro fora)
+    assert len(itens_elegiveis(proj, tipos=[])) == 0  # nenhum tipo marcado

@@ -19,26 +19,17 @@ from apps.acervo.models import Analise
 
 from .models import AtribuicaoANCO, MembroANCO, ProjetoANCO, SorteioANCO
 
-# "Onde o termo aparece": campos selecionáveis (checkboxes). Nenhum = todos.
-CAMPOS_CHOICES = [
-    ("titulo", "Título"),
-    ("resumo", "Resumo"),
-    ("palavras_chave", "Palavras-chave"),
+# Categorias de tipo de documento (checkboxes do filtro). Nenhuma marcada = todas.
+# O `tipo` cru vem heterogêneo das bases ("Artigo", "Journal Article", "Periodico",
+# "journalArticle", "Doctoralthesis"…); `categoria_tipo` normaliza para estes baldes.
+CATEGORIAS_TIPO = [
+    ("artigo", "Artigos"),
+    ("tese", "Teses/Dissertações"),
+    ("livro", "Livros"),
+    ("capitulo", "Capítulos"),
+    ("outro", "Outros/sem tipo"),
 ]
-_CAMPOS_VALIDOS = [c for c, _ in CAMPOS_CHOICES]
-_ROTULO_CAMPO = {"titulo": "título", "resumo": "resumo", "palavras_chave": "palavras-chave"}
-
-# Grupos de sinônimos (normalizados, sem acento): digitar qualquer termo do
-# grupo casa com TODOS os outros — ex.: "análise cognitiva" ≡ "cognitive analysis".
-_SINONIMOS = [
-    {
-        "analise cognitiva",
-        "analises cognitivas",
-        "cognitive analysis",
-        "cognitive analyses",
-        "cognitive analytics",
-    },
-]
+_CATEGORIAS_VALIDAS = {c for c, _ in CATEGORIAS_TIPO}
 
 
 def _normalizar(texto: str) -> str:
@@ -50,39 +41,31 @@ def _normalizar(texto: str) -> str:
     return re.sub(r"\s+", " ", sem_acento.lower()).strip()
 
 
-def _campos_efetivos(campos: list[str] | None) -> list[str]:
-    """Campos válidos selecionados; vazio = todos os campos."""
-    sel = [c for c in (campos or []) if c in _CAMPOS_VALIDOS]
-    return sel or list(_CAMPOS_VALIDOS)
+def categoria_tipo(tipo: str) -> str:
+    """Normaliza o `tipo` cru de um item para uma das categorias do filtro.
+
+    Ordem importa: 'doctoralthesis' contém 'thesis' (→ tese); 'booksection' é
+    capítulo antes de casar 'book' (→ livro)."""
+    t = _normalizar(tipo)
+    if not t:
+        return "outro"
+    if "tese" in t or "dissert" in t or "thesis" in t:
+        return "tese"
+    if "capitul" in t or "chapter" in t or "booksection" in t or "incollection" in t:
+        return "capitulo"
+    if t == "livro" or t == "book" or "livro" in t:
+        return "livro"
+    if "artigo" in t or "article" in t or "periodic" in t:
+        return "artigo"
+    return "outro"
 
 
-def _termos_equivalentes(termo_norm: str) -> set[str]:
-    """O termo + seus sinônimos (PT↔EN). Vazio se o termo for vazio."""
-    if not termo_norm:
-        return set()
-    termos = {termo_norm}
-    for grupo in _SINONIMOS:
-        if termo_norm in grupo:
-            termos |= grupo
-    return termos
-
-
-def _texto_do_campo(item, campo: str) -> str:
-    if campo == "titulo":
-        return item.titulo or ""
-    if campo == "resumo":
-        return item.resumo or ""
-    return item.palavras_chaves or ""  # palavras_chave
-
-
-def _campo_casado(item, termos: set[str], campos: list[str] | None) -> str:
-    """Rótulo do 1º campo (entre os selecionados) onde casa QUALQUER um dos
-    termos (equivalentes), ou ''."""
-    for chave in _campos_efetivos(campos):
-        texto = _normalizar(_texto_do_campo(item, chave))
-        if any(t in texto for t in termos):
-            return _ROTULO_CAMPO[chave]
-    return ""
+def _tipos_efetivos(tipos: list[str] | set[str] | None) -> set[str] | None:
+    """Categorias válidas selecionadas. `None` = sem filtro (todas); uma coleção
+    explícita = exatamente aquelas (coleção vazia = nenhuma casa)."""
+    if tipos is None:
+        return None
+    return {c for c in tipos if c in _CATEGORIAS_VALIDAS}
 
 
 @dataclass
@@ -123,15 +106,16 @@ def analistas_do_projeto(projeto: ProjetoANCO):
 def itens_elegiveis(
     projeto: ProjetoANCO,
     *,
-    termo: str = "",
-    campos: list[str] | None = None,
+    tipos: list[str] | set[str] | None = None,
     ja_atribuidos: set[int] | None = None,
+    exigir_resumo: bool = True,
 ):
     """`ItemCorpus` que entrariam no sorteio AGORA — fonte única do preview e do
     sorteio. Regra: novos (não acervo `eh_legado`), não removidos, ainda **não
-    atribuídos** em sorteios anteriores, e que contêm `termo` em algum dos
-    `campos` selecionados (vazio = todos). Dedup por artigo. Cada item recebe
-    `.casou_em` (campo onde o termo bateu)."""
+    atribuídos** em sorteios anteriores, opcionalmente **com resumo**
+    (`exigir_resumo`; a análise AnCo pede o resumo) e opcionalmente restritos às
+    categorias de `tipos` (artigo/tese/livro/capitulo/outro; vazio = todos). Dedup
+    por artigo. Cada item recebe `.categoria` (o balde de tipo)."""
     if ja_atribuidos is None:
         ja_atribuidos = set(
             AtribuicaoANCO.objects.filter(sorteio__projeto=projeto).values_list(
@@ -143,18 +127,16 @@ def itens_elegiveis(
         .select_related("artigo")
         .order_by("titulo")
     )
-    termos = _termos_equivalentes(_normalizar(termo))
+    sel = _tipos_efetivos(tipos)
     elegiveis, vistos = [], set()
     for it in itens:
         if it.artigo_id in ja_atribuidos or it.artigo_id in vistos:
             continue
-        if termos:
-            campo = _campo_casado(it, termos, campos)
-            if not campo:
-                continue
-            it.casou_em = campo
-        else:
-            it.casou_em = ""
+        if exigir_resumo and not (it.resumo or "").strip():
+            continue
+        it.categoria = categoria_tipo(it.tipo)
+        if sel is not None and it.categoria not in sel:
+            continue
         vistos.add(it.artigo_id)
         elegiveis.append(it)
     return elegiveis
@@ -165,12 +147,12 @@ def _pool(
     excluir_artigos: set[int],
     semente: int | None,
     *,
-    termo: str = "",
-    campos: list[str] | None = None,
+    tipos: list[str] | set[str] | None = None,
+    exigir_resumo: bool = True,
 ) -> list[_ItemPool]:
     # Pool = itens elegíveis (mesma regra do preview), embaralhado pela semente.
     elegiveis = itens_elegiveis(
-        projeto, termo=termo, campos=campos, ja_atribuidos=excluir_artigos
+        projeto, tipos=tipos, exigir_resumo=exigir_resumo, ja_atribuidos=excluir_artigos
     )
     pool = [_ItemPool(artigo_id=it.artigo_id, base=_base_key(it.artigo)) for it in elegiveis]
     random.Random(semente).shuffle(pool)
@@ -187,13 +169,13 @@ def executar_sorteio(
     observacoes: str = "",
     analistas=None,
     semente: int | None = None,
-    termo: str = "",
-    campos: list[str] | None = None,
+    tipos: list[str] | set[str] | None = None,
+    exigir_resumo: bool = True,
 ) -> ResultadoSorteio:
     """Cria um `SorteioANCO` e aloca as `AtribuicaoANCO` (idempotente por artigo).
 
-    `termo`/`campos` exigem a presença do termo em algum dos campos selecionados
-    (título/resumo/palavras-chave; vazio = todos).
+    `tipos` restringe às categorias de documento selecionadas (vazio = todas);
+    `exigir_resumo` mantém fora os itens sem resumo.
     """
     if analistas is None:
         analistas = analistas_do_projeto(projeto)
@@ -205,7 +187,7 @@ def executar_sorteio(
     ja_atribuidos = set(
         AtribuicaoANCO.objects.filter(sorteio__projeto=projeto).values_list("artigo_id", flat=True)
     )
-    pool = _pool(projeto, ja_atribuidos, semente, termo=termo, campos=campos)
+    pool = _pool(projeto, ja_atribuidos, semente, tipos=tipos, exigir_resumo=exigir_resumo)
     if not pool:
         return ResultadoSorteio(None, motivo="Nenhum artigo disponível com esses filtros.")
 
