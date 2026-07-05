@@ -115,7 +115,33 @@ class Command(BaseCommand):
                     criados += 1
         else:
             with transaction.atomic():
+                # `importar_para_fonte` sobrescreve a data e os contadores do
+                # import original (importado_em/n_*). Backfill é reprocessamento,
+                # não uma nova importação: preserva esses metadados.
+                meta = (
+                    fonte.importado_em,
+                    fonte.n_lidos,
+                    fonte.n_novos,
+                    fonte.n_duplicados,
+                    fonte.n_ignorados,
+                )
                 criados = importar_para_fonte(fonte, registros).novos
+                (
+                    fonte.importado_em,
+                    fonte.n_lidos,
+                    fonte.n_novos,
+                    fonte.n_duplicados,
+                    fonte.n_ignorados,
+                ) = meta
+                fonte.save(
+                    update_fields=[
+                        "importado_em",
+                        "n_lidos",
+                        "n_novos",
+                        "n_duplicados",
+                        "n_ignorados",
+                    ]
+                )
 
         # 2) Backfill de campos vazios nos itens existentes.
         backfill = 0

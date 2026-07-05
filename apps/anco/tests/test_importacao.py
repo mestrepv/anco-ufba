@@ -76,6 +76,43 @@ def test_registrar_artigo_no_corpus_idempotente_e_legado():
     assert proj.itens.count() == 1
 
 
+def test_backfill_preserva_data_e_contadores_do_import():
+    """O backfill preenche campos vazios mas NÃO altera importado_em nem os
+    contadores do import original (regressão: antes clobberava a data)."""
+    import datetime
+
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from django.core.management import call_command
+    from django.utils import timezone
+
+    from apps.acervo.models import Artigo
+    from apps.anco.dedup import chave_dedup
+
+    proj = ProjetoANCO.objects.create(nome="P", slug="p-backfill")
+    csv = b"titulo,doi,abstract\nEstudo Z,10.9/z,Resumo recuperado do arquivo\n"
+    data_original = timezone.now() - datetime.timedelta(days=10)
+    fonte = FonteImport.objects.create(
+        projeto=proj, outra_base="Scopus", formato="csv",
+        arquivo=SimpleUploadedFile("z.csv", csv),
+        importado_em=data_original, n_lidos=1, n_novos=1, n_duplicados=0,
+    )
+    # item já no corpus, sem resumo, casando com a linha do CSV
+    art = Artigo.objects.create(titulo="Estudo Z", ano=2022, doi="10.9/z")
+    item = ItemCorpus.objects.create(
+        projeto=proj, titulo="Estudo Z", doi="10.9/z", resumo="", artigo=art,
+        identificador=chave_dedup("10.9/z", "", "Estudo Z", None, ""),
+    )
+    item.origem_fontes.add(fonte)
+
+    call_command("backfill_conteudo", "--projeto", "p-backfill")
+
+    item.refresh_from_db()
+    fonte.refresh_from_db()
+    assert item.resumo == "Resumo recuperado do arquivo"  # backfill funcionou
+    assert fonte.importado_em == data_original  # data preservada
+    assert fonte.n_novos == 1  # contadores preservados
+
+
 def test_excluir_fonte_preserva_acervo_e_analisados():
     from apps.acervo.models import Analise, Artigo
     from apps.anco.importacao import excluir_fonte, importar_para_fonte, resumo_exclusao_fonte
