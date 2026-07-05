@@ -365,6 +365,7 @@ def corpus_editar_view(request: HttpRequest, projeto: ProjetoANCO, item_id: int)
     rotulo_nav = "Item"
     voltar_url = reverse("anco_corpus", args=[projeto.slug])
     voltar_rotulo = "Corpus"
+    import_filtro = None  # toggle "só novos" (aparece só na navegação por import)
     if ctx == "elegiveis":
         com_resumo, tipos_sel = _ler_filtros(request.GET)
         eleg_ids = [
@@ -387,17 +388,31 @@ def corpus_editar_view(request: HttpRequest, projeto: ProjetoANCO, item_id: int)
         fonte_id = (request.GET.get("import") or "").strip()
         fonte = projeto.fontes.filter(pk=int(fonte_id)).first() if fonte_id.isdigit() else None
         if fonte is not None:
-            imp_ids = list(
-                projeto.itens.filter(removido=False, origem_fontes=fonte)
-                .order_by("-criado_em")
-                .values_list("pk", flat=True)
+            base_qs = projeto.itens.filter(removido=False, origem_fontes=fonte).order_by(
+                "-criado_em"
             )
+            novos = request.GET.get("novos") == "1"  # exclui os já no acervo (legado)
+            sel_qs = base_qs.filter(artigo__eh_legado=False) if novos else base_qs
+            imp_ids = list(sel_qs.values_list("pk", flat=True))
+            if novos and item.pk not in imp_ids:  # item atual é legado: mostra todos
+                novos = False
+                imp_ids = list(base_qs.values_list("pk", flat=True))
             if item.pk in imp_ids:  # item ainda pertence a esta importação
                 ids = imp_ids
-                nav_qs = f"ctx=import&import={fonte.pk}"
+                nav_qs = f"ctx=import&import={fonte.pk}" + ("&novos=1" if novos else "")
                 rotulo_nav = "Item da importação"
                 voltar_url = reverse("anco_painel", args=[projeto.slug])
                 voltar_rotulo = "Painel"
+                n_novos_imp = base_qs.filter(artigo__eh_legado=False).count()
+                n_total_imp = base_qs.count()
+                nav_url = reverse("anco_corpus_import_nav", args=[projeto.slug, fonte.pk])
+                import_filtro = {
+                    "ativo": novos,
+                    "n_novos": n_novos_imp,
+                    "n_total": n_total_imp,
+                    # alterna o filtro (reinicia no 1º item do conjunto resultante)
+                    "toggle_url": nav_url + ("" if novos else "?novos=1"),
+                }
     if ids is None:  # sem contexto (ou item saiu do subconjunto): corpus inteiro
         ids = list(projeto.itens.filter(removido=False).values_list("pk", flat=True))
 
@@ -429,6 +444,7 @@ def corpus_editar_view(request: HttpRequest, projeto: ProjetoANCO, item_id: int)
             "rotulo_nav": rotulo_nav,
             "voltar_url": voltar_url,
             "voltar_rotulo": voltar_rotulo,
+            "import_filtro": import_filtro,
             # Destaca o termo AnCo (PT/EN) na ficha em leitura.
             "realce_termos": "análise cognitiva, cognitive analysis, cognitive analytics,"
             " cognição, cognition",
@@ -445,14 +461,19 @@ def corpus_import_nav_view(
     from django.urls import reverse
 
     fonte = get_object_or_404(FonteImport, pk=fonte_id, projeto=projeto)
-    primeiro = (
-        projeto.itens.filter(removido=False, origem_fontes=fonte).order_by("-criado_em").first()
-    )
+    novos = request.GET.get("novos") == "1"  # só itens fora do acervo (editáveis)
+    itens = projeto.itens.filter(removido=False, origem_fontes=fonte)
+    if novos:
+        itens = itens.filter(artigo__eh_legado=False)
+    primeiro = itens.order_by("-criado_em").first()
     if primeiro is None:
-        messages.info(request, "Esta importação não tem itens no corpus.")
+        messages.info(
+            request,
+            "Nenhum item novo nesta importação." if novos else "Esta importação não tem itens no corpus.",
+        )
         return redirect("anco_corpus", slug=projeto.slug)
     url = reverse("anco_corpus_editar", args=[projeto.slug, primeiro.pk])
-    return redirect(f"{url}?ctx=import&import={fonte.pk}")
+    return redirect(f"{url}?ctx=import&import={fonte.pk}{'&novos=1' if novos else ''}")
 
 
 # --------------------------------------------------------------------------- #

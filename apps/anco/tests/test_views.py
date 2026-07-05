@@ -342,6 +342,39 @@ def test_navega_por_importacao(client, projeto, curador):
     assert "Painel</a>" in html  # volta para o painel
 
 
+def test_navega_import_filtro_so_novos(client, projeto, curador):
+    """Na navegação por importação, o filtro 'só novos' exclui os já no acervo."""
+    from apps.acervo.models import Artigo
+    from apps.anco.models import FonteImport, ItemCorpus
+
+    fonte = FonteImport.objects.create(projeto=projeto, outra_base="Base", criado_por=curador)
+    for i in range(2):
+        a = Artigo.objects.create(titulo=f"Novo {i}", ano=2022, doi=f"10.6/n{i}", eh_legado=False)
+        ItemCorpus.objects.create(
+            projeto=projeto, titulo=f"Novo {i}", doi=f"10.6/n{i}", identificador=f"n:{i}", artigo=a
+        ).origem_fontes.add(fonte)
+    leg = Artigo.objects.create(titulo="Legado", ano=2010, doi="10.6/leg", eh_legado=True)
+    ItemCorpus.objects.create(
+        projeto=projeto, titulo="Legado", doi="10.6/leg", identificador="l:1", artigo=leg
+    ).origem_fontes.add(fonte)
+
+    client.force_login(curador)
+    nav = reverse("anco_corpus_import_nav", args=[projeto.slug, fonte.pk])
+
+    # sem filtro: 3 itens; a ficha oferece o toggle "só os novos (2)"
+    r = client.get(nav)
+    html = client.get(r.headers["Location"]).content.decode()
+    assert 'de <strong style="color:var(--color-ink);">3</strong>' in html
+    assert "só os novos (2)" in html
+
+    # com filtro: 2 itens (exclui o legado)
+    r2 = client.get(nav + "?novos=1")
+    assert "novos=1" in r2.headers["Location"]
+    html2 = client.get(r2.headers["Location"]).content.decode()
+    assert 'de <strong style="color:var(--color-ink);">2</strong>' in html2
+    assert "Mostrando só os novos (2)" in html2
+
+
 def test_import_nav_sem_itens_redireciona(client, projeto, curador):
     from apps.anco.models import FonteImport
 

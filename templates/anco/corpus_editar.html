@@ -13,6 +13,18 @@
     {% if url_proximo %}<a href="{{ url_proximo }}" class="btn btn-ghost btn-sm">Avançar →</a>{% else %}<span class="btn btn-ghost btn-sm" style="opacity:.4;pointer-events:none;">Avançar →</span>{% endif %}
   </div>
 
+  {% if import_filtro %}
+  <div style="text-align:center;margin:-6px 0 16px;font-size:13px;">
+    {% if import_filtro.ativo %}
+      <span class="t-meta" style="color:var(--color-ink-3);">Mostrando só os novos ({{ import_filtro.n_novos }})</span>
+      · <a href="{{ import_filtro.toggle_url }}" class="link">ver todos ({{ import_filtro.n_total }})</a>
+    {% else %}
+      <a href="{{ import_filtro.toggle_url }}" class="link">▸ só os novos ({{ import_filtro.n_novos }})</a>
+      <span class="t-meta" style="color:var(--color-ink-3);">· de {{ import_filtro.n_total }} na importação (exclui os já no acervo)</span>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {% if pode_editar %}
   {# ── Card de metadados (só-leitura; destrava ao Ativar edição) ──── #}
   <form method="post" class="meta-card"
