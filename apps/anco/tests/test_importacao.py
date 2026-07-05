@@ -52,9 +52,10 @@ def test_import_dedup_funde_origem():
 
 def test_registrar_artigo_no_corpus_idempotente_e_legado():
     """Artigo individual (DOI/manual): entra no corpus 1x; legado é isento."""
+    from django.contrib.auth import get_user_model
+
     from apps.acervo.models import Artigo
     from apps.anco.importacao import registrar_artigo_no_corpus
-    from django.contrib.auth import get_user_model
 
     User = get_user_model()
     proj = ProjetoANCO.objects.create(nome="Indiv")
@@ -114,10 +115,11 @@ def test_backfill_preserva_data_e_contadores_do_import():
 
 
 def test_excluir_fonte_preserva_acervo_e_analisados():
-    from apps.acervo.models import Analise, Artigo
+    from django.contrib.auth import get_user_model
+
+    from apps.acervo.models import Analise
     from apps.anco.importacao import excluir_fonte, importar_para_fonte, resumo_exclusao_fonte
     from apps.anco.models import FonteImport
-    from django.contrib.auth import get_user_model
 
     User = get_user_model()
     proj = ProjetoANCO.objects.create(nome="Excl")
