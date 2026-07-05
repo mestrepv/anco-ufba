@@ -12,6 +12,7 @@ from functools import wraps
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db.models import Count, F, Q
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
@@ -491,10 +492,24 @@ def _contexto_elegiveis(projeto: ProjetoANCO, request: HttpRequest) -> dict:
     n_sem_resumo = (n_disponivel - len(base)) if com_resumo else 0
     n_analistas = projeto.membros.filter(papel=MembroANCO.Papel.ANALISTA).count()
     assentos = 2 if modo == SorteioANCO.ModoRevisao.DUPLA else 1
+
+    # Paginação do painel de elegíveis (navegação entre as páginas via HTMX).
+    paginador = Paginator(elegiveis, 50)
+    try:
+        num_pagina = int(request.GET.get("pagina", 1))
+    except (TypeError, ValueError):
+        num_pagina = 1
+    pagina_obj = paginador.get_page(num_pagina)
+    # Querystring dos filtros ativos, p/ os links de paginação preservarem o estado.
+    qs = ["filtros=1", f"cota={cota}", f"modo_revisao={modo}"]
+    if com_resumo:
+        qs.append("com_resumo=1")
+    qs += [f"tipos={t}" for t in tipos_sel]
     return {
-        "elegiveis": elegiveis[:100],
+        "projeto": projeto,
+        "pagina_obj": pagina_obj,
+        "qs_filtros": "&".join(qs),
         "n_elegiveis": n_eleg,
-        "n_mostrando": min(n_eleg, 100),
         "n_novos": len(novos_ids),
         "n_disponivel": n_disponivel,
         "n_ja_atribuidos": n_ja,

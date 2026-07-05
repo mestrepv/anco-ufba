@@ -15,16 +15,30 @@ sorteio: contadores + capacidade + lista + botão "Sortear estes N".{% endcommen
   </p>
 </div>
 
-{% if elegiveis %}
-<div style="max-height:380px;overflow:auto;border:1px solid var(--color-rule);border-radius:8px;">
-  {% for it in elegiveis %}
+{% if pagina_obj.object_list %}
+<div style="border:1px solid var(--color-rule);border-radius:8px;">
+  {% for it in pagina_obj %}
   <div style="padding:8px 12px;border-bottom:1px solid var(--color-rule);">
-    <div style="font-family:var(--font-serif);color:var(--color-ink);font-size:14px;">{{ it.titulo|truncatechars:140 }}</div>
+    <div style="font-family:var(--font-serif);font-size:14px;">
+      <a href="{% url 'anco_corpus_editar' projeto.slug it.pk %}" target="_blank" rel="noopener"
+         style="color:var(--color-ink);text-decoration:none;border-bottom:1px solid var(--color-rule);">{{ it.titulo|truncatechars:140 }}</a>
+    </div>
     <div class="tg-meta">{% if it.ano %}{{ it.ano }} · {% endif %}{{ it.tipo|default:"—" }}</div>
   </div>
   {% endfor %}
 </div>
-{% if n_elegiveis > n_mostrando %}<p class="tg-meta" style="margin:8px 0 0;">Mostrando {{ n_mostrando }} de {{ n_elegiveis }}.</p>{% endif %}
+
+{% if pagina_obj.paginator.num_pages > 1 %}
+<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;">
+  <button type="button" class="btn btn-sm btn-secondary"
+          hx-get="{% url 'anco_sorteio_elegiveis' projeto.slug %}?{{ qs_filtros }}&pagina={{ pagina_obj.number|add:'-1' }}"
+          {% if not pagina_obj.has_previous %}disabled style="opacity:.4;"{% endif %}>‹ anterior</button>
+  <span class="tg-meta">página {{ pagina_obj.number }} de {{ pagina_obj.paginator.num_pages }} · {{ n_elegiveis }} no total</span>
+  <button type="button" class="btn btn-sm btn-secondary"
+          hx-get="{% url 'anco_sorteio_elegiveis' projeto.slug %}?{{ qs_filtros }}&pagina={{ pagina_obj.number|add:'1' }}"
+          {% if not pagina_obj.has_next %}disabled style="opacity:.4;"{% endif %}>próxima ›</button>
+</div>
+{% endif %}
 
 <div style="margin-top:18px;">
   <button type="submit" class="btn btn-primary">Sortear est{{ n_elegiveis|pluralize:"e,es" }} {{ n_elegiveis }}</button>
