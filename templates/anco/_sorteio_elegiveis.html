@@ -20,7 +20,7 @@ sorteio: contadores + capacidade + lista + botão "Sortear estes N".{% endcommen
   {% for it in pagina_obj %}
   <div style="padding:8px 12px;border-bottom:1px solid var(--color-rule);">
     <div style="font-family:var(--font-serif);font-size:14px;">
-      <a href="{% url 'anco_corpus_editar' projeto.slug it.pk %}" target="_blank" rel="noopener"
+      <a href="{% url 'anco_corpus_editar' projeto.slug it.pk %}?ctx=elegiveis&{{ qs_filtros }}" target="_blank" rel="noopener"
          style="color:var(--color-ink);text-decoration:none;border-bottom:1px solid var(--color-rule);">{{ it.titulo|truncatechars:140 }}</a>
     </div>
     <div class="tg-meta">{% if it.ano %}{{ it.ano }} · {% endif %}{{ it.tipo|default:"—" }}</div>

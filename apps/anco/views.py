@@ -355,14 +355,40 @@ def corpus_editar_view(request: HttpRequest, projeto: ProjetoANCO, item_id: int)
     else:
         form = ItemCorpusForm(instance=item) if pode_editar else None
 
-    # Navegação avançar/voltar na ordem do corpus (mesma da listagem).
-    ids = list(projeto.itens.filter(removido=False).values_list("pk", flat=True))
+    # Navegação avançar/voltar. Por padrão percorre todo o corpus (ordem da
+    # listagem); vindo do sorteio (`ctx=elegiveis`), percorre **só os elegíveis**
+    # com os filtros ativos, preservando o contexto nos links.
+    ctx_eleg = request.GET.get("ctx") == "elegiveis"
+    nav_qs = ""
+    ids = None
+    if ctx_eleg:
+        com_resumo, tipos_sel = _ler_filtros(request.GET)
+        eleg_ids = [
+            it.pk
+            for it in sorteio_mod.itens_elegiveis(
+                projeto, tipos=tipos_sel, exigir_resumo=com_resumo
+            )
+        ]
+        if item.pk in eleg_ids:  # item ainda elegível com esses filtros
+            ids = eleg_ids
+            qs = ["ctx=elegiveis", "filtros=1"]
+            if com_resumo:
+                qs.append("com_resumo=1")
+            qs += [f"tipos={t}" for t in tipos_sel]
+            nav_qs = "&".join(qs)
+    if ids is None:  # sem contexto de elegíveis (ou item saiu do conjunto)
+        ctx_eleg = False
+        ids = list(projeto.itens.filter(removido=False).values_list("pk", flat=True))
+
     i = ids.index(item.pk)
+    suf = f"?{nav_qs}" if nav_qs else ""
     url_anterior = (
-        reverse("anco_corpus_editar", args=[projeto.slug, ids[i - 1]]) if i > 0 else ""
+        reverse("anco_corpus_editar", args=[projeto.slug, ids[i - 1]]) + suf if i > 0 else ""
     )
     url_proximo = (
-        reverse("anco_corpus_editar", args=[projeto.slug, ids[i + 1]]) if i < len(ids) - 1 else ""
+        reverse("anco_corpus_editar", args=[projeto.slug, ids[i + 1]]) + suf
+        if i < len(ids) - 1
+        else ""
     )
     doi_slug = doi_to_slug(item.artigo.doi) if item.artigo and item.artigo.doi else ""
     return render(
@@ -379,7 +405,12 @@ def corpus_editar_view(request: HttpRequest, projeto: ProjetoANCO, item_id: int)
             "url_proximo": url_proximo,
             "pos": i + 1,
             "total": len(ids),
-            "voltar_url": reverse("anco_corpus", args=[projeto.slug]),
+            "rotulo_nav": "Elegível" if ctx_eleg else "Item",
+            "voltar_url": (
+                reverse("anco_sorteio", args=[projeto.slug])
+                if ctx_eleg
+                else reverse("anco_corpus", args=[projeto.slug])
+            ),
             # Destaca o termo AnCo (PT/EN) na ficha em leitura.
             "realce_termos": "análise cognitiva, cognitive analysis, cognitive analytics,"
             " cognição, cognition",

@@ -4,12 +4,12 @@
 {% block content %}
 <main style="max-width:760px;margin:32px auto 80px;padding:0 24px;">
 
-  <a href="{{ voltar_url }}" class="link" style="font-size:13px;">&larr; Corpus</a>
+  <a href="{{ voltar_url }}" class="link" style="font-size:13px;">&larr; {% if rotulo_nav == "Elegível" %}Sorteio{% else %}Corpus{% endif %}</a>
 
-  {# ── Navegação avançar/voltar entre os itens do corpus ───────────── #}
+  {# ── Navegação avançar/voltar (corpus inteiro ou só elegíveis) ────── #}
   <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 16px;">
     {% if url_anterior %}<a href="{{ url_anterior }}" class="btn btn-ghost btn-sm">← Voltar</a>{% else %}<span class="btn btn-ghost btn-sm" style="opacity:.4;pointer-events:none;">← Voltar</span>{% endif %}
-    <span class="t-meta" style="color:var(--color-ink-3);">Item <strong style="color:var(--color-ink);">{{ pos }}</strong> de <strong style="color:var(--color-ink);">{{ total }}</strong>{% if doi_slug %} · <a href="{% url 'pagina_artigo' doi_slug %}" target="_blank" rel="noopener" class="link">Ver artigo →</a>{% endif %}</span>
+    <span class="t-meta" style="color:var(--color-ink-3);">{{ rotulo_nav|default:"Item" }} <strong style="color:var(--color-ink);">{{ pos }}</strong> de <strong style="color:var(--color-ink);">{{ total }}</strong>{% if doi_slug %} · <a href="{% url 'pagina_artigo' doi_slug %}" target="_blank" rel="noopener" class="link">Ver artigo →</a>{% endif %}</span>
     {% if url_proximo %}<a href="{{ url_proximo }}" class="btn btn-ghost btn-sm">Avançar →</a>{% else %}<span class="btn btn-ghost btn-sm" style="opacity:.4;pointer-events:none;">Avançar →</span>{% endif %}
   </div>
 

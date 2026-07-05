@@ -312,6 +312,36 @@ def test_sorteio_parcial_elegiveis_reflete_filtro(client, projeto, curador):
     assert b">1</strong> eleg" in client.get(url + "?filtros=1&tipos=livro").content
 
 
+def test_editar_navega_so_entre_elegiveis(client, projeto, curador):
+    """Com ctx=elegiveis, a navegação anterior/próximo anda só no subconjunto
+    elegível (com os filtros ativos), não no corpus inteiro."""
+    from apps.acervo.models import Artigo
+    from apps.anco.models import ItemCorpus
+
+    itens = {}
+    for titulo, tipo in [("Art A", "Artigo"), ("Art B", "Artigo"), ("Um livro", "Livro")]:
+        a = Artigo.objects.create(titulo=titulo, ano=2021)
+        itens[titulo] = ItemCorpus.objects.create(
+            projeto=projeto, titulo=titulo, identificador=f"n:{titulo}", artigo=a,
+            resumo="r", tipo=tipo,
+        )
+    client.force_login(curador)
+    ed = reverse("anco_corpus_editar", args=[projeto.slug, itens["Art A"].pk])
+
+    # sem contexto: navega o corpus inteiro (Artigo X + A + B + livro = 4)
+    html = client.get(ed).content.decode()
+    assert "Item <strong" in html and "de <strong style=\"color:var(--color-ink);\">4</strong>" in html
+
+    # com ctx=elegiveis + só artigos: total = 2 (Art A + Art B), rótulo "Elegível"
+    html = client.get(ed + "?ctx=elegiveis&filtros=1&com_resumo=1&tipos=artigo").content.decode()
+    assert "Elegível <strong" in html
+    assert "de <strong style=\"color:var(--color-ink);\">2</strong>" in html
+    # o link "Avançar" preserva o contexto de elegíveis
+    import re
+    nxt = re.search(r'href="([^"]*editar/[^"]*)"[^>]*>Avançar', html)
+    assert nxt and "ctx=elegiveis" in nxt.group(1) and "tipos=artigo" in nxt.group(1)
+
+
 def test_item_navegacao_e_link_artigo(client, projeto, curador):
     from apps.acervo.models import Artigo
     from apps.anco.models import ItemCorpus
