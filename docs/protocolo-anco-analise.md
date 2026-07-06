@@ -35,11 +35,20 @@ Busca nas bases → Importação + deduplicação (inclui TODOS) → Sorteio ale
 **Não há triagem prévia.** Por decisão do projeto, todo artigo ou tese
 recuperado pela busca por *análise cognitiva* (*cognitive analysis*) **entra no
 corpus automaticamente** ao ser importado — a própria busca é o critério de
-seleção. A deduplicação remove as referências repetidas entre bases. Em seguida,
-um **sorteio aleatório** distribui o corpus entre os analistas (cota de **5
-artigos** por analista). Quando o analista abre o editor, o artigo já foi
-**sorteado** para ele. Ou seja: a busca **define o corpus**; o sorteio **decide
-quem analisa o quê**; a Matriz AnCo (este protocolo) trata de **analisar**. Este
+seleção. A deduplicação remove as referências repetidas entre bases. Além da
+importação de listas (RIS/BibTeX/CSV), o analista pode cadastrar um **artigo
+individual** — que entra no corpus pelo mesmo caminho, com proveniência
+registrada à parte. Em seguida, um **sorteio aleatório** (com semente gravada,
+reprodutível) distribui o corpus entre os analistas (cota de **5 artigos** por
+analista). No sorteio, o curador escolhe o **modo de revisão**:
+
+- **Única** — 1 analista por artigo (1 análise);
+- **Dupla** — 2 analistas independentes por artigo; as duas análises são depois
+  **conciliadas pelo curador** em um consenso, que gera a análise final.
+
+Quando o analista abre o editor, o artigo já foi **sorteado** para ele. Ou
+seja: a busca **define o corpus**; o sorteio **decide quem analisa o quê** (e
+em que modo); a Matriz AnCo (este protocolo) trata de **analisar**. Este
 documento cobre apenas essa etapa final.
 
 ---
@@ -53,9 +62,10 @@ documento cobre apenas essa etapa final.
 | 3 | **Análise do artigo** | Registrar a leitura estruturada: objeto, objetivo, foco, metodologia, epistemologia, teoria, referenciais, resultados. |
 | 4 | **Resenha crítica** *(opcional)* | Texto crítico autoral; passa por **revisão cega por pares** antes de entrar no acervo. |
 
-**Regra de submissão:** para enviar à curadoria é preciso preencher **todos os
-campos das abas 1–3** (ver §5). A resenha (aba 4) é opcional. Campos em branco
-contam como **não respondidos**.
+**Regra de submissão:** para enviar à curadoria é preciso preencher os campos
+das abas 1–3, **exceto *Contexto de produção* e *Observações***, que são
+anotações de apoio opcionais (ver §5). A resenha (aba 4) é opcional. Campos em
+branco contam como **não respondidos**.
 
 ---
 
@@ -67,6 +77,10 @@ periódico, DOI/ISBN, idioma, link de acesso.
 - **Grande área** *(obrigatório)* — a área de avaliação (CAPES) do artigo. É um
   **metadado administrativo** (útil a Qualis/políticas); **não** é a classificação
   do campo. A leitura que interessa à AnCo vai no **foco** (aba 3).
+
+> **Apoio à leitura:** nesta aba, o título e o resumo aparecem com os termos
+> AnCo **realçados** (*análise cognitiva*, *cognitive analysis*, *cognição*…),
+> para ajudar a localizar o uso do termo — insumo direto das respostas da aba 2.
 
 ---
 
@@ -113,9 +127,10 @@ Responda **Sim/Não** para cada parte da obra:
 
 ## 3. Aba *Análise do artigo* (estrutura)
 
-A leitura estruturada da obra, segundo a grade AnCo. Todos os campos abaixo são
+A leitura estruturada da obra, segundo a grade AnCo. Os campos abaixo são
 **obrigatórios** para submeter (epistemologia e teoria exigem ≥1 termo do
-vocabulário controlado).
+vocabulário controlado), **exceto os dois últimos** (*Contexto de produção* e
+*Observações*), que são anotações de apoio **opcionais**.
 
 | Campo | O que registrar |
 |-------|-----------------|
@@ -127,8 +142,8 @@ vocabulário controlado).
 | **Teoria de referência** | Teorias mobilizadas — selecione termos do vocabulário. |
 | **Referenciais** | Principais autores e obras de referência. |
 | **Resultados** | Principais achados ou conclusões. |
-| **Contexto de produção** | Onde/como a obra foi produzida (país, área, projeto). |
-| **Observações** | Anotações livres do analista. |
+| **Contexto de produção** *(opcional)* | Onde/como a obra foi produzida (país, área, projeto). |
+| **Observações** *(opcional)* | Anotações livres do analista. |
 
 > **Vocabulário controlado (epistemologia/teoria).** Use termos existentes sempre
 > que possível, para que as análises sejam **agregáveis** — é o que permite mapear
@@ -161,8 +176,12 @@ Ao submeter, o sistema **trava** se faltar algo das abas 1–3. São exigidos:
   referências, corpo, **pertinência**, **define o conceito**.
 - **Definição extraída:** só se *define o conceito* = Sim.
 - **Texto:** Aspectos relevantes, Objeto, Objetivo, Foco, Metodologia,
-  Referenciais, Resultados, Contexto de produção, Observações.
+  Referenciais, Resultados.
 - **Vocabulário:** ≥1 termo de **Epistemologia** e ≥1 de **Teoria de referência**.
+
+> *Contexto de produção* e *Observações* **não travam a submissão** — são
+> anotações de apoio opcionais (decisão para reduzir a carga de campos
+> obrigatórios; pendente de confirmação das coordenadoras).
 
 Depois de submetida, a curadoria pode **aprovar** (vai ao acervo público),
 **pedir ajustes** (volta a rascunho) ou **rejeitar**.
@@ -193,8 +212,11 @@ Depois de submetida, a curadoria pode **aprovar** (vai ao acervo público),
 Este protocolo descreve a Matriz **como ela está hoje**. Ela cobre bem a leitura
 epistemológico-estrutural, mas **vários conceitos centrais de Fróes não têm campo
 próprio** — por ora cabem em *Aspectos relevantes*, *Observações* ou no
-vocabulário de *epistemologia/teoria*. São candidatos a **evolução futura** da
-Matriz (cf. `PARECER_plataforma_x_proposta_Froes.md`, §6):
+vocabulário de *epistemologia/teoria*. Estes limites já foram desdobrados em
+**proposta formal de evolução aditiva da Matriz** — ver
+`docs/proposta-evolucao-matriz-froes.md` (5 eixos: espiral, tradução,
+comunidades, dimensões, compromisso sociopolítico), aguardando apreciação das
+coordenadoras (cf. também `PARECER_plataforma_x_proposta_Froes.md`, §6):
 
 - **Espiral do trabalho com o conhecimento** — produção → organização →
   **acervação** → **difusão/socialização**. A obra opera em que fase(s)?
@@ -220,4 +242,11 @@ Matriz (cf. `PARECER_plataforma_x_proposta_Froes.md`, §6):
 > iniciais…* e *reconhecendo o antes irreconhecido*), com enquadramento positivo e
 > multirreferencial. Sujeito à revisão das professoras (Teresinha Fróes /
 > Leliana) antes de virar orientação oficial aos analistas.
+>
+> **Última atualização (2026-07-06):** cotejado com o código em produção —
+> corrigida a obrigatoriedade de *Contexto de produção*/*Observações* (são
+> opcionais); documentados o modo de revisão **única/dupla + consenso** e a
+> **entrada individual** de artigo no fluxo a montante; registrado o **realce de
+> termos** na aba Identificação; §7 agora aponta para a proposta de evolução da
+> Matriz (`proposta-evolucao-matriz-froes.md`).
 </content>
