@@ -80,6 +80,24 @@ def test_analises_no_projeto_vs_espontaneas(projeto, analista):
     assert ln["n_atribuidos"] == 1
     assert ln["no_projeto"] == {"rascunho": 0, "submetida": 1, "publicada": 0, "total": 1}
     assert ln["espontaneas"] == {"rascunho": 1, "submetida": 0, "publicada": 0, "total": 1}
+    # Lista navegável: as 2 análises (sem a legado), com flag de atribuição.
+    assert len(ln["analises_lista"]) == 2
+    por_titulo = {a["titulo"]: a for a in ln["analises_lista"]}
+    assert por_titulo["Atribuído"]["no_projeto"] is True
+    assert por_titulo["Avulso"]["no_projeto"] is False
+    assert "Legado" not in por_titulo
+
+
+def test_view_lista_analises_com_link(client, projeto, curador, analista):
+    artigo = Artigo.objects.create(titulo="Obra em rascunho", ano=2024)
+    analise = Analise.objects.create(
+        artigo=artigo, analista=analista, status=Analise.Status.RASCUNHO
+    )
+    client.force_login(curador)
+    resp = client.get(reverse("anco_acompanhamento", args=[projeto.slug]))
+    assert resp.status_code == 200
+    assert b"Obra em rascunho" in resp.content
+    assert reverse("pagina_analise", args=[analise.pk]).encode() in resp.content
 
 
 def test_membro_sem_atividade(projeto, inativo):

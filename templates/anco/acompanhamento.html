@@ -11,6 +11,8 @@
     {% if not tem_sorteio %} · nenhum sorteio de análise executado ainda{% endif %}.
     Análises <em>no projeto</em> = sobre artigos atribuídos por sorteio;
     <em>espontâneas</em> = demais análises do membro no acervo (exclui legado).
+    Clique no nome do membro para <strong>expandir e abrir</strong> cada análise
+    (curadores pré-visualizam rascunhos e submetidas).
   </p>
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-family:var(--font-sans);font-size:14px;">
@@ -29,8 +31,25 @@
         {% for ln in linhas %}
           <tr style="border-bottom:1px solid var(--color-rule);{% if not ln.tem_atividade %}color:var(--color-ink-3);{% endif %}">
             <td style="padding:8px 4px;">
-              {{ ln.usuario.nome_exibicao|default:ln.usuario.email }}
-              <span class="tg-meta">· {{ ln.papel }}</span>
+              {% if ln.analises_lista %}
+                <details>
+                  <summary style="cursor:pointer;list-style-position:outside;">
+                    {{ ln.usuario.nome_exibicao|default:ln.usuario.email }}
+                    <span class="tg-meta">· {{ ln.papel }} · {{ ln.analises_lista|length }} análise{{ ln.analises_lista|length|pluralize }}</span>
+                  </summary>
+                  <ul style="margin:6px 0 4px 18px;padding:0;list-style:none;">
+                    {% for a in ln.analises_lista %}
+                      <li style="margin:4px 0;">
+                        <a href="{% url 'pagina_analise' a.id %}" target="_blank" rel="noopener">{{ a.titulo|truncatechars:70 }} ↗</a>
+                        <span class="tg-meta">· {{ a.status_display }}{% if a.no_projeto %} · no projeto{% endif %}{% if a.quando %} · {{ a.quando|date:"d/m/Y" }}{% endif %}</span>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </details>
+              {% else %}
+                {{ ln.usuario.nome_exibicao|default:ln.usuario.email }}
+                <span class="tg-meta">· {{ ln.papel }}</span>
+              {% endif %}
             </td>
             <td style="padding:8px 4px;text-align:right;">{{ ln.n_fontes|default:"—" }}</td>
             <td style="padding:8px 4px;text-align:right;">{{ ln.n_itens|default:"—" }}</td>

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from django.db.models import Max
+from django.db.models import F, Max
 
 
 def estatisticas_por_base(projeto) -> list[dict]:
@@ -77,6 +77,22 @@ def acompanhamento_membros(projeto) -> list[dict]:
         no_projeto = _contagem_status(analises.filter(artigo_id__in=artigos_atribuidos))
         espontaneas = _contagem_status(analises.exclude(artigo_id__in=artigos_atribuidos))
 
+        # Lista navegável: cada análise do membro, com link (o curador pode
+        # pré-visualizar não-públicas em `pagina_analise`).
+        analises_lista = [
+            {
+                "id": a.pk,
+                "titulo": a.artigo.titulo,
+                "status": a.status,
+                "status_display": a.get_status_display(),
+                "no_projeto": a.artigo_id in artigos_atribuidos,
+                "quando": a.editado_em or a.submetida_em or a.criado_em,
+            }
+            for a in analises.select_related("artigo").order_by(
+                "status", F("editado_em").desc(nulls_last=True), "-criado_em"
+            )
+        ]
+
         datas = [
             fontes.aggregate(x=Max("criado_em"))["x"],
             *analises.aggregate(
@@ -94,6 +110,7 @@ def acompanhamento_membros(projeto) -> list[dict]:
                 "n_atribuidos": len(artigos_atribuidos),
                 "no_projeto": no_projeto,
                 "espontaneas": espontaneas,
+                "analises_lista": analises_lista,
                 "ultima_atividade": max(datas) if datas else None,
                 "tem_atividade": bool(
                     fontes.exists() or no_projeto["total"] or espontaneas["total"]
