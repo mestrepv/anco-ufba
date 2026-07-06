@@ -62,11 +62,11 @@ def test_deteccao_de_truncado():
 def test_usa_crossref_quando_completo():
     with (
         patch(
-            "apps.anco.management.commands.backfill_resumos.lookup_doi",
+            "apps.acervo.services.abstracts.lookup_doi",
             return_value=LookupResultado(encontrado=True, dados={"resumo": ABSTRACT_COMPLETO}),
         ),
         patch(
-            "apps.anco.management.commands.backfill_resumos.abstract_por_doi", return_value=""
+            "apps.acervo.services.abstracts.abstract_por_doi", return_value=""
         ) as oa,
     ):
         texto, fonte = buscar_abstract("10.1/a")
@@ -78,11 +78,11 @@ def test_usa_crossref_quando_completo():
 def test_cai_para_openalex_quando_crossref_vazio():
     with (
         patch(
-            "apps.anco.management.commands.backfill_resumos.lookup_doi",
+            "apps.acervo.services.abstracts.lookup_doi",
             return_value=LookupResultado(encontrado=False, erro="404"),
         ),
         patch(
-            "apps.anco.management.commands.backfill_resumos.abstract_por_doi",
+            "apps.acervo.services.abstracts.abstract_por_doi",
             return_value=ABSTRACT_COMPLETO,
         ),
     ):
@@ -94,11 +94,11 @@ def test_cai_para_openalex_quando_crossref_vazio():
 def test_ignora_crossref_truncado_e_usa_openalex():
     with (
         patch(
-            "apps.anco.management.commands.backfill_resumos.lookup_doi",
+            "apps.acervo.services.abstracts.lookup_doi",
             return_value=LookupResultado(encontrado=True, dados={"resumo": "snippet ..."}),
         ),
         patch(
-            "apps.anco.management.commands.backfill_resumos.abstract_por_doi",
+            "apps.acervo.services.abstracts.abstract_por_doi",
             return_value=ABSTRACT_COMPLETO,
         ),
     ):
@@ -109,11 +109,11 @@ def test_ignora_crossref_truncado_e_usa_openalex():
 def test_sem_abstract_em_lugar_nenhum():
     with (
         patch(
-            "apps.anco.management.commands.backfill_resumos.lookup_doi",
+            "apps.acervo.services.abstracts.lookup_doi",
             return_value=LookupResultado(encontrado=False),
         ),
         patch(
-            "apps.anco.management.commands.backfill_resumos.abstract_por_doi", return_value=""
+            "apps.acervo.services.abstracts.abstract_por_doi", return_value=""
         ),
     ):
         texto, fonte = buscar_abstract("10.1/a")

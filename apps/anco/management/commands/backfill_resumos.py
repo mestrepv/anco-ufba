@@ -25,38 +25,10 @@ from __future__ import annotations
 
 from django.core.management.base import BaseCommand
 
-from apps.acervo.services.crossref import lookup_doi
-from apps.acervo.services.openalex import abstract_por_doi
+from apps.acervo.services.abstracts import esta_truncado as _esta_truncado
+from apps.acervo.services.abstracts import melhor_abstract as buscar_abstract
 from apps.anco.importacao import sincronizar_artigo
 from apps.anco.models import ItemCorpus, ProjetoANCO
-
-# Assinatura de resumo cortado (snippet do Zotero/Sage): termina em reticências.
-_SUFIXOS_TRUNCADO = ("...", "…")
-
-
-def _esta_truncado(resumo: str) -> bool:
-    return resumo.rstrip().endswith(_SUFIXOS_TRUNCADO)
-
-
-def buscar_abstract(doi: str) -> tuple[str, str]:
-    """Abstract mais completo para um DOI e a fonte ('crossref'/'openalex'/'').
-
-    Tenta Crossref primeiro; se vier vazio ou truncado, tenta OpenAlex. Devolve
-    o mais longo entre os dois.
-    """
-    candidatos: list[tuple[str, str]] = []
-    res = lookup_doi(doi)
-    if res.encontrado:
-        ab = (res.dados.get("resumo") or "").strip()
-        if ab and not _esta_truncado(ab):
-            candidatos.append((ab, "crossref"))
-    ab_oa = abstract_por_doi(doi).strip()
-    if ab_oa and not _esta_truncado(ab_oa):
-        candidatos.append((ab_oa, "openalex"))
-    if not candidatos:
-        return "", ""
-    melhor = max(candidatos, key=lambda c: len(c[0]))
-    return melhor
 
 
 class Command(BaseCommand):
