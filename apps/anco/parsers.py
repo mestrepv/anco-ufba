@@ -45,6 +45,23 @@ def _parse_ano(raw) -> int | None:
     return int(m.group(1)) if m else None
 
 
+_URL_EMBUTIDA_RE = re.compile(r"^https?://[^\s]*?(https?://[^\s]+)$", re.I)
+
+
+def normalizar_url(valor) -> str:
+    """Desfaz URLs com esquema embutido (`https://doi.org/https://…`).
+
+    Alguns exports do Zotero gravam o campo URL como `https://doi.org/` colado a
+    uma URL já completa, gerando links quebrados como
+    `https://doi.org/https://doi.org/10.x/y`. Recupera a URL interna real,
+    aplicando de forma repetida (idempotente) até não restar esquema embutido.
+    """
+    url = _txt(valor)
+    while (m := _URL_EMBUTIDA_RE.match(url)) is not None:
+        url = m.group(1)
+    return url
+
+
 def _limpa_chaves(valor: str) -> str:
     """Remove chavetas do BibTeX e normaliza espaços."""
     return re.sub(r"\s+", " ", (valor or "").replace("{", "").replace("}", "")).strip()
@@ -105,7 +122,7 @@ def parse_ris(conteudo: str) -> list[dict]:
                     e, "journal_name", "secondary_title", "alternate_title", "journal"
                 ),
                 "idioma": _primeiro(e, "language"),
-                "link": _primeiro(e, "url", "urls"),
+                "link": normalizar_url(_primeiro(e, "url", "urls")),
                 "tipo": _tipo_legivel(e.get("type_of_reference")),
             }
         )
@@ -134,7 +151,7 @@ def parse_bibtex(conteudo: str) -> list[dict]:
                     _primeiro(e, "journal", "journaltitle", "booktitle")
                 ),
                 "idioma": _primeiro(e, "language", "langid"),
-                "link": _primeiro(e, "url"),
+                "link": normalizar_url(_primeiro(e, "url")),
                 "tipo": _tipo_legivel(e.get("ENTRYTYPE")),
             }
         )
@@ -210,7 +227,7 @@ def parse_csv(conteudo: str) -> list[dict]:
                 "palavras_chaves": col(linha, "palavras_chaves"),
                 "titulo_periodico": col(linha, "titulo_periodico"),
                 "idioma": col(linha, "idioma"),
-                "link": col(linha, "link"),
+                "link": normalizar_url(col(linha, "link")),
                 "tipo": _tipo_legivel(col(linha, "tipo")),
             }
         )
