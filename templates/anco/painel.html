@@ -83,6 +83,7 @@
         <div class="fluxo3-acts">
           {% if eh_curador %}<a href="{% url 'anco_sorteio' projeto.slug %}" class="btn btn-primary">Sortear análise</a>{% endif %}
           <a href="{% url 'anco_corpus' projeto.slug %}" class="btn btn-secondary">Analisar artigos</a>
+          {% if eh_curador %}<a href="{% url 'anco_acompanhamento' projeto.slug %}" class="btn btn-secondary">Acompanhamento</a>{% endif %}
         </div>
       </div>
     </div>

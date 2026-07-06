@@ -229,9 +229,9 @@ def corpus_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
                     nomes.append(nome)
         it.importado_por = ", ".join(nomes)
     atribuidos = set(
-        AtribuicaoANCO.objects.filter(
-            analista=request.user, sorteio__projeto=projeto
-        ).values_list("artigo_id", flat=True)
+        AtribuicaoANCO.objects.filter(analista=request.user, sorteio__projeto=projeto).values_list(
+            "artigo_id", flat=True
+        )
     )
     base = projeto.itens.filter(removido=False)
     # "No acervo" = artigo já curado (eh_legado): pré-validado, fora do sorteio.
@@ -242,9 +242,7 @@ def corpus_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
     geridos = (
         set()
         if pode_gerir_todos
-        else set(
-            base.filter(origem_fontes__criado_por=request.user).values_list("pk", flat=True)
-        )
+        else set(base.filter(origem_fontes__criado_por=request.user).values_list("pk", flat=True))
     )
     # Filtro de procedência agrupado POR BASE (não por importação/data). Várias
     # importações da mesma base viram uma opção só, com o total de itens distintos.
@@ -309,9 +307,7 @@ def corpus_excluir_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpRespo
 
     item = get_object_or_404(ItemCorpus, pk=request.POST.get("item_id"), projeto=projeto)
     if not _pode_gerenciar_item(projeto, item, request.user):
-        return HttpResponseForbidden(
-            "Sem permissão: itens no acervo são geridos só pelo curador."
-        )
+        return HttpResponseForbidden("Sem permissão: itens no acervo são geridos só pelo curador.")
     item.removido = True
     item.removido_por = request.user
     item.removido_em = timezone.now()
@@ -469,7 +465,9 @@ def corpus_import_nav_view(
     if primeiro is None:
         messages.info(
             request,
-            "Nenhum item novo nesta importação." if novos else "Esta importação não tem itens no corpus.",
+            "Nenhum item novo nesta importação."
+            if novos
+            else "Esta importação não tem itens no corpus.",
         )
         return redirect("anco_corpus", slug=projeto.slug)
     url = reverse("anco_corpus_editar", args=[projeto.slug, primeiro.pk])
@@ -634,6 +632,22 @@ def estatisticas_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpRespons
 
 
 @_projeto_curador
+def acompanhamento_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
+    """Acompanhamento do trabalho dos analistas — uma linha por membro."""
+    linhas = stats.acompanhamento_membros(projeto)
+    return render(
+        request,
+        "anco/acompanhamento.html",
+        {
+            "projeto": projeto,
+            "linhas": linhas,
+            "n_sem_atividade": sum(1 for ln in linhas if not ln["tem_atividade"]),
+            "tem_sorteio": projeto.sorteios.exists(),
+        },
+    )
+
+
+@_projeto_curador
 def equipe_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
     if request.method == "POST":
         acao = request.POST.get("acao")
@@ -655,7 +669,8 @@ def equipe_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
                 m.papel = novo
                 m.save(update_fields=["papel"])
                 messages.success(
-                    request, f"{m.usuario.nome_exibicao or m.usuario.email} agora é {m.get_papel_display()}."
+                    request,
+                    f"{m.usuario.nome_exibicao or m.usuario.email} agora é {m.get_papel_display()}.",
                 )
         elif acao == "adicionar":
             email = (request.POST.get("email") or "").strip().lower()

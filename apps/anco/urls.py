@@ -32,5 +32,10 @@ urlpatterns = [
         name="anco_sorteio_elegiveis",
     ),
     path("p/<slug:slug>/estatisticas/", views.estatisticas_view, name="anco_estatisticas"),
+    path(
+        "p/<slug:slug>/acompanhamento/",
+        views.acompanhamento_view,
+        name="anco_acompanhamento",
+    ),
     path("p/<slug:slug>/equipe/", views.equipe_view, name="anco_equipe"),
 ]

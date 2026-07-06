@@ -1,0 +1,55 @@
+{% extends "_base_publico.html" %}
+{% block title %}Acompanhamento · {{ projeto.nome }}{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+{% block content %}
+<div class="tg-wrap">
+  <a href="{% url 'anco_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome }}</a>
+  <h1 class="tg-h1" style="margin-top:6px;">Acompanhamento da equipe</h1>
+  <p class="tg-meta" style="margin:6px 0 16px;">
+    {{ linhas|length }} membro{{ linhas|length|pluralize }}
+    {% if n_sem_atividade %} · <strong>{{ n_sem_atividade }} sem nenhuma atividade</strong>{% endif %}
+    {% if not tem_sorteio %} · nenhum sorteio de análise executado ainda{% endif %}.
+    Análises <em>no projeto</em> = sobre artigos atribuídos por sorteio;
+    <em>espontâneas</em> = demais análises do membro no acervo (exclui legado).
+  </p>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-family:var(--font-sans);font-size:14px;">
+      <thead>
+        <tr style="text-align:left;border-bottom:1px solid var(--color-rule);">
+          <th style="padding:8px 4px;">Membro</th>
+          <th style="padding:8px 4px;text-align:right;">Fontes</th>
+          <th style="padding:8px 4px;text-align:right;">Itens no corpus</th>
+          <th style="padding:8px 4px;text-align:right;">Atribuídos</th>
+          <th style="padding:8px 4px;text-align:right;" title="rascunho · submetida · publicada">No projeto (R·S·P)</th>
+          <th style="padding:8px 4px;text-align:right;" title="rascunho · submetida · publicada">Espontâneas (R·S·P)</th>
+          <th style="padding:8px 4px;text-align:right;">Última atividade</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ln in linhas %}
+          <tr style="border-bottom:1px solid var(--color-rule);{% if not ln.tem_atividade %}color:var(--color-ink-3);{% endif %}">
+            <td style="padding:8px 4px;">
+              {{ ln.usuario.nome_exibicao|default:ln.usuario.email }}
+              <span class="tg-meta">· {{ ln.papel }}</span>
+            </td>
+            <td style="padding:8px 4px;text-align:right;">{{ ln.n_fontes|default:"—" }}</td>
+            <td style="padding:8px 4px;text-align:right;">{{ ln.n_itens|default:"—" }}</td>
+            <td style="padding:8px 4px;text-align:right;">{{ ln.n_atribuidos|default:"—" }}</td>
+            <td style="padding:8px 4px;text-align:right;">
+              {% if ln.no_projeto.total %}{{ ln.no_projeto.rascunho }} · {{ ln.no_projeto.submetida }} · <strong>{{ ln.no_projeto.publicada }}</strong>{% else %}—{% endif %}
+            </td>
+            <td style="padding:8px 4px;text-align:right;">
+              {% if ln.espontaneas.total %}{{ ln.espontaneas.rascunho }} · {{ ln.espontaneas.submetida }} · <strong>{{ ln.espontaneas.publicada }}</strong>{% else %}—{% endif %}
+            </td>
+            <td style="padding:8px 4px;text-align:right;">
+              {% if ln.ultima_atividade %}{{ ln.ultima_atividade|date:"d/m/Y" }}{% else %}—{% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="tg-meta" style="padding:8px 4px;">Projeto sem membros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
