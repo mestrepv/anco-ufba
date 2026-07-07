@@ -181,10 +181,12 @@ def painel_view(request: HttpRequest) -> HttpResponse:
     if getattr(user, "eh_analista", False):
         from django.urls import reverse
 
-        # ANCO: sorteados ainda não concluídos por projeto do usuário. Alimenta o
-        # "próximo passo" e os cards. "Concluída" = submetida à curadoria ou
-        # publicada; leva o analista à worklist dos sorteados (não à lista global).
-        anco_proxima = None
+        # ANCO: um passo por projeto do usuário. Coleta em paralelo o trabalho de
+        # ANALISTA (sorteados a analisar) e de CURADOR (sortear / acompanhar).
+        # "Concluída" = submetida à curadoria ou publicada.
+        anco_proxima = None  # analista: worklist dos sorteados
+        sortear_cand = None  # curador: projeto com corpus novo e sem sorteio
+        acomp_slug = None  # curador: 1º projeto p/ acompanhar (estado ocioso)
         projetos_anco = []
         if user.acessa_anco():
             from apps.anco.models import AtribuicaoANCO, ProjetoANCO
@@ -218,18 +220,65 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                         "href": reverse("anco_analisar", args=[pa.slug]),
                         "label": "Analisar artigos",
                     }
+                eh_cur_pa = pa.eh_curador_no(user)
+                if eh_cur_pa:
+                    if acomp_slug is None:
+                        acomp_slug = pa.slug
+                    # Sortear pendente: corpus com artigos novos e nenhum sorteio.
+                    if sortear_cand is None and not pa.sorteios.exists():
+                        n_novos = pa.itens.filter(
+                            removido=False, artigo__eh_legado=False
+                        ).count()
+                        if n_novos:
+                            sortear_cand = {
+                                "titulo": "Sortear a análise",
+                                "sub": (
+                                    f"O corpus tem {n_novos} artigo(s) novo(s) e nenhum "
+                                    "sorteio — distribua entre os analistas."
+                                ),
+                                "href": reverse("anco_sorteio", args=[pa.slug]),
+                                "label": "Sortear análise",
+                            }
                 projetos_anco.append(
                     {
                         "projeto": pa,
-                        "eh_curador": pa.eh_curador_no(user),
+                        "eh_curador": eh_cur_pa,
                         "n_corpus": pa.itens.filter(removido=False).count(),
                         "n_atribuidos": len(atr),
                         "n_pendentes": pend if atr else 0,
                     }
                 )
 
-        # Próximo passo: só ANCO. 1) sorteados a analisar; 2) rascunho em aberto.
-        if anco_proxima:
+        # Curadoria (fila global): análises submetidas + resenhas revisadas.
+        eh_curador_geral = (
+            user.is_staff or user.eh_curador or any(p["eh_curador"] for p in projetos_anco)
+        )
+        n_aprovar = n_confirmar = 0
+        if eh_curador_geral:
+            from apps.acervo.models import Resenha
+
+            n_aprovar = Analise.objects.filter(status=Analise.Status.SUBMETIDA).count()
+            n_confirmar = Resenha.objects.filter(status=Resenha.Status.REVISADA).count()
+
+        # Próximo passo (prioridade): tarefas de curador destravam o trabalho dos
+        # outros → vêm antes das do próprio analista.
+        if eh_curador_geral and (n_aprovar or n_confirmar):
+            total = n_aprovar + n_confirmar
+            if n_aprovar and n_confirmar:
+                sub = f"{n_aprovar} análise(s) para aprovar e {n_confirmar} resenha(s) para confirmar."
+            elif n_aprovar:
+                sub = "Aprove, peça ajustes ou rejeite cada análise submetida."
+            else:
+                sub = "Confirme as resenhas que passaram pela revisão cega."
+            proxima = {
+                "titulo": f"{total} item(ns) aguardando sua curadoria",
+                "sub": sub,
+                "href": reverse("fila_curadoria"),
+                "label": "Abrir curadoria",
+            }
+        elif sortear_cand:
+            proxima = sortear_cand
+        elif anco_proxima:
             proxima = anco_proxima
         elif n_rascunhos:
             proxima = {
@@ -237,6 +286,14 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                 "sub": "Continue de onde parou.",
                 "href": reverse("minhas_analises"),
                 "label": "Continuar",
+            }
+        elif eh_curador_geral and acomp_slug:
+            # Ocioso do curador: nada na fila — nudge para acompanhar a equipe.
+            proxima = {
+                "titulo": "Tudo em dia 🎉",
+                "sub": "Sem pendências de curadoria. Acompanhe o trabalho dos analistas.",
+                "href": reverse("anco_acompanhamento", args=[acomp_slug]),
+                "label": "Acompanhar analistas",
             }
         else:
             proxima = None
