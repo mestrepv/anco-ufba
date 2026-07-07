@@ -6,6 +6,9 @@
   .rel-tab th, .rel-tab td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--color-rule); vertical-align:top; }
   .rel-tab th { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--color-ink-2); border-bottom:1px solid var(--color-rule-strong); }
   .rel-tab td.tit { font-family:var(--font-serif); color:var(--color-ink); min-width:220px; }
+  .rel-tab td.acesso { white-space:nowrap; }
+  .rel-tab td.acesso a { color:var(--color-gold-deep); font-weight:600; border-bottom:1px solid var(--color-gold-deep); }
+  .rel-tab td.doi { font-size:12px; color:var(--color-ink-2); }
   .rel-wrap { overflow-x:auto; margin-top:8px; }
   .rel-analista { display:flex; align-items:baseline; gap:8px; margin:0 0 4px; }
   [x-cloak]{ display:none !important; }
@@ -45,7 +48,7 @@
         <div class="rel-wrap">
           <table class="rel-tab">
             <thead>
-              <tr><th>#</th><th>Título</th><th>Autor(es)</th><th>Base</th><th>DOI</th><th>URL</th></tr>
+              <tr><th>#</th><th>Título</th><th>Autor(es)</th><th>Base</th><th>Acesso ao texto</th><th>DOI</th></tr>
             </thead>
             <tbody>
               {% for a in g.artigos %}
@@ -54,8 +57,10 @@
                 <td class="tit">{{ a.titulo }}</td>
                 <td>{{ a.autores|truncatechars:70|default:"—" }}</td>
                 <td>{{ a.base|default:"—" }}</td>
-                <td>{% if a.doi %}<a href="{{ a.doi_url }}" target="_blank" rel="noopener" style="color:var(--color-gold-deep);">{{ a.doi }}</a>{% else %}—{% endif %}</td>
-                <td>{% if a.url %}<a href="{{ a.url }}" target="_blank" rel="noopener" style="color:var(--color-gold-deep);">abrir ↗</a>{% else %}—{% endif %}</td>
+                <td class="acesso">
+                  {% if a.acesso_url %}<a href="{{ a.acesso_url }}" target="_blank" rel="noopener" title="{{ a.acesso_url }}">{{ a.acesso_host }} ↗</a>{% if a.acesso_via_doi %} <span class="tg-meta" title="Sem URL própria; abre pelo resolvedor de DOI">(via DOI)</span>{% endif %}{% else %}<span class="tg-meta">sem link</span>{% endif %}
+                </td>
+                <td class="doi">{% if a.doi %}{{ a.doi }}{% else %}—{% endif %}</td>
               </tr>
               {% endfor %}
             </tbody>

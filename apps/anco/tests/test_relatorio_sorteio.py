@@ -87,6 +87,20 @@ def test_relatorio_agrupa_por_analista_com_campos(projeto, analista, base_scopus
     assert art["doi"] == "10.1016/j.x.2023"
     assert art["doi_url"] == "https://doi.org/10.1016/j.x.2023"
     assert art["url"] == "https://example.org/artigo"
+    # Acesso prioriza a URL própria, não o DOI.
+    assert art["acesso_url"] == "https://example.org/artigo"
+    assert art["acesso_host"] == "example.org"
+    assert art["acesso_via_doi"] is False
+
+
+def test_acesso_cai_para_doi_quando_sem_url(projeto, analista, base_scopus):
+    fonte = FonteImport.objects.create(projeto=projeto, base_consulta=base_scopus)
+    it = _item(projeto, "Só DOI", "k9", fonte, doi="10.1/só")  # sem link
+    s = SorteioANCO.objects.create(projeto=projeto)
+    AtribuicaoANCO.objects.create(sorteio=s, analista=analista, artigo=it.artigo)
+    art = stats.relatorio_sorteio(projeto, s)[0]["artigos"][0]
+    assert art["acesso_url"] == "https://doi.org/10.1/só"
+    assert art["acesso_via_doi"] is True
 
 
 def test_doi_url_nao_duplica_prefixo(projeto, analista, base_scopus):

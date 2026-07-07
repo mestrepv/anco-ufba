@@ -92,6 +92,11 @@ def relatorio_sorteio(projeto, sorteio) -> list[dict]:
     for g in linhas:
         for a in g["artigos"]:
             a["doi_url"] = _doi_url(a["doi"])
+            # Link de acesso ao texto — prioriza a URL do artigo/tese; só cai no
+            # resolvedor de DOI quando não há URL própria. É o que o analista abre.
+            a["acesso_url"] = (a["url"] or "").strip() or a["doi_url"]
+            a["acesso_host"] = _host(a["acesso_url"])
+            a["acesso_via_doi"] = not (a["url"] or "").strip() and bool(a["doi_url"])
         g["artigos"].sort(key=lambda a: a["titulo"].lower())
         g["n"] = len(g["artigos"])
     linhas.sort(key=lambda g: g["nome"].lower())
@@ -106,6 +111,17 @@ def _doi_url(doi: str) -> str:
     if doi.lower().startswith(("http://", "https://")):
         return doi
     return f"https://doi.org/{doi}"
+
+
+def _host(url: str) -> str:
+    """Domínio de uma URL (sem `www.`), para rótulo compacto do link de acesso."""
+    from urllib.parse import urlparse
+
+    try:
+        net = urlparse(url).netloc.lower()
+    except ValueError:
+        return ""
+    return net[4:] if net.startswith("www.") else net
 
 
 def _contagem_status(analises) -> dict:
