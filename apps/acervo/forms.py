@@ -272,9 +272,22 @@ class _AnaliseFormBase(forms.ModelForm):
                 field.widget.attrs["class"] = "field-input"
         # Rótulo dos termos de vocabulário = só o nome (sem o prefixo
         # "epistemologia:" / "teoria:" do __str__, que serve ao admin).
+        # Picker só oferece termos ATIVOS (a curadoria desativa compostos/lixo),
+        # mas SEMPRE inclui os já selecionados nesta análise — para não perder
+        # valores antigos (ex.: rascunho que referencia um termo já desativado).
+        from django.db.models import Q
+
         for nome in ("epistemologia", "teoria"):
-            if nome in self.fields:
-                self.fields[nome].label_from_instance = lambda termo: termo.nome
+            if nome not in self.fields:
+                continue
+            self.fields[nome].label_from_instance = lambda termo: termo.nome
+            qs = self.fields[nome].queryset
+            selecionados = (
+                self.instance.pk
+                and list(getattr(self.instance, nome).values_list("pk", flat=True))
+                or []
+            )
+            self.fields[nome].queryset = qs.filter(Q(ativo=True) | Q(pk__in=selecionados))
 
 
 class AnalisePresencaForm(_AnaliseFormBase):
