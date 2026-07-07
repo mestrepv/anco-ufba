@@ -212,30 +212,36 @@ class TestEditarAnalise:
         assert resp.status_code == 200
         assert b"Identifica" in resp.content
 
-    def test_get_passo_presenca_renderiza_form(self, cliente_analista, analise_rascunho):
+    def test_get_renderiza_todas_as_abas(self, cliente_analista, analise_rascunho):
+        # Página única: as 3 abas (incl. presença) são renderizadas de uma vez.
         url = reverse("editar_analise", args=[analise_rascunho.pk]) + "?passo=presenca"
         resp = cliente_analista.get(url)
         assert resp.status_code == 200
-        assert b"presenca_titulo" in resp.content
+        assert b"presenca_titulo" in resp.content  # aba presença no DOM
+        assert b"id_objeto" in resp.content  # aba estrutura também no DOM
 
-    def test_post_passo_estrutura_salva_e_avanca(self, cliente_analista, analise_rascunho):
-        url = reverse("editar_analise", args=[analise_rascunho.pk]) + "?passo=estrutura"
+    def test_post_completo_salva_tudo(self, cliente_analista, analise_rascunho):
+        # Fallback sem-JS: submit do form inteiro salva as 3 abas (área obrigatória).
+        url = reverse("editar_analise", args=[analise_rascunho.pk])
         resp = cliente_analista.post(
             url,
             data={
+                "area": "Interdisciplinar",
                 "objeto": "obj",
                 "objetivo": "obj2",
                 "foco": "foco",
                 "metodologia": "met",
                 "referenciais": "refs",
                 "resultados": "res",
-                "contexto_producao": "",
-                "observacoes": "",
+                "presenca_titulo": "True",
+                "pertinencia": "True",
             },
         )
         assert resp.status_code == 302
         analise_rascunho.refresh_from_db()
         assert analise_rascunho.objeto == "obj"
+        assert analise_rascunho.presenca_titulo is True
+        assert analise_rascunho.artigo.area == "Interdisciplinar"
 
     def test_post_identificacao_salva_grande_area(self, cliente_analista, analise_rascunho):
         url = reverse("editar_analise", args=[analise_rascunho.pk])  # passo identificacao

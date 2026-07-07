@@ -1,0 +1,19 @@
+{% comment %}Campos de um form de análise (radio Sim/Não em pílula, help, erros). Param: form.{% endcomment %}
+<div style="display: grid; gap: 16px;">
+{% for field in form %}
+  <div>
+    <label class="field-label" {% if field.field.widget.input_type != "radio" %}for="{{ field.id_for_label }}"{% endif %}>{{ field.label }}</label>
+    {% if field.field.widget.input_type == "radio" %}
+    <div class="sim-nao">
+      {% for opt in field %}
+      <label class="sim-nao-opt{% if opt.data.selected %} sim-nao-sel{% endif %}">{{ opt.tag }}<span>{{ opt.choice_label }}</span></label>
+      {% endfor %}
+    </div>
+    {% else %}
+    {{ field }}
+    {% endif %}
+    {% if field.help_text %}<p class="t-meta" style="color: var(--color-ink-4); margin-top: 4px;">{{ field.help_text }}</p>{% endif %}
+    {% if field.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ field.errors|join:" / " }}</p>{% endif %}
+  </div>
+{% endfor %}
+</div>

@@ -150,16 +150,16 @@ def _sessao_add_render(request: HttpRequest, projeto) -> list[dict]:
     ativos_por_doi: dict[str, int] = {}
     if dois:
         ativos_por_doi = dict(
-            ItemCorpus.objects.filter(
-                projeto=projeto, removido=False, doi__in=dois
-            ).values_list("doi", "pk")
+            ItemCorpus.objects.filter(projeto=projeto, removido=False, doi__in=dois).values_list(
+                "doi", "pk"
+            )
         )
     ativos_ids: set[int] = set()
     if ids:
         ativos_ids = set(
-            ItemCorpus.objects.filter(
-                projeto=projeto, removido=False, pk__in=ids
-            ).values_list("pk", flat=True)
+            ItemCorpus.objects.filter(projeto=projeto, removido=False, pk__in=ids).values_list(
+                "pk", flat=True
+            )
         )
     saida = []
     for e in lista:
@@ -506,7 +506,9 @@ PASSOS = [
 
 # Termos AnCo destacados (<mark>) na aba Identificação para ajudar o analista a
 # ver onde o termo aparece (apoia a decisão de presença/pertinência).
-_TERMOS_REALCE_PADRAO = "análise cognitiva, cognitive analysis, cognitive analytics, cognição, cognition"
+_TERMOS_REALCE_PADRAO = (
+    "análise cognitiva, cognitive analysis, cognitive analytics, cognição, cognition"
+)
 
 
 def _termos_realce_do_artigo(artigo) -> str:
@@ -585,59 +587,48 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
         messages.info(request, "Esta análise não pode mais ser editada nesta janela.")
         return redirect("painel")
 
-    passo = request.GET.get("passo", "identificacao")
-    if passo not in dict(PASSOS):
-        passo = "identificacao"
+    # Aba inicial (deep-link / stepper da resenha). Não ramifica a renderização:
+    # as 3 abas são renderizadas juntas e alternadas no cliente.
+    passo_inicial = request.GET.get("passo", "identificacao")
+    if passo_inicial not in dict(PASSOS):
+        passo_inicial = "identificacao"
 
-    form = None  # form da Análise (presença/estrutura)
-    artigo_form = None  # form do Artigo (identificação: grande área)
-    if passo == "identificacao":
-        artigo_form = ArtigoAreaForm(request.POST or None, instance=analise.artigo)
-    elif passo == "presenca":
-        form = AnalisePresencaForm(request.POST or None, instance=analise)
-    elif passo == "estrutura":
-        form = AnaliseEstruturaForm(request.POST or None, instance=analise)
+    artigo_form = ArtigoAreaForm(request.POST or None, instance=analise.artigo)
+    presenca_form = AnalisePresencaForm(request.POST or None, instance=analise)
+    estrutura_form = AnaliseEstruturaForm(request.POST or None, instance=analise)
 
-    def _avancar(passo_atual: str):
-        ordem = [p for p, _ in PASSOS]
-        idx = ordem.index(passo_atual)
-        if idx + 1 < len(ordem):
-            return redirect(f"{request.path}?passo={ordem[idx + 1]}")
-        return redirect(request.path)
-
-    if request.method == "POST" and artigo_form is not None and artigo_form.is_valid():
-        artigo_form.save()  # atualiza a grande área do artigo
-        messages.success(request, "Identificação salva.")
-        return _avancar(passo)
-
-    if request.method == "POST" and form is not None and form.is_valid():
-        instance = form.save(commit=False)
+    # Caminho normal = auto-save incremental (autosave_analise_view) + troca de aba
+    # no cliente. Este POST é o fallback sem-JS: salva as três abas de uma vez.
+    if request.method == "POST" and all(
+        f.is_valid() for f in (artigo_form, presenca_form, estrutura_form)
+    ):
+        artigo_form.save()  # grande área (Artigo)
+        presenca_form.save()  # presença/pertinência (mesma instância Analise)
+        instance = estrutura_form.save(commit=False)
         if eh_admin and analise.analista_id != user.id:
             _stampar_edicao(instance, user)  # edição administrativa: stamp
         instance.save()
-        form.save_m2m()  # persiste epistemologia/teoria (M2M)
-        messages.success(request, "Passo salvo.")
-        return _avancar(passo)
+        estrutura_form.save_m2m()  # epistemologia/teoria (M2M)
+        messages.success(request, "Análise salva.")
+        return redirect(request.path)
 
-    ordem = [p for p, _ in PASSOS]
-    idx = ordem.index(passo)
     return render(
         request,
         "acervo/editar_analise.html",
         {
             "analise": analise,
             "passos": PASSOS,
-            "tabs": _tabs(analise.pk),
-            "passo_atual": passo,
-            "passo_anterior": ordem[idx - 1] if idx > 0 else None,
-            "passo_proximo": ordem[idx + 1] if idx + 1 < len(ordem) else None,
-            "form": form,
+            "passo_inicial": passo_inicial,
             "artigo_form": artigo_form,
+            "presenca_form": presenca_form,
+            "estrutura_form": estrutura_form,
             "resenha": getattr(analise, "resenha", None),
             "eh_admin_edit": eh_admin and analise.analista_id != user.id,
             "campos_faltantes": analise.campos_faltantes_submissao(),
             "termos_realce": _termos_realce_do_artigo(analise.artigo),
             "ficha": _ficha_sem_area(analise.artigo),
+            "autosave_url": reverse("autosave_analise", args=[analise.pk]),
+            "resenha_url": reverse("editar_resenha", args=[analise.pk]),
         },
     )
 
@@ -662,26 +653,40 @@ def autosave_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse
             status=400,
         )
 
-    # Auto-save PARCIAL: cada aba posta só os seus campos. Um form com TODOS os
+    # Auto-save PARCIAL: cada campo posta só o que mudou. Um form com TODOS os
     # campos ligado a um POST parcial sobrescreveria os campos ausentes com vazio
-    # (texto → "", M2M → []) — apagando o que foi preenchido nas outras abas. Por
-    # isso limitamos o form aos campos realmente presentes no POST.
+    # (texto → "", M2M → []) — apagando o resto. Por isso limitamos o form aos
+    # campos realmente presentes no POST.
     from django.forms import modelform_factory
 
+    # 1) Campos da própria Análise (presença + estrutura).
     campos = [c for c in AnaliseCompletaForm.base_fields if c in request.POST]
-    if not campos:
-        return JsonResponse({"ok": True, "salvo_em": timezone.now().strftime("%H:%M:%S")})
-    FormParcial = modelform_factory(Analise, form=AnaliseCompletaForm, fields=campos)
-    form = FormParcial(request.POST, instance=analise)
-
-    if form.is_valid():
+    if campos:
+        FormParcial = modelform_factory(Analise, form=AnaliseCompletaForm, fields=campos)
+        form = FormParcial(request.POST, instance=analise)
+        if not form.is_valid():
+            return JsonResponse({"ok": False, "errors": form.errors}, status=400)
         instance = form.save(commit=False)
         if eh_admin and analise.analista_id != user.id:
             _stampar_edicao(instance, user)
         instance.save()
         form.save_m2m()  # persiste só os M2M presentes (epistemologia/teoria)
-        return JsonResponse({"ok": True, "salvo_em": timezone.now().strftime("%H:%M:%S")})
-    return JsonResponse({"ok": False, "errors": form.errors}, status=400)
+
+    # 2) Grande área — campo do Artigo (aba Identificação). Nunca toca o legado.
+    if "area" in request.POST and not analise.artigo.eh_legado:
+        area_form = ArtigoAreaForm(request.POST, instance=analise.artigo)
+        if area_form.is_valid():
+            area_form.save()
+
+    # 3) Devolve a lista de campos ainda faltantes p/ a UI atualizar o bloco de
+    #    submissão ao vivo, sem recarregar a página.
+    return JsonResponse(
+        {
+            "ok": True,
+            "salvo_em": timezone.now().strftime("%H:%M:%S"),
+            "faltantes": analise.campos_faltantes_submissao(),
+        }
+    )
 
 
 @_exige_analista

@@ -1,23 +1,54 @@
 {% comment %}
-Componente Alpine `autosaveForm(url)` para auto-save robusto de formulários.
-Inclua dentro de {% block extra_scripts %}. Salva:
-  - a cada 30s SE houver alterações pendentes;
-  - ao sair de qualquer campo (focusout), se houver pendência;
-  - na navegação (beforeunload) avisa se há alterações não salvas.
-Mostra estado via templates/acervo/_autosave_status.html.
+Componente Alpine `editorAnalise(url, resenhaUrl)` para o editor de análise.
+
+Abas (identificação / presença / estrutura) são alternadas NO CLIENTE — sem
+recarregar a página, então trocar de aba nunca perde dados. O auto-save persiste
+em segundo plano:
+  - com debounce ~1.2s após digitar (@input);
+  - ao sair de um campo (focusout);
+  - ao trocar de aba (flush);
+  - a cada 30s como rede de segurança.
+`beforeunload` avisa se houver pendência ao sair de fato da página (fechar aba,
+URL, resenha). A resposta do save traz `faltantes`, atualizando o bloco de
+submissão ao vivo. Estado exibido por templates/acervo/_autosave_status.html.
 {% endcomment %}
 <script>
   document.addEventListener('alpine:init', () => {
-    Alpine.data('autosaveForm', (url) => ({
+    Alpine.data('editorAnalise', (url, resenhaUrl) => ({
       url,
-      ultimoSave: null,
-      estado: 'idle',   // idle | salvando | erro | salvo
+      resenhaUrl,
+      abas: ['identificacao', 'presenca', 'estrutura'],
+      aba: 'identificacao',
+      estado: 'idle',        // idle | salvando | salvo | erro
       sujo: false,
-      marcarSujo() { this.sujo = true; if (this.estado !== 'salvando') this.estado = 'idle'; },
+      ultimoSave: null,
+      faltantes: [],
+      _timer: null,
+
+      init(abaInicial, faltantesIniciais) {
+        if (this.abas.includes(abaInicial)) this.aba = abaInicial;
+        this.faltantes = faltantesIniciais || [];
+        setInterval(() => { if (this.sujo) this.salvar(); }, 30000);
+        this.$refs.form.addEventListener('focusout', () => { if (this.sujo) this.flush(); });
+        window.addEventListener('beforeunload', (e) => {
+          if (this.sujo || this.estado === 'salvando') { e.preventDefault(); e.returnValue = ''; }
+        });
+      },
+
+      marcarSujo() {
+        this.sujo = true;
+        if (this.estado !== 'salvando') this.estado = 'idle';
+        clearTimeout(this._timer);
+        this._timer = setTimeout(() => this.salvar(), 1200);
+      },
+
+      flush() { clearTimeout(this._timer); return this.salvar(); },
+
       async salvar() {
         if (this.estado === 'salvando') return;
+        clearTimeout(this._timer);
         this.estado = 'salvando';
-        const fd = new FormData(this.$el);
+        const fd = new FormData(this.$refs.form);
         try {
           const resp = await fetch(this.url, {
             method: 'POST', body: fd, keepalive: true,
@@ -26,6 +57,7 @@ Mostra estado via templates/acervo/_autosave_status.html.
           if (resp.ok) {
             const data = await resp.json();
             this.ultimoSave = data.salvo_em;
+            if (Array.isArray(data.faltantes)) this.faltantes = data.faltantes;
             this.sujo = false;
             this.estado = 'salvo';
           } else {
@@ -35,15 +67,29 @@ Mostra estado via templates/acervo/_autosave_status.html.
           this.estado = 'erro';
         }
       },
-      iniciar() {
-        setInterval(() => { if (this.sujo) this.salvar(); }, 30000);
-        // Salva ao sair de um campo (não espera os 30s).
-        this.$el.addEventListener('focusout', () => { if (this.sujo) this.salvar(); });
-        // Rede de segurança: avisa antes de sair com pendências.
-        window.addEventListener('beforeunload', (e) => {
-          if (this.sujo) { e.preventDefault(); e.returnValue = ''; }
-        });
+
+      // Troca de aba no cliente: dispara um save (dados já estão no DOM, então
+      // não há perda mesmo se o save ainda não terminou).
+      trocarAba(nome) {
+        if (!this.abas.includes(nome)) return;
+        if (this.sujo) this.flush();
+        this.aba = nome;
       },
+      irAba(delta) {
+        const i = this.abas.indexOf(this.aba) + delta;
+        if (i >= 0 && i < this.abas.length) this.trocarAba(this.abas[i]);
+      },
+      temAnterior() { return this.abas.indexOf(this.aba) > 0; },
+      temProximo() { return this.abas.indexOf(this.aba) < this.abas.length - 1; },
+
+      // Sair para outra página (resenha, submeter): garante o save antes de navegar.
+      async irPara(u) {
+        if (this.sujo || this.estado === 'salvando') await this.flush();
+        this.sujo = false;  // desarma o beforeunload
+        window.location = u;
+      },
+
+      podeSubmeter() { return this.faltantes.length === 0; },
     }));
   });
 </script>

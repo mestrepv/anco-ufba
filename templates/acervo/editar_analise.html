@@ -11,7 +11,10 @@
 {% endblock %}
 
 {% block content %}
-<main x-data="{ ultimoSave: null }" style="max-width: 880px; margin: 32px auto 80px; padding: 0 24px;">
+{{ campos_faltantes|json_script:"faltantes-iniciais" }}
+<main x-data="editorAnalise('{{ autosave_url }}', '{{ resenha_url }}')"
+      x-init="init('{{ passo_inicial }}', JSON.parse(document.getElementById('faltantes-iniciais').textContent))"
+      style="max-width: 880px; margin: 32px auto 80px; padding: 0 24px;">
 
   {# ── Cabeçalho ─────────────────────────────────────────────────── #}
   <header style="margin-bottom: 24px;">
@@ -31,13 +34,9 @@
       <a href="{{ analise.artigo.link_acesso }}" target="_blank" rel="noopener noreferrer" class="link" style="font-size: 14px;">
         Acessar obra ↗
       </a>
-      {% if analise.artigo.link_status == "ok" %}
-        {% include "partials/_selo.html" with kind="aberto" %}
-      {% elif analise.artigo.link_status == "quebrado" %}
-        {% include "partials/_selo.html" with kind="quebrado" %}
-      {% elif analise.artigo.link_status == "redireciona" %}
-        <span class="selo selo-historico">redireciona</span>
-      {% endif %}
+      {% if analise.artigo.link_status == "ok" %}{% include "partials/_selo.html" with kind="aberto" %}
+      {% elif analise.artigo.link_status == "quebrado" %}{% include "partials/_selo.html" with kind="quebrado" %}
+      {% elif analise.artigo.link_status == "redireciona" %}<span class="selo selo-historico">redireciona</span>{% endif %}
       <button hx-post="{% url 'capturar_snapshot' analise.artigo.pk %}"
               hx-target="#snapshot-resultado"
               hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -57,112 +56,102 @@
   </div>
   {% endif %}
 
-  {# ── Stepper editorial ────────────────────────────────────────── #}
-  {% include "acervo/_stepper_analise.html" %}
+  {# ── Abas (troca no cliente, sem recarregar) + estado do auto-save ── #}
+  <nav style="display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--color-rule); margin-bottom: 6px;" aria-label="Passos da análise">
+    {% for codigo, label in passos %}
+    <button type="button" @click="trocarAba('{{ codigo }}')"
+            :style="aba === '{{ codigo }}' ? 'border-bottom-color: var(--color-gold); color: var(--color-ink); font-weight: 600;' : ''"
+            style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; background: none; cursor: pointer;
+              font-family: var(--font-sans); font-size: 13px; border: none; border-bottom: 2px solid transparent; color: var(--color-ink-3);">
+      <span class="step-indicator" :style="aba === '{{ codigo }}' ? '' : 'background: var(--color-paper-2); color: var(--color-ink-3);'">{{ forloop.counter }}</span>
+      <span>{{ label }}</span>
+    </button>
+    {% endfor %}
+    <a href="{{ resenha_url }}" @click.prevent="irPara(resenhaUrl)"
+       style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; font-family: var(--font-sans); font-size: 13px; border-bottom: 2px solid transparent; color: var(--color-ink-3); text-decoration: none;">
+      <span>Resenha crítica (opcional)</span>
+    </a>
+  </nav>
+  <div style="display: flex; justify-content: flex-end; min-height: 20px; margin-bottom: 18px;">
+    {% include "acervo/_autosave_status.html" %}
+  </div>
 
-  {# ── Passo 1: identificação (read-only) ──────────────────────── #}
-  {% if passo_atual == "identificacao" %}
-  <section class="meta-card">
-    <h2 class="t-h2" style="margin-bottom: 8px;">Identificação</h2>
-    <p class="t-small" style="color: var(--color-ink-3); margin-bottom: 16px;">
-      Confirme os metadados do artigo. A <strong>grande área</strong> pode ser
-      ajustada aqui; os demais metadados são editados no admin (curador).
-    </p>
-    <p class="t-small" style="color: var(--color-ink-4); margin: 0 0 14px; display: flex; align-items: center; gap: 6px;">
-      <mark style="padding: 0 3px; background:#ffe9a8; border-radius:3px;">Termos da Análise Cognitiva</mark> aparecem destacados — ajuda a julgar presença e pertinência na próxima aba.
-    </p>
+  <form x-ref="form" method="post" @submit.prevent="salvar()" @input="marcarSujo()" @change="marcarSujo()" class="meta-card">
+    {% csrf_token %}
 
-    {# Ficha bibliográfica canônica (mesmo componente das telas de fontes/triagem) #}
-    {% include "partials/_ficha_artigo.html" with ficha=ficha realce_termos=termos_realce %}
-
-    {# Único campo editável aqui: a grande área (os demais metadados são do curador). #}
-    <form method="post" style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--color-paper-3);">
-      {% csrf_token %}
-      <div class="field-row">
-        <label for="{{ artigo_form.area.id_for_label }}" class="field-label" style="cursor:pointer;">Grande área (você define)</label>
-        <div x-data="{ outros: '{{ artigo_form.area.value|default_if_none:'' }}' === 'Outros' }"
-             @change="outros = ($event.target.name === 'area' && $event.target.value === 'Outros')">
-          {{ artigo_form.area }}
-          {% if artigo_form.area.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ artigo_form.area.errors|join:" / " }}</p>{% endif %}
-          <div x-show="outros" x-cloak style="margin-top: 8px;">
-            <label for="{{ artigo_form.area_outra.id_for_label }}" class="field-label">Especifique a área</label>
-            {{ artigo_form.area_outra }}
-            {% if artigo_form.area_outra.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ artigo_form.area_outra.errors|join:" / " }}</p>{% endif %}
+    {# ── Aba 1: Identificação (ficha + grande área) ─────────────── #}
+    <section x-show="aba === 'identificacao'" x-cloak>
+      <h2 class="t-h2" style="margin-bottom: 8px;">Identificação</h2>
+      <p class="t-small" style="color: var(--color-ink-3); margin-bottom: 16px;">
+        Confirme os metadados do artigo. A <strong>grande área</strong> pode ser
+        ajustada aqui; os demais metadados são editados no admin (curador).
+      </p>
+      <p class="t-small" style="color: var(--color-ink-4); margin: 0 0 14px; display: flex; align-items: center; gap: 6px;">
+        <mark style="padding: 0 3px; background:#ffe9a8; border-radius:3px;">Termos da Análise Cognitiva</mark> aparecem destacados — ajuda a julgar presença e pertinência na próxima aba.
+      </p>
+      {% include "partials/_ficha_artigo.html" with ficha=ficha realce_termos=termos_realce %}
+      <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--color-paper-3);">
+        <div class="field-row">
+          <label for="{{ artigo_form.area.id_for_label }}" class="field-label" style="cursor:pointer;">Grande área (você define)</label>
+          <div x-data="{ outros: '{{ artigo_form.area.value|default_if_none:'' }}' === 'Outros' }"
+               @change="outros = ($event.target.name === 'area' && $event.target.value === 'Outros')">
+            {{ artigo_form.area }}
+            {% if artigo_form.area.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ artigo_form.area.errors|join:" / " }}</p>{% endif %}
+            <div x-show="outros" x-cloak style="margin-top: 8px;">
+              <label for="{{ artigo_form.area_outra.id_for_label }}" class="field-label">Especifique a área</label>
+              {{ artigo_form.area_outra }}
+              {% if artigo_form.area_outra.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ artigo_form.area_outra.errors|join:" / " }}</p>{% endif %}
+            </div>
           </div>
         </div>
       </div>
-      <div style="display: flex; justify-content: flex-end; padding-top: 16px; margin-top: 8px;">
-        <button type="submit" class="btn btn-primary">Salvar e avançar →</button>
+    </section>
+
+    {# ── Aba 2: Presença e pertinência ──────────────────────────── #}
+    <section x-show="aba === 'presenca'" x-cloak>
+      <h2 class="t-h2" style="margin-bottom: 12px;">Presença e pertinência</h2>
+      <div class="ajuda-aba">
+        <p style="margin:0 0 4px;"><strong>Como preencher.</strong> As 5 primeiras perguntas só <em>localizam</em> o termo <strong>Análise Cognitiva</strong> na obra — não decidem nada sozinhas.</p>
+        <p style="margin:0;">A decisão-chave é a <strong>pertinência</strong>: a obra dialoga com o campo? O campo é emergente — <strong>na dúvida, reconheça e justifique</strong> (em Aspectos relevantes), em vez de excluir pela área. Campos em branco contam como não respondidos.</p>
       </div>
-    </form>
-  </section>
+      {% include "acervo/_campos_analise.html" with form=presenca_form %}
+    </section>
 
-  {# ── Passos 2/3: form com auto-save ─────────────────────────── #}
-  {% else %}
-  <form method="post"
-        x-data="autosaveForm('{% url 'autosave_analise' analise.pk %}')"
-        x-init="iniciar()"
-        @input="marcarSujo()" @change="marcarSujo()" @submit="sujo = false"
-        class="meta-card">
-    {% csrf_token %}
-    <header style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--color-paper-3); margin-bottom: 18px;">
-      <h2 class="t-h2">{% for codigo, label in passos %}{% if codigo == passo_atual %}{{ label }}{% endif %}{% endfor %}</h2>
-      {% include "acervo/_autosave_status.html" %}
-    </header>
-
-    {% if passo_atual == "presenca" %}
-    <div class="ajuda-aba">
-      <p style="margin:0 0 4px;"><strong>Como preencher.</strong> As 5 primeiras perguntas só <em>localizam</em> o termo <strong>Análise Cognitiva</strong> na obra — não decidem nada sozinhas.</p>
-      <p style="margin:0;">A decisão-chave é a <strong>pertinência</strong>: a obra dialoga com o campo? O campo é emergente — <strong>na dúvida, reconheça e justifique</strong> (em Aspectos relevantes), em vez de excluir pela área. Campos em branco contam como não respondidos.</p>
-    </div>
-    {% elif passo_atual == "estrutura" %}
-    <div class="ajuda-aba">
-      <p style="margin:0;">Descreva a estrutura analítica da obra segundo a grade AnCo. <strong>As dicas abaixo de cada campo</strong> trazem o que registrar. Lembre: <strong>Foco</strong> é o subcampo cognitivo (≠ grande área CAPES da aba 1); <strong>Epistemologia</strong> e <strong>Teoria</strong> usam o vocabulário controlado para que as análises se agreguem.</p>
-    </div>
-    {% endif %}
-
-    <div style="display: grid; gap: 16px;">
-    {% for field in form %}
-      <div>
-        <label class="field-label" {% if field.field.widget.input_type != "radio" %}for="{{ field.id_for_label }}"{% endif %}>{{ field.label }}</label>
-        {% if field.field.widget.input_type == "radio" %}
-        <div class="sim-nao">
-          {% for opt in field %}
-          <label class="sim-nao-opt{% if opt.data.selected %} sim-nao-sel{% endif %}">{{ opt.tag }}<span>{{ opt.choice_label }}</span></label>
-          {% endfor %}
-        </div>
-        {% else %}
-        {{ field }}
-        {% endif %}
-        {% if field.help_text %}<p class="t-meta" style="color: var(--color-ink-4); margin-top: 4px;">{{ field.help_text }}</p>{% endif %}
-        {% if field.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ field.errors|join:" / " }}</p>{% endif %}
+    {# ── Aba 3: Análise do artigo (estrutura) ───────────────────── #}
+    <section x-show="aba === 'estrutura'" x-cloak>
+      <h2 class="t-h2" style="margin-bottom: 12px;">Análise do artigo</h2>
+      <div class="ajuda-aba">
+        <p style="margin:0;">Descreva a estrutura analítica da obra segundo a grade AnCo. <strong>As dicas abaixo de cada campo</strong> trazem o que registrar. Lembre: <strong>Foco</strong> é o subcampo cognitivo (≠ grande área CAPES da aba 1); <strong>Epistemologia</strong> e <strong>Teoria</strong> usam o vocabulário controlado para que as análises se agreguem.</p>
       </div>
-    {% endfor %}
-    </div>
+      {% include "acervo/_campos_analise.html" with form=estrutura_form %}
+    </section>
 
+    {# ── Navegação entre abas + salvar ──────────────────────────── #}
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 18px; margin-top: 18px; border-top: 1px solid var(--color-paper-3);">
-      {% if passo_anterior %}<a href="?passo={{ passo_anterior }}" class="btn btn-ghost btn-sm">← Voltar</a>{% else %}<span></span>{% endif %}
-      <button type="submit" class="btn btn-primary btn-sm">Salvar{% if passo_proximo and not eh_admin_edit %} e avançar{% endif %}</button>
+      <button type="button" class="btn btn-ghost btn-sm" @click="irAba(-1)" x-show="temAnterior()">← Anterior</button>
+      <span x-show="!temAnterior()"></span>
+      <div style="display: flex; gap: 10px;">
+        <button type="submit" class="btn btn-ghost btn-sm">Salvar agora</button>
+        <button type="button" class="btn btn-primary btn-sm" @click="irAba(1)" x-show="temProximo()">Próximo →</button>
+      </div>
     </div>
   </form>
-  {% endif %}
 
-  {# ── Submissão à curadoria (só com todos os campos das abas 1–3) ─ #}
+  {# ── Submissão à curadoria (faltantes atualizadas ao vivo) ─────── #}
   {% if analise.status == "rascunho" %}
   <section style="margin-top: 24px; padding: 16px 18px; background: var(--color-paper-2); border: 1px solid var(--color-rule-strong);">
-    {% if campos_faltantes %}
+    <div x-show="!podeSubmeter()">
       <p class="t-small" style="color: var(--color-ink-2); margin: 0 0 6px;">
-        Para submeter à curadoria, preencha <strong>todos os campos das abas 1–3</strong>. A resenha crítica (aba 4) é opcional. Faltam:
+        Para submeter à curadoria, preencha <strong>todos os campos das abas 1–3</strong>. A resenha crítica é opcional. Faltam:
       </p>
-      <p class="t-small" style="color: var(--color-danger); margin: 0;">{{ campos_faltantes|join:" · " }}</p>
-    {% else %}
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
-        <p class="t-small" style="color: var(--color-ink-2); margin: 0;">
-          Tudo preenchido — submeta para a curadoria avaliar e publicar no acervo.
-        </p>
-        <a href="{% url 'submeter_analise' analise.pk %}" class="btn btn-primary btn-sm">Submeter para curadoria →</a>
-      </div>
-    {% endif %}
+      <p class="t-small" style="color: var(--color-danger); margin: 0;" x-text="faltantes.join(' · ')"></p>
+    </div>
+    <div x-show="podeSubmeter()" x-cloak style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+      <p class="t-small" style="color: var(--color-ink-2); margin: 0;">
+        Tudo preenchido — submeta para a curadoria avaliar e publicar no acervo.
+      </p>
+      <a href="{% url 'submeter_analise' analise.pk %}" @click.prevent="irPara('{% url 'submeter_analise' analise.pk %}')" class="btn btn-primary btn-sm">Submeter para curadoria →</a>
+    </div>
   </section>
   {% endif %}
 
@@ -170,16 +159,13 @@
 
 <style>
   [x-cloak] { display: none !important; }
-  /* Realce dos termos AnCo no título/resumo/palavras-chave (aba Identificação) */
   .meta-row mark, .ajuda-aba mark, p mark {
     background: #ffe9a8; color: var(--color-ink); border-radius: 3px;
     padding: 0 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone;
   }
-  /* Caixa de orientação do Protocolo ANCO no topo de cada aba */
   .ajuda-aba { margin: -6px 0 18px; padding: 12px 14px; border-radius: 8px;
     background: var(--color-review-bg); border: 1px solid var(--color-review-rule);
     font-family: var(--font-sans); font-size: 13px; line-height: 1.55; color: var(--color-ink-2); }
-  /* Booleanos como Sim/Não (radio em formato de pílula) */
   .sim-nao { display: flex; gap: 10px; margin-top: 4px; }
   .sim-nao-opt {
     display: inline-flex; align-items: center; gap: 8px;
@@ -194,14 +180,12 @@
     border-color: var(--color-gold-deep); color: var(--color-ink);
     background: var(--color-review-bg); font-weight: 600;
   }
-  /* Tom Select (epistemologia/teoria) alinhado ao design editorial */
   .ts-wrapper { font-family: var(--font-sans); font-size: 14px; }
   .ts-control { border-color: var(--color-rule-strong); border-radius: 6px; box-shadow: none; }
   .ts-wrapper.focus .ts-control { border-color: var(--color-gold); box-shadow: none; }
   .ts-control .item { background: var(--color-review-bg); border: 1px solid var(--color-review-rule); color: var(--color-ink); border-radius: 4px; }
   .ts-dropdown { font-family: var(--font-sans); border-color: var(--color-rule-strong); }
   .ts-dropdown .active { background: var(--color-review-bg); color: var(--color-ink); }
-  /* Responsivo: ficha de metadados empilha no celular */
   @media (max-width: 560px) {
     .meta-row { grid-template-columns: 1fr; gap: 2px 0; }
     .meta-row dt { color: var(--color-ink-3); }

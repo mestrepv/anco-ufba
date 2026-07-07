@@ -130,10 +130,19 @@ class TestFluxoCompletoComDoi:
         analise = Analise.objects.get(artigo=artigo, analista=autor)
         assert analise.status == Analise.Status.RASCUNHO
 
-        # Passo 3: editar análise — passo "presenca"
+        # Termos de epistemologia/teoria (obrigatórios para submeter)
+        v_epist, _ = Vocabulario.objects.get_or_create(
+            codigo="epistemologia", defaults={"nome": "Epistemologia"}
+        )
+        v_teor, _ = Vocabulario.objects.get_or_create(codigo="teoria", defaults={"nome": "Teoria"})
+        t_epist = TermoVocabulario.objects.create(vocabulario=v_epist, nome="Empirismo")
+        t_teor = TermoVocabulario.objects.create(vocabulario=v_teor, nome="Cognição")
+
+        # Passo 3: editor de página única — um POST salva as 3 abas de uma vez.
         resp = cliente.post(
-            reverse("editar_analise", args=[analise.pk]) + "?passo=presenca",
+            reverse("editar_analise", args=[analise.pk]),
             data={
+                "area": "Interdisciplinar",
                 "presenca_titulo": "True",
                 "presenca_resumo": "True",
                 "presenca_palavras_chave": "False",
@@ -143,22 +152,6 @@ class TestFluxoCompletoComDoi:
                 "aspectos_relevantes": "Aborda análise cognitiva em depth.",
                 "define_conceito": "False",
                 "definicao_extraida": "",
-            },
-        )
-        assert resp.status_code == 302  # redireciona para o passo seguinte
-
-        # Termos de epistemologia/teoria (obrigatórios para submeter)
-        v_epist, _ = Vocabulario.objects.get_or_create(
-            codigo="epistemologia", defaults={"nome": "Epistemologia"}
-        )
-        v_teor, _ = Vocabulario.objects.get_or_create(codigo="teoria", defaults={"nome": "Teoria"})
-        t_epist = TermoVocabulario.objects.create(vocabulario=v_epist, nome="Empirismo")
-        t_teor = TermoVocabulario.objects.create(vocabulario=v_teor, nome="Cognição")
-
-        # Passo 4: editar — passo "estrutura" (todos os campos preenchidos)
-        resp = cliente.post(
-            reverse("editar_analise", args=[analise.pk]) + "?passo=estrutura",
-            data={
                 "objeto": "Cognição em equipes",
                 "objetivo": "Investigar processos",
                 "foco": "Decisão coletiva",

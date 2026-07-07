@@ -94,3 +94,21 @@ def test_autosave_post_vazio_nao_altera(client, analista, analise):
     assert resp.status_code == 200
     analise.refresh_from_db()
     assert analise.objeto == "intacto"
+
+
+def test_autosave_salva_grande_area_do_artigo(client, analista, analise):
+    client.force_login(analista)
+    resp = _autosave(client, analise, {"area": "Interdisciplinar"})
+    assert resp.status_code == 200
+    analise.artigo.refresh_from_db()
+    assert analise.artigo.area == "Interdisciplinar"
+
+
+def test_autosave_retorna_faltantes_ao_vivo(client, analista, analise):
+    client.force_login(analista)
+    resp = _autosave(client, analise, {"pertinencia": "True"})
+    data = json.loads(resp.content)
+    assert data["ok"] is True
+    # A lista reflete o estado atual (ainda faltam campos) — vira [] quando completa.
+    assert isinstance(data["faltantes"], list)
+    assert "Pertinência" not in data["faltantes"]  # acabou de responder
