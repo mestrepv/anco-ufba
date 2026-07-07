@@ -190,10 +190,23 @@ def corpus_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
     q = (request.GET.get("q") or "").strip()
     filtro = request.GET.get("filtro") or ""
     fonte_sel = (request.GET.get("fonte") or "").strip()
+    atribuidos = set(
+        AtribuicaoANCO.objects.filter(analista=request.user, sorteio__projeto=projeto).values_list(
+            "artigo_id", flat=True
+        )
+    )
+    tem_sorteio = projeto.sorteios.exists()
+    # Após o sorteio, o analista analisa **só os artigos que lhe foram sorteados**:
+    # sem filtro explícito, quem tem atribuição cai em "meus". "todos" (ou ausência
+    # de sorteio) mostra o corpus inteiro — necessário para curadoria/gestão.
+    if not filtro:
+        filtro = "meus" if atribuidos else "todos"
     itens = projeto.itens.filter(removido=False).select_related("artigo")
     if q:
         itens = itens.filter(titulo__icontains=q)
-    if filtro == "acervo":
+    if filtro == "meus":
+        itens = itens.filter(artigo_id__in=atribuidos)
+    elif filtro == "acervo":
         itens = itens.filter(artigo__eh_legado=True)
     elif filtro == "novos":
         itens = itens.filter(artigo__eh_legado=False)
@@ -228,15 +241,11 @@ def corpus_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
                 if nome and nome not in nomes:
                     nomes.append(nome)
         it.importado_por = ", ".join(nomes)
-    atribuidos = set(
-        AtribuicaoANCO.objects.filter(analista=request.user, sorteio__projeto=projeto).values_list(
-            "artigo_id", flat=True
-        )
-    )
     base = projeto.itens.filter(removido=False)
     # "No acervo" = artigo já curado (eh_legado): pré-validado, fora do sorteio.
     n_acervo = base.filter(artigo__eh_legado=True).count()
     total = base.count()
+    n_meus = base.filter(artigo_id__in=atribuidos).count() if atribuidos else 0
     # Quem pode editar/remover cada item: curador/admin (todos) ou o importador.
     pode_gerir_todos = projeto.eh_curador_no(request.user) or request.user.is_staff
     geridos = (
@@ -269,6 +278,8 @@ def corpus_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
         "import_sel": import_sel,
         "import_fonte": import_fonte,
         "atribuidos": atribuidos,
+        "tem_sorteio": tem_sorteio,
+        "n_meus": n_meus,
         "pode_gerir_todos": pode_gerir_todos,
         "geridos": geridos,
     }

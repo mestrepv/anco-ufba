@@ -32,10 +32,14 @@
 
   {% comment %}Filtro 1 — estado no acervo. Preserva q, fonte e import.{% endcomment %}
   <div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px;align-items:center;">
-    <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}{% if fonte_sel %}fonte={{ fonte_sel|urlencode }}&{% endif %}{% if import_sel %}import={{ import_sel }}{% endif %}" class="btn btn-sm {% if not filtro %}btn-primary{% else %}btn-secondary{% endif %}">Todos ({{ total }})</a>
+    {% if atribuidos %}<a href="?filtro=meus{% if q %}&q={{ q|urlencode }}{% endif %}{% if fonte_sel %}&fonte={{ fonte_sel|urlencode }}{% endif %}{% if import_sel %}&import={{ import_sel }}{% endif %}" class="btn btn-sm {% if filtro == 'meus' %}btn-primary{% else %}btn-secondary{% endif %}">Meus sorteados ({{ n_meus }})</a>{% endif %}
+    <a href="?filtro=todos{% if q %}&q={{ q|urlencode }}{% endif %}{% if fonte_sel %}&fonte={{ fonte_sel|urlencode }}{% endif %}{% if import_sel %}&import={{ import_sel }}{% endif %}" class="btn btn-sm {% if filtro == 'todos' %}btn-primary{% else %}btn-secondary{% endif %}">Todos ({{ total }})</a>
     <a href="?filtro=acervo{% if q %}&q={{ q|urlencode }}{% endif %}{% if fonte_sel %}&fonte={{ fonte_sel|urlencode }}{% endif %}{% if import_sel %}&import={{ import_sel }}{% endif %}" class="btn btn-sm {% if filtro == 'acervo' %}btn-primary{% else %}btn-secondary{% endif %}">No acervo ({{ n_acervo }})</a>
     <a href="?filtro=novos{% if q %}&q={{ q|urlencode }}{% endif %}{% if fonte_sel %}&fonte={{ fonte_sel|urlencode }}{% endif %}{% if import_sel %}&import={{ import_sel }}{% endif %}" class="btn btn-sm {% if filtro == 'novos' %}btn-primary{% else %}btn-secondary{% endif %}">Aguardando análise ({{ n_novos }})</a>
   </div>
+  {% if filtro == 'meus' %}
+  <p class="tg-meta" style="margin:-2px 0 12px;">Mostrando apenas os <strong>{{ n_meus }}</strong> artigo{{ n_meus|pluralize }} sorteado{{ n_meus|pluralize }} para você. Use <strong>Todos</strong> para ver o corpus completo.</p>
+  {% endif %}
 
   {% comment %}Filtro 2 — base de procedência (agrupa importações da mesma base). Preserva q e filtro.{% endcomment %}
   {% if bases %}
