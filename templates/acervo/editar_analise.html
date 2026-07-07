@@ -19,7 +19,7 @@
   {# ── Cabeçalho ─────────────────────────────────────────────────── #}
   <header style="margin-bottom: 24px;">
     <span class="t-eyebrow" style="color: var(--color-gold);">An·Co ·
-      {% if eh_admin_edit %}edição administrativa{% else %}análise em rascunho{% endif %}
+      {% if somente_leitura %}visualização (curador){% elif eh_admin_edit %}edição administrativa{% else %}análise em rascunho{% endif %}
     </span>
     <h1 class="t-h1" style="margin-top: 4px; font-size: 26px; line-height: 1.2;">
       {{ analise.artigo.titulo|truncatechars:140 }}
@@ -37,18 +37,27 @@
       {% if analise.artigo.link_status == "ok" %}{% include "partials/_selo.html" with kind="aberto" %}
       {% elif analise.artigo.link_status == "quebrado" %}{% include "partials/_selo.html" with kind="quebrado" %}
       {% elif analise.artigo.link_status == "redireciona" %}<span class="selo selo-historico">redireciona</span>{% endif %}
+      {% if not somente_leitura %}
       <button hx-post="{% url 'capturar_snapshot' analise.artigo.pk %}"
               hx-target="#snapshot-resultado"
               hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
               class="btn btn-ghost btn-sm" style="margin-left: auto;">
         Capturar snapshot Wayback
       </button>
+      {% endif %}
     </div>
     <div id="snapshot-resultado" style="margin-top: 8px;"></div>
     {% endif %}
   </header>
 
-  {% if eh_admin_edit %}
+  {% if somente_leitura %}
+  <div style="margin: 12px 0 24px; padding: 14px 18px; background: var(--color-review-bg); border: 1px solid var(--color-gold-deep); font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);">
+    <strong>Modo leitura.</strong> Você está vendo o trabalho de
+    <strong>{{ analista_alvo.nome_exibicao|default:analista_alvo.email }}</strong>
+    exatamente como ele(a) vê{% if analise_transitoria %} — a análise <strong>ainda não foi iniciada</strong>, então os campos estão em branco{% endif %}.
+    Nada aqui altera a análise dele(a).
+  </div>
+  {% elif eh_admin_edit %}
   <div style="margin: 12px 0 24px; padding: 14px 18px; background: var(--color-paper-2); border: 1px solid var(--color-rule-strong); font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);">
     Edição administrativa: você está editando uma análise de outro analista.
     Esta ação <strong>fica registrada</strong> (data e autor) no acervo público
@@ -67,17 +76,21 @@
       <span>{{ label }}</span>
     </button>
     {% endfor %}
+    {% if not somente_leitura %}
     <a href="{{ resenha_url }}" @click.prevent="irPara(resenhaUrl)"
        style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; font-family: var(--font-sans); font-size: 13px; border-bottom: 2px solid transparent; color: var(--color-ink-3); text-decoration: none;">
       <span>Resenha crítica (opcional)</span>
     </a>
+    {% endif %}
   </nav>
   <div style="display: flex; justify-content: flex-end; min-height: 20px; margin-bottom: 18px;">
-    {% include "acervo/_autosave_status.html" %}
+    {% if not somente_leitura %}{% include "acervo/_autosave_status.html" %}{% endif %}
   </div>
 
   <form x-ref="form" method="post" @submit.prevent="salvar()" @input="marcarSujo()" @change="marcarSujo()" class="meta-card">
     {% csrf_token %}
+    {# Modo leitura: fieldset disabled desativa TODOS os controles internos. #}
+    <fieldset {% if somente_leitura %}disabled{% endif %} style="border: 0; padding: 0; margin: 0; min-width: 0;">
 
     {# ── Aba 1: Identificação (ficha + grande área) ─────────────── #}
     <section x-show="aba === 'identificacao'" x-cloak>
@@ -126,7 +139,10 @@
       {% include "acervo/_campos_analise.html" with form=estrutura_form %}
     </section>
 
-    {# ── Navegação entre abas + salvar ──────────────────────────── #}
+    </fieldset>
+
+    {# ── Navegação entre abas + salvar (oculto em modo leitura) ──── #}
+    {% if not somente_leitura %}
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 18px; margin-top: 18px; border-top: 1px solid var(--color-paper-3);">
       <button type="button" class="btn btn-ghost btn-sm" @click="irAba(-1)" x-show="temAnterior()">← Anterior</button>
       <span x-show="!temAnterior()"></span>
@@ -135,10 +151,27 @@
         <button type="button" class="btn btn-primary btn-sm" @click="irAba(1)" x-show="temProximo()">Próximo →</button>
       </div>
     </div>
+    {% else %}
+    {# Em leitura, navegue pelas abas no topo. #}
+    <div style="display: flex; justify-content: flex-end; gap: 10px; padding-top: 18px; margin-top: 18px; border-top: 1px solid var(--color-paper-3);">
+      <button type="button" class="btn btn-ghost btn-sm" @click="irAba(-1)" x-show="temAnterior()">← Anterior</button>
+      <button type="button" class="btn btn-ghost btn-sm" @click="irAba(1)" x-show="temProximo()">Próximo →</button>
+    </div>
+    {% endif %}
   </form>
 
+  {# ── Situação (modo leitura, curador) ─────────────────────────── #}
+  {% if somente_leitura %}
+  <section style="margin-top: 24px; padding: 14px 18px; background: var(--color-paper-2); border: 1px solid var(--color-rule-strong); font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);">
+    Situação da análise:
+    {% if analise_transitoria %}<strong>não iniciada</strong>.
+    {% else %}<strong>{{ analise.get_status_display }}</strong>.{% endif %}
+    Para aprovar ou devolver, use a tela de <strong>Sorteio e acompanhamento</strong>.
+  </section>
+  {% endif %}
+
   {# ── Submissão à curadoria (faltantes atualizadas ao vivo) ─────── #}
-  {% if analise.status == "rascunho" %}
+  {% if analise.status == "rascunho" and not somente_leitura %}
   <section style="margin-top: 24px; padding: 16px 18px; background: var(--color-paper-2); border: 1px solid var(--color-rule-strong);">
     <div x-show="!podeSubmeter()">
       <p class="t-small" style="color: var(--color-ink-2); margin: 0 0 6px;">

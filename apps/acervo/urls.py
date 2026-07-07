@@ -33,6 +33,13 @@ urlpatterns = [
         views.autosave_analise_view,
         name="autosave_analise",
     ),
+    # Visualização (curador) da análise de um analista — mesma tela, só leitura.
+    # Por (artigo, analista): funciona mesmo se o analista ainda não iniciou.
+    path(
+        "ver/<int:artigo_id>/analista/<int:analista_id>/",
+        views.ver_analise_analista_view,
+        name="ver_analise_analista",
+    ),
     path(
         "analise/<int:analise_id>/submeter/",
         views.submeter_analise_view,

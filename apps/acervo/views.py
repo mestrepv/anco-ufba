@@ -633,6 +633,60 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     )
 
 
+def ver_analise_analista_view(
+    request: HttpRequest, artigo_id: int, analista_id: int
+) -> HttpResponse:
+    """Visualização (curador) da análise de um analista — MESMA tela do editor,
+    porém em **modo leitura**. Funciona mesmo se o analista ainda não iniciou:
+    monta uma análise em branco **transitória** (não grava nada), para o curador
+    ver a grade que o analista vê, sem risco de alterar o trabalho dele."""
+    from django.contrib.auth import get_user_model
+
+    if not request.user.is_authenticated:
+        return redirect("account_login")
+    if not _eh_admin(request.user):
+        return HttpResponseForbidden(
+            "Apenas curador/admin pode visualizar a análise de outro analista."
+        )
+    User = get_user_model()
+    artigo = get_object_or_404(Artigo, pk=artigo_id)
+    analista = get_object_or_404(User, pk=analista_id)
+    analise = (
+        Analise.objects.select_related("artigo")
+        .filter(artigo=artigo, analista=analista)
+        .first()
+    )
+    transitoria = analise is None
+    if transitoria:
+        analise = Analise(artigo=artigo, analista=analista)  # em memória, não salva
+
+    passo_inicial = request.GET.get("passo", "identificacao")
+    if passo_inicial not in dict(PASSOS):
+        passo_inicial = "identificacao"
+
+    return render(
+        request,
+        "acervo/editar_analise.html",
+        {
+            "analise": analise,
+            "passos": PASSOS,
+            "passo_inicial": passo_inicial,
+            "artigo_form": ArtigoAreaForm(instance=analise.artigo),
+            "presenca_form": AnalisePresencaForm(instance=analise),
+            "estrutura_form": AnaliseEstruturaForm(instance=analise),
+            "resenha": getattr(analise, "resenha", None) if analise.pk else None,
+            "somente_leitura": True,
+            "analista_alvo": analista,
+            "analise_transitoria": transitoria,
+            "campos_faltantes": [],
+            "termos_realce": _termos_realce_do_artigo(analise.artigo),
+            "ficha": _ficha_sem_area(analise.artigo),
+            "autosave_url": "",
+            "resenha_url": "",
+        },
+    )
+
+
 @_exige_editor
 @require_POST
 def autosave_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:

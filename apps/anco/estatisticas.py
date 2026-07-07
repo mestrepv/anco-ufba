@@ -118,6 +118,7 @@ def relatorio_sorteio(projeto, sorteio) -> list[dict]:
                     "url": it.link or (getattr(art, "link_acesso", "") if art else ""),
                     "estado": estado,
                     "analise_id": analise_id,
+                    "artigo_id": at.artigo_id,
                 }
             )
         else:  # atribuído mas item saiu do corpus — usa só o artigo
@@ -130,6 +131,7 @@ def relatorio_sorteio(projeto, sorteio) -> list[dict]:
                     "url": getattr(art, "link_acesso", "") if art else "",
                     "estado": estado,
                     "analise_id": analise_id,
+                    "artigo_id": at.artigo_id,
                 }
             )
 

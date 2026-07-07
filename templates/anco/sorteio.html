@@ -112,7 +112,7 @@
                   </div>
                   {% endif %}
                 </td>
-                <td class="tit">{% if a.analise_id and pode_curar or a.analise_id and a.estado == 'publicada' %}<a href="{% url 'pagina_analise' a.analise_id %}" target="_blank" rel="noopener" title="Abrir a análise do analista">{{ a.titulo }} ↗</a>{% else %}{{ a.titulo }}{% endif %}</td>
+                <td class="tit">{% if pode_curar and a.artigo_id %}<a href="{% url 'ver_analise_analista' a.artigo_id g.id %}" target="_blank" rel="noopener" title="Ver a análise do analista (modo leitura, mesma tela que ele vê)">{{ a.titulo }} ↗</a>{% else %}{{ a.titulo }}{% endif %}</td>
                 <td>{{ a.autores|truncatechars:70|default:"—" }}</td>
                 <td>{{ a.base|default:"—" }}</td>
                 <td class="acesso">
