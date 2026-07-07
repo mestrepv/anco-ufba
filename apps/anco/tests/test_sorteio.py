@@ -180,3 +180,67 @@ def test_itens_elegiveis_filtra_por_tipo():
     art_tese = {it.artigo_id for it in itens_elegiveis(proj, tipos=["artigo", "tese"])}
     assert art_tese == {art.pk, tese.pk}  # artigos e teses (livro fora)
     assert len(itens_elegiveis(proj, tipos=[])) == 0  # nenhum tipo marcado
+
+
+# ── Diversidade de base (um artigo de cada base sempre que possível) ────────
+
+
+def _projeto_bases(bases_por_item, n_analistas):
+    """Projeto com itens de bases explícitas (via Artigo.outra_base_consulta)."""
+    proj = ProjetoANCO.objects.create(nome="PB")
+    analistas = []
+    for i in range(n_analistas):
+        u = User.objects.create_user(username=f"b{i}", email=f"b{i}@u.edu", password="x")
+        MembroANCO.objects.create(projeto=proj, usuario=u, papel=MembroANCO.Papel.ANALISTA)
+        analistas.append(u)
+    for i, base in enumerate(bases_por_item):
+        art = Artigo.objects.create(titulo=f"Art {i}", ano=2020, outra_base_consulta=base)
+        ItemCorpus.objects.create(
+            projeto=proj, titulo=f"Art {i}", identificador=f"k:{i}",
+            artigo=art, resumo=f"resumo {i}",
+        )
+    return proj, analistas
+
+
+def _bases_do_analista(sorteio, analista):
+    return [
+        a.artigo.outra_base_consulta
+        for a in AtribuicaoANCO.objects.filter(sorteio=sorteio, analista=analista).select_related(
+            "artigo"
+        )
+    ]
+
+
+def test_diversidade_uma_base_por_artigo():
+    # 5 bases × 2 itens; cota 5 → 5 artigos de 5 bases DISTINTAS.
+    bases = [b for b in "ABCDE" for _ in range(2)]
+    proj, (ana,) = _projeto_bases(bases, 1)
+    res = executar_sorteio(proj, cota=5, semente=7)
+    recebidas = _bases_do_analista(res.sorteio, ana)
+    assert len(recebidas) == 5
+    assert len(set(recebidas)) == 5  # nenhuma base repetida
+
+
+def test_repete_base_so_quando_insuficiente():
+    # 2 bases: A com 4 itens, B com 1. cota 5 → usa as 2 bases; repete A só porque
+    # não há mais bases novas. A base escassa (B) NÃO é ignorada.
+    bases = ["A", "A", "A", "A", "B"]
+    proj, (ana,) = _projeto_bases(bases, 1)
+    res = executar_sorteio(proj, cota=5, semente=3)
+    recebidas = _bases_do_analista(res.sorteio, ana)
+    assert len(recebidas) == 5
+    assert set(recebidas) == {"A", "B"}
+    assert recebidas.count("B") == 1
+    assert recebidas.count("A") == 4
+
+
+def test_diversidade_atravessa_sorteios():
+    # Ao complementar um sorteio, o analista deve preferir uma base DIFERENTE da
+    # que já recebeu antes (a diversidade considera sorteios anteriores).
+    proj, (ana,) = _projeto_bases(["A", "A", "B", "B"], 1)
+    r1 = executar_sorteio(proj, cota=1, semente=1)
+    base1 = _bases_do_analista(r1.sorteio, ana)[0]
+    r2 = executar_sorteio(proj, cota=1, semente=1)  # cota é por-sorteio: +1 item
+    recebidas2 = _bases_do_analista(r2.sorteio, ana)
+    assert len(recebidas2) == 1
+    assert recebidas2[0] != base1  # base nova, distinta da anterior

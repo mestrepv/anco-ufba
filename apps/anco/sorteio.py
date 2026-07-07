@@ -1,9 +1,13 @@
 """Sorteio da análise (ANCO): distribui o corpus entre os analistas por cota.
 
-Puramente **aleatório** (embaralha o pool com `random.Random(semente)`; a semente
-é gravada no `SorteioANCO` para ser reprodutível/auditável). `modo_revisao` define
-1 (`unica`) ou 2 (`dupla`) analistas por artigo. Round-robin estável; idempotente
-(não realoca artigos já atribuídos em sorteios anteriores). Não toca o acervo.
+Embaralha o pool com `random.Random(semente)` (a semente é gravada no
+`SorteioANCO` para ser reprodutível/auditável) e distribui em round-robin
+**preferindo diversidade de base**: cada analista tende a receber um artigo de
+cada base diferente; a **repetição de base só ocorre quando não há itens de base
+nova suficientes** (cota > nº de bases, ou base escassa). A diversidade atravessa
+sorteios (considera as bases já recebidas pelo analista). `modo_revisao` define 1
+(`unica`) ou 2 (`dupla`) analistas por artigo. Idempotente (não realoca artigos já
+atribuídos). Não toca o acervo.
 """
 
 from __future__ import annotations
@@ -193,7 +197,15 @@ def executar_sorteio(
 
     assentos = 2 if modo_revisao == SorteioANCO.ModoRevisao.DUPLA else 1
     vagas = {item.artigo_id: assentos for item in pool}
-    estado = {u.id: {"artigos": set(), "n": 0} for u in analistas}
+    # Bases que cada analista JÁ recebeu em sorteios anteriores — a diversidade
+    # de base atravessa sorteios (num sorteio novo pós-exclusão, isto é vazio).
+    bases_previas = {u.id: set() for u in analistas}
+    for at in AtribuicaoANCO.objects.filter(sorteio__projeto=projeto).select_related("artigo"):
+        if at.analista_id in bases_previas:
+            bases_previas[at.analista_id].add(_base_key(at.artigo))
+    estado = {
+        u.id: {"artigos": set(), "n": 0, "bases": set(bases_previas[u.id])} for u in analistas
+    }
     analisados = {
         u.id: set(Analise.objects.filter(analista=u).values_list("artigo_id", flat=True))
         for u in analistas
@@ -209,14 +221,21 @@ def executar_sorteio(
     )
 
     def _escolher(uid: int) -> _ItemPool | None:
+        """Prefere diversidade de base: 1ª passada devolve um item de base que o
+        analista **ainda não tem**; só cai numa base repetida (fallback) se não
+        houver item de base nova disponível — repetição só quando é inevitável."""
         st = estado[uid]
+        fallback = None
         for item in pool:
             if vagas[item.artigo_id] <= 0:
                 continue
             if item.artigo_id in st["artigos"] or item.artigo_id in analisados[uid]:
                 continue
-            return item
-        return None
+            if item.base not in st["bases"]:
+                return item  # base inédita para este analista → melhor escolha
+            if fallback is None:
+                fallback = item  # 1º disponível de base repetida (reserva)
+        return fallback
 
     atribuicoes, progresso = [], True
     while progresso:
@@ -232,6 +251,7 @@ def executar_sorteio(
             )
             vagas[item.artigo_id] -= 1
             estado[u.id]["artigos"].add(item.artigo_id)
+            estado[u.id]["bases"].add(item.base)
             estado[u.id]["n"] += 1
             progresso = True
 
