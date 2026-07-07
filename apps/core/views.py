@@ -241,6 +241,44 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         n_identificados = ativo["n_ident"] if ativo else 0
         n_desempates = ativo["n_desemp"] if ativo else 0
 
+        # ── ANCO: sorteados ainda não concluídos (por projeto do usuário) ──
+        # Alimenta o "próximo passo" e os cards. O analista ANCO deve ser levado
+        # à worklist dos seus sorteados (Matriz AnCo), não à lista global de
+        # análises. "Concluída" = submetida à curadoria ou publicada.
+        anco_proxima = None
+        anco_pendencias = {}  # pk do projeto → {n_atribuidos, n_pendentes}
+        if user.acessa_anco():
+            from apps.anco.models import AtribuicaoANCO, ProjetoANCO
+
+            concl = (
+                Analise.Status.SUBMETIDA,
+                Analise.Status.PUBLICADA,
+                Analise.Status.LEGADO,
+            )
+            anco_qs = ProjetoANCO.objects.filter(arquivado=False)
+            if not user.is_staff:
+                anco_qs = anco_qs.filter(membros__usuario=user).distinct()
+            for pa in anco_qs.order_by("nome"):
+                atr = set(
+                    AtribuicaoANCO.objects.filter(
+                        sorteio__projeto=pa, analista=user
+                    ).values_list("artigo_id", flat=True)
+                )
+                if not atr:
+                    continue
+                feitas = Analise.objects.filter(
+                    analista=user, artigo_id__in=atr, status__in=concl
+                ).count()
+                pend = len(atr) - feitas
+                anco_pendencias[pa.pk] = {"n_atribuidos": len(atr), "n_pendentes": pend}
+                if pend and anco_proxima is None:
+                    anco_proxima = {
+                        "titulo": f"{pend} artigo(s) sorteado(s) para você analisar",
+                        "sub": "Faça a análise cognitiva (Matriz AnCo) do seu conjunto.",
+                        "href": reverse("anco_analisar", args=[pa.slug]),
+                        "label": "Analisar artigos",
+                    }
+
         # Próximo passo: a única coisa óbvia a fazer agora (por prioridade).
         if n_triagens:
             proxima = {
@@ -277,6 +315,10 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                 "href": reverse("triagem_iniciar", args=[sl]),
                 "label": "Iniciar triagem",
             }
+        elif anco_proxima:
+            # Analista ANCO: leva direto à worklist dos sorteados (não à lista
+            # global de análises) — resolve a duplicação de forma intuitiva.
+            proxima = anco_proxima
         elif n_rascunhos:
             proxima = {
                 "titulo": f"{n_rascunhos} análise(s) em andamento",
@@ -310,6 +352,8 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                     "projeto": pa,
                     "eh_curador": pa.eh_curador_no(user),
                     "n_corpus": pa.itens.filter(removido=False).count(),
+                    "n_atribuidos": anco_pendencias.get(pa.pk, {}).get("n_atribuidos", 0),
+                    "n_pendentes": anco_pendencias.get(pa.pk, {}).get("n_pendentes", 0),
                 }
                 for pa in anco_qs.order_by("nome")
             ]
@@ -320,11 +364,20 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         # só fazem sentido quando os DOIS lados estão visíveis.
         mostra_prisma = bool(projetos_painel) or pode_criar_projeto
         mostra_anco = bool(projetos_anco)
+        # Para onde apontar quem ainda não tem análises: worklist ANCO de
+        # sorteados quando houver; senão a fila da triagem (PRISMA).
+        url_trabalho = None
+        if anco_proxima:
+            url_trabalho = anco_proxima["href"]
+        elif user.acessa_prisma():
+            url_trabalho = reverse("triagem_a_analisar")
+
         contexto_triagem = {
             "projetos_painel": projetos_painel,
             "projetos_anco": projetos_anco,
             "n_projetos": len(meus_projetos),
             "proxima": proxima,
+            "url_trabalho": url_trabalho,
             "pode_criar_projeto": pode_criar_projeto,
             "mostra_prisma": mostra_prisma,
             "mostra_anco": mostra_anco,

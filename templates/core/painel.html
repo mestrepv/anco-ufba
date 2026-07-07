@@ -203,9 +203,12 @@
       <div class="projeto-bloco">
         <div class="projeto-cab">
           <a href="{% url 'anco_painel' item.projeto.slug %}" class="projeto-nome">{{ item.projeto.nome }}{% if item.eh_curador %} <span class="projeto-papel">curador</span>{% endif %}</a>
-          <a href="{% url 'anco_painel' item.projeto.slug %}" class="btn btn-sm btn-primary">Entrar no projeto &rarr;</a>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            {% if item.n_atribuidos %}<a href="{% url 'anco_analisar' item.projeto.slug %}" class="btn btn-sm btn-primary" title="Analisar os artigos sorteados para você">Analisar artigos{% if item.n_pendentes %} ({{ item.n_pendentes }}){% endif %} &rarr;</a>{% endif %}
+            <a href="{% url 'anco_painel' item.projeto.slug %}" class="btn btn-sm {% if item.n_atribuidos %}btn-secondary{% else %}btn-primary{% endif %}">Entrar no projeto &rarr;</a>
+          </div>
         </div>
-        <p class="projeto-meta"><span class="rotulo">Corpus:</span> {{ item.n_corpus }} artigo{{ item.n_corpus|pluralize }}{% if item.projeto.pergunta_pesquisa %} · {{ item.projeto.pergunta_pesquisa|truncatechars:140 }}{% endif %}</p>
+        <p class="projeto-meta"><span class="rotulo">Corpus:</span> {{ item.n_corpus }} artigo{{ item.n_corpus|pluralize }}{% if item.n_atribuidos %} · <strong>{{ item.n_atribuidos }}</strong> sorteado{{ item.n_atribuidos|pluralize }} para você{% endif %}{% if item.projeto.pergunta_pesquisa %} · {{ item.projeto.pergunta_pesquisa|truncatechars:120 }}{% endif %}</p>
       </div>
       {% endfor %}
     </div>
@@ -217,7 +220,7 @@
   {# ── Minhas análises ───────────────────────────────────────────── #}
   <section class="painel-secao">
     <h2>Minhas análises</h2>
-    <p class="secao-desc">Análises que você criou — rascunhos, submetidas e publicadas.</p>
+    <p class="secao-desc">Histórico das análises que você criou — rascunhos, submetidas e publicadas.{% if url_trabalho %} Para pegar trabalho novo, use <a href="{{ url_trabalho }}" style="color:var(--color-gold-deep);">Analisar artigos →</a>{% endif %}</p>
     {% if minhas_analises %}
       {% for a in minhas_analises %}
       <div class="lista-item">
@@ -238,7 +241,7 @@
       </div>
       {% endfor %}
     {% else %}
-      <p class="empty">Você ainda não tem análises.{% if user.eh_analista %} <a href="{% url 'triagem_a_analisar' %}" style="color:var(--color-gold-deep);font-style:normal;">Ver artigos a analisar →</a>{% endif %}</p>
+      <p class="empty">Você ainda não tem análises.{% if url_trabalho %} <a href="{{ url_trabalho }}" style="color:var(--color-gold-deep);font-style:normal;">Ver artigos a analisar →</a>{% endif %}</p>
     {% endif %}
   </section>
 
