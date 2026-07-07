@@ -77,13 +77,13 @@ def relatorio_sorteio(projeto, sorteio) -> list[dict]:
     atribuicoes = AtribuicaoANCO.objects.filter(sorteio=sorteio).select_related(
         "analista", "artigo"
     )
-    # Status da análise por (analista, artigo) — uma consulta para toda a tela.
-    status_por = {
-        (a["analista_id"], a["artigo_id"]): a["status"]
+    # Análise por (analista, artigo) — id + status, uma consulta para a tela toda.
+    analise_por = {
+        (a["analista_id"], a["artigo_id"]): a
         for a in Analise.objects.filter(
             analista__in={at.analista_id for at in atribuicoes},
             artigo__in={at.artigo_id for at in atribuicoes},
-        ).values("analista_id", "artigo_id", "status")
+        ).values("analista_id", "artigo_id", "status", "id")
     }
     # Mapa artigo → ItemCorpus (com fontes) para a proveniência/base e os links.
     itens = (
@@ -104,7 +104,9 @@ def relatorio_sorteio(projeto, sorteio) -> list[dict]:
         )
         it = por_artigo.get(at.artigo_id)
         art = at.artigo
-        estado = _estado_artigo(status_por.get((u.pk, at.artigo_id)))
+        analise = analise_por.get((u.pk, at.artigo_id))
+        estado = _estado_artigo(analise["status"] if analise else None)
+        analise_id = analise["id"] if analise else None
         if it is not None:
             bases = sorted({f.base_nome or "(sem base)" for f in it.origem_fontes.all()})
             g["artigos"].append(
@@ -115,6 +117,7 @@ def relatorio_sorteio(projeto, sorteio) -> list[dict]:
                     "doi": it.doi or (art.doi if art else ""),
                     "url": it.link or (getattr(art, "link_acesso", "") if art else ""),
                     "estado": estado,
+                    "analise_id": analise_id,
                 }
             )
         else:  # atribuído mas item saiu do corpus — usa só o artigo
@@ -126,6 +129,7 @@ def relatorio_sorteio(projeto, sorteio) -> list[dict]:
                     "doi": (art.doi if art else "") or "",
                     "url": getattr(art, "link_acesso", "") if art else "",
                     "estado": estado,
+                    "analise_id": analise_id,
                 }
             )
 

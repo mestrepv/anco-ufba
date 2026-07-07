@@ -172,3 +172,54 @@ def test_painel_botao_vira_sorteio_e_acompanhamento(client, projeto, curador, an
     resp = client.get(reverse("anco_painel", args=[projeto.slug]))
     assert "Sorteio e acompanhamento".encode() in resp.content
     assert b"Sortear an\xc3\xa1lise" not in resp.content
+
+
+def test_aprovar_analise_inline_da_tela_de_sorteio(client, projeto, curador, analista, base_scopus):
+    from apps.acervo.models import Analise
+
+    fonte = FonteImport.objects.create(projeto=projeto, base_consulta=base_scopus)
+    it = _item(projeto, "Enviada para aprovar", "k1", fonte)
+    s = SorteioANCO.objects.create(projeto=projeto)
+    AtribuicaoANCO.objects.create(sorteio=s, analista=analista, artigo=it.artigo)
+    analise = Analise.objects.create(
+        artigo=it.artigo, analista=analista, status=Analise.Status.SUBMETIDA
+    )
+
+    client.force_login(curador)
+    # A tela mostra o botão Aprovar e o título vira link para a análise.
+    resp = client.get(reverse("anco_sorteio", args=[projeto.slug]))
+    corpo = resp.content.decode()
+    assert "Aprovar" in corpo
+    assert reverse("pagina_analise", args=[analise.pk]) in corpo
+
+    # Aprova inline, voltando para o sorteio → análise publicada no acervo.
+    destino = reverse("anco_sorteio", args=[projeto.slug])
+    resp = client.post(reverse("aprovar_analise", args=[analise.pk]), {"next": destino})
+    assert resp.status_code == 302
+    assert resp["Location"] == destino
+    analise.refresh_from_db()
+    assert analise.status == Analise.Status.PUBLICADA
+
+
+def test_devolver_analise_inline_volta_ao_sorteio(client, projeto, curador, analista, base_scopus):
+    from apps.acervo.models import Analise
+
+    fonte = FonteImport.objects.create(projeto=projeto, base_consulta=base_scopus)
+    it = _item(projeto, "Para devolver", "k1", fonte)
+    s = SorteioANCO.objects.create(projeto=projeto)
+    AtribuicaoANCO.objects.create(sorteio=s, analista=analista, artigo=it.artigo)
+    analise = Analise.objects.create(
+        artigo=it.artigo, analista=analista, status=Analise.Status.SUBMETIDA
+    )
+
+    client.force_login(curador)
+    destino = reverse("anco_sorteio", args=[projeto.slug])
+    resp = client.post(
+        reverse("devolver_analise", args=[analise.pk]),
+        {"next": destino, "acao": "ajustes", "motivo": "Falta a metodologia."},
+    )
+    assert resp.status_code == 302
+    assert resp["Location"] == destino
+    analise.refresh_from_db()
+    assert analise.status == Analise.Status.RASCUNHO
+    assert analise.motivo_curadoria == "Falta a metodologia."

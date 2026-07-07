@@ -1024,6 +1024,19 @@ def fila_curadoria_view(request: HttpRequest) -> HttpResponse:
     )
 
 
+def _destino_curadoria(request: HttpRequest):
+    """Para onde voltar após curar: `next` seguro (ex.: tela de sorteio ANCO) ou
+    a fila de curadoria. Permite aprovar/devolver de fora da fila."""
+    from django.utils.http import url_has_allowed_host_and_scheme
+
+    destino = request.POST.get("next") or ""
+    if destino and url_has_allowed_host_and_scheme(
+        destino, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        return redirect(destino)
+    return redirect("fila_curadoria")
+
+
 @_exige_curador
 @require_POST
 def aprovar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
@@ -1032,7 +1045,7 @@ def aprovar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     analise = get_object_or_404(Analise, pk=analise_id)
     if analise.status != Analise.Status.SUBMETIDA:
         messages.info(request, "Esta análise não está na fila de curadoria.")
-        return redirect("fila_curadoria")
+        return _destino_curadoria(request)
     agora = timezone.now()
     analise.status = Analise.Status.PUBLICADA
     analise.publicada_em = agora
@@ -1041,7 +1054,7 @@ def aprovar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     analise.save()
     notificar_publicacao_analise(analise)
     messages.success(request, "Análise aprovada e publicada no acervo.")
-    return redirect("fila_curadoria")
+    return _destino_curadoria(request)
 
 
 @_exige_curador
@@ -1053,7 +1066,7 @@ def devolver_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse
     analise = get_object_or_404(Analise, pk=analise_id)
     if analise.status != Analise.Status.SUBMETIDA:
         messages.info(request, "Esta análise não está na fila de curadoria.")
-        return redirect("fila_curadoria")
+        return _destino_curadoria(request)
     motivo = (request.POST.get("motivo") or "").strip()
     rejeitar = request.POST.get("acao") == "rejeitar"
     analise.status = Analise.Status.REJEITADA if rejeitar else Analise.Status.RASCUNHO
@@ -1064,7 +1077,7 @@ def devolver_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse
         request,
         "Análise rejeitada." if rejeitar else "Análise devolvida para ajustes.",
     )
-    return redirect("fila_curadoria")
+    return _destino_curadoria(request)
 
 
 @_exige_curador

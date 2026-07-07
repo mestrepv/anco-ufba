@@ -655,6 +655,9 @@ def sorteio_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
         "tem_sorteio": bool(sorteios),
         "n_acervo": n_acervo,
         "modos": SorteioANCO.ModoRevisao.choices,
+        # Aprovar/pré-visualizar exige curador GLOBAL (fila de curadoria), não só
+        # curador de projeto — igual à regra da fila. Gate do título/aprovar.
+        "pode_curar": request.user.is_staff or request.user.eh_curador,
         **_contexto_elegiveis(projeto, request),
     }
     return render(request, "anco/sorteio.html", contexto)

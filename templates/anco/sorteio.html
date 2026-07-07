@@ -52,6 +52,7 @@
     </div>
 
     <h2 class="tg-h2">Progresso por analista</h2>
+    {% if pode_curar %}<p class="tg-meta no-print" style="margin:-6px 0 12px;">Clique no <strong>título</strong> para abrir a análise do analista. Quando a situação for <strong>Enviada</strong>, você pode <strong>Aprovar</strong> (publica no acervo) ou <strong>Devolver</strong> aqui mesmo.</p>{% endif %}
 
     {# Resumo da equipe: barra geral + quantos em cada situação. #}
     <div class="tg-card" style="margin:0 0 16px;">
@@ -87,10 +88,31 @@
             </thead>
             <tbody>
               {% for a in g.artigos %}
-              <tr>
+              <tr x-data="{ dev: false }">
                 <td>{{ forloop.counter }}</td>
-                <td><span class="sit sit-{{ a.estado }}">{{ a.estado_rotulo }}</span></td>
-                <td class="tit">{{ a.titulo }}</td>
+                <td>
+                  <span class="sit sit-{{ a.estado }}">{{ a.estado_rotulo }}</span>
+                  {% if a.estado == 'submetida' and pode_curar %}
+                  <div class="no-print" style="margin-top:6px;display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
+                    <form method="post" action="{% url 'aprovar_analise' a.analise_id %}" onsubmit="return confirm('Aprovar esta análise e publicar no acervo?');">
+                      {% csrf_token %}<input type="hidden" name="next" value="{% url 'anco_sorteio' projeto.slug %}">
+                      <button type="submit" class="btn btn-sm btn-primary">Aprovar ✓</button>
+                    </form>
+                    <button type="button" class="btn btn-sm btn-secondary" @click="dev = !dev">Devolver…</button>
+                    <div x-show="dev" x-cloak style="margin-top:2px;">
+                      <form method="post" action="{% url 'devolver_analise' a.analise_id %}">
+                        {% csrf_token %}<input type="hidden" name="next" value="{% url 'anco_sorteio' projeto.slug %}">
+                        <textarea name="motivo" rows="2" placeholder="Motivo (ajustes ou rejeição)" style="width:190px;font-size:12px;padding:5px;border:1px solid var(--color-rule-strong);border-radius:4px;"></textarea>
+                        <div style="display:flex;gap:4px;margin-top:2px;">
+                          <button type="submit" name="acao" value="ajustes" class="btn btn-sm btn-secondary">Pedir ajustes</button>
+                          <button type="submit" name="acao" value="rejeitar" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Rejeitar</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                  {% endif %}
+                </td>
+                <td class="tit">{% if a.analise_id and pode_curar or a.analise_id and a.estado == 'publicada' %}<a href="{% url 'pagina_analise' a.analise_id %}" target="_blank" rel="noopener" title="Abrir a análise do analista">{{ a.titulo }} ↗</a>{% else %}{{ a.titulo }}{% endif %}</td>
                 <td>{{ a.autores|truncatechars:70|default:"—" }}</td>
                 <td>{{ a.base|default:"—" }}</td>
                 <td class="acesso">
