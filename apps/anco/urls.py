@@ -37,5 +37,10 @@ urlpatterns = [
         views.acompanhamento_view,
         name="anco_acompanhamento",
     ),
+    path(
+        "p/<slug:slug>/acompanhamento/analista/<int:analista_id>/navegar/",
+        views.acompanhamento_nav_view,
+        name="anco_acompanhamento_nav",
+    ),
     path("p/<slug:slug>/equipe/", views.equipe_view, name="anco_equipe"),
 ]

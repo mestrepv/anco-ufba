@@ -420,6 +420,26 @@ def corpus_editar_view(request: HttpRequest, projeto: ProjetoANCO, item_id: int)
                     # alterna o filtro (reinicia no 1º item do conjunto resultante)
                     "toggle_url": nav_url + ("" if novos else "?novos=1"),
                 }
+    elif ctx == "analista":
+        # Percorre só os artigos sorteados para um analista (link do acompanhamento).
+        analista_id = (request.GET.get("analista") or "").strip()
+        if analista_id.isdigit():
+            art_ids = set(
+                AtribuicaoANCO.objects.filter(
+                    sorteio__projeto=projeto, analista_id=int(analista_id)
+                ).values_list("artigo_id", flat=True)
+            )
+            sort_ids = list(
+                projeto.itens.filter(removido=False, artigo_id__in=art_ids)
+                .order_by("criado_em")
+                .values_list("pk", flat=True)
+            )
+            if item.pk in sort_ids:  # item ainda é sorteado para esse analista
+                ids = sort_ids
+                nav_qs = f"ctx=analista&analista={int(analista_id)}"
+                rotulo_nav = "Artigo sorteado"
+                voltar_url = reverse("anco_acompanhamento", args=[projeto.slug])
+                voltar_rotulo = "Acompanhamento"
     if ids is None:  # sem contexto (ou item saiu do subconjunto): corpus inteiro
         ids = list(projeto.itens.filter(removido=False).values_list("pk", flat=True))
 
@@ -656,6 +676,29 @@ def acompanhamento_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpRespo
             "tem_sorteio": projeto.sorteios.exists(),
         },
     )
+
+
+@_projeto_curador
+def acompanhamento_nav_view(
+    request: HttpRequest, projeto: ProjetoANCO, analista_id: int
+) -> HttpResponse:
+    """Abre a ficha do 1º artigo sorteado para um analista, com navegação
+    restrita aos itens sorteados dele (`ctx=analista`). Link do acompanhamento."""
+    from django.urls import reverse
+
+    art_ids = set(
+        AtribuicaoANCO.objects.filter(
+            sorteio__projeto=projeto, analista_id=analista_id
+        ).values_list("artigo_id", flat=True)
+    )
+    primeiro = (
+        projeto.itens.filter(removido=False, artigo_id__in=art_ids).order_by("criado_em").first()
+    )
+    if primeiro is None:
+        messages.info(request, "Este analista não tem artigos sorteados.")
+        return redirect("anco_acompanhamento", slug=projeto.slug)
+    url = reverse("anco_corpus_editar", args=[projeto.slug, primeiro.pk])
+    return redirect(f"{url}?ctx=analista&analista={analista_id}")
 
 
 @_projeto_curador
