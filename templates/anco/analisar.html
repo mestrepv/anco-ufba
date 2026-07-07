@@ -1,5 +1,5 @@
 {% extends "_base_publico.html" %}
-{% block title %}Sua análise cognitiva · {{ projeto.nome }}{% endblock %}
+{% block title %}Minhas análises · {{ projeto.nome }}{% endblock %}
 {% block extra_head %}{% include "triagem/_estilos.html" %}
 <style>
   .an-hero { border:1px solid var(--color-gold-deep); border-radius:14px; padding:20px 22px; background:var(--color-review-bg); margin:8px 0 20px; }
@@ -26,7 +26,7 @@
 
   <div class="an-hero">
     <p class="t-eyebrow" style="margin:0 0 4px;">Etapa 3 · Matriz AnCo</p>
-    <h1 class="tg-h1">Sua análise cognitiva</h1>
+    <h1 class="tg-h1">Minhas análises</h1>
     {% if total %}
     <p>Estes são os <strong>{{ total }}</strong> artigo{{ total|pluralize }} <strong>sorteado{{ total|pluralize }} para você</strong> analisar pela Matriz de Análise Cognitiva. Este é o seu conjunto — trabalhe um a um até concluir todos.</p>
     {% else %}
