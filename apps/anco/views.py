@@ -342,8 +342,6 @@ def corpus_editar_view(request: HttpRequest, projeto: ProjetoANCO, item_id: int)
     adicionou ou curador/admin; item já no acervo curado (`eh_legado`) é só-leitura."""
     from django.urls import reverse
 
-    from apps.publico.services import doi_to_slug
-
     item = get_object_or_404(ItemCorpus, pk=item_id, projeto=projeto, removido=False)
     eh_legado = bool(item.artigo and item.artigo.eh_legado)
     pode_editar = _pode_gerenciar_item(projeto, item, request.user) and not eh_legado
@@ -453,7 +451,6 @@ def corpus_editar_view(request: HttpRequest, projeto: ProjetoANCO, item_id: int)
         if i < len(ids) - 1
         else ""
     )
-    doi_slug = doi_to_slug(item.artigo.doi) if item.artigo and item.artigo.doi else ""
     return render(
         request,
         "anco/corpus_editar.html",
@@ -463,7 +460,6 @@ def corpus_editar_view(request: HttpRequest, projeto: ProjetoANCO, item_id: int)
             "form": form,
             "pode_editar": pode_editar,
             "eh_legado": eh_legado,
-            "doi_slug": doi_slug,
             "url_anterior": url_anterior,
             "url_proximo": url_proximo,
             "pos": i + 1,
