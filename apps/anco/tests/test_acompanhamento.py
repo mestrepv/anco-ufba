@@ -88,18 +88,6 @@ def test_analises_no_projeto_vs_espontaneas(projeto, analista):
     assert "Legado" not in por_titulo
 
 
-def test_view_lista_analises_com_link(client, projeto, curador, analista):
-    artigo = Artigo.objects.create(titulo="Obra em rascunho", ano=2024)
-    analise = Analise.objects.create(
-        artigo=artigo, analista=analista, status=Analise.Status.RASCUNHO
-    )
-    client.force_login(curador)
-    resp = client.get(reverse("anco_acompanhamento", args=[projeto.slug]))
-    assert resp.status_code == 200
-    assert b"Obra em rascunho" in resp.content
-    assert reverse("pagina_analise", args=[analise.pk]).encode() in resp.content
-
-
 def test_membro_sem_atividade(projeto, inativo):
     ln = _linha(acompanhamento_membros(projeto), inativo)
     assert ln["tem_atividade"] is False
@@ -107,15 +95,16 @@ def test_membro_sem_atividade(projeto, inativo):
     assert ln["n_fontes"] == ln["n_itens"] == ln["n_atribuidos"] == 0
 
 
-def test_view_curador_200(client, projeto, curador, inativo):
+def test_view_curador_redireciona_para_sorteio(client, projeto, curador):
+    # Acompanhamento foi unificado na tela de sorteio (progresso por analista).
     client.force_login(curador)
     resp = client.get(reverse("anco_acompanhamento", args=[projeto.slug]))
-    assert resp.status_code == 200
-    assert b"Acompanhamento da equipe" in resp.content
-    assert inativo.email.encode() in resp.content
+    assert resp.status_code == 302
+    assert resp["Location"] == reverse("anco_sorteio", args=[projeto.slug])
 
 
 def test_view_analista_403(client, projeto, analista):
+    # O gate de curador roda antes do redirect.
     client.force_login(analista)
     resp = client.get(reverse("anco_acompanhamento", args=[projeto.slug]))
     assert resp.status_code == 403

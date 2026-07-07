@@ -35,18 +35,56 @@ def resumo(projeto) -> dict:
     }
 
 
+# Situação da análise de cada artigo sorteado (rótulo + ordem de exibição).
+# Unifica o acompanhamento no relatório do sorteio: dá para ver, por analista,
+# o que falta, o que está em andamento e o que já foi entregue.
+ESTADOS_ARTIGO = {
+    "nada": {"rotulo": "A fazer", "ordem": 0},
+    "andamento": {"rotulo": "Em andamento", "ordem": 1},
+    "submetida": {"rotulo": "Enviada", "ordem": 2},
+    "publicada": {"rotulo": "Publicada", "ordem": 3},
+}
+
+
+def _estado_artigo(status) -> str:
+    """Classifica o status da Analise do analista para um artigo sorteado."""
+    from apps.acervo.models import Analise
+
+    if status is None:
+        return "nada"
+    if status == Analise.Status.RASCUNHO:
+        return "andamento"
+    if status == Analise.Status.REJEITADA:
+        return "andamento"  # devolvida pela curadoria: volta a ser trabalho
+    if status == Analise.Status.SUBMETIDA:
+        return "submetida"
+    return "publicada"  # publicada / legado
+
+
 def relatorio_sorteio(projeto, sorteio) -> list[dict]:
     """Relatório de um sorteio: um bloco por analista com os artigos que recebeu.
 
-    Cada artigo traz título, autor(es), base(s) de origem, DOI e URL — puxados do
-    `ItemCorpus` do projeto (que guarda a proveniência), casando por artigo.
-    Ordenado por nome do analista; artigos por título.
+    Cada artigo traz título, autor(es), base(s), DOI, link de acesso e a
+    **situação da análise** (a fazer / em andamento / enviada / publicada). Cada
+    analista traz um resumo de **progresso** (concluídas de total). Unifica
+    sorteio + acompanhamento numa tela só. Ordenado por nome do analista; artigos
+    pela situação (o que falta primeiro), depois título.
     """
+    from apps.acervo.models import Analise
+
     from .models import AtribuicaoANCO, ItemCorpus
 
     atribuicoes = AtribuicaoANCO.objects.filter(sorteio=sorteio).select_related(
         "analista", "artigo"
     )
+    # Status da análise por (analista, artigo) — uma consulta para toda a tela.
+    status_por = {
+        (a["analista_id"], a["artigo_id"]): a["status"]
+        for a in Analise.objects.filter(
+            analista__in={at.analista_id for at in atribuicoes},
+            artigo__in={at.artigo_id for at in atribuicoes},
+        ).values("analista_id", "artigo_id", "status")
+    }
     # Mapa artigo → ItemCorpus (com fontes) para a proveniência/base e os links.
     itens = (
         ItemCorpus.objects.filter(projeto=projeto, removido=False, artigo__isnull=False)
@@ -66,6 +104,7 @@ def relatorio_sorteio(projeto, sorteio) -> list[dict]:
         )
         it = por_artigo.get(at.artigo_id)
         art = at.artigo
+        estado = _estado_artigo(status_por.get((u.pk, at.artigo_id)))
         if it is not None:
             bases = sorted({f.base_nome or "(sem base)" for f in it.origem_fontes.all()})
             g["artigos"].append(
@@ -75,6 +114,7 @@ def relatorio_sorteio(projeto, sorteio) -> list[dict]:
                     "base": ", ".join(bases),
                     "doi": it.doi or (art.doi if art else ""),
                     "url": it.link or (getattr(art, "link_acesso", "") if art else ""),
+                    "estado": estado,
                 }
             )
         else:  # atribuído mas item saiu do corpus — usa só o artigo
@@ -85,6 +125,7 @@ def relatorio_sorteio(projeto, sorteio) -> list[dict]:
                     "base": "",
                     "doi": (art.doi if art else "") or "",
                     "url": getattr(art, "link_acesso", "") if art else "",
+                    "estado": estado,
                 }
             )
 
@@ -97,9 +138,32 @@ def relatorio_sorteio(projeto, sorteio) -> list[dict]:
             a["acesso_url"] = (a["url"] or "").strip() or a["doi_url"]
             a["acesso_host"] = _host(a["acesso_url"])
             a["acesso_via_doi"] = not (a["url"] or "").strip() and bool(a["doi_url"])
-        g["artigos"].sort(key=lambda a: a["titulo"].lower())
+            a["estado_rotulo"] = ESTADOS_ARTIGO[a["estado"]]["rotulo"]
+        # O que falta primeiro; depois por título.
+        g["artigos"].sort(key=lambda a: (ESTADOS_ARTIGO[a["estado"]]["ordem"], a["titulo"].lower()))
         g["n"] = len(g["artigos"])
-    linhas.sort(key=lambda g: g["nome"].lower())
+        # Progresso do analista: concluída = enviada à curadoria ou publicada.
+        cont = Counter(a["estado"] for a in g["artigos"])
+        concluidas = cont["submetida"] + cont["publicada"]
+        g["progresso"] = {
+            "total": g["n"],
+            "concluidas": concluidas,
+            "andamento": cont["andamento"],
+            "a_fazer": cont["nada"],
+            "pct": round(100 * concluidas / g["n"]) if g["n"] else 0,
+            # estado geral do analista, p/ o ponto colorido e a ordenação
+            "estado": (
+                "concluido"
+                if g["n"] and concluidas == g["n"]
+                else "andamento"
+                if (concluidas or cont["andamento"])
+                else "nada"
+            ),
+        }
+    # Ordena os analistas: quem tem trabalho parado primeiro (a fazer / em
+    # andamento), depois quem concluiu; dentro de cada grupo, por nome.
+    _ordem_estado = {"nada": 0, "andamento": 1, "concluido": 2}
+    linhas.sort(key=lambda g: (_ordem_estado[g["progresso"]["estado"]], g["nome"].lower()))
     return linhas
 
 

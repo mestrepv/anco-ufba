@@ -130,7 +130,8 @@ def test_curador_ocioso_sugere_acompanhar(client, projeto, curador):
     client.force_login(curador)
     resp = client.get(reverse("painel"))
     prox = resp.context["proxima"]
-    assert prox["href"] == reverse("anco_acompanhamento", args=[projeto.slug])
+    # Acompanhamento unificado na tela de sorteio.
+    assert prox["href"] == reverse("anco_sorteio", args=[projeto.slug])
     assert "Tudo em dia" in prox["titulo"]
 
 

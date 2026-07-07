@@ -288,12 +288,13 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                 "label": "Continuar",
             }
         elif eh_curador_geral and acomp_slug:
-            # Ocioso do curador: nada na fila — nudge para acompanhar a equipe.
+            # Ocioso do curador: nada na fila — nudge para acompanhar a equipe
+            # (sorteio + progresso na mesma tela).
             proxima = {
                 "titulo": "Tudo em dia 🎉",
-                "sub": "Sem pendências de curadoria. Acompanhe o trabalho dos analistas.",
-                "href": reverse("anco_acompanhamento", args=[acomp_slug]),
-                "label": "Acompanhar analistas",
+                "sub": "Sem pendências de curadoria. Acompanhe o progresso dos analistas.",
+                "href": reverse("anco_sorteio", args=[acomp_slug]),
+                "label": "Ver progresso",
             }
         else:
             proxima = None

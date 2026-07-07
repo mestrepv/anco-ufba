@@ -81,9 +81,8 @@
       <div class="fluxo3-body">
         <p class="fluxo3-tit">Análise (Matriz AnCo){% if minha_a_analisar %} <span class="tg-meta">· {{ minha_a_analisar }} para você</span>{% endif %}</p>
         <div class="fluxo3-acts">
-          {% if eh_curador %}<a href="{% url 'anco_sorteio' projeto.slug %}" class="btn {% if tem_sorteio %}btn-secondary{% else %}btn-primary{% endif %}">{% if tem_sorteio %}Ver sorteio{% else %}Sortear análise{% endif %}</a>{% endif %}
+          {% if eh_curador %}<a href="{% url 'anco_sorteio' projeto.slug %}" class="btn {% if tem_sorteio %}btn-secondary{% else %}btn-primary{% endif %}">{% if tem_sorteio %}Sorteio e acompanhamento{% else %}Sortear análise{% endif %}</a>{% endif %}
           <a href="{% url 'anco_analisar' projeto.slug %}" class="btn {% if minha_a_analisar and not eh_curador %}btn-primary{% else %}btn-secondary{% endif %}">Analisar artigos</a>
-          {% if eh_curador %}<a href="{% url 'anco_acompanhamento' projeto.slug %}" class="btn btn-secondary">Acompanhamento</a>{% endif %}
         </div>
       </div>
     </div>

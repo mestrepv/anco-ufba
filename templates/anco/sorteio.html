@@ -10,14 +10,27 @@
   .rel-tab td.acesso a { color:var(--color-gold-deep); font-weight:600; border-bottom:1px solid var(--color-gold-deep); }
   .rel-tab td.doi { font-size:12px; color:var(--color-ink-2); }
   .rel-wrap { overflow-x:auto; margin-top:8px; }
-  .rel-analista { display:flex; align-items:baseline; gap:8px; margin:0 0 4px; }
+  .rel-cab { display:flex; justify-content:space-between; align-items:center; gap:10px 18px; flex-wrap:wrap; }
+  .rel-nome { display:flex; align-items:center; gap:8px; }
+  .rel-prog { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .rel-bar { width:130px; height:9px; border-radius:999px; background:var(--color-rule); overflow:hidden; flex-shrink:0; }
+  .rel-bar > span { display:block; height:100%; background:var(--color-gold-deep); }
+  .dot { width:11px; height:11px; border-radius:50%; flex-shrink:0; display:inline-block; }
+  .dot-nada { background:var(--color-danger); }
+  .dot-andamento { background:var(--color-gold-deep); }
+  .dot-concluido { background:#3a7a2a; }
+  .sit { font-size:11px; padding:2px 9px; border-radius:999px; white-space:nowrap; border:1px solid var(--color-rule-strong); color:var(--color-ink-2); }
+  .sit-nada { border-color:var(--color-danger); color:var(--color-danger); }
+  .sit-andamento { border-color:var(--color-gold-deep); color:var(--color-gold-deep); background:var(--color-review-bg); }
+  .sit-submetida { border-color:#2a4d6e; color:#2a4d6e; }
+  .sit-publicada { border-color:#3a7a2a; color:#fff; background:#3a7a2a; }
   [x-cloak]{ display:none !important; }
   @media print { .no-print { display:none !important; } }
 </style>{% endblock %}
 {% block content %}
 <div class="tg-wrap {% if not tem_sorteio %}narrow{% endif %}">
   <a href="{% url 'anco_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome }}</a>
-  <h1 class="tg-h1" style="margin-top:6px;">{% if tem_sorteio %}Sorteio da análise{% else %}Sortear análise{% endif %}</h1>
+  <h1 class="tg-h1" style="margin-top:6px;">{% if tem_sorteio %}Sorteio e acompanhamento{% else %}Sortear análise{% endif %}</h1>
 
   {% if tem_sorteio %}
   {# ---------- Já há sorteio: relatório + excluir; refazer fica recolhido ---------- #}
@@ -38,22 +51,45 @@
       </div>
     </div>
 
-    <h2 class="tg-h2">Artigos sorteados por analista</h2>
+    <h2 class="tg-h2">Progresso por analista</h2>
+
+    {# Resumo da equipe: barra geral + quantos em cada situação. #}
+    <div class="tg-card" style="margin:0 0 16px;">
+      <div class="rel-prog" style="margin-bottom:10px;">
+        <div class="rel-bar" style="width:200px;height:12px;"><span style="width:{{ s.resumo.pct }}%;"></span></div>
+        <span><strong>{{ s.resumo.art_ok }}</strong> de {{ s.resumo.art_total }} análises concluídas · <strong>{{ s.resumo.pct }}%</strong></span>
+      </div>
+      <p class="tg-meta" style="margin:0;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;">
+        {{ s.resumo.n_analistas }} analista{{ s.resumo.n_analistas|pluralize }}
+        <span><span class="dot dot-concluido"></span> {{ s.resumo.n_concluiram }} concluíram tudo</span>
+        <span><span class="dot dot-andamento"></span> {{ s.resumo.n_andamento }} em andamento</span>
+        <span><span class="dot dot-nada"></span> {{ s.resumo.n_nada }} não começaram</span>
+      </p>
+    </div>
+
     {% for g in s.relatorio %}
       <div class="tg-card" style="margin-bottom:14px;">
-        <p class="rel-analista">
-          <strong style="font-size:16px;">{{ g.nome }}</strong>
-          <span class="tg-meta">· {{ g.n }} artigo{{ g.n|pluralize }}</span>
-        </p>
+        <div class="rel-cab">
+          <div class="rel-nome">
+            <span class="dot dot-{{ g.progresso.estado }}" title="{% if g.progresso.estado == 'concluido' %}concluiu tudo{% elif g.progresso.estado == 'andamento' %}em andamento{% else %}não começou{% endif %}"></span>
+            <strong style="font-size:16px;">{{ g.nome }}</strong>
+            <a href="{% url 'anco_acompanhamento_nav' projeto.slug g.id %}" class="tg-meta no-print" style="color:var(--color-gold-deep);" title="Abrir e percorrer os artigos deste analista">percorrer ↗</a>
+          </div>
+          <div class="rel-prog">
+            <div class="rel-bar"><span style="width:{{ g.progresso.pct }}%;"></span></div>
+            <span class="tg-meta"><strong>{{ g.progresso.concluidas }}</strong>/{{ g.n }} concluída{{ g.progresso.concluidas|pluralize }}{% if g.progresso.andamento %} · {{ g.progresso.andamento }} em andamento{% endif %}{% if g.progresso.a_fazer %} · {{ g.progresso.a_fazer }} a fazer{% endif %}</span>
+          </div>
+        </div>
         <div class="rel-wrap">
           <table class="rel-tab">
             <thead>
-              <tr><th>#</th><th>Título</th><th>Autor(es)</th><th>Base</th><th>Acesso ao texto</th><th>DOI</th></tr>
+              <tr><th>#</th><th>Situação</th><th>Título</th><th>Autor(es)</th><th>Base</th><th>Acesso ao texto</th><th>DOI</th></tr>
             </thead>
             <tbody>
               {% for a in g.artigos %}
               <tr>
                 <td>{{ forloop.counter }}</td>
+                <td><span class="sit sit-{{ a.estado }}">{{ a.estado_rotulo }}</span></td>
                 <td class="tit">{{ a.titulo }}</td>
                 <td>{{ a.autores|truncatechars:70|default:"—" }}</td>
                 <td>{{ a.base|default:"—" }}</td>

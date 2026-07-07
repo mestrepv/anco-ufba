@@ -103,6 +103,42 @@ def test_acesso_cai_para_doi_quando_sem_url(projeto, analista, base_scopus):
     assert art["acesso_via_doi"] is True
 
 
+def test_progresso_e_situacao_por_artigo(projeto, analista, base_scopus):
+    fonte = FonteImport.objects.create(projeto=projeto, base_consulta=base_scopus)
+    feito = _item(projeto, "Publicado", "k1", fonte)
+    andamento = _item(projeto, "Rascunho", "k2", fonte)
+    _item(projeto, "Nem começou", "k3", fonte)  # 3º sorteado, sem análise
+    s = SorteioANCO.objects.create(projeto=projeto)
+    for it in (feito, andamento):
+        AtribuicaoANCO.objects.create(sorteio=s, analista=analista, artigo=it.artigo)
+    AtribuicaoANCO.objects.create(
+        sorteio=s, analista=analista, artigo=ItemCorpus.objects.get(identificador="k3").artigo
+    )
+    from apps.acervo.models import Analise
+
+    Analise.objects.create(artigo=feito.artigo, analista=analista, status=Analise.Status.PUBLICADA)
+    Analise.objects.create(
+        artigo=andamento.artigo, analista=analista, status=Analise.Status.RASCUNHO
+    )
+
+    g = stats.relatorio_sorteio(projeto, s)[0]
+    assert g["progresso"] == {
+        "total": 3,
+        "concluidas": 1,
+        "andamento": 1,
+        "a_fazer": 1,
+        "pct": 33,
+        "estado": "andamento",
+    }
+    # "A fazer" vem primeiro; situação de cada artigo classificada.
+    estados = [a["estado"] for a in g["artigos"]]
+    assert estados[0] == "nada"  # ordenado: o que falta primeiro
+    por_titulo = {a["titulo"]: a["estado"] for a in g["artigos"]}
+    assert por_titulo["Publicado"] == "publicada"
+    assert por_titulo["Rascunho"] == "andamento"
+    assert por_titulo["Nem começou"] == "nada"
+
+
 def test_doi_url_nao_duplica_prefixo(projeto, analista, base_scopus):
     fonte = FonteImport.objects.create(projeto=projeto, base_consulta=base_scopus)
     it = _item(projeto, "Já é URL", "k2", fonte, doi="https://doi.org/10.5/y")
@@ -122,17 +158,17 @@ def test_view_mostra_relatorio_e_excluir(client, projeto, curador, analista, bas
     resp = client.get(reverse("anco_sorteio", args=[projeto.slug]))
     assert resp.status_code == 200
     corpo = resp.content.decode()
-    assert "Artigos sorteados por analista" in corpo
+    assert "Progresso por analista" in corpo
     assert "Artigo XYZ" in corpo
     assert "Scopus" in corpo
     assert "Excluir sorteio" in corpo
 
 
-def test_painel_botao_vira_ver_sorteio(client, projeto, curador, analista):
+def test_painel_botao_vira_sorteio_e_acompanhamento(client, projeto, curador, analista):
     art = Artigo.objects.create(titulo="T", ano=2023)
     s = SorteioANCO.objects.create(projeto=projeto)
     AtribuicaoANCO.objects.create(sorteio=s, analista=analista, artigo=art)
     client.force_login(curador)
     resp = client.get(reverse("anco_painel", args=[projeto.slug]))
-    assert b"Ver sorteio" in resp.content
+    assert "Sorteio e acompanhamento".encode() in resp.content
     assert b"Sortear an\xc3\xa1lise" not in resp.content

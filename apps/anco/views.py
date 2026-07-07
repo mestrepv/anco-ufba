@@ -628,9 +628,25 @@ def sorteio_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
     sorteios = list(
         projeto.sorteios.select_related("criado_por").prefetch_related("atribuicoes")
     )
-    # Relatório por analista (nome + artigos: título, autor, base, DOI, URL).
+    # Relatório por analista (nome + artigos + situação) e resumo de progresso
+    # da equipe — a tela de sorteio também serve de acompanhamento.
     for s in sorteios:
         s.relatorio = stats.relatorio_sorteio(projeto, s)
+        art_total = sum(g["n"] for g in s.relatorio)
+        art_ok = sum(g["progresso"]["concluidas"] for g in s.relatorio)
+        s.resumo = {
+            "n_analistas": len(s.relatorio),
+            "n_concluiram": sum(
+                1 for g in s.relatorio if g["progresso"]["estado"] == "concluido"
+            ),
+            "n_andamento": sum(
+                1 for g in s.relatorio if g["progresso"]["estado"] == "andamento"
+            ),
+            "n_nada": sum(1 for g in s.relatorio if g["progresso"]["estado"] == "nada"),
+            "art_total": art_total,
+            "art_ok": art_ok,
+            "pct": round(100 * art_ok / art_total) if art_total else 0,
+        }
     base = projeto.itens.filter(removido=False, artigo__isnull=False)
     n_acervo = base.filter(artigo__eh_legado=True).values("artigo").distinct().count()
     contexto = {
@@ -752,18 +768,9 @@ def estatisticas_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpRespons
 
 @_projeto_curador
 def acompanhamento_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
-    """Acompanhamento do trabalho dos analistas — uma linha por membro."""
-    linhas = stats.acompanhamento_membros(projeto)
-    return render(
-        request,
-        "anco/acompanhamento.html",
-        {
-            "projeto": projeto,
-            "linhas": linhas,
-            "n_sem_atividade": sum(1 for ln in linhas if not ln["tem_atividade"]),
-            "tem_sorteio": projeto.sorteios.exists(),
-        },
-    )
+    """Acompanhamento unificado na tela de sorteio (progresso por analista).
+    Mantido como redirecionamento para não quebrar links antigos."""
+    return redirect("anco_sorteio", slug=projeto.slug)
 
 
 @_projeto_curador
