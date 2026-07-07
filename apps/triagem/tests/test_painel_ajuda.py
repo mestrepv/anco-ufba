@@ -47,14 +47,15 @@ def test_ajuda_exige_analista(client, leitor):
     assert client.get(turl("triagem_ajuda")).status_code == 403
 
 
-def test_painel_mostra_projeto(client, analista):
-    # Sem tarefa pendente: o painel lista o projeto (sem os cards de etapas).
+def test_painel_nao_mostra_prisma(client, protocolo, analista):
+    # PRISMA-ScR saiu do painel (vive em /triagem/). Membro de um projeto de
+    # triagem NÃO vê o projeto nem menção a PRISMA no /painel/ (agora ANCO-only).
     client.force_login(analista)
     resp = client.get(reverse("painel"))
     assert resp.status_code == 200
-    assert b"Suas revis" in resp.content  # seção "Suas revisões"
-    assert b"Estrat" in resp.content  # breve estratégia de busca no item
-    assert "Próximo passo".encode() not in resp.content  # ocioso → sem hero
+    assert reverse("triagem_painel", args=[protocolo.slug]).encode() not in resp.content
+    assert b"PRISMA-ScR" not in resp.content
+    assert "Próximo passo".encode() not in resp.content  # sem ANCO → sem hero
 
 
 def test_painel_mostra_aba_anco(client, analista):
@@ -72,22 +73,10 @@ def test_painel_mostra_aba_anco(client, analista):
     assert reverse("anco_painel", args=[pa.slug]).encode() in resp.content
 
 
-def test_painel_com_tarefa_mostra_proximo_passo_e_projeto(client, protocolo, analista):
-    # Com artigo a analisar: "Próximo passo" aparece E a seção do projeto também.
-    reg = RegistroTriagem.objects.create(
-        protocolo=protocolo,
-        titulo="Incluído",
-        doi="10.9/p",
-        status=RegistroTriagem.Status.INCLUIDO,
-    )
-    promover_para_acervo(reg)
-    client.force_login(analista)
-    resp = client.get(reverse("painel"))
-    assert "Próximo passo".encode() in resp.content
-    assert b"Suas revis" in resp.content
-
-
-def test_painel_conta_a_analisar(client, protocolo, analista):
+def test_painel_ignora_tarefa_de_triagem_no_proximo_passo(client, protocolo, analista):
+    # Mesmo com artigo vindo da triagem, o painel (ANCO-exclusivo) NÃO gera um
+    # "Próximo passo" de triagem apontando para /a-analisar/. Essa tarefa vive
+    # agora só em /triagem/.
     reg = RegistroTriagem.objects.create(
         protocolo=protocolo,
         titulo="Incluído",
@@ -97,9 +86,8 @@ def test_painel_conta_a_analisar(client, protocolo, analista):
     promover_para_acervo(reg)
     client.force_login(analista)
     resp = client.get(reverse("painel"))
-    # hero "Próximo passo" apontando para a análise
-    assert "Próximo passo".encode() in resp.content
-    assert resp.context["proxima"]["href"].endswith("/a-analisar/")
+    prox = resp.context["proxima"]
+    assert prox is None or not prox["href"].endswith("/a-analisar/")
 
 
 def test_painel_leitor_sem_secao_triagem(client, leitor):

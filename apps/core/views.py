@@ -174,79 +174,18 @@ def painel_view(request: HttpRequest) -> HttpResponse:
         .order_by("-concluido_em")[:10]
     )
 
-    # ── Contexto da triagem (import lazy p/ evitar ciclo) ──────────────
-    contexto_triagem = {}
+    # ── Contexto do painel: EXCLUSIVO da Revisão ANCO ──────────────────
+    # O PRISMA-ScR (triagem) tem porta própria em /triagem/ e foi retirado do
+    # painel por decisão de produto — aqui não há nada de triagem.
+    contexto_anco = {}
     if getattr(user, "eh_analista", False):
         from django.urls import reverse
 
-        from apps.triagem.aprovacao import registros_para_desempate
-        from apps.triagem.duplicatas import contar_pares_do_usuario
-        from apps.triagem.models import (
-            ProtocoloTriagem,
-            RegistroTriagem,
-        )
-
-        # Projeto ativo do usuário (Fase 12): 1º não arquivado em que é membro.
-        projetos_qs = ProtocoloTriagem.objects.filter(arquivado=False)
-        if not user.is_staff:
-            projetos_qs = projetos_qs.filter(membros__usuario=user).distinct()
-        meus_projetos = list(projetos_qs.order_by("nome"))
-        protocolo = meus_projetos[0] if meus_projetos else None
-
-        # Trabalho do revisor: atravessa projetos, mas só os ativos dos quais
-        # ele ainda é membro (sorteio é restrito a membros — Fase 12).
-        from apps.triagem.fila import decisoes_pendentes
-
-        triagens_pendentes = (
-            decisoes_pendentes(user).select_related("registro").order_by("prazo_em")
-        )
-        n_triagens = triagens_pendentes.count()
-        from apps.triagem.analise import artigos_a_analisar
-
-        n_a_analisar = artigos_a_analisar(user).count()
-
-        # Um bloco por projeto: objetivo, estratégia e as 7 etapas com OS
-        # contadores do usuário NAQUELE projeto (painel consolidado).
-        # Resumo leve por projeto: só os contadores que o "próximo passo"
-        # usa. As etapas (cards) saíram do painel — o detalhe fica na página do
-        # projeto (/triagem/p/<slug>/).
-        def _resumo_projeto(p):
-            eh_cur = p.eh_curador_no(user)
-            n_dup = contar_pares_do_usuario(p, user, eh_cur)
-            n_ident = (
-                p.registros.filter(
-                    status=RegistroTriagem.Status.IDENTIFICADO, ja_no_acervo=False
-                ).count()
-                if eh_cur
-                else 0
-            )
-            return {
-                "projeto": p,
-                "eh_curador": eh_cur,
-                "n_dup": n_dup,
-                "n_ident": n_ident,
-                "n_desemp": len(registros_para_desempate(p)) if eh_cur else 0,
-            }
-
-        projetos_painel = (
-            [_resumo_projeto(p) for p in meus_projetos] if user.acessa_prisma() else []
-        )
-
-        # Próximo passo: nudge cross-projeto (usa o projeto ativo p/ as etapas
-        # específicas de projeto; triagens/a-analisar são globais).
-        ativo = projetos_painel[0] if projetos_painel else None
-        sl = protocolo.slug if protocolo is not None else None
-        eh_curador = ativo["eh_curador"] if ativo else False
-        n_duplicatas = ativo["n_dup"] if ativo else 0
-        n_identificados = ativo["n_ident"] if ativo else 0
-        n_desempates = ativo["n_desemp"] if ativo else 0
-
-        # ── ANCO: sorteados ainda não concluídos (por projeto do usuário) ──
-        # Alimenta o "próximo passo" e os cards. O analista ANCO deve ser levado
-        # à worklist dos seus sorteados (Matriz AnCo), não à lista global de
-        # análises. "Concluída" = submetida à curadoria ou publicada.
+        # ANCO: sorteados ainda não concluídos por projeto do usuário. Alimenta o
+        # "próximo passo" e os cards. "Concluída" = submetida à curadoria ou
+        # publicada; leva o analista à worklist dos sorteados (não à lista global).
         anco_proxima = None
-        anco_pendencias = {}  # pk do projeto → {n_atribuidos, n_pendentes}
+        projetos_anco = []
         if user.acessa_anco():
             from apps.anco.models import AtribuicaoANCO, ProjetoANCO
 
@@ -264,60 +203,33 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                         sorteio__projeto=pa, analista=user
                     ).values_list("artigo_id", flat=True)
                 )
-                if not atr:
-                    continue
-                feitas = Analise.objects.filter(
-                    analista=user, artigo_id__in=atr, status__in=concl
-                ).count()
+                feitas = (
+                    Analise.objects.filter(
+                        analista=user, artigo_id__in=atr, status__in=concl
+                    ).count()
+                    if atr
+                    else 0
+                )
                 pend = len(atr) - feitas
-                anco_pendencias[pa.pk] = {"n_atribuidos": len(atr), "n_pendentes": pend}
-                if pend and anco_proxima is None:
+                if atr and pend and anco_proxima is None:
                     anco_proxima = {
                         "titulo": f"{pend} artigo(s) sorteado(s) para você analisar",
                         "sub": "Faça a análise cognitiva (Matriz AnCo) do seu conjunto.",
                         "href": reverse("anco_analisar", args=[pa.slug]),
                         "label": "Analisar artigos",
                     }
+                projetos_anco.append(
+                    {
+                        "projeto": pa,
+                        "eh_curador": pa.eh_curador_no(user),
+                        "n_corpus": pa.itens.filter(removido=False).count(),
+                        "n_atribuidos": len(atr),
+                        "n_pendentes": pend if atr else 0,
+                    }
+                )
 
-        # Próximo passo: a única coisa óbvia a fazer agora (por prioridade).
-        if n_triagens:
-            proxima = {
-                "titulo": f"Você tem {n_triagens} triagem(ns) para fazer",
-                "sub": "Decida incluir ou excluir cada registro sorteado para você.",
-                "href": reverse("triagem_minhas"),
-                "label": "Triar agora",
-            }
-        elif eh_curador and n_desempates:
-            proxima = {
-                "titulo": f"{n_desempates} desempate(s) aguardando você",
-                "sub": "Revisores divergiram — defina a decisão final.",
-                "href": reverse("triagem_desempate", args=[sl]),
-                "label": "Resolver desempates",
-            }
-        elif n_a_analisar:
-            proxima = {
-                "titulo": f"{n_a_analisar} artigo(s) prontos para análise",
-                "sub": "Preencha a Matriz AnCo dos artigos selecionados pela triagem.",
-                "href": reverse("triagem_a_analisar"),
-                "label": "Analisar",
-            }
-        elif protocolo is not None and n_duplicatas:
-            proxima = {
-                "titulo": f"{n_duplicatas} possível(is) duplicata(s) para revisar",
-                "sub": "Confirme quais registros são o mesmo trabalho antes de triar.",
-                "href": reverse("triagem_duplicatas", args=[sl]),
-                "label": "Revisar duplicatas",
-            }
-        elif eh_curador and n_identificados:
-            proxima = {
-                "titulo": f"{n_identificados} registro(s) prontos para a triagem",
-                "sub": "Feche a coleta e sorteie os revisores.",
-                "href": reverse("triagem_iniciar", args=[sl]),
-                "label": "Iniciar triagem",
-            }
-        elif anco_proxima:
-            # Analista ANCO: leva direto à worklist dos sorteados (não à lista
-            # global de análises) — resolve a duplicação de forma intuitiva.
+        # Próximo passo: só ANCO. 1) sorteados a analisar; 2) rascunho em aberto.
+        if anco_proxima:
             proxima = anco_proxima
         elif n_rascunhos:
             proxima = {
@@ -326,62 +238,14 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                 "href": reverse("minhas_analises"),
                 "label": "Continuar",
             }
-        elif protocolo is not None:
-            # Sem tarefa pendente: em vez de um card vazio, o painel mostra os
-            # projetos do analista (objetivo + instruções). Ver core/painel.html.
-            proxima = {
-                "titulo": "Tudo em dia 🎉",
-                "sub": "Importe uma nova base para começar uma rodada de triagem.",
-                "href": reverse("triagem_importar", args=[sl]),
-                "label": "Importar lista",
-                "ocioso": True,
-            }
         else:
             proxima = None
 
-        # Projetos do módulo ANCO (separados do PRISMA), quando o usuário acessa.
-        projetos_anco = []
-        if user.acessa_anco():
-            from apps.anco.models import ProjetoANCO
-
-            anco_qs = ProjetoANCO.objects.filter(arquivado=False)
-            if not user.is_staff:
-                anco_qs = anco_qs.filter(membros__usuario=user).distinct()
-            projetos_anco = [
-                {
-                    "projeto": pa,
-                    "eh_curador": pa.eh_curador_no(user),
-                    "n_corpus": pa.itens.filter(removido=False).count(),
-                    "n_atribuidos": anco_pendencias.get(pa.pk, {}).get("n_atribuidos", 0),
-                    "n_pendentes": anco_pendencias.get(pa.pk, {}).get("n_pendentes", 0),
-                }
-                for pa in anco_qs.order_by("nome")
-            ]
-
-        pode_criar_projeto = user.is_staff or user.eh_curador
-        # Cada lado só aparece quando há algo nele. PRISMA também aparece p/ quem
-        # pode criar projeto (estado vazio com "Novo projeto"). As abas (pills)
-        # só fazem sentido quando os DOIS lados estão visíveis.
-        mostra_prisma = bool(projetos_painel) or pode_criar_projeto
-        mostra_anco = bool(projetos_anco)
-        # Para onde apontar quem ainda não tem análises: worklist ANCO de
-        # sorteados quando houver; senão a fila da triagem (PRISMA).
-        url_trabalho = None
-        if anco_proxima:
-            url_trabalho = anco_proxima["href"]
-        elif user.acessa_prisma():
-            url_trabalho = reverse("triagem_a_analisar")
-
-        contexto_triagem = {
-            "projetos_painel": projetos_painel,
+        contexto_anco = {
             "projetos_anco": projetos_anco,
-            "n_projetos": len(meus_projetos),
             "proxima": proxima,
-            "url_trabalho": url_trabalho,
-            "pode_criar_projeto": pode_criar_projeto,
-            "mostra_prisma": mostra_prisma,
-            "mostra_anco": mostra_anco,
-            "mostra_abas": mostra_prisma and mostra_anco,
+            "url_trabalho": anco_proxima["href"] if anco_proxima else None,
+            "mostra_anco": bool(projetos_anco),
         }
 
     return render(
@@ -396,7 +260,7 @@ def painel_view(request: HttpRequest) -> HttpResponse:
             "devolvidas": devolvidas,
             "n_solicitacoes_pendentes": n_solicitacoes_pendentes,
             "agora": datetime.now(tz=UTC),
-            **contexto_triagem,
+            **contexto_anco,
         },
     )
 
