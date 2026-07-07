@@ -1,0 +1,124 @@
+"""Relatório do sorteio: por analista, artigos com título/autor/base/DOI/URL."""
+
+import pytest
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+
+from apps.acervo.models import Artigo
+from apps.anco import estatisticas as stats
+from apps.anco.models import (
+    AtribuicaoANCO,
+    FonteImport,
+    ItemCorpus,
+    MembroANCO,
+    ProjetoANCO,
+    SorteioANCO,
+)
+from apps.vocabulario.models import TermoVocabulario, Vocabulario
+
+User = get_user_model()
+pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture
+def curador(db):
+    return User.objects.create_user(
+        username="c", email="c@u.edu", password="x", pode_anco=True, is_staff=True
+    )
+
+
+@pytest.fixture
+def analista(db):
+    return User.objects.create_user(username="a", email="ana@u.edu", password="x", pode_anco=True)
+
+
+@pytest.fixture
+def projeto(db, curador, analista):
+    p = ProjetoANCO.objects.create(nome="Piloto", slug="piloto-x", pergunta_pesquisa="Q?")
+    MembroANCO.objects.create(projeto=p, usuario=curador, papel=MembroANCO.Papel.CURADOR)
+    MembroANCO.objects.create(projeto=p, usuario=analista, papel=MembroANCO.Papel.ANALISTA)
+    return p
+
+
+@pytest.fixture
+def base_scopus(db):
+    v, _ = Vocabulario.objects.get_or_create(codigo="base", defaults={"nome": "Base"})
+    return TermoVocabulario.objects.create(vocabulario=v, nome="Scopus")
+
+
+def _item(projeto, titulo, ident, fonte, **kw):
+    art = Artigo.objects.create(titulo=titulo, ano=2023, doi=kw.get("doi") or None)
+    it = ItemCorpus.objects.create(
+        projeto=projeto,
+        titulo=titulo,
+        identificador=ident,
+        artigo=art,
+        autores=kw.get("autores", ""),
+        doi=kw.get("doi", ""),
+        link=kw.get("link", ""),
+    )
+    it.origem_fontes.add(fonte)
+    return it
+
+
+def test_relatorio_agrupa_por_analista_com_campos(projeto, analista, base_scopus):
+    fonte = FonteImport.objects.create(projeto=projeto, base_consulta=base_scopus)
+    it = _item(
+        projeto,
+        "Cognição em equipes",
+        "k1",
+        fonte,
+        autores="Silva, A.; Souza, B.",
+        doi="10.1016/j.x.2023",
+        link="https://example.org/artigo",
+    )
+    s = SorteioANCO.objects.create(projeto=projeto)
+    AtribuicaoANCO.objects.create(sorteio=s, analista=analista, artigo=it.artigo)
+
+    rel = stats.relatorio_sorteio(projeto, s)
+    assert len(rel) == 1
+    bloco = rel[0]
+    assert bloco["nome"] == analista.email  # sem nome_exibicao → email
+    assert bloco["n"] == 1
+    art = bloco["artigos"][0]
+    assert art["titulo"] == "Cognição em equipes"
+    assert art["autores"] == "Silva, A.; Souza, B."
+    assert art["base"] == "Scopus"
+    assert art["doi"] == "10.1016/j.x.2023"
+    assert art["doi_url"] == "https://doi.org/10.1016/j.x.2023"
+    assert art["url"] == "https://example.org/artigo"
+
+
+def test_doi_url_nao_duplica_prefixo(projeto, analista, base_scopus):
+    fonte = FonteImport.objects.create(projeto=projeto, base_consulta=base_scopus)
+    it = _item(projeto, "Já é URL", "k2", fonte, doi="https://doi.org/10.5/y")
+    s = SorteioANCO.objects.create(projeto=projeto)
+    AtribuicaoANCO.objects.create(sorteio=s, analista=analista, artigo=it.artigo)
+    rel = stats.relatorio_sorteio(projeto, s)
+    assert rel[0]["artigos"][0]["doi_url"] == "https://doi.org/10.5/y"
+
+
+def test_view_mostra_relatorio_e_excluir(client, projeto, curador, analista, base_scopus):
+    fonte = FonteImport.objects.create(projeto=projeto, base_consulta=base_scopus)
+    it = _item(projeto, "Artigo XYZ", "k1", fonte, autores="Fulano", doi="10.1/z")
+    s = SorteioANCO.objects.create(projeto=projeto)
+    AtribuicaoANCO.objects.create(sorteio=s, analista=analista, artigo=it.artigo)
+
+    client.force_login(curador)
+    resp = client.get(reverse("anco_sorteio", args=[projeto.slug]))
+    assert resp.status_code == 200
+    corpo = resp.content.decode()
+    assert "Artigos sorteados por analista" in corpo
+    assert "Artigo XYZ" in corpo
+    assert "Scopus" in corpo
+    assert "Excluir sorteio" in corpo
+
+
+def test_painel_botao_vira_ver_sorteio(client, projeto, curador, analista):
+    art = Artigo.objects.create(titulo="T", ano=2023)
+    s = SorteioANCO.objects.create(projeto=projeto)
+    AtribuicaoANCO.objects.create(sorteio=s, analista=analista, artigo=art)
+    client.force_login(curador)
+    resp = client.get(reverse("anco_painel", args=[projeto.slug]))
+    assert b"Ver sorteio" in resp.content
+    assert b"Sortear an\xc3\xa1lise" not in resp.content

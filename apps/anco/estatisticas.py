@@ -35,6 +35,79 @@ def resumo(projeto) -> dict:
     }
 
 
+def relatorio_sorteio(projeto, sorteio) -> list[dict]:
+    """Relatório de um sorteio: um bloco por analista com os artigos que recebeu.
+
+    Cada artigo traz título, autor(es), base(s) de origem, DOI e URL — puxados do
+    `ItemCorpus` do projeto (que guarda a proveniência), casando por artigo.
+    Ordenado por nome do analista; artigos por título.
+    """
+    from .models import AtribuicaoANCO, ItemCorpus
+
+    atribuicoes = AtribuicaoANCO.objects.filter(sorteio=sorteio).select_related(
+        "analista", "artigo"
+    )
+    # Mapa artigo → ItemCorpus (com fontes) para a proveniência/base e os links.
+    itens = (
+        ItemCorpus.objects.filter(projeto=projeto, removido=False, artigo__isnull=False)
+        .select_related("artigo")
+        .prefetch_related("origem_fontes__base_consulta")
+    )
+    por_artigo: dict[int, object] = {}
+    for it in itens:
+        por_artigo.setdefault(it.artigo_id, it)
+
+    grupos: dict[int, dict] = {}
+    for at in atribuicoes:
+        u = at.analista
+        g = grupos.setdefault(
+            u.pk,
+            {"analista": u, "nome": u.nome_exibicao or u.email, "id": u.pk, "artigos": []},
+        )
+        it = por_artigo.get(at.artigo_id)
+        art = at.artigo
+        if it is not None:
+            bases = sorted({f.base_nome or "(sem base)" for f in it.origem_fontes.all()})
+            g["artigos"].append(
+                {
+                    "titulo": it.titulo or (art.titulo if art else ""),
+                    "autores": it.autores or (art.autores if art else ""),
+                    "base": ", ".join(bases),
+                    "doi": it.doi or (art.doi if art else ""),
+                    "url": it.link or (getattr(art, "link_acesso", "") if art else ""),
+                }
+            )
+        else:  # atribuído mas item saiu do corpus — usa só o artigo
+            g["artigos"].append(
+                {
+                    "titulo": art.titulo if art else "",
+                    "autores": art.autores if art else "",
+                    "base": "",
+                    "doi": (art.doi if art else "") or "",
+                    "url": getattr(art, "link_acesso", "") if art else "",
+                }
+            )
+
+    linhas = list(grupos.values())
+    for g in linhas:
+        for a in g["artigos"]:
+            a["doi_url"] = _doi_url(a["doi"])
+        g["artigos"].sort(key=lambda a: a["titulo"].lower())
+        g["n"] = len(g["artigos"])
+    linhas.sort(key=lambda g: g["nome"].lower())
+    return linhas
+
+
+def _doi_url(doi: str) -> str:
+    """URL resolvível do DOI. Aceita DOI puro (`10.x/...`) ou já como URL."""
+    doi = (doi or "").strip()
+    if not doi:
+        return ""
+    if doi.lower().startswith(("http://", "https://")):
+        return doi
+    return f"https://doi.org/{doi}"
+
+
 def _contagem_status(analises) -> dict:
     """Contagem por status de um queryset de análises (rascunho/submetida/publicada)."""
     por_status = Counter(analises.values_list("status", flat=True))

@@ -1,73 +1,82 @@
 {% extends "_base_publico.html" %}
 {% block title %}Sortear análise · {{ projeto.nome }}{% endblock %}
-{% block extra_head %}{% include "triagem/_estilos.html" %}{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}
+<style>
+  .rel-tab { width:100%; border-collapse:collapse; font-family:var(--font-sans); font-size:13px; }
+  .rel-tab th, .rel-tab td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--color-rule); vertical-align:top; }
+  .rel-tab th { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--color-ink-2); border-bottom:1px solid var(--color-rule-strong); }
+  .rel-tab td.tit { font-family:var(--font-serif); color:var(--color-ink); min-width:220px; }
+  .rel-wrap { overflow-x:auto; margin-top:8px; }
+  .rel-analista { display:flex; align-items:baseline; gap:8px; margin:0 0 4px; }
+  [x-cloak]{ display:none !important; }
+  @media print { .no-print { display:none !important; } }
+</style>{% endblock %}
 {% block content %}
-<div class="tg-wrap narrow">
+<div class="tg-wrap {% if not tem_sorteio %}narrow{% endif %}">
   <a href="{% url 'anco_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome }}</a>
-  <h1 class="tg-h1" style="margin-top:6px;">Sortear análise</h1>
-  <p class="tg-meta" style="margin:6px 0 16px;">Ajuste os filtros e veja os artigos elegíveis ao vivo; depois sorteie só o que sobrou.{% if n_acervo %} ({{ n_acervo }} já no acervo nunca entram.){% endif %} Distribuição aleatória por cota.</p>
+  <h1 class="tg-h1" style="margin-top:6px;">{% if tem_sorteio %}Sorteio da análise{% else %}Sortear análise{% endif %}</h1>
 
-  {# Filtros em GET (hx-get) atualizam o painel; o botão Sortear faz POST nativo. #}
-  <form method="post" action="{% url 'anco_sorteio' projeto.slug %}" class="tg-card" style="margin-bottom:24px;"
-        hx-get="{% url 'anco_sorteio_elegiveis' projeto.slug %}"
-        hx-trigger="change, keyup changed delay:400ms"
-        hx-target="#painel-elegiveis" hx-swap="innerHTML">
-    {% csrf_token %}
-    {# Marcador: distingue "primeira carga" (defaults) de "usuário mexeu nos filtros". #}
-    <input type="hidden" name="filtros" value="1">
-    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:end;">
-      <div>
-        <label class="tg-meta" style="display:block;">Cota por analista</label>
-        <input type="number" name="cota" value="{{ cota }}" min="1" style="width:90px;padding:7px;border:1px solid var(--color-rule-strong);border-radius:6px;">
-      </div>
-      <div>
-        <label class="tg-meta" style="display:block;">Modo</label>
-        <select name="modo_revisao" style="padding:7px;border:1px solid var(--color-rule-strong);border-radius:6px;">
-          {% for val, rotulo in modos %}<option value="{{ val }}">{{ rotulo }}</option>{% endfor %}
-        </select>
-      </div>
-    </div>
-
-    <div style="margin-top:16px;">
-      <label class="tg-meta" style="display:block;margin-bottom:4px;">Tipos de documento a incluir</label>
-      <div style="display:flex;flex-wrap:wrap;gap:14px;">
-        {% for t in tipos_choices %}
-        <label style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-sans);font-size:14px;{% if not t.n %}opacity:.45;{% endif %}">
-          <input type="checkbox" name="tipos" value="{{ t.val }}" {% if t.sel %}checked{% endif %}> {{ t.rotulo }} <span class="tg-meta">({{ t.n }})</span>
-        </label>
-        {% endfor %}
-      </div>
-    </div>
-
-    <div style="margin-top:14px;">
-      <label style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-sans);font-size:14px;">
-        <input type="checkbox" name="com_resumo" value="1" {% if com_resumo %}checked{% endif %}>
-        Somente com resumo <span class="tg-meta">(a análise AnCo precisa do resumo)</span>
-      </label>
-    </div>
-
-    {# Painel de elegíveis (atualizado pelo HTMX). O botão Sortear vive aqui dentro. #}
-    <div id="painel-elegiveis">
-      {% include "anco/_sorteio_elegiveis.html" %}
-    </div>
-  </form>
-
-  <h2 class="tg-h2">Sorteios</h2>
+  {% if tem_sorteio %}
+  {# ---------- Já há sorteio: relatório + excluir; refazer fica recolhido ---------- #}
   {% for s in sorteios %}
-    <div class="tg-card" style="display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;">
+    <div class="tg-card" style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin:12px 0 18px;flex-wrap:wrap;">
       <div>
         <strong>{{ s.get_modo_revisao_display }}</strong>
-        <span class="tg-meta">· cota {{ s.cota }} · {{ s.atribuicoes.count }} atribuição(ões) · {{ s.criado_em|date:"d/m/Y" }}</span>
+        <span class="tg-meta">· cota {{ s.cota }} · {{ s.atribuicoes.count }} atribuição{{ s.atribuicoes.count|pluralize:"ão,ões" }} · {{ s.relatorio|length }} analista{{ s.relatorio|length|pluralize }} · {{ s.criado_em|date:"d/m/Y H:i" }}</span>
       </div>
-      <form method="post" onsubmit="return confirm('Desfazer este sorteio?');">
-        {% csrf_token %}
-        <input type="hidden" name="acao" value="desfazer">
-        <input type="hidden" name="sorteio_id" value="{{ s.pk }}">
-        <button type="submit" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Desfazer</button>
-      </form>
+      <div class="no-print" style="display:flex;gap:8px;">
+        <button type="button" onclick="window.print()" class="btn btn-sm btn-secondary">Imprimir / PDF</button>
+        <form method="post" onsubmit="return confirm('Excluir este sorteio? Todas as atribuições serão removidas e os analistas deixam de ter artigos designados.');">
+          {% csrf_token %}
+          <input type="hidden" name="acao" value="desfazer">
+          <input type="hidden" name="sorteio_id" value="{{ s.pk }}">
+          <button type="submit" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Excluir sorteio</button>
+        </form>
+      </div>
     </div>
-  {% empty %}
-    <p class="tg-empty">Nenhum sorteio ainda.</p>
+
+    <h2 class="tg-h2">Artigos sorteados por analista</h2>
+    {% for g in s.relatorio %}
+      <div class="tg-card" style="margin-bottom:14px;">
+        <p class="rel-analista">
+          <strong style="font-size:16px;">{{ g.nome }}</strong>
+          <span class="tg-meta">· {{ g.n }} artigo{{ g.n|pluralize }}</span>
+        </p>
+        <div class="rel-wrap">
+          <table class="rel-tab">
+            <thead>
+              <tr><th>#</th><th>Título</th><th>Autor(es)</th><th>Base</th><th>DOI</th><th>URL</th></tr>
+            </thead>
+            <tbody>
+              {% for a in g.artigos %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td class="tit">{{ a.titulo }}</td>
+                <td>{{ a.autores|truncatechars:70|default:"—" }}</td>
+                <td>{{ a.base|default:"—" }}</td>
+                <td>{% if a.doi %}<a href="{{ a.doi_url }}" target="_blank" rel="noopener" style="color:var(--color-gold-deep);">{{ a.doi }}</a>{% else %}—{% endif %}</td>
+                <td>{% if a.url %}<a href="{{ a.url }}" target="_blank" rel="noopener" style="color:var(--color-gold-deep);">abrir ↗</a>{% else %}—{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% empty %}
+      <p class="tg-empty">Este sorteio não gerou atribuições.</p>
+    {% endfor %}
   {% endfor %}
+
+  <details class="no-print" style="margin-top:22px;">
+    <summary style="cursor:pointer;font-family:var(--font-sans);font-size:14px;color:var(--color-gold-deep);">Refazer sorteio (novos filtros)</summary>
+    <p class="tg-meta" style="margin:8px 0 12px;">Para sortear de novo, <strong>exclua o sorteio atual</strong> acima e depois configure aqui. Sortear por cima do existente só complementa as vagas ainda não atribuídas.</p>
+    {% include "anco/_sorteio_form.html" %}
+  </details>
+
+  {% else %}
+  {# ---------- Sem sorteio: formulário é o protagonista ---------- #}
+  <p class="tg-meta" style="margin:6px 0 16px;">Ajuste os filtros e veja os artigos elegíveis ao vivo; depois sorteie só o que sobrou.{% if n_acervo %} ({{ n_acervo }} já no acervo nunca entram.){% endif %} Distribuição aleatória por cota.</p>
+  {% include "anco/_sorteio_form.html" %}
+  {% endif %}
 </div>
 {% endblock %}

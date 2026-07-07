@@ -425,9 +425,10 @@ def test_item_navegacao_e_link_artigo(client, projeto, curador):
     client.force_login(curador)
     meio = its[1]
     html = client.get(reverse("anco_corpus_editar", args=[projeto.slug, meio.pk])).content.decode()
-    # tem Voltar e Avançar ativos (links), posição e link "Ver artigo"
+    # tem Voltar e Avançar ativos (links) e posição
     assert "← Voltar" in html and "Avançar →" in html
-    assert "Ver artigo" in html
+    # o link "Ver artigo" foi removido (tela do artigo é desnecessária)
+    assert "Ver artigo" not in html
     # os links de navegação apontam para itens vizinhos do corpus
     assert reverse("anco_corpus_editar", args=[projeto.slug, its[0].pk]) in html
     assert reverse("anco_corpus_editar", args=[projeto.slug, its[2].pk]) in html

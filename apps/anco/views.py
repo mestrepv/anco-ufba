@@ -502,6 +502,92 @@ def corpus_import_nav_view(
 
 
 # --------------------------------------------------------------------------- #
+# Minha análise — worklist do analista (só os artigos sorteados para ele)
+# --------------------------------------------------------------------------- #
+
+# Estado da análise de cada artigo sorteado, do ponto de vista do analista.
+# Ordem = ordem de exibição/prioridade na worklist (o que falta vem primeiro).
+_ESTADOS_ANALISE = {
+    "falta": {"rotulo": "A fazer", "cta": "Iniciar análise", "primario": True},
+    "andamento": {"rotulo": "Em andamento", "cta": "Continuar análise", "primario": True},
+    "submetida": {"rotulo": "Enviada à curadoria", "cta": "Revisar", "primario": False},
+    "publicada": {"rotulo": "Publicada", "cta": "Ver análise", "primario": False},
+}
+
+
+def _estado_analise(analise) -> str:
+    """Classifica a análise do analista para um artigo sorteado."""
+    if analise is None:
+        return "falta"
+    from apps.acervo.models import Analise
+
+    if analise.status == Analise.Status.RASCUNHO:
+        return "andamento"
+    if analise.status == Analise.Status.SUBMETIDA:
+        return "submetida"
+    # publicada / legado / rejeitada / despublicada → tratadas como "fora do rascunho"
+    if analise.status == Analise.Status.REJEITADA:
+        return "andamento"  # curadoria devolveu: volta a ser trabalho a refazer
+    return "publicada"
+
+
+@_projeto_membro
+def analisar_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
+    """Worklist de análise do analista: **exclusivamente** os artigos sorteados
+    para ele, sem filtros que troquem o conjunto. É a porta de "Analisar artigos".
+
+    Enquadra a tarefa (análise cognitiva pela Matriz AnCo), mostra o progresso e
+    dá um único CTA por artigo. À prova de troca-de-filtro: o conjunto é fixo."""
+    from apps.acervo.models import Analise
+
+    atribuidos = list(
+        AtribuicaoANCO.objects.filter(
+            analista=request.user, sorteio__projeto=projeto
+        ).values_list("artigo_id", flat=True)
+    )
+    tem_sorteio = projeto.sorteios.exists()
+    eh_curador = projeto.eh_curador_no(request.user)
+
+    # Análises do analista para os artigos sorteados (uma consulta).
+    minhas = {
+        a.artigo_id: a
+        for a in Analise.objects.filter(analista=request.user, artigo_id__in=atribuidos)
+    }
+    itens = list(
+        projeto.itens.filter(removido=False, artigo_id__in=atribuidos)
+        .select_related("artigo")
+        .order_by("criado_em")
+    )
+    # Anexa estado + CTA a cada item; ordena "o que falta primeiro".
+    prioridade = {"falta": 0, "andamento": 1, "submetida": 2, "publicada": 3}
+    contagem = {"falta": 0, "andamento": 0, "submetida": 0, "publicada": 0}
+    for it in itens:
+        est = _estado_analise(minhas.get(it.artigo_id))
+        contagem[est] += 1
+        it.estado = est
+        it.estado_info = _ESTADOS_ANALISE[est]
+    itens.sort(key=lambda it: prioridade[it.estado])
+
+    total = len(itens)
+    # "Concluída" do ponto de vista do analista = enviada à curadoria ou publicada.
+    concluidas = contagem["submetida"] + contagem["publicada"]
+    contexto = {
+        "projeto": projeto,
+        "eh_curador": eh_curador,
+        "itens": itens,
+        "total": total,
+        "tem_sorteio": tem_sorteio,
+        "n_falta": contagem["falta"],
+        "n_andamento": contagem["andamento"],
+        "n_submetida": contagem["submetida"],
+        "n_publicada": contagem["publicada"],
+        "concluidas": concluidas,
+        "pct": round(100 * concluidas / total) if total else 0,
+    }
+    return render(request, "anco/analisar.html", contexto)
+
+
+# --------------------------------------------------------------------------- #
 # Sorteio da análise
 # --------------------------------------------------------------------------- #
 
@@ -539,12 +625,18 @@ def sorteio_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
             messages.info(request, res.motivo or "Nada a sortear.")
         return redirect("anco_sorteio", slug=projeto.slug)
 
-    sorteios = projeto.sorteios.select_related("criado_por").prefetch_related("atribuicoes")
+    sorteios = list(
+        projeto.sorteios.select_related("criado_por").prefetch_related("atribuicoes")
+    )
+    # Relatório por analista (nome + artigos: título, autor, base, DOI, URL).
+    for s in sorteios:
+        s.relatorio = stats.relatorio_sorteio(projeto, s)
     base = projeto.itens.filter(removido=False, artigo__isnull=False)
     n_acervo = base.filter(artigo__eh_legado=True).values("artigo").distinct().count()
     contexto = {
         "projeto": projeto,
         "sorteios": sorteios,
+        "tem_sorteio": bool(sorteios),
         "n_acervo": n_acervo,
         "modos": SorteioANCO.ModoRevisao.choices,
         **_contexto_elegiveis(projeto, request),
