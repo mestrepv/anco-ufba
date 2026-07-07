@@ -662,14 +662,24 @@ def autosave_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse
             status=400,
         )
 
-    form = AnaliseCompletaForm(request.POST, instance=analise)
+    # Auto-save PARCIAL: cada aba posta só os seus campos. Um form com TODOS os
+    # campos ligado a um POST parcial sobrescreveria os campos ausentes com vazio
+    # (texto → "", M2M → []) — apagando o que foi preenchido nas outras abas. Por
+    # isso limitamos o form aos campos realmente presentes no POST.
+    from django.forms import modelform_factory
+
+    campos = [c for c in AnaliseCompletaForm.base_fields if c in request.POST]
+    if not campos:
+        return JsonResponse({"ok": True, "salvo_em": timezone.now().strftime("%H:%M:%S")})
+    FormParcial = modelform_factory(Analise, form=AnaliseCompletaForm, fields=campos)
+    form = FormParcial(request.POST, instance=analise)
 
     if form.is_valid():
         instance = form.save(commit=False)
         if eh_admin and analise.analista_id != user.id:
             _stampar_edicao(instance, user)
         instance.save()
-        form.save_m2m()  # persiste epistemologia/teoria (M2M)
+        form.save_m2m()  # persiste só os M2M presentes (epistemologia/teoria)
         return JsonResponse({"ok": True, "salvo_em": timezone.now().strftime("%H:%M:%S")})
     return JsonResponse({"ok": False, "errors": form.errors}, status=400)
 
