@@ -8,7 +8,11 @@ from unittest.mock import patch
 import pytest
 from django.core.cache import cache
 
-from apps.acervo.services.openalex import _reconstruir_abstract, abstract_por_doi
+from apps.acervo.services.openalex import (
+    _reconstruir_abstract,
+    abstract_por_doi,
+    keywords_por_doi,
+)
 
 
 def _resposta_fake(payload: dict):
@@ -77,3 +81,27 @@ class TestAbstractPorDoi:
             side_effect=TimeoutError("timed out"),
         ):
             assert abstract_por_doi("10.1/t") == ""
+
+
+class TestKeywordsPorDoi:
+    def test_usa_keywords_e_limita(self):
+        payload = {"keywords": [{"display_name": f"KW{i}"} for i in range(12)], "concepts": []}
+        with patch(
+            "apps.acervo.services.openalex.urllib.request.urlopen",
+            return_value=_resposta_fake(payload),
+        ):
+            kws = keywords_por_doi("10.1/k")
+        assert kws == [f"KW{i}" for i in range(8)]  # cap em MAX_KEYWORDS=8
+
+    def test_cai_para_concepts_sem_keywords(self):
+        payload = {"keywords": [], "concepts": [{"display_name": "Cognição"}]}
+        with patch(
+            "apps.acervo.services.openalex.urllib.request.urlopen",
+            return_value=_resposta_fake(payload),
+        ):
+            assert keywords_por_doi("10.1/c") == ["Cognição"]
+
+    def test_doi_invalido_nao_faz_request(self):
+        with patch("apps.acervo.services.openalex.urllib.request.urlopen") as m:
+            assert keywords_por_doi("nao-doi") == []
+            m.assert_not_called()

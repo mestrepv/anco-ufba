@@ -65,9 +65,7 @@ def abstract_por_doi(doi_raw: str) -> str:
     if cacheado is not None:
         return cacheado
 
-    url = "https://api.openalex.org/works/" + urllib.parse.quote(
-        f"https://doi.org/{doi}", safe=""
-    )
+    url = "https://api.openalex.org/works/" + urllib.parse.quote(f"https://doi.org/{doi}", safe="")
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
         with urllib.request.urlopen(req, timeout=OPENALEX_TIMEOUT_SEGUNDOS) as resp:
@@ -89,3 +87,46 @@ def abstract_por_doi(doi_raw: str) -> str:
     abstract = _reconstruir_abstract(payload.get("abstract_inverted_index") or {})
     cache.set(chave_cache, abstract, CACHE_TTL_SEGUNDOS)
     return abstract
+
+
+CACHE_PREFIXO_KW = "openalex:keywords:"
+MAX_KEYWORDS = 8
+
+
+def keywords_por_doi(doi_raw: str) -> list[str]:
+    """Palavras-chave (algorítmicas) da OpenAlex para um DOI, no máx. `MAX_KEYWORDS`.
+
+    Usa o campo `keywords` (curado) e, na ausência, cai para `concepts`. São
+    termos gerados automaticamente — não as palavras-chave do autor. Cacheado
+    24h (inclusive lista vazia). Qualquer erro vira lista vazia (best-effort).
+    """
+    doi = normalizar_doi(doi_raw)
+    if not doi or not _DOI_CANONICO_RE.match(doi):
+        return []
+
+    chave_cache = CACHE_PREFIXO_KW + doi
+    cacheado = cache.get(chave_cache)
+    if cacheado is not None:
+        return cacheado
+
+    url = "https://api.openalex.org/works/" + urllib.parse.quote(f"https://doi.org/{doi}", safe="")
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=OPENALEX_TIMEOUT_SEGUNDOS) as resp:
+            payload = json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            cache.set(chave_cache, [], CACHE_TTL_SEGUNDOS)
+        else:
+            logger.warning("OpenAlex HTTP %s (keywords) para DOI %s", exc.code, doi)
+        return []
+    except (TimeoutError, urllib.error.URLError, json.JSONDecodeError, ValueError) as exc:
+        logger.warning("OpenAlex indisponível (keywords) para DOI %s: %s", doi, exc)
+        return []
+
+    termos = [k.get("display_name", "").strip() for k in (payload.get("keywords") or [])]
+    if not any(termos):
+        termos = [c.get("display_name", "").strip() for c in (payload.get("concepts") or [])]
+    termos = [t for t in termos if t][:MAX_KEYWORDS]
+    cache.set(chave_cache, termos, CACHE_TTL_SEGUNDOS)
+    return termos

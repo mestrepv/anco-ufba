@@ -9,9 +9,12 @@ versões truncadas (snippets terminados em reticências).
 from __future__ import annotations
 
 from .crossref import lookup_doi
-from .openalex import abstract_por_doi
+from .openalex import abstract_por_doi, keywords_por_doi
 
 _SUFIXOS_TRUNCADO = ("...", "…")
+
+# Rótulo de procedência das keywords recuperadas (não são do autor).
+FONTE_LABEL = {"crossref": "Crossref", "openalex": "OpenAlex"}
 
 
 def esta_truncado(resumo: str) -> bool:
@@ -37,3 +40,21 @@ def melhor_abstract(doi: str) -> tuple[str, str]:
     if not candidatos:
         return "", ""
     return max(candidatos, key=lambda c: len(c[0]))
+
+
+def melhor_keywords(doi: str) -> tuple[list[str], str]:
+    """Palavras-chave para um DOI e a fonte ('crossref'/'openalex'/'').
+
+    Prefere os *subjects* da Crossref (fornecidos pelo editor); na ausência, cai
+    para as keywords algorítmicas da OpenAlex. Ambas são não-autorais — o chamador
+    deve sinalizar a procedência ao gravar.
+    """
+    res = lookup_doi(doi)
+    if res.encontrado:
+        subs = [s.strip() for s in (res.dados.get("palavras_chave") or []) if s and s.strip()]
+        if subs:
+            return subs, "crossref"
+    kws = keywords_por_doi(doi)
+    if kws:
+        return kws, "openalex"
+    return [], ""
