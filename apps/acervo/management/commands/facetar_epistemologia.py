@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections import Counter
 
 from django.core.management.base import BaseCommand
 
