@@ -70,6 +70,24 @@ def _eh_admin(user) -> bool:
 # ---------------------------------------------------------------------------
 
 
+def _projeto_anco_do_analista(user, artigo=None):
+    """Resolve o projeto ANCO onde este analista trabalha (worklist de sorteados).
+
+    Preferência: a atribuição do próprio `artigo` (quando dado); senão, a
+    atribuição mais recente do analista. Retorna `ProjetoANCO` ou `None` — o
+    fluxo ANCO vive em `apps/anco`, não na triagem PRISMA.
+    """
+    from apps.anco.models import AtribuicaoANCO
+
+    qs = AtribuicaoANCO.objects.filter(analista=user).select_related("sorteio__projeto")
+    if artigo is not None:
+        atrib = qs.filter(artigo=artigo).order_by("-sorteio_id").first()
+        if atrib:
+            return atrib.sorteio.projeto
+    atrib = qs.order_by("-sorteio_id").first()
+    return atrib.sorteio.projeto if atrib else None
+
+
 @_exige_analista
 def minhas_analises_view(request: HttpRequest) -> HttpResponse:
     analises = (
@@ -77,7 +95,12 @@ def minhas_analises_view(request: HttpRequest) -> HttpResponse:
         .select_related("artigo")
         .order_by("-criado_em")
     )
-    return render(request, "acervo/minhas_analises.html", {"analises": analises})
+    projeto_anco = _projeto_anco_do_analista(request.user)
+    return render(
+        request,
+        "acervo/minhas_analises.html",
+        {"analises": analises, "projeto_anco": projeto_anco},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -850,6 +873,10 @@ def submeter_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse
             request,
             "Análise submetida. Aguardando aprovação da curadoria para entrar no acervo.",
         )
+        # Devolve o analista à sua fila de sorteados ANCO (não à triagem PRISMA).
+        projeto = _projeto_anco_do_analista(request.user, analise.artigo)
+        if projeto:
+            return redirect("anco_analisar", slug=projeto.slug)
         return redirect("minhas_analises")
 
     return render(request, "acervo/submeter_analise.html", {"analise": analise})

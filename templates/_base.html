@@ -38,8 +38,10 @@
                 {% if user.eh_analista %}
                     <a href="{% url 'minhas_analises' %}" class="text-slate-600 hover:text-anco">Minhas análises</a>
                     <a href="{% url 'minhas_revisoes' %}" class="text-slate-600 hover:text-anco">Minhas revisões</a>
+                    {% if user.acessa_prisma %}
                     <a href="{% url 'triagem_projetos' %}" class="text-slate-600 hover:text-anco">Triagem</a>
                     <a href="{% url 'triagem_a_analisar' %}" class="text-slate-600 hover:text-anco">A analisar</a>
+                    {% endif %}
                 {% endif %}
                 {% if user.is_staff %}
                     <a href="/admin/" class="text-slate-600 hover:text-anco">Admin</a>

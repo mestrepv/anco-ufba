@@ -10,14 +10,16 @@
       <span class="t-eyebrow" style="color: var(--color-gold);">An·Co · área do analista</span>
       <h1 class="t-h1" style="margin-top: 4px;">Minhas análises</h1>
     </div>
-    <a href="{% url 'triagem_a_analisar' %}" class="btn btn-primary">A analisar →</a>
+    {% if projeto_anco %}
+    <a href="{% url 'anco_analisar' slug=projeto_anco.slug %}" class="btn btn-primary">A analisar →</a>
+    {% endif %}
   </header>
 
   {% if not analises %}
   <div class="meta-card" style="text-align: center; padding: 56px 24px; border-style: dashed;">
     <p class="t-prose" style="color: var(--color-ink-3);">Você ainda não fez nenhuma análise.</p>
     <p class="t-small" style="color: var(--color-ink-4); margin-top: 8px;">
-      As análises vêm da sua cota sorteada — veja <a href="{% url 'triagem_a_analisar' %}" class="link">A analisar</a>.
+      As análises vêm da sua cota sorteada{% if projeto_anco %} — veja <a href="{% url 'anco_analisar' slug=projeto_anco.slug %}" class="link">A analisar</a>{% endif %}.
     </p>
   </div>
   {% else %}
