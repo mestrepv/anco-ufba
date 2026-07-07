@@ -55,6 +55,25 @@ class TermoVocabulario(models.Model):
         db_index=True,
         help_text="Termos inativos nao aparecem em formularios; usar para itens do legado pendentes de curadoria.",
     )
+
+    class Grupo(models.TextChoices):
+        PARADIGMA = "paradigma", "Paradigma / epistemologia"
+        METODOLOGIA = "metodologia", "Abordagem metodológica"
+        DISCIPLINA = "disciplina", "Campo / disciplina"
+        APLICACAO = "aplicacao", "Domínio de aplicação"
+        LIXO = "lixo", "Não-termo (descartar)"
+
+    grupo = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        db_index=True,
+        choices=Grupo.choices,
+        help_text=(
+            "Faceta do termo (paradigma × metodologia × disciplina × aplicação). "
+            "Organiza os pickers sem apagar nada; vazio = não classificado."
+        ),
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:

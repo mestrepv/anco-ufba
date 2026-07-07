@@ -287,7 +287,14 @@ class _AnaliseFormBase(forms.ModelForm):
                 and list(getattr(self.instance, nome).values_list("pk", flat=True))
                 or []
             )
-            self.fields[nome].queryset = qs.filter(Q(ativo=True) | Q(pk__in=selecionados))
+            base = Q(ativo=True)
+            if nome == "epistemologia":
+                # O "balaio" foi FACETADO: o picker de Epistemologia oferece só
+                # PARADIGMAS (postura epistemológica, à la Fróes). Método,
+                # disciplina e aplicação ficam fora (método tem campo de texto
+                # próprio). '' = termo ainda não classificado, também aparece.
+                base &= Q(grupo__in=["paradigma", ""])
+            self.fields[nome].queryset = qs.filter(base | Q(pk__in=selecionados))
 
 
 class AnalisePresencaForm(_AnaliseFormBase):
