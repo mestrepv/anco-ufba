@@ -1,0 +1,94 @@
+{% extends "_base_publico.html" %}
+{% block title %}Sua análise cognitiva · {{ projeto.nome }}{% endblock %}
+{% block extra_head %}{% include "triagem/_estilos.html" %}
+<style>
+  .an-hero { border:1px solid var(--color-gold-deep); border-radius:14px; padding:20px 22px; background:var(--color-review-bg); margin:8px 0 20px; }
+  .an-hero h1 { margin:0 0 6px; }
+  .an-hero p { margin:0; font-family:var(--font-serif); font-size:15px; color:var(--color-ink); line-height:1.5; }
+  .an-prog { display:flex; align-items:center; gap:14px; margin:16px 0 6px; flex-wrap:wrap; }
+  .an-bar { flex:1; min-width:180px; height:12px; border-radius:999px; background:var(--color-rule); overflow:hidden; }
+  .an-bar > span { display:block; height:100%; background:var(--color-gold-deep); border-radius:999px; transition:width .3s; }
+  .an-prog-num { font-family:var(--font-sans); font-size:14px; color:var(--color-ink-2); white-space:nowrap; }
+  .an-chips { display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 22px; }
+  .an-chip { font-family:var(--font-sans); font-size:12.5px; padding:4px 11px; border-radius:999px; border:1px solid var(--color-rule); color:var(--color-ink-2); }
+  .an-item { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; margin-bottom:8px; }
+  .an-badge { font-family:var(--font-sans); font-size:11px; text-transform:uppercase; letter-spacing:.04em; padding:2px 9px; border-radius:999px; border:1px solid var(--color-rule-strong); color:var(--color-ink-2); white-space:nowrap; }
+  .an-badge.falta { border-color:var(--color-gold-deep); color:var(--color-gold-deep); }
+  .an-badge.andamento { border-color:var(--color-gold-deep); color:var(--color-gold-deep); background:var(--color-review-bg); }
+  .an-badge.publicada { border-color:var(--color-ink-2); color:var(--color-paper); background:var(--color-ink-2); }
+  .an-num { flex-shrink:0; font-family:var(--font-sans); font-weight:700; font-size:13px; color:var(--color-ink-2); min-width:26px; text-align:right; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tg-wrap">
+  <a href="{% url 'anco_painel' projeto.slug %}" class="tg-back">&larr; {{ projeto.nome }}</a>
+
+  <div class="an-hero">
+    <p class="t-eyebrow" style="margin:0 0 4px;">Etapa 3 · Matriz AnCo</p>
+    <h1 class="tg-h1">Sua análise cognitiva</h1>
+    {% if total %}
+    <p>Estes são os <strong>{{ total }}</strong> artigo{{ total|pluralize }} <strong>sorteado{{ total|pluralize }} para você</strong> analisar pela Matriz de Análise Cognitiva. Este é o seu conjunto — trabalhe um a um até concluir todos.</p>
+    {% else %}
+    <p>Aqui aparecem os artigos que forem <strong>sorteados para você</strong> analisar pela Matriz de Análise Cognitiva.</p>
+    {% endif %}
+  </div>
+
+  {% if total %}
+  <div class="an-prog">
+    <div class="an-bar" aria-hidden="true"><span style="width:{{ pct }}%;"></span></div>
+    <span class="an-prog-num"><strong>{{ concluidas }}</strong> de {{ total }} concluída{{ concluidas|pluralize }} · {{ pct }}%</span>
+  </div>
+  <div class="an-chips">
+    {% if n_falta %}<span class="an-chip">A fazer: <strong>{{ n_falta }}</strong></span>{% endif %}
+    {% if n_andamento %}<span class="an-chip">Em andamento: <strong>{{ n_andamento }}</strong></span>{% endif %}
+    {% if n_submetida %}<span class="an-chip">Enviadas à curadoria: <strong>{{ n_submetida }}</strong></span>{% endif %}
+    {% if n_publicada %}<span class="an-chip">Publicadas: <strong>{{ n_publicada }}</strong></span>{% endif %}
+  </div>
+
+  <ul class="tg-list">
+    {% for it in itens %}
+      <li class="tg-card an-item">
+        <div style="min-width:0;display:flex;gap:12px;align-items:flex-start;">
+          <span class="an-num">{{ forloop.counter }}.</span>
+          <div style="min-width:0;">
+            <div style="font-family:var(--font-serif);color:var(--color-ink);line-height:1.35;">
+              {{ it.titulo }}
+            </div>
+            <div class="tg-meta" style="margin-top:2px;">{{ it.autores|truncatechars:80 }}{% if it.ano %} · {{ it.ano }}{% endif %}</div>
+            <div style="margin-top:6px;"><span class="an-badge {{ it.estado }}">{{ it.estado_info.rotulo }}</span></div>
+          </div>
+        </div>
+        <div style="flex-shrink:0;">
+          <a href="{% url 'iniciar_analise' it.artigo_id %}"
+             class="btn btn-sm {% if it.estado_info.primario %}btn-primary{% else %}btn-secondary{% endif %}">
+            {{ it.estado_info.cta }}
+          </a>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+
+  {% else %}
+  {# Sem artigos para este analista — estados claros conforme a causa. #}
+  <div class="tg-card" style="text-align:center;padding:32px 20px;">
+    {% if not tem_sorteio %}
+      <p style="font-family:var(--font-serif);font-size:16px;color:var(--color-ink);margin:0 0 6px;">O sorteio ainda não foi feito.</p>
+      <p class="tg-meta" style="margin:0 0 16px;">Assim que a curadoria sortear o corpus, seus artigos aparecem aqui automaticamente.</p>
+      {% if eh_curador %}<a href="{% url 'anco_sorteio' projeto.slug %}" class="btn btn-primary">Sortear análise agora</a>{% endif %}
+    {% else %}
+      <p style="font-family:var(--font-serif);font-size:16px;color:var(--color-ink);margin:0 0 6px;">Nenhum artigo foi sorteado para você.</p>
+      {% if eh_curador %}
+      <p class="tg-meta" style="margin:0 0 16px;">Como curador, você acompanha e analisa a qualquer tempo — o sorteio distribui os artigos aos analistas.</p>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+        <a href="{% url 'anco_acompanhamento' projeto.slug %}" class="btn btn-secondary">Acompanhar analistas</a>
+        <a href="{% url 'anco_corpus' projeto.slug %}" class="btn btn-secondary">Ver corpus</a>
+      </div>
+      {% else %}
+      <p class="tg-meta" style="margin:0;">Fale com a curadoria do projeto se acredita que deveria ter recebido artigos.</p>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

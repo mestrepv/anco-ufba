@@ -25,6 +25,7 @@ urlpatterns = [
         views.corpus_editar_view,
         name="anco_corpus_editar",
     ),
+    path("p/<slug:slug>/analisar/", views.analisar_view, name="anco_analisar"),
     path("p/<slug:slug>/sorteio/", views.sorteio_view, name="anco_sorteio"),
     path(
         "p/<slug:slug>/sorteio/elegiveis/",
