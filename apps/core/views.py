@@ -250,11 +250,12 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                 )
 
         # Curadoria (fila global): análises submetidas + resenhas revisadas.
-        eh_curador_geral = (
-            user.is_staff or user.eh_curador or any(p["eh_curador"] for p in projetos_anco)
-        )
+        # SÓ quem realmente acessa a fila (`_eh_admin` = staff OU curador GLOBAL)
+        # — curador só-de-projeto não abre a fila, então não recebe esse nudge
+        # (evita prometer acesso que daria 403).
+        pode_curadoria = user.is_staff or user.eh_curador
         n_aprovar = n_confirmar = 0
-        if eh_curador_geral:
+        if pode_curadoria:
             from apps.acervo.models import Resenha
 
             n_aprovar = Analise.objects.filter(status=Analise.Status.SUBMETIDA).count()
@@ -262,7 +263,7 @@ def painel_view(request: HttpRequest) -> HttpResponse:
 
         # Próximo passo (prioridade): tarefas de curador destravam o trabalho dos
         # outros → vêm antes das do próprio analista.
-        if eh_curador_geral and (n_aprovar or n_confirmar):
+        if pode_curadoria and (n_aprovar or n_confirmar):
             total = n_aprovar + n_confirmar
             if n_aprovar and n_confirmar:
                 sub = f"{n_aprovar} análise(s) para aprovar e {n_confirmar} resenha(s) para confirmar."
@@ -287,9 +288,10 @@ def painel_view(request: HttpRequest) -> HttpResponse:
                 "href": reverse("minhas_analises"),
                 "label": "Continuar",
             }
-        elif eh_curador_geral and acomp_slug:
-            # Ocioso do curador: nada na fila — nudge para acompanhar a equipe
-            # (sorteio + progresso na mesma tela).
+        elif acomp_slug:
+            # Ocioso do curador (de projeto): nada na fila — nudge para acompanhar
+            # a equipe (sorteio + progresso na mesma tela). `acomp_slug` só é
+            # definido para curador do projeto, que TEM acesso a essa tela.
             proxima = {
                 "titulo": "Tudo em dia 🎉",
                 "sub": "Sem pendências de curadoria. Acompanhe o progresso dos analistas.",

@@ -135,6 +135,22 @@ def test_curador_ocioso_sugere_acompanhar(client, projeto, curador):
     assert "Tudo em dia" in prox["titulo"]
 
 
+def test_curador_so_de_projeto_nao_recebe_nudge_curadoria(client, projeto, analista):
+    # Analista global que é curador APENAS no projeto NÃO acessa a fila global
+    # de curadoria — então não deve receber o nudge (evita prometer 403).
+    MembroANCO.objects.filter(projeto=projeto, usuario=analista).update(
+        papel=MembroANCO.Papel.CURADOR
+    )
+    art = _item(projeto, "Submetida por outro", "k1")
+    outro = User.objects.create_user(username="o2", email="o2@u.edu", password="x")
+    Analise.objects.create(artigo=art, analista=outro, status=Analise.Status.SUBMETIDA)
+    client.force_login(analista)
+    resp = client.get(reverse("painel"))
+    prox = resp.context["proxima"]
+    # Não é a curadoria; cai em sortear (curador de projeto pode sortear).
+    assert prox is None or prox["href"] != reverse("fila_curadoria")
+
+
 def test_curadoria_tem_prioridade_sobre_sortear(client, projeto, curador, analista):
     # Com submetida E corpus sem sorteio, a curadoria vem primeiro.
     MembroANCO.objects.create(projeto=projeto, usuario=curador, papel=MembroANCO.Papel.CURADOR)
