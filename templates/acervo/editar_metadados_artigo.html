@@ -1,0 +1,42 @@
+{% extends "_base_publico.html" %}
+{% block title %}Editar dados do artigo — AnCo{% endblock %}
+
+{% block content %}
+<main style="max-width: 760px; margin: 32px auto 80px; padding: 0 24px;">
+  <a href="{% url 'editar_analise' analise.pk %}" class="link" style="font-size: 14px;">&larr; Voltar à análise</a>
+
+  <header style="margin: 8px 0 20px;">
+    <span class="t-eyebrow" style="color: var(--color-gold);">An·Co · dados do artigo</span>
+    <h1 class="t-h1" style="margin-top: 4px; font-size: 24px; line-height: 1.25;">Editar dados do artigo</h1>
+    <p class="t-small" style="color: var(--color-ink-3); margin-top: 6px;">
+      Complete ou corrija os campos que não vieram na importação (resumo, palavras-chave,
+      autores, link, etc.). Isso atualiza o artigo usado na sua análise.
+    </p>
+  </header>
+
+  <form method="post" class="meta-card" style="display: flex; flex-direction: column; gap: 16px;">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div style="padding: 12px 14px; background: #fdf2f0; border: 1px solid var(--color-danger); border-radius: 6px; font-family: var(--font-sans); font-size: 14px; color: var(--color-danger);">
+      {{ form.non_field_errors|join:" / " }}
+    </div>
+    {% endif %}
+
+    {% for field in form %}
+    <div class="field-row">
+      <label for="{{ field.id_for_label }}" class="field-label" style="cursor: pointer;">
+        {{ field.label }}{% if field.field.required %} <span style="color: var(--color-gold-deep);">*</span>{% endif %}
+      </label>
+      {{ field }}
+      {% if field.help_text %}<p class="t-meta" style="color: var(--color-ink-4); margin-top: 3px;">{{ field.help_text }}</p>{% endif %}
+      {% if field.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ field.errors|join:" / " }}</p>{% endif %}
+    </div>
+    {% endfor %}
+
+    <div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--color-paper-3);">
+      <a href="{% url 'editar_analise' analise.pk %}" class="btn btn-ghost btn-sm">Cancelar</a>
+      <button type="submit" class="btn btn-primary btn-sm">Salvar dados do artigo</button>
+    </div>
+  </form>
+</main>
+{% endblock %}

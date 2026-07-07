@@ -633,6 +633,65 @@ def editar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
     )
 
 
+@_exige_editor
+def editar_metadados_artigo_view(request: HttpRequest, analise_id: int) -> HttpResponse:
+    """Editar os metadados do ARTIGO da análise (título, autores, resumo,
+    palavras-chave, link, etc.) — para o analista completar/corrigir campos que
+    não vieram na importação. Autor (em janela editável) ou curador/admin.
+    Acervo curado (`eh_legado`) é intocável: bloqueado."""
+    analise = get_object_or_404(Analise, pk=analise_id)
+    user = request.user
+    eh_admin = _eh_admin(user)
+
+    if not eh_admin and analise.analista_id != user.id:
+        return HttpResponseForbidden("Apenas o analista autor (ou curador/admin) pode editar.")
+    if analise.artigo.eh_legado:
+        return HttpResponseForbidden(
+            "Acervo curado (legado) é somente-leitura — seus dados não são editáveis aqui."
+        )
+    if not (eh_admin or analise.pode_ser_modificada):
+        messages.info(request, "Esta análise não pode mais ser editada nesta janela.")
+        return redirect("editar_analise", analise_id=analise.pk)
+
+    artigo = analise.artigo
+    if request.method == "POST":
+        form = ArtigoMetadadosForm(request.POST, instance=artigo)
+        if form.is_valid():
+            form.save()
+            _espelhar_no_corpus(artigo)  # mantém ItemCorpus (ANCO) em sincronia
+            messages.success(request, "Dados do artigo atualizados.")
+            return redirect("editar_analise", analise_id=analise.pk)
+    else:
+        form = ArtigoMetadadosForm(instance=artigo)
+
+    return render(
+        request,
+        "acervo/editar_metadados_artigo.html",
+        {"analise": analise, "artigo": artigo, "form": form},
+    )
+
+
+def _espelhar_no_corpus(artigo) -> None:
+    """Reflete os metadados editados do Artigo nos `ItemCorpus` (ANCO) que o
+    referenciam, para o corpus/sorteio não ficarem defasados. Best-effort."""
+    try:
+        from apps.anco.models import ItemCorpus
+    except Exception:  # noqa: BLE001 — ANCO é opcional
+        return
+    ItemCorpus.objects.filter(artigo=artigo, removido=False).update(
+        titulo=artigo.titulo,
+        autores=artigo.autores or "",
+        ano=artigo.ano,
+        doi=artigo.doi or "",
+        isbn=artigo.isbn or "",
+        resumo=artigo.resumo or "",
+        palavras_chaves=artigo.palavras_chaves or "",
+        titulo_periodico=artigo.titulo_periodico or "",
+        idioma=artigo.idioma or "",
+        link=artigo.link_acesso or "",
+    )
+
+
 def ver_analise_analista_view(
     request: HttpRequest, artigo_id: int, analista_id: int
 ) -> HttpResponse:

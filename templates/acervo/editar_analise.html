@@ -94,10 +94,16 @@
 
     {# ── Aba 1: Identificação (ficha + grande área) ─────────────── #}
     <section x-show="aba === 'identificacao'" x-cloak>
-      <h2 class="t-h2" style="margin-bottom: 8px;">Identificação</h2>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap;">
+        <h2 class="t-h2" style="margin-bottom: 8px;">Identificação</h2>
+        {% if not somente_leitura and not analise.artigo.eh_legado %}
+        <a href="{% url 'editar_metadados_artigo' analise.pk %}" class="btn btn-secondary btn-sm">✎ Editar dados do artigo</a>
+        {% endif %}
+      </div>
       <p class="t-small" style="color: var(--color-ink-3); margin-bottom: 16px;">
         Confirme os metadados do artigo. A <strong>grande área</strong> pode ser
-        ajustada aqui; os demais metadados são editados no admin (curador).
+        ajustada aqui; para completar ou corrigir os demais campos (resumo,
+        palavras-chave, autores, link…), use <strong>Editar dados do artigo</strong>.
       </p>
       <p class="t-small" style="color: var(--color-ink-4); margin: 0 0 14px; display: flex; align-items: center; gap: 6px;">
         <mark style="padding: 0 3px; background:#ffe9a8; border-radius:3px;">Termos da Análise Cognitiva</mark> aparecem destacados — ajuda a julgar presença e pertinência na próxima aba.

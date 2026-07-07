@@ -33,6 +33,12 @@ urlpatterns = [
         views.autosave_analise_view,
         name="autosave_analise",
     ),
+    # Editar os metadados do artigo da análise (completar campos da importação).
+    path(
+        "analise/<int:analise_id>/artigo/editar/",
+        views.editar_metadados_artigo_view,
+        name="editar_metadados_artigo",
+    ),
     # Visualização (curador) da análise de um analista — mesma tela, só leitura.
     # Por (artigo, analista): funciona mesmo se o analista ainda não iniciou.
     path(
