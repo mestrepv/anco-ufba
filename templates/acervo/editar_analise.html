@@ -160,14 +160,39 @@
     {% endif %}
   </form>
 
-  {# ── Situação (modo leitura, curador) ─────────────────────────── #}
+  {# ── Situação + decisão do curador (modo leitura) ─────────────── #}
   {% if somente_leitura %}
-  <section style="margin-top: 24px; padding: 14px 18px; background: var(--color-paper-2); border: 1px solid var(--color-rule-strong); font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);">
-    Situação da análise:
-    {% if analise_transitoria %}<strong>não iniciada</strong>.
-    {% else %}<strong>{{ analise.get_status_display }}</strong>.{% endif %}
-    Para aprovar ou devolver, use a tela de <strong>Sorteio e acompanhamento</strong>.
-  </section>
+    {% if pode_aprovar %}
+    {# Análise ENVIADA: o curador lê acima e decide aqui mesmo. #}
+    <section x-data="{ dev: false }" style="margin-top: 24px; padding: 18px 20px; background: var(--color-review-bg); border: 1px solid var(--color-gold-deep);">
+      <p style="font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2); margin: 0 0 12px;">
+        Esta análise foi <strong>enviada para curadoria</strong>. Depois de ler acima, decida:
+      </p>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start;">
+        <form method="post" action="{% url 'aprovar_analise' analise.pk %}" onsubmit="return confirm('Aprovar esta análise e publicar no acervo?');">
+          {% csrf_token %}<input type="hidden" name="next" value="{{ next_url }}">
+          <button type="submit" class="btn btn-primary btn-sm">Aprovar e publicar ✓</button>
+        </form>
+        <button type="button" class="btn btn-ghost btn-sm" @click="dev = !dev">Devolver…</button>
+      </div>
+      <div x-show="dev" x-cloak style="margin-top: 12px;">
+        <form method="post" action="{% url 'devolver_analise' analise.pk %}">
+          {% csrf_token %}<input type="hidden" name="next" value="{{ next_url }}">
+          <textarea name="motivo" rows="2" placeholder="Motivo (ajustes ou rejeição)" style="width: 100%; max-width: 460px; font-family: var(--font-sans); font-size: 13px; padding: 8px; border: 1px solid var(--color-rule-strong); border-radius: 6px;"></textarea>
+          <div style="display: flex; gap: 8px; margin-top: 6px;">
+            <button type="submit" name="acao" value="ajustes" class="btn btn-secondary btn-sm">Pedir ajustes (→ rascunho)</button>
+            <button type="submit" name="acao" value="rejeitar" class="btn btn-ghost btn-sm" style="color: var(--color-danger);">Rejeitar</button>
+          </div>
+        </form>
+      </div>
+    </section>
+    {% else %}
+    <section style="margin-top: 24px; padding: 14px 18px; background: var(--color-paper-2); border: 1px solid var(--color-rule-strong); font-family: var(--font-sans); font-size: 14px; color: var(--color-ink-2);">
+      Situação da análise:
+      {% if analise_transitoria %}<strong>não iniciada</strong> — o analista ainda não começou.
+      {% else %}<strong>{{ analise.get_status_display }}</strong>.{% endif %}
+    </section>
+    {% endif %}
   {% endif %}
 
   {# ── Submissão à curadoria (faltantes atualizadas ao vivo) ─────── #}

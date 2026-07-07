@@ -174,7 +174,7 @@ def test_painel_botao_vira_sorteio_e_acompanhamento(client, projeto, curador, an
     assert b"Sortear an\xc3\xa1lise" not in resp.content
 
 
-def test_aprovar_analise_inline_da_tela_de_sorteio(client, projeto, curador, analista, base_scopus):
+def test_enviada_mostra_revisar_e_decidir(client, projeto, curador, analista, base_scopus):
     from apps.acervo.models import Analise
 
     fonte = FonteImport.objects.create(projeto=projeto, base_consulta=base_scopus)
@@ -186,19 +186,13 @@ def test_aprovar_analise_inline_da_tela_de_sorteio(client, projeto, curador, ana
     )
 
     client.force_login(curador)
-    # A tela mostra o botão Aprovar e o título vira link para a análise.
+    # A decisão saiu da lista: linha "Enviada" leva à visualização (Revisar e decidir).
     resp = client.get(reverse("anco_sorteio", args=[projeto.slug]))
     corpo = resp.content.decode()
-    assert "Aprovar" in corpo
-    assert reverse("pagina_analise", args=[analise.pk]) in corpo
-
-    # Aprova inline, voltando para o sorteio → análise publicada no acervo.
-    destino = reverse("anco_sorteio", args=[projeto.slug])
-    resp = client.post(reverse("aprovar_analise", args=[analise.pk]), {"next": destino})
-    assert resp.status_code == 302
-    assert resp["Location"] == destino
-    analise.refresh_from_db()
-    assert analise.status == Analise.Status.PUBLICADA
+    assert "Revisar e decidir" in corpo
+    assert reverse("ver_analise_analista", args=[it.artigo_id, analista.pk]) in corpo
+    # Não há mais formulário de aprovar/devolver embutido na lista.
+    assert reverse("aprovar_analise", args=[analise.pk]) not in corpo
 
 
 def test_devolver_analise_inline_volta_ao_sorteio(client, projeto, curador, analista, base_scopus):

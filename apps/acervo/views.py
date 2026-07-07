@@ -664,6 +664,18 @@ def ver_analise_analista_view(
     if passo_inicial not in dict(PASSOS):
         passo_inicial = "identificacao"
 
+    # Para onde voltar após aprovar/devolver (ex.: a tela de sorteio). Seguro.
+    from django.utils.http import url_has_allowed_host_and_scheme
+
+    prox = request.GET.get("next") or ""
+    if not (
+        prox
+        and url_has_allowed_host_and_scheme(
+            prox, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+        )
+    ):
+        prox = ""
+
     return render(
         request,
         "acervo/editar_analise.html",
@@ -678,6 +690,9 @@ def ver_analise_analista_view(
             "somente_leitura": True,
             "analista_alvo": analista,
             "analise_transitoria": transitoria,
+            # Aprovar/devolver aparecem na própria visualização quando "Enviada".
+            "pode_aprovar": (not transitoria) and analise.status == Analise.Status.SUBMETIDA,
+            "next_url": prox,
             "campos_faltantes": [],
             "termos_realce": _termos_realce_do_artigo(analise.artigo),
             "ficha": _ficha_sem_area(analise.artigo),

@@ -74,3 +74,34 @@ def test_leitura_nao_tem_botao_submeter(client, curador, analista, artigo):
     resp = client.get(_url(artigo, analista))
     assert b"Submeter para curadoria" not in resp.content
     assert b"Salvar agora" not in resp.content
+
+
+def test_enviada_mostra_aprovar_e_devolver(client, curador, analista, artigo):
+    Analise.objects.create(artigo=artigo, analista=analista, status=Analise.Status.SUBMETIDA)
+    client.force_login(curador)
+    resp = client.get(_url(artigo, analista))
+    corpo = resp.content.decode()
+    assert resp.context["pode_aprovar"] is True
+    assert "Aprovar e publicar" in corpo
+    assert "Devolver" in corpo
+
+
+def test_rascunho_nao_mostra_decisao(client, curador, analista, artigo):
+    Analise.objects.create(artigo=artigo, analista=analista, status=Analise.Status.RASCUNHO)
+    client.force_login(curador)
+    resp = client.get(_url(artigo, analista))
+    assert resp.context["pode_aprovar"] is False
+    assert "Aprovar e publicar" not in resp.content.decode()
+
+
+def test_aprovar_da_visualizacao_com_next(client, curador, analista, artigo):
+    analise = Analise.objects.create(
+        artigo=artigo, analista=analista, status=Analise.Status.SUBMETIDA
+    )
+    client.force_login(curador)
+    destino = "/anco/p/piloto-x/sorteio/"
+    resp = client.post(reverse("aprovar_analise", args=[analise.pk]), {"next": destino})
+    assert resp.status_code == 302
+    assert resp["Location"] == destino
+    analise.refresh_from_db()
+    assert analise.status == Analise.Status.PUBLICADA
