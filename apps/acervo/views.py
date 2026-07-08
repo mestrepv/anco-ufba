@@ -834,7 +834,7 @@ def autosave_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse
     return JsonResponse(
         {
             "ok": True,
-            "salvo_em": timezone.now().strftime("%H:%M:%S"),
+            "salvo_em": timezone.localtime().strftime("%H:%M:%S"),
             "faltantes": analise.campos_faltantes_submissao(),
         }
     )
@@ -986,7 +986,7 @@ def autosave_resenha_view(request: HttpRequest, analise_id: int) -> HttpResponse
     form = ResenhaForm(request.POST, instance=resenha)
     if form.is_valid():
         form.save()
-        return JsonResponse({"ok": True, "salvo_em": timezone.now().strftime("%H:%M:%S")})
+        return JsonResponse({"ok": True, "salvo_em": timezone.localtime().strftime("%H:%M:%S")})
     return JsonResponse({"ok": False, "errors": form.errors}, status=400)
 
 

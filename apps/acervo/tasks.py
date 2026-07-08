@@ -11,6 +11,7 @@ import logging
 
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
+from django.utils import timezone
 
 from .aprovacao import avaliar_apos_revisao_cega
 from .models import Analise, Artigo, Resenha, Revisao
@@ -140,7 +141,7 @@ def _notificar_revisores_cegos(resenha: Resenha) -> None:
             "Olá!\n\n"
             "Você foi sorteado para uma revisão CEGA de uma resenha crítica. "
             "A autoria está oculta.\n"
-            f"Prazo: {r.prazo_em.strftime('%d/%m/%Y')}.\n\n"
+            f"Prazo: {timezone.localtime(r.prazo_em).strftime('%d/%m/%Y')}.\n\n"
             "Acesse 'Minhas revisões' na plataforma."
         )
         _enviar("[AnCo] Você foi sorteado para uma revisão cega", corpo, [r.revisor.email])
