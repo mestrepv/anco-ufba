@@ -3,16 +3,30 @@
 {% block title %}Resenha crítica — AnCo{% endblock %}
 
 {% block content %}
-<main style="max-width: 760px; margin: 32px auto 80px; padding: 0 24px;">
+{# Mesmas medidas e cabeçalho de editar_analise.html — evita "pulo" de layout
+   ao navegar entre as abas da análise e a resenha. #}
+<main style="max-width: 880px; margin: 32px auto 80px; padding: 0 24px;">
 
-  <header style="margin-bottom: 16px;">
+  <header style="margin-bottom: 24px;">
     <span class="t-eyebrow" style="color: var(--color-gold);">An·Co · resenha crítica</span>
-    <h1 class="t-h1" style="margin-top: 4px; font-size: 24px; line-height: 1.2;">
+    <h1 class="t-h1" style="margin-top: 4px; font-size: 26px; line-height: 1.2;">
       {{ analise.artigo.titulo|truncatechars:140 }}
     </h1>
     <p class="t-small" style="color: var(--color-ink-3); margin-top: 6px;">
-      Status da resenha: <strong>{{ resenha.get_status_display }}</strong>
+      {{ analise.artigo.ano|default:"s.d." }}
+      {% if analise.artigo.titulo_periodico %} · <em>{{ analise.artigo.titulo_periodico|truncatechars:80 }}</em>{% endif %}
+      · Status da resenha: <strong>{{ resenha.get_status_display }}</strong>
     </p>
+    {% if analise.artigo.link_acesso %}
+    <div style="margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px;">
+      <a href="{{ analise.artigo.link_acesso }}" target="_blank" rel="noopener noreferrer" class="link" style="font-size: 14px;">
+        Acessar obra ↗
+      </a>
+      {% if analise.artigo.link_status == "ok" %}{% include "partials/_selo.html" with kind="aberto" %}
+      {% elif analise.artigo.link_status == "quebrado" %}{% include "partials/_selo.html" with kind="quebrado" %}
+      {% elif analise.artigo.link_status == "redireciona" %}<span class="selo selo-historico">redireciona</span>{% endif %}
+    </div>
+    {% endif %}
   </header>
 
   {% include "acervo/_stepper_analise.html" %}

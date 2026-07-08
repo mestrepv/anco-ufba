@@ -6,7 +6,8 @@
        font-family: var(--font-sans); font-size: 13px; border-bottom: 2px solid transparent;
        color: var(--color-ink-3); text-decoration: none;
        {% if t.codigo == passo_atual %}border-bottom-color: var(--color-gold); color: var(--color-ink); font-weight: 600;{% endif %}">
-    <span class="step-indicator" style="{% if t.codigo != passo_atual %}background: var(--color-paper-2); color: var(--color-ink-3);{% endif %}">{{ forloop.counter }}</span>
+    {# A resenha não é um passo numerado — no editor ela aparece sem círculo. #}
+    {% if t.codigo != "resenha" %}<span class="step-indicator" style="{% if t.codigo != passo_atual %}background: var(--color-paper-2); color: var(--color-ink-3);{% endif %}">{{ forloop.counter }}</span>{% endif %}
     <span>{{ t.label }}</span>
   </a>
   {% endfor %}
