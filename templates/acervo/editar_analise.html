@@ -102,9 +102,9 @@
       </div>
       <p class="t-small" style="color: var(--color-ink-3); margin-bottom: 16px;">
         Confirme os metadados do artigo — eles chegam automaticamente da base de
-        consulta. A <strong>área</strong> pode ser ajustada aqui; para completar
-        ou corrigir os demais campos (resumo, palavras-chave, autores, link…),
-        use <strong>Editar dados do artigo</strong>.
+        consulta. A <strong>área</strong> e o <strong>contexto de produção</strong>
+        são preenchidos aqui; para completar ou corrigir os demais campos (resumo,
+        palavras-chave, autores, link…), use <strong>Editar dados do artigo</strong>.
       </p>
       <p class="t-small" style="color: var(--color-ink-4); margin: 0 0 14px; display: flex; align-items: center; gap: 6px;">
         <mark style="padding: 0 3px; background:#ffe9a8; border-radius:3px;">Termos da Análise Cognitiva</mark> aparecem destacados — ajuda a julgar presença e pertinência na próxima aba.
@@ -129,6 +129,10 @@
             </div>
           </div>
         </div>
+        {# Contexto de produção fica na Identificação (item 4.3.2 do tutorial). #}
+        <div style="margin-top: 16px;">
+          {% include "acervo/_campos_analise.html" with form=estrutura_form apenas="contexto_producao" %}
+        </div>
       </div>
     </section>
 
@@ -151,7 +155,8 @@
       <div class="ajuda-aba">
         <p style="margin:0;">Descreva a estrutura analítica da obra segundo a grade AnCo (item 7 do tutorial). <strong>As dicas abaixo de cada campo</strong> trazem o que registrar. Lembre: <strong>Foco</strong> é o subcampo cognitivo (≠ área da aba 1); <strong>Epistemologia</strong> e <strong>Teoria</strong> usam o vocabulário controlado para que as análises se agreguem.</p>
       </div>
-      {% include "acervo/_campos_analise.html" with form=estrutura_form %}
+      {# contexto_producao é renderizado na aba 1 (Identificação, item 4.3.2). #}
+      {% include "acervo/_campos_analise.html" with form=estrutura_form apenas="objeto objetivo foco metodologia epistemologia teoria resultados referenciais observacoes" %}
     </section>
 
     </fieldset>
