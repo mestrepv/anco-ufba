@@ -112,7 +112,7 @@
       {% include "partials/_ficha_artigo.html" with ficha=ficha realce_termos=termos_realce %}
       <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--color-paper-3);">
         <div class="field-row">
-          <label for="{{ artigo_form.area.id_for_label }}" class="field-label" style="cursor:pointer;">Área (conforme o periódico) (4.2)</label>
+          <label for="{{ artigo_form.area.id_for_label }}" class="field-label" style="cursor:pointer;">Área (conforme o periódico)</label>
           <div x-data="{ outros: '{{ artigo_form.area.value|default_if_none:'' }}' === 'Outros' }"
                @change="outros = ($event.target.name === 'area' && $event.target.value === 'Outros')">
             {{ artigo_form.area }}
@@ -143,9 +143,9 @@
         <p style="margin:0 0 4px;"><strong>Como preencher.</strong> As perguntas de <em>presença</em> só <em>localizam</em> o termo <strong>Análise Cognitiva</strong> na obra — não decidem nada sozinhas.</p>
         <p style="margin:0;">A decisão-chave é a <strong>pertinência</strong>. Campos em branco contam como não respondidos.</p>
       </div>
-      <h3 class="grupo-tutorial">Presença do termo <em>análise cognitiva</em> <span class="grupo-ref">item 5 do tutorial</span></h3>
+      <h3 class="grupo-tutorial">Presença do termo <em>análise cognitiva</em></h3>
       {% include "acervo/_campos_analise.html" with form=presenca_form apenas="presenca_titulo presenca_resumo presenca_palavras_chave presenca_corpo presenca_referencias" %}
-      <h3 class="grupo-tutorial">Pertinência <span class="grupo-ref">item 6 do tutorial</span></h3>
+      <h3 class="grupo-tutorial">Pertinência</h3>
       {% include "acervo/_campos_analise.html" with form=presenca_form apenas="pertinencia aspectos_relevantes define_conceito definicao_extraida" %}
     </section>
 
@@ -153,7 +153,7 @@
     <section x-show="aba === 'estrutura'" x-cloak>
       <h2 class="t-h2" style="margin-bottom: 12px;">Estrutura do artigo</h2>
       <div class="ajuda-aba">
-        <p style="margin:0;">Descreva a estrutura analítica da obra segundo a grade AnCo (item 7 do tutorial). <strong>As dicas abaixo de cada campo</strong> trazem o que registrar. Lembre: <strong>Foco</strong> é o subcampo cognitivo (≠ área da aba 1); <strong>Epistemologia</strong> e <strong>Teoria</strong> usam o vocabulário controlado para que as análises se agreguem.</p>
+        <p style="margin:0;">Descreva a estrutura analítica da obra segundo a grade AnCo. <strong>As dicas abaixo de cada campo</strong> trazem o que registrar. Lembre: <strong>Foco</strong> é o subcampo cognitivo (≠ área da aba 1); <strong>Epistemologia</strong> e <strong>Teoria</strong> usam o vocabulário controlado para que as análises se agreguem.</p>
       </div>
       {# contexto_producao é renderizado na aba 1 (Identificação, item 4.3.2). #}
       {% include "acervo/_campos_analise.html" with form=estrutura_form apenas="objeto objetivo foco metodologia epistemologia teoria resultados referenciais observacoes" %}

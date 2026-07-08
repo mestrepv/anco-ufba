@@ -309,17 +309,15 @@ class AnalisePresencaForm(_AnaliseFormBase):
             "aspectos_relevantes": forms.Textarea(attrs={"rows": 3}),
             "definicao_extraida": forms.Textarea(attrs={"rows": 3}),
         }
-        # Numeração entre parênteses = item correspondente no tutorial das
-        # professoras (docs/orientacoes-analise.md).
         labels = {
-            "presenca_titulo": "Aparece no título? (5.1)",
-            "presenca_resumo": "Aparece no resumo? (5.2)",
-            "presenca_palavras_chave": "Aparece nas palavras-chave? (5.3)",
-            "presenca_corpo": "Aparece no corpo do texto? (5.4)",
+            "presenca_titulo": "Aparece no título?",
+            "presenca_resumo": "Aparece no resumo?",
+            "presenca_palavras_chave": "Aparece nas palavras-chave?",
+            "presenca_corpo": "Aparece no corpo do texto?",
             "presenca_referencias": "Aparece nas referências?",
-            "pertinencia": "A obra é pertinente à Análise Cognitiva? (6.1)",
-            "aspectos_relevantes": "Aspectos relevantes (6.2)",
-            "define_conceito": "A obra define o conceito de Análise Cognitiva? (6.3)",
+            "pertinencia": "A obra é pertinente à Análise Cognitiva?",
+            "aspectos_relevantes": "Aspectos relevantes",
+            "define_conceito": "A obra define o conceito de Análise Cognitiva?",
             "definicao_extraida": "Definição extraída",
         }
         help_texts = {
@@ -355,16 +353,16 @@ class AnaliseEstruturaForm(_AnaliseFormBase):
             "observacoes": forms.Textarea(attrs={"rows": 2}),
         }
         labels = {
-            "objeto": "Objeto (7.1)",
-            "objetivo": "Objetivo (7.2)",
-            "foco": "Foco (7.3)",
-            "metodologia": "Metodologia (7.4)",
-            "epistemologia": "Epistemologia (7.5)",
-            "teoria": "Teoria (7.6)",
-            "resultados": "Resultados (7.7)",
-            "referenciais": "Referenciais (7.8)",
-            "contexto_producao": "Contexto de produção (4.3.2)",
-            "observacoes": "Outras observações (9 — opcional)",
+            "objeto": "Objeto",
+            "objetivo": "Objetivo",
+            "foco": "Foco",
+            "metodologia": "Metodologia",
+            "epistemologia": "Epistemologia",
+            "teoria": "Teoria",
+            "resultados": "Resultados",
+            "referenciais": "Referenciais",
+            "contexto_producao": "Contexto de produção",
+            "observacoes": "Outras observações (opcional)",
         }
         help_texts = {
             "objeto": "O que a obra investiga.",
