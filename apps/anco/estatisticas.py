@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import unicodedata
 from collections import Counter
 
 from django.db.models import F, Max
@@ -166,11 +167,15 @@ def relatorio_sorteio(projeto, sorteio) -> list[dict]:
                 else "nada"
             ),
         }
-    # Ordena os analistas: quem tem trabalho parado primeiro (a fazer / em
-    # andamento), depois quem concluiu; dentro de cada grupo, por nome.
-    _ordem_estado = {"nada": 0, "andamento": 1, "concluido": 2}
-    linhas.sort(key=lambda g: (_ordem_estado[g["progresso"]["estado"]], g["nome"].lower()))
+    # Ordem alfabética por nome (sem acento — "Édmara" não vai para o fim),
+    # para o curador localizar cada analista rapidamente.
+    linhas.sort(key=lambda g: _sem_acento(g["nome"].lower()))
     return linhas
+
+
+def _sem_acento(texto: str) -> str:
+    nfkd = unicodedata.normalize("NFKD", texto)
+    return "".join(c for c in nfkd if not unicodedata.combining(c))
 
 
 def _doi_url(doi: str) -> str:
