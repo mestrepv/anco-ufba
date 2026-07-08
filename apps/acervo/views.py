@@ -557,12 +557,11 @@ def _ficha_sem_area(artigo) -> dict:
     """Ficha do artigo p/ o componente único, sem a 'área' — que no editor é um
     campo EDITÁVEL à parte (evita mostrar duas vezes).
 
-    'Tipo de acesso' aparece SEMPRE no editor: a maioria dos artigos chegou por
-    importação em lote sem os selos, e a linha vazia é o chamado para o
-    analista avaliar e classificar."""
+    O 'tipo de acesso' também sai da ficha no editor: virou campo EDITÁVEL da
+    aba Identificação (ArtigoAreaForm.tipo_acesso), como a área."""
     f = artigo.ficha()
     f["area"] = ""
-    f["acesso"] = f["acesso"] or "Não classificado — avalie e marque em “Editar dados do artigo”"
+    f["acesso"] = ""
     return f
 
 

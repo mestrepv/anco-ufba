@@ -181,8 +181,23 @@ class ArtigoMetadadosForm(forms.ModelForm):
 ArtigoForm = ArtigoMetadadosForm
 
 
+TIPO_ACESSO_CHOICES = (
+    ("aberto", "Acesso aberto"),
+    ("capes", "Pago — acessível pelo Portal CAPES"),
+    ("pago", "Pago — sem acesso pelo Portal CAPES"),
+)
+
+
 class ArtigoAreaForm(forms.ModelForm):
-    """Edição da área de conhecimento do artigo (passo Identificação da análise)."""
+    """Campos do Artigo que o analista JULGA no passo Identificação da análise:
+    área de conhecimento e tipo de acesso (armazenado nos 3 selos booleanos)."""
+
+    tipo_acesso = forms.ChoiceField(
+        choices=TIPO_ACESSO_CHOICES,
+        required=False,
+        widget=forms.RadioSelect,
+        label="Tipo de acesso",
+    )
 
     class Meta:
         model = Artigo
@@ -196,12 +211,34 @@ class ArtigoAreaForm(forms.ModelForm):
         self.fields["area_outra"].required = False
         self.fields["area_outra"].label = "Especifique a área"
         self.fields["area_outra"].widget.attrs["class"] = "field-input"
+        if self.instance.pk:
+            art = self.instance
+            self.fields["tipo_acesso"].initial = (
+                "aberto"
+                if art.acesso_aberto
+                else "pago"
+                if art.pago_sem_capes
+                else "capes"
+                if art.artigo_pago
+                else ""
+            )
 
     def clean(self):
         dados = super().clean()
         if dados.get("area") == Artigo.Area.OUTROS and not (dados.get("area_outra") or "").strip():
             self.add_error("area_outra", "Especifique a área quando escolher 'Outros'.")
         return dados
+
+    def save(self, commit: bool = True):
+        artigo = super().save(commit=False)
+        valor = self.cleaned_data.get("tipo_acesso")
+        if valor:  # sem escolha = mantém a classificação existente (não zera)
+            artigo.acesso_aberto = valor == "aberto"
+            artigo.artigo_pago = valor == "capes"
+            artigo.pago_sem_capes = valor == "pago"
+        if commit:
+            artigo.save()
+        return artigo
 
 
 # ---------------------------------------------------------------------------

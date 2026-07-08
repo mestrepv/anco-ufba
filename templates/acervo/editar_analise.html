@@ -129,6 +129,20 @@
             </div>
           </div>
         </div>
+        {# Tipo de acesso: o analista JULGA aqui (grava nos selos do artigo). #}
+        <div style="margin-top: 16px;">
+          <span class="field-label">Tipo de acesso</span>
+          <div class="sim-nao" style="flex-wrap: wrap;">
+            {% for opt in artigo_form.tipo_acesso %}
+            <label class="sim-nao-opt">{{ opt.tag }}<span>{{ opt.choice_label }}</span></label>
+            {% endfor %}
+          </div>
+          <p class="t-meta" style="color: var(--color-ink-4); margin-top: 4px;">
+            Abra o link da obra e avalie: acesso aberto, pago com acesso pelo
+            Portal CAPES, ou pago sem cobertura CAPES. A maioria dos artigos
+            chegou da importação sem essa classificação.
+          </p>
+        </div>
         {# Contexto de produção fica na Identificação (item 4.3.2 do tutorial). #}
         <div style="margin-top: 16px;">
           {% include "acervo/_campos_analise.html" with form=estrutura_form apenas="contexto_producao" %}
