@@ -1215,22 +1215,36 @@ def aprovar_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
 @_exige_curador
 @require_POST
 def devolver_analise_view(request: HttpRequest, analise_id: int) -> HttpResponse:
-    """Pedir ajustes (-> rascunho) ou rejeitar (-> rejeitada), conforme `acao`."""
+    """Pedir ajustes (-> rascunho) ou rejeitar (-> rejeitada), conforme `acao`.
+
+    Também aceita análise PUBLICADA (aprovação por engano): sai do acervo e
+    volta a rascunho — a tarefa retorna ao analista. Publicada não pode ser
+    rejeitada por aqui (remoção sem devolver é o despublicar).
+    """
     from .tasks import notificar_analise_devolvida
 
     analise = get_object_or_404(Analise, pk=analise_id)
-    if analise.status != Analise.Status.SUBMETIDA:
-        messages.info(request, "Esta análise não está na fila de curadoria.")
+    if analise.status not in (Analise.Status.SUBMETIDA, Analise.Status.PUBLICADA):
+        messages.info(request, "Esta análise não está na fila de curadoria nem publicada.")
         return _destino_curadoria(request)
+    era_publicada = analise.status == Analise.Status.PUBLICADA
     motivo = (request.POST.get("motivo") or "").strip()
-    rejeitar = request.POST.get("acao") == "rejeitar"
+    rejeitar = request.POST.get("acao") == "rejeitar" and not era_publicada
     analise.status = Analise.Status.REJEITADA if rejeitar else Analise.Status.RASCUNHO
     analise.motivo_curadoria = motivo
+    if era_publicada:
+        # Desfaz os carimbos da aprovação — o histórico (simple-history) guarda
+        # quem aprovou/devolveu e quando.
+        analise.publicada_em = None
+        analise.aprovada_por = None
+        analise.aprovada_em = None
     analise.save()
     notificar_analise_devolvida(analise, motivo, rejeitada=rejeitar)
     messages.success(
         request,
-        "Análise rejeitada." if rejeitar else "Análise devolvida para ajustes.",
+        "Análise despublicada e devolvida ao analista para ajustes."
+        if era_publicada
+        else ("Análise rejeitada." if rejeitar else "Análise devolvida para ajustes."),
     )
     return _destino_curadoria(request)
 

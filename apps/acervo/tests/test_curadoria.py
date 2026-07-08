@@ -187,3 +187,39 @@ class TestDespublicacao:
         assert resp.status_code == 403
         analise_publicada.refresh_from_db()
         assert analise_publicada.status == Analise.Status.PUBLICADA
+
+
+class TestDevolverPublicada:
+    """Aprovada por engano: curador despublica e devolve ao analista (rascunho)."""
+
+    def test_devolver_publicada_volta_a_rascunho_e_limpa_aprovacao(
+        self, client, curador, analise_publicada
+    ):
+        client.force_login(curador)
+        resp = client.post(
+            reverse("devolver_analise", args=[analise_publicada.pk]),
+            {"acao": "ajustes", "motivo": "Faltam campos da estrutura."},
+        )
+        assert resp.status_code == 302
+        analise_publicada.refresh_from_db()
+        assert analise_publicada.status == Analise.Status.RASCUNHO
+        assert analise_publicada.publicada_em is None
+        assert analise_publicada.aprovada_por is None
+        assert analise_publicada.motivo_curadoria == "Faltam campos da estrutura."
+
+    def test_rejeitar_publicada_vira_ajustes(self, client, curador, analise_publicada):
+        client.force_login(curador)
+        client.post(
+            reverse("devolver_analise", args=[analise_publicada.pk]),
+            {"acao": "rejeitar", "motivo": "m"},
+        )
+        analise_publicada.refresh_from_db()
+        # Publicada nunca vai a REJEITADA por aqui — volta a rascunho.
+        assert analise_publicada.status == Analise.Status.RASCUNHO
+
+    def test_analista_comum_nao_devolve(self, client, autor, analise_publicada):
+        client.force_login(autor)
+        resp = client.post(reverse("devolver_analise", args=[analise_publicada.pk]))
+        analise_publicada.refresh_from_db()
+        assert resp.status_code in (302, 403)
+        assert analise_publicada.status == Analise.Status.PUBLICADA
