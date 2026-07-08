@@ -637,30 +637,28 @@ def sorteio_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
     sorteios = list(
         projeto.sorteios.select_related("criado_por").prefetch_related("atribuicoes")
     )
-    # Relatório por analista (nome + artigos + situação) e resumo de progresso
-    # da equipe — a tela de sorteio também serve de acompanhamento.
-    for s in sorteios:
-        s.relatorio = stats.relatorio_sorteio(projeto, s)
-        art_total = sum(g["n"] for g in s.relatorio)
-        art_ok = sum(g["progresso"]["concluidas"] for g in s.relatorio)
-        s.resumo = {
-            "n_analistas": len(s.relatorio),
-            "n_concluiram": sum(
-                1 for g in s.relatorio if g["progresso"]["estado"] == "concluido"
-            ),
-            "n_andamento": sum(
-                1 for g in s.relatorio if g["progresso"]["estado"] == "andamento"
-            ),
-            "n_nada": sum(1 for g in s.relatorio if g["progresso"]["estado"] == "nada"),
-            "art_total": art_total,
-            "art_ok": art_ok,
-            "pct": round(100 * art_ok / art_total) if art_total else 0,
-        }
+    # Relatório ÚNICO por analista (todos os sorteios somados) + resumo de
+    # progresso da equipe — a tela de sorteio também serve de acompanhamento.
+    # Cada sorteio permanece como linha de histórico (data, cota, desfazer).
+    relatorio = stats.relatorio_sorteio(projeto)
+    art_total = sum(g["n"] for g in relatorio)
+    art_ok = sum(g["progresso"]["concluidas"] for g in relatorio)
+    resumo = {
+        "n_analistas": len(relatorio),
+        "n_concluiram": sum(1 for g in relatorio if g["progresso"]["estado"] == "concluido"),
+        "n_andamento": sum(1 for g in relatorio if g["progresso"]["estado"] == "andamento"),
+        "n_nada": sum(1 for g in relatorio if g["progresso"]["estado"] == "nada"),
+        "art_total": art_total,
+        "art_ok": art_ok,
+        "pct": round(100 * art_ok / art_total) if art_total else 0,
+    }
     base = projeto.itens.filter(removido=False, artigo__isnull=False)
     n_acervo = base.filter(artigo__eh_legado=True).values("artigo").distinct().count()
     contexto = {
         "projeto": projeto,
         "sorteios": sorteios,
+        "relatorio": relatorio,
+        "resumo": resumo,
         "tem_sorteio": bool(sorteios),
         "n_acervo": n_acervo,
         "modos": SorteioANCO.ModoRevisao.choices,

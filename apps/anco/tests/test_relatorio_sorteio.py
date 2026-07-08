@@ -161,7 +161,8 @@ def test_view_mostra_relatorio_e_excluir(client, projeto, curador, analista, bas
     assert "Progresso por analista" in corpo
     assert "Artigo XYZ" in corpo
     assert "Scopus" in corpo
-    assert "Excluir sorteio" in corpo
+    # Botão de desfazer (linha de histórico do sorteio unificado).
+    assert 'name="acao" value="desfazer"' in corpo
 
 
 def test_painel_botao_vira_sorteio_e_acompanhamento(client, projeto, curador, analista):
@@ -170,7 +171,7 @@ def test_painel_botao_vira_sorteio_e_acompanhamento(client, projeto, curador, an
     AtribuicaoANCO.objects.create(sorteio=s, analista=analista, artigo=art)
     client.force_login(curador)
     resp = client.get(reverse("anco_painel", args=[projeto.slug]))
-    assert "Sorteio e acompanhamento".encode() in resp.content
+    assert b"Sorteio e acompanhamento" in resp.content
     assert b"Sortear an\xc3\xa1lise" not in resp.content
 
 
@@ -217,3 +218,28 @@ def test_devolver_analise_inline_volta_ao_sorteio(client, projeto, curador, anal
     analise.refresh_from_db()
     assert analise.status == Analise.Status.RASCUNHO
     assert analise.motivo_curadoria == "Falta a metodologia."
+
+
+def test_relatorio_unificado_soma_todos_os_sorteios(projeto, analista, base_scopus):
+    """Sem `sorteio`, o relatório agrega as atribuições de TODOS os sorteios:
+    um bloco por analista, contagem única (tela de sorteio unificada)."""
+    fonte = FonteImport.objects.create(projeto=projeto, base_consulta=base_scopus)
+    outra = User.objects.create_user(username="n", email="nova@u.edu", password="x")
+    MembroANCO.objects.create(projeto=projeto, usuario=outra, papel=MembroANCO.Papel.ANALISTA)
+
+    s1 = SorteioANCO.objects.create(projeto=projeto)
+    s2 = SorteioANCO.objects.create(projeto=projeto)  # complementar
+    it1 = _item(projeto, "Artigo A", "u1", fonte)
+    it2 = _item(projeto, "Artigo B", "u2", fonte)
+    it3 = _item(projeto, "Artigo C", "u3", fonte)
+    AtribuicaoANCO.objects.create(sorteio=s1, analista=analista, artigo=it1.artigo)
+    AtribuicaoANCO.objects.create(sorteio=s1, analista=analista, artigo=it2.artigo)
+    AtribuicaoANCO.objects.create(sorteio=s2, analista=outra, artigo=it3.artigo)
+
+    rel = stats.relatorio_sorteio(projeto)  # unificado
+    assert len(rel) == 2  # um bloco por analista, não por sorteio
+    por_nome = {g["nome"]: g for g in rel}
+    assert por_nome["ana@u.edu"]["n"] == 2
+    assert por_nome["nova@u.edu"]["n"] == 1
+    # Restrito a um sorteio continua funcionando (histórico).
+    assert len(stats.relatorio_sorteio(projeto, s2)) == 1

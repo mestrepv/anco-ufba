@@ -62,8 +62,12 @@ def _estado_artigo(status) -> str:
     return "publicada"  # publicada / legado
 
 
-def relatorio_sorteio(projeto, sorteio) -> list[dict]:
-    """Relatório de um sorteio: um bloco por analista com os artigos que recebeu.
+def relatorio_sorteio(projeto, sorteio=None) -> list[dict]:
+    """Relatório por analista com os artigos que recebeu.
+
+    `sorteio=None` (padrão da tela) unifica TODOS os sorteios do projeto num
+    relatório só — a lista/contagem que o curador vê é única, mesmo com sorteios
+    complementares; passar um `sorteio` restringe a ele (histórico/testes).
 
     Cada artigo traz título, autor(es), base(s), DOI, link de acesso e a
     **situação da análise** (a fazer / em andamento / enviada / publicada). Cada
@@ -75,9 +79,8 @@ def relatorio_sorteio(projeto, sorteio) -> list[dict]:
 
     from .models import AtribuicaoANCO, ItemCorpus
 
-    atribuicoes = AtribuicaoANCO.objects.filter(sorteio=sorteio).select_related(
-        "analista", "artigo"
-    )
+    filtro = {"sorteio": sorteio} if sorteio is not None else {"sorteio__projeto": projeto}
+    atribuicoes = AtribuicaoANCO.objects.filter(**filtro).select_related("analista", "artigo")
     # Análise por (analista, artigo) — id + status, uma consulta para a tela toda.
     analise_por = {
         (a["analista_id"], a["artigo_id"]): a

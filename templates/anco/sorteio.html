@@ -33,43 +33,46 @@
   <h1 class="tg-h1" style="margin-top:6px;">{% if tem_sorteio %}Sorteio e acompanhamento{% else %}Sortear análise{% endif %}</h1>
 
   {% if tem_sorteio %}
-  {# ---------- Já há sorteio: relatório + excluir; refazer fica recolhido ---------- #}
-  {% for s in sorteios %}
-    <div class="tg-card" style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin:12px 0 18px;flex-wrap:wrap;">
-      <div>
-        <strong>{{ s.get_modo_revisao_display }}</strong>
-        <span class="tg-meta">· cota {{ s.cota }} · {{ s.atribuicoes.count }} atribuição{{ s.atribuicoes.count|pluralize:"ão,ões" }} · {{ s.relatorio|length }} analista{{ s.relatorio|length|pluralize }} · {{ s.criado_em|date:"d/m/Y H:i" }}</span>
+  {# ---------- Já há sorteio: histórico (1 linha por sorteio) + relatório ÚNICO ---------- #}
+  <div class="tg-card" style="margin:12px 0 18px;">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="display:grid;gap:6px;">
+        {% for s in sorteios %}
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <strong>{{ s.get_modo_revisao_display }}</strong>
+          <span class="tg-meta">cota {{ s.cota }} · {{ s.atribuicoes.count }} atribuição{{ s.atribuicoes.count|pluralize:"ão,ões" }} · {{ s.criado_em|date:"d/m/Y H:i" }}{% if s.observacoes %} · {{ s.observacoes|truncatechars:60 }}{% endif %}</span>
+          <form method="post" class="no-print" style="margin:0;" onsubmit="return confirm('Excluir este sorteio? As atribuições DELE serão removidas e esses analistas deixam de ter os artigos designados.');">
+            {% csrf_token %}
+            <input type="hidden" name="acao" value="desfazer">
+            <input type="hidden" name="sorteio_id" value="{{ s.pk }}">
+            <button type="submit" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Excluir</button>
+          </form>
+        </div>
+        {% endfor %}
       </div>
-      <div class="no-print" style="display:flex;gap:8px;">
-        <button type="button" onclick="window.print()" class="btn btn-sm btn-secondary">Imprimir / PDF</button>
-        <form method="post" onsubmit="return confirm('Excluir este sorteio? Todas as atribuições serão removidas e os analistas deixam de ter artigos designados.');">
-          {% csrf_token %}
-          <input type="hidden" name="acao" value="desfazer">
-          <input type="hidden" name="sorteio_id" value="{{ s.pk }}">
-          <button type="submit" class="btn btn-sm" style="border-color:var(--color-danger);color:var(--color-danger);">Excluir sorteio</button>
-        </form>
-      </div>
+      <button type="button" onclick="window.print()" class="btn btn-sm btn-secondary no-print">Imprimir / PDF</button>
     </div>
+  </div>
 
     <h2 class="tg-h2">Progresso por analista</h2>
     {% url 'anco_sorteio' projeto.slug as sorteio_url %}
     {% if pode_curar %}<p class="tg-meta no-print" style="margin:-6px 0 12px;">Clique no <strong>título</strong> para ver a análise do analista (modo leitura). Quando a situação for <strong>Enviada</strong>, use <strong>Revisar e decidir</strong> para ler e então <strong>aprovar</strong> ou <strong>devolver</strong> na própria tela.</p>{% endif %}
 
-    {# Resumo da equipe: barra geral + quantos em cada situação. #}
+    {# Resumo da equipe (todos os sorteios somados): barra geral + situações. #}
     <div class="tg-card" style="margin:0 0 16px;">
       <div class="rel-prog" style="margin-bottom:10px;">
-        <div class="rel-bar" style="width:200px;height:12px;"><span style="width:{{ s.resumo.pct }}%;"></span></div>
-        <span><strong>{{ s.resumo.art_ok }}</strong> de {{ s.resumo.art_total }} análises concluídas · <strong>{{ s.resumo.pct }}%</strong></span>
+        <div class="rel-bar" style="width:200px;height:12px;"><span style="width:{{ resumo.pct }}%;"></span></div>
+        <span><strong>{{ resumo.art_ok }}</strong> de {{ resumo.art_total }} análises concluídas · <strong>{{ resumo.pct }}%</strong></span>
       </div>
       <p class="tg-meta" style="margin:0;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;">
-        {{ s.resumo.n_analistas }} analista{{ s.resumo.n_analistas|pluralize }}
-        <span><span class="dot dot-concluido"></span> {{ s.resumo.n_concluiram }} concluíram tudo</span>
-        <span><span class="dot dot-andamento"></span> {{ s.resumo.n_andamento }} em andamento</span>
-        <span><span class="dot dot-nada"></span> {{ s.resumo.n_nada }} não começaram</span>
+        {{ resumo.n_analistas }} analista{{ resumo.n_analistas|pluralize }}
+        <span><span class="dot dot-concluido"></span> {{ resumo.n_concluiram }} concluíram tudo</span>
+        <span><span class="dot dot-andamento"></span> {{ resumo.n_andamento }} em andamento</span>
+        <span><span class="dot dot-nada"></span> {{ resumo.n_nada }} não começaram</span>
       </p>
     </div>
 
-    {% for g in s.relatorio %}
+    {% for g in relatorio %}
       <div class="tg-card" style="margin-bottom:14px;">
         <div class="rel-cab">
           <div class="rel-nome">
@@ -113,9 +116,8 @@
         </div>
       </div>
     {% empty %}
-      <p class="tg-empty">Este sorteio não gerou atribuições.</p>
+      <p class="tg-empty">Nenhuma atribuição nos sorteios deste projeto.</p>
     {% endfor %}
-  {% endfor %}
 
   <details class="no-print" style="margin-top:22px;">
     <summary style="cursor:pointer;font-family:var(--font-sans);font-size:14px;color:var(--color-gold-deep);">Refazer sorteio (novos filtros)</summary>
