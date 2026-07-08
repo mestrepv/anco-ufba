@@ -491,17 +491,18 @@ class Analise(models.Model):
         "pertinencia": "Pertinência",
         "define_conceito": "Define o conceito",
     }
-    # `contexto_producao` e `observacoes` são acessórios (anotações de apoio) e
-    # ficaram OPCIONAIS para reduzir a carga de campos obrigatórios na submissão.
-    # Pendência de confirmação das coordenadoras (ver relatório de melhorias).
+    # Só `observacoes` é acessório (anotação de apoio) e fica OPCIONAL.
+    # `contexto_producao` é obrigatório (decisão de 2026-07-08; item 4.3.2
+    # do tutorial das professoras).
     _SUBMISSAO_TEXTO = {
         "aspectos_relevantes": "Aspectos relevantes",
         "objeto": "Objeto",
         "objetivo": "Objetivo",
         "foco": "Foco",
         "metodologia": "Metodologia",
-        "referenciais": "Referenciais",
         "resultados": "Resultados",
+        "referenciais": "Referenciais",
+        "contexto_producao": "Contexto de produção",
     }
 
     def campos_faltantes_submissao(self) -> list[str]:

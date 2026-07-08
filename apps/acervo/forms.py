@@ -363,7 +363,7 @@ class AnaliseEstruturaForm(_AnaliseFormBase):
             "teoria": "Teoria (7.6)",
             "resultados": "Resultados (7.7)",
             "referenciais": "Referenciais (7.8)",
-            "contexto_producao": "Contexto de produção (4.3.2 — opcional)",
+            "contexto_producao": "Contexto de produção (4.3.2)",
             "observacoes": "Outras observações (9 — opcional)",
         }
         help_texts = {
@@ -383,7 +383,7 @@ class AnaliseEstruturaForm(_AnaliseFormBase):
             "teoria": "Teorias mobilizadas — digite para buscar e selecione termos do vocabulário.",
             "resultados": "Principais achados ou conclusões.",
             "referenciais": "Principais autores e obras de referência.",
-            "contexto_producao": "Onde/como a obra foi produzida (país, área, projeto). Opcional.",
+            "contexto_producao": "Onde/como a obra foi produzida (país, área, projeto).",
             "observacoes": "Quaisquer comentários e anotações que o analista deseje acrescentar.",
         }
 
