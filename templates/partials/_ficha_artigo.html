@@ -19,6 +19,7 @@ Parâmetros:
     {% if ficha.isbn %}<div class="fa-row"><dt>ISBN / ISSN</dt><dd><span class="fa-mono">{{ ficha.isbn }}</span></dd></div>{% endif %}
     {% if ficha.idioma %}<div class="fa-row"><dt>Idioma</dt><dd>{{ ficha.idioma }}</dd></div>{% endif %}
     {% if ficha.link %}<div class="fa-row"><dt>Link de acesso</dt><dd><a href="{{ ficha.link }}" target="_blank" rel="noopener" class="fa-link mono">{{ ficha.link|truncatechars:64 }} ↗</a></dd></div>{% endif %}
+    {% if ficha.acesso %}<div class="fa-row"><dt>Tipo de acesso</dt><dd>{{ ficha.acesso }}</dd></div>{% endif %}
     {% if ficha.base %}<div class="fa-row"><dt>Base</dt><dd>{{ ficha.base }}</dd></div>{% endif %}
     {% if ficha.area %}<div class="fa-row"><dt>Grande área</dt><dd>{{ ficha.area }}</dd></div>{% endif %}
     {% if ficha.palavras_chaves %}<div class="fa-row"><dt>Palavras-chave</dt><dd>{{ ficha.palavras_chaves|realce:realce_termos }}</dd></div>{% endif %}

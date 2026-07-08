@@ -243,6 +243,18 @@ class Artigo(models.Model):
         """Retorna o melhor identificador disponível: DOI > ISBN > interno."""
         return self.doi or self.isbn or self.identificador_interno or ""
 
+    @property
+    def tipo_acesso(self) -> str:
+        """Rótulo do tipo de acesso, a partir dos selos booleanos. Aberto vence;
+        'pago sem CAPES' é mais específico que 'pago via CAPES'."""
+        if self.acesso_aberto:
+            return "Acesso aberto"
+        if self.pago_sem_capes:
+            return "Acesso pago (sem Portal CAPES)"
+        if self.artigo_pago:
+            return "Acesso pelo Portal CAPES"
+        return ""
+
     def ficha(self) -> dict:
         """Dados bibliográficos normalizados para o componente de ficha único
         (templates/partials/_ficha_artigo.html). Mesmas chaves que
@@ -263,6 +275,7 @@ class Artigo(models.Model):
             "idioma": self.get_idioma_display() if self.idioma else "",
             "link": self.link_acesso,
             "link_alt": self.link_acesso_alternativo,
+            "acesso": self.tipo_acesso,
             "palavras_chaves": self.palavras_chaves,
             "resumo": self.resumo,
             "base": base,

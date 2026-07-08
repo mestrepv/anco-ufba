@@ -538,6 +538,7 @@ class RegistroTriagem(models.Model):
             "idioma": self.idioma or "",
             "link": self.link,
             "link_alt": "",
+            "acesso": "",  # selos de acesso são metadados do Artigo, não do registro
             "palavras_chaves": self.palavras_chaves,
             "resumo": self.resumo,
             "base": "",  # base é por importação (origem_buscas), não do registro
