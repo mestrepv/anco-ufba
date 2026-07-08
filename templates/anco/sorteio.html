@@ -54,6 +54,28 @@
     </div>
   </div>
 
+  {% if analistas_novos %}
+  {# Sorteio complementar: analistas que entraram depois do sorteio, sem artigos. #}
+  <div class="tg-card no-print" style="margin:0 0 18px;border:1px solid var(--color-gold-deep);background:var(--color-review-bg);">
+    <p style="font-family:var(--font-sans);font-size:14px;color:var(--color-ink);margin:0 0 4px;">
+      <strong>{{ analistas_novos|length }} analista{{ analistas_novos|length|pluralize }} sem artigos:</strong>
+      {% for u in analistas_novos %}{{ u.nome_exibicao|default:u.email }}{% if not forloop.last %}, {% endif %}{% endfor %}.
+    </p>
+    <form method="post" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px;"
+          onsubmit="return confirm('Sortear artigos ainda não atribuídos para os analistas listados? Os demais analistas não são afetados.');">
+      {% csrf_token %}
+      <input type="hidden" name="acao" value="sorteio_complementar">
+      <label class="tg-meta" style="display:flex;align-items:center;gap:6px;">Cota
+        <input type="number" name="cota" value="{{ cota_padrao }}" min="1" max="50"
+               style="width:64px;padding:4px 8px;border:1px solid var(--color-rule-strong);border-radius:6px;font-family:var(--font-sans);">
+        artigos cada
+      </label>
+      <span class="tg-meta">· sorteia apenas artigos ainda não atribuídos a ninguém</span>
+      <button type="submit" class="btn btn-sm btn-primary">Sortear para os novos analistas →</button>
+    </form>
+  </div>
+  {% endif %}
+
     <h2 class="tg-h2">Progresso por analista</h2>
     {% url 'anco_sorteio' projeto.slug as sorteio_url %}
     {% if pode_curar %}<p class="tg-meta no-print" style="margin:-6px 0 12px;">Clique no <strong>título</strong> para ver a análise do analista (modo leitura). Quando a situação for <strong>Enviada</strong>, use <strong>Revisar e decidir</strong> para ler e então <strong>aprovar</strong> ou <strong>devolver</strong> na própria tela.</p>{% endif %}

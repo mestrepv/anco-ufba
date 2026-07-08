@@ -107,6 +107,18 @@ def analistas_do_projeto(projeto: ProjetoANCO):
     return list(User.objects.filter(pk__in=ids, is_active=True).order_by("pk"))
 
 
+def analistas_sem_atribuicao(projeto: ProjetoANCO) -> list:
+    """Analistas do projeto que ainda não receberam NENHUM artigo — tipicamente
+    quem entrou depois do sorteio. Fonte única do cartão de sorteio complementar
+    (tela de sorteio) e do comando `sortear_analistas --sem-atribuicao`."""
+    com_atrib = set(
+        AtribuicaoANCO.objects.filter(sorteio__projeto=projeto).values_list(
+            "analista_id", flat=True
+        )
+    )
+    return [u for u in analistas_do_projeto(projeto) if u.pk not in com_atrib]
+
+
 def itens_elegiveis(
     projeto: ProjetoANCO,
     *,

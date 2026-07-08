@@ -80,6 +80,12 @@
       <div class="fluxo3-num">3</div>
       <div class="fluxo3-body">
         <p class="fluxo3-tit">Análise (Matriz AnCo){% if minha_a_analisar %} <span class="tg-meta">· {{ minha_a_analisar }} para você</span>{% endif %}</p>
+        {% if n_analistas_novos %}
+        <p style="font-family:var(--font-sans);font-size:13px;color:var(--color-gold-deep);margin:2px 0 6px;">
+          ⚠ {{ n_analistas_novos }} analista{{ n_analistas_novos|pluralize }} sem artigos (entrou{{ n_analistas_novos|pluralize:",ram" }} depois do sorteio) —
+          <a href="{% url 'anco_sorteio' projeto.slug %}" style="color:var(--color-gold-deep);font-weight:600;">sortear agora →</a>
+        </p>
+        {% endif %}
         <div class="fluxo3-acts">
           {% if eh_curador %}<a href="{% url 'anco_sorteio' projeto.slug %}" class="btn {% if tem_sorteio %}btn-secondary{% else %}btn-primary{% endif %}">{% if tem_sorteio %}Sorteio e acompanhamento{% else %}Sortear análise{% endif %}</a>{% endif %}
           <a href="{% url 'anco_analisar' projeto.slug %}" class="btn {% if minha_a_analisar and not eh_curador %}btn-primary{% else %}btn-secondary{% endif %}">Analisar artigos</a>

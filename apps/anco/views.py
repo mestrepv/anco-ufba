@@ -98,6 +98,10 @@ def painel_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
         "minha_a_analisar": len(set(atribuidos)),
         "tem_sorteio": projeto.sorteios.exists(),
     }
+    # Aviso ao curador: analistas que entraram depois do sorteio, sem artigos
+    # (a ação mora na tela de sorteio — aqui é só o alerta).
+    if eh_curador and contexto["tem_sorteio"]:
+        contexto["n_analistas_novos"] = len(sorteio_mod.analistas_sem_atribuicao(projeto))
     return render(request, "anco/painel.html", contexto)
 
 
@@ -609,6 +613,38 @@ def sorteio_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
             n = sorteio_mod.desfazer_sorteio(s)
             messages.success(request, f"Sorteio desfeito ({n} atribuição(ões) removida(s)).")
             return redirect("anco_sorteio", slug=projeto.slug)
+        if request.POST.get("acao") == "sorteio_complementar":
+            # Sorteia SÓ para quem entrou depois e não tem artigos; veteranos e
+            # artigos já atribuídos ficam intocados (garantia do motor).
+            novos = sorteio_mod.analistas_sem_atribuicao(projeto)
+            if not novos:
+                messages.info(request, "Todos os analistas do projeto já têm artigos.")
+                return redirect("anco_sorteio", slug=projeto.slug)
+            try:
+                cota = max(1, int(request.POST.get("cota", 5)))
+            except (TypeError, ValueError):
+                cota = 5
+            ultimo = projeto.sorteios.order_by("-pk").first()
+            res = sorteio_mod.executar_sorteio(
+                projeto,
+                analistas=novos,
+                cota=cota,
+                modo_revisao=ultimo.modo_revisao if ultimo else SorteioANCO.ModoRevisao.UNICA,
+                por=request.user,
+                observacoes="Complementar (novos analistas): "
+                + ", ".join(u.email for u in novos),
+            )
+            if res.sorteio:
+                msg = (
+                    f"Sorteio complementar feito: {res.atribuidas} artigo(s) "
+                    f"para {res.analistas} analista(s)."
+                )
+                if res.faltas:
+                    msg += f" Atenção: {len(res.faltas)} analista(s) não completaram a cota (pool insuficiente)."
+                messages.success(request, msg)
+            else:
+                messages.info(request, res.motivo or "Nada a sortear.")
+            return redirect("anco_sorteio", slug=projeto.slug)
         modo = request.POST.get("modo_revisao", SorteioANCO.ModoRevisao.UNICA)
         if modo not in dict(SorteioANCO.ModoRevisao.choices):
             modo = SorteioANCO.ModoRevisao.UNICA
@@ -654,11 +690,15 @@ def sorteio_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
     }
     base = projeto.itens.filter(removido=False, artigo__isnull=False)
     n_acervo = base.filter(artigo__eh_legado=True).values("artigo").distinct().count()
+    ultimo = sorteios[0] if sorteios else None  # ordering = -criado_em
     contexto = {
         "projeto": projeto,
         "sorteios": sorteios,
         "relatorio": relatorio,
         "resumo": resumo,
+        # Cartão de sorteio complementar: quem entrou depois e está sem artigos.
+        "analistas_novos": sorteio_mod.analistas_sem_atribuicao(projeto) if sorteios else [],
+        "cota_padrao": ultimo.cota if ultimo else 5,
         "tem_sorteio": bool(sorteios),
         "n_acervo": n_acervo,
         "modos": SorteioANCO.ModoRevisao.choices,

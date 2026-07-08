@@ -19,8 +19,12 @@ from __future__ import annotations
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from apps.anco.models import AtribuicaoANCO, ProjetoANCO
-from apps.anco.sorteio import analistas_do_projeto, executar_sorteio
+from apps.anco.models import ProjetoANCO
+from apps.anco.sorteio import (
+    analistas_do_projeto,
+    analistas_sem_atribuicao,
+    executar_sorteio,
+)
 
 
 class Command(BaseCommand):
@@ -58,12 +62,7 @@ class Command(BaseCommand):
 
         membros = analistas_do_projeto(projeto)
         if opts["sem_atribuicao"]:
-            com_atrib = set(
-                AtribuicaoANCO.objects.filter(sorteio__projeto=projeto).values_list(
-                    "analista_id", flat=True
-                )
-            )
-            beneficiarios = [u for u in membros if u.pk not in com_atrib]
+            beneficiarios = analistas_sem_atribuicao(projeto)
             if not beneficiarios:
                 self.stdout.write("Todos os analistas do projeto já têm atribuição. Nada a fazer.")
                 return

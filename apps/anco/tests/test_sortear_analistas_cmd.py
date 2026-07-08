@@ -66,3 +66,62 @@ def test_emails_fora_do_projeto_falham():
     _projeto(10, 1)
     with pytest.raises(CommandError, match="Não são analistas deste projeto"):
         _chamar("--projeto", "p", "--emails", "intrusa@x.br")
+
+
+# --------------------------------------------------------------------------- #
+# Sorteio complementar pela tela de sorteio (POST acao=sorteio_complementar)
+# --------------------------------------------------------------------------- #
+
+from django.urls import reverse  # noqa: E402
+
+
+def _curador(proj):
+    u = User.objects.create_user(
+        username="cur", email="cur@u.edu", password="x", is_staff=True, pode_anco=True
+    )
+    MembroANCO.objects.create(projeto=proj, usuario=u, papel=MembroANCO.Papel.CURADOR)
+    return u
+
+
+def test_view_sorteio_complementar_so_para_novos(client):
+    proj = _projeto(30, 3)
+    curador = _curador(proj)
+    veterana = User.objects.get(email="a0@u.edu")
+    executar_sorteio(proj, analistas=[veterana], cota=5, semente=1)
+
+    client.force_login(curador)
+    resp = client.post(
+        reverse("anco_sorteio", args=[proj.slug]),
+        {"acao": "sorteio_complementar", "cota": "5"},
+    )
+    assert resp.status_code == 302
+    assert AtribuicaoANCO.objects.filter(analista=veterana).count() == 5  # intocada
+    for email in ("a1@u.edu", "a2@u.edu"):
+        assert AtribuicaoANCO.objects.filter(analista__email=email).count() == 5
+    ids = list(AtribuicaoANCO.objects.values_list("artigo_id", flat=True))
+    assert len(ids) == len(set(ids))  # nenhum artigo repetido entre sorteios
+
+
+def test_view_sorteio_complementar_exige_curador(client):
+    proj = _projeto(10, 2)
+    analista = User.objects.get(email="a0@u.edu")
+    analista.pode_anco = True
+    analista.save()
+    client.force_login(analista)
+    resp = client.post(
+        reverse("anco_sorteio", args=[proj.slug]),
+        {"acao": "sorteio_complementar"},
+    )
+    assert resp.status_code in (302, 403)  # bloqueado pelo gate de curador
+    assert AtribuicaoANCO.objects.count() == 0
+
+
+def test_painel_avisa_curador_sobre_novos(client):
+    proj = _projeto(30, 2)
+    curador = _curador(proj)
+    veterana = User.objects.get(email="a0@u.edu")
+    executar_sorteio(proj, analistas=[veterana], cota=5, semente=3)
+
+    client.force_login(curador)
+    corpo = client.get(reverse("anco_painel", args=[proj.slug])).content.decode()
+    assert "sem artigos" in corpo and "sortear agora" in corpo
