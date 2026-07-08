@@ -208,17 +208,22 @@ class ArtigoAreaForm(forms.ModelForm):
 # Forms parciais para o multipasso da Analise (cada um cobre um passo).
 # ---------------------------------------------------------------------------
 
+# Ordem segue o tutorial das professoras (itens 5–7); "referências" é
+# pergunta complementar do sistema (não consta no tutorial) e fica por último.
 CAMPOS_PRESENCA = (
     "presenca_titulo",
     "presenca_resumo",
     "presenca_palavras_chave",
-    "presenca_referencias",
     "presenca_corpo",
+    "presenca_referencias",
     "pertinencia",
     "aspectos_relevantes",
     "define_conceito",
     "definicao_extraida",
 )
+# Subgrupos de renderização da aba 2 (o POST/autosave segue num form só).
+GRUPO_PRESENCA_TERMO = CAMPOS_PRESENCA[:5]
+GRUPO_PERTINENCIA = CAMPOS_PRESENCA[5:]
 CAMPOS_ESTRUTURA = (
     "objeto",
     "objetivo",
@@ -226,8 +231,8 @@ CAMPOS_ESTRUTURA = (
     "metodologia",
     "epistemologia",
     "teoria",
-    "referenciais",
     "resultados",
+    "referenciais",
     "contexto_producao",
     "observacoes",
 )
@@ -304,35 +309,35 @@ class AnalisePresencaForm(_AnaliseFormBase):
             "aspectos_relevantes": forms.Textarea(attrs={"rows": 3}),
             "definicao_extraida": forms.Textarea(attrs={"rows": 3}),
         }
+        # Numeração entre parênteses = item correspondente no tutorial das
+        # professoras (docs/orientacoes-analise.md).
         labels = {
-            "presenca_titulo": "Aparece no título?",
-            "presenca_resumo": "Aparece no resumo?",
-            "presenca_palavras_chave": "Aparece nas palavras-chave?",
+            "presenca_titulo": "Aparece no título? (5.1)",
+            "presenca_resumo": "Aparece no resumo? (5.2)",
+            "presenca_palavras_chave": "Aparece nas palavras-chave? (5.3)",
+            "presenca_corpo": "Aparece no corpo do texto? (5.4)",
             "presenca_referencias": "Aparece nas referências?",
-            "presenca_corpo": "Aparece no corpo do texto?",
-            "pertinencia": "A obra é pertinente à Análise Cognitiva?",
-            "aspectos_relevantes": "Aspectos relevantes",
-            "define_conceito": "A obra define o conceito de Análise Cognitiva?",
+            "pertinencia": "A obra é pertinente à Análise Cognitiva? (6.1)",
+            "aspectos_relevantes": "Aspectos relevantes (6.2)",
+            "define_conceito": "A obra define o conceito de Análise Cognitiva? (6.3)",
             "definicao_extraida": "Definição extraída",
         }
         help_texts = {
+            "presenca_referencias": (
+                "Pergunta complementar do sistema — não consta no tutorial."
+            ),
             "pertinencia": (
-                "Responda SIM quando a obra trabalha com/sobre o conhecimento de modo "
-                "que dialoga com a AnCo — mesmo que não use o termo. O campo é "
-                "emergente: na dúvida, RECONHEÇA e justifique (em Aspectos relevantes) "
-                "em vez de excluir pela área/disciplina."
+                "Diga se o artigo trata do nosso objeto, a Análise Cognitiva, ou se "
+                "apenas usa o termo sem o definir e sem mostrar a sua relevância."
             ),
             "aspectos_relevantes": (
-                "Em QUE e COMO a obra dialoga com a Análise Cognitiva — que dimensões e "
-                "processos do trabalho com o conhecimento ela mobiliza. É aqui que a "
-                "decisão de pertinência se fundamenta."
+                "Copie e cole trechos da obra que demonstram a pertinência do texto "
+                "ao nosso objeto, a Análise Cognitiva."
             ),
-            "define_conceito": (
-                "Marque SIM só para uma definição genuína (a obra enuncia o que entende "
-                "por AnCo), não para menção vaga/alusiva. A ausência de definição é dado "
-                "descritivo de um campo emergente — registre, não penalize."
+            "definicao_extraida": (
+                "Copie e cole a definição do termo (se houver) apresentada no corpo "
+                "do texto."
             ),
-            "definicao_extraida": "Se a obra define o conceito, transcreva a definição tal como ela a enuncia.",
         }
 
 
@@ -350,17 +355,24 @@ class AnaliseEstruturaForm(_AnaliseFormBase):
             "observacoes": forms.Textarea(attrs={"rows": 2}),
         }
         labels = {
-            "teoria": "Teoria de referência",
-            "contexto_producao": "Contexto de produção (opcional)",
-            "observacoes": "Observações (opcional)",
+            "objeto": "Objeto (7.1)",
+            "objetivo": "Objetivo (7.2)",
+            "foco": "Foco (7.3)",
+            "metodologia": "Metodologia (7.4)",
+            "epistemologia": "Epistemologia (7.5)",
+            "teoria": "Teoria (7.6)",
+            "resultados": "Resultados (7.7)",
+            "referenciais": "Referenciais (7.8)",
+            "contexto_producao": "Contexto de produção (4.3.2 — opcional)",
+            "observacoes": "Outras observações (9 — opcional)",
         }
         help_texts = {
-            "objeto": "O que (ou quem) a obra investiga.",
+            "objeto": "O que a obra investiga.",
             "objetivo": "O que a obra se propõe a alcançar.",
             "foco": (
                 "Recorte ou ângulo central — o SUBCAMPO cognitivo da obra (ex.: "
                 "Linguística Cognitiva, Neurociência Cognitiva, Engenharia Cognitiva). "
-                "NÃO confunda com a grande área CAPES (aba 1)."
+                "NÃO confunda com a área da aba 1."
             ),
             "metodologia": "Métodos e procedimentos de pesquisa.",
             "epistemologia": (
@@ -369,10 +381,10 @@ class AnaliseEstruturaForm(_AnaliseFormBase):
                 "agregáveis; glosas longas vão em Observações."
             ),
             "teoria": "Teorias mobilizadas — digite para buscar e selecione termos do vocabulário.",
-            "referenciais": "Principais autores e obras de referência.",
             "resultados": "Principais achados ou conclusões.",
+            "referenciais": "Principais autores e obras de referência.",
             "contexto_producao": "Onde/como a obra foi produzida (país, área, projeto). Opcional.",
-            "observacoes": "Anotações livres do analista. Opcional.",
+            "observacoes": "Quaisquer comentários e anotações que o analista deseje acrescentar.",
         }
 
 

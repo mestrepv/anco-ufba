@@ -524,7 +524,7 @@ def _get_analise_do_autor(request: HttpRequest, analise_id: int) -> Analise:
 PASSOS = [
     ("identificacao", "Identificação"),
     ("presenca", "Presença e pertinência"),
-    ("estrutura", "Análise do artigo"),
+    ("estrutura", "Estrutura do artigo"),
 ]
 
 # Termos AnCo destacados (<mark>) na aba Identificação para ajudar o analista a

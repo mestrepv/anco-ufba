@@ -101,9 +101,10 @@
         {% endif %}
       </div>
       <p class="t-small" style="color: var(--color-ink-3); margin-bottom: 16px;">
-        Confirme os metadados do artigo. A <strong>grande área</strong> pode ser
-        ajustada aqui; para completar ou corrigir os demais campos (resumo,
-        palavras-chave, autores, link…), use <strong>Editar dados do artigo</strong>.
+        Confirme os metadados do artigo — eles chegam automaticamente da base de
+        consulta. A <strong>área</strong> pode ser ajustada aqui; para completar
+        ou corrigir os demais campos (resumo, palavras-chave, autores, link…),
+        use <strong>Editar dados do artigo</strong>.
       </p>
       <p class="t-small" style="color: var(--color-ink-4); margin: 0 0 14px; display: flex; align-items: center; gap: 6px;">
         <mark style="padding: 0 3px; background:#ffe9a8; border-radius:3px;">Termos da Análise Cognitiva</mark> aparecem destacados — ajuda a julgar presença e pertinência na próxima aba.
@@ -111,10 +112,15 @@
       {% include "partials/_ficha_artigo.html" with ficha=ficha realce_termos=termos_realce %}
       <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--color-paper-3);">
         <div class="field-row">
-          <label for="{{ artigo_form.area.id_for_label }}" class="field-label" style="cursor:pointer;">Grande área (você define)</label>
+          <label for="{{ artigo_form.area.id_for_label }}" class="field-label" style="cursor:pointer;">Área (conforme o periódico) (4.2)</label>
           <div x-data="{ outros: '{{ artigo_form.area.value|default_if_none:'' }}' === 'Outros' }"
                @change="outros = ($event.target.name === 'area' && $event.target.value === 'Outros')">
             {{ artigo_form.area }}
+            <p class="t-meta" style="color: var(--color-ink-4); margin-top: 4px;">
+              Verifique a área constante no periódico — ela vem explícita na
+              publicação, não é atribuída por você. Se o periódico não a
+              explicitar, registre a mais próxima.
+            </p>
             {% if artigo_form.area.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ artigo_form.area.errors|join:" / " }}</p>{% endif %}
             <div x-show="outros" x-cloak style="margin-top: 8px;">
               <label for="{{ artigo_form.area_outra.id_for_label }}" class="field-label">Especifique a área</label>
@@ -130,17 +136,20 @@
     <section x-show="aba === 'presenca'" x-cloak>
       <h2 class="t-h2" style="margin-bottom: 12px;">Presença e pertinência</h2>
       <div class="ajuda-aba">
-        <p style="margin:0 0 4px;"><strong>Como preencher.</strong> As 5 primeiras perguntas só <em>localizam</em> o termo <strong>Análise Cognitiva</strong> na obra — não decidem nada sozinhas.</p>
-        <p style="margin:0;">A decisão-chave é a <strong>pertinência</strong>: a obra dialoga com o campo? O campo é emergente — <strong>na dúvida, reconheça e justifique</strong> (em Aspectos relevantes), em vez de excluir pela área. Campos em branco contam como não respondidos.</p>
+        <p style="margin:0 0 4px;"><strong>Como preencher.</strong> As perguntas de <em>presença</em> só <em>localizam</em> o termo <strong>Análise Cognitiva</strong> na obra — não decidem nada sozinhas.</p>
+        <p style="margin:0;">A decisão-chave é a <strong>pertinência</strong>. Campos em branco contam como não respondidos.</p>
       </div>
-      {% include "acervo/_campos_analise.html" with form=presenca_form %}
+      <h3 class="grupo-tutorial">Presença do termo <em>análise cognitiva</em> <span class="grupo-ref">item 5 do tutorial</span></h3>
+      {% include "acervo/_campos_analise.html" with form=presenca_form apenas="presenca_titulo presenca_resumo presenca_palavras_chave presenca_corpo presenca_referencias" %}
+      <h3 class="grupo-tutorial">Pertinência <span class="grupo-ref">item 6 do tutorial</span></h3>
+      {% include "acervo/_campos_analise.html" with form=presenca_form apenas="pertinencia aspectos_relevantes define_conceito definicao_extraida" %}
     </section>
 
     {# ── Aba 3: Análise do artigo (estrutura) ───────────────────── #}
     <section x-show="aba === 'estrutura'" x-cloak>
-      <h2 class="t-h2" style="margin-bottom: 12px;">Análise do artigo</h2>
+      <h2 class="t-h2" style="margin-bottom: 12px;">Estrutura do artigo</h2>
       <div class="ajuda-aba">
-        <p style="margin:0;">Descreva a estrutura analítica da obra segundo a grade AnCo. <strong>As dicas abaixo de cada campo</strong> trazem o que registrar. Lembre: <strong>Foco</strong> é o subcampo cognitivo (≠ grande área CAPES da aba 1); <strong>Epistemologia</strong> e <strong>Teoria</strong> usam o vocabulário controlado para que as análises se agreguem.</p>
+        <p style="margin:0;">Descreva a estrutura analítica da obra segundo a grade AnCo (item 7 do tutorial). <strong>As dicas abaixo de cada campo</strong> trazem o que registrar. Lembre: <strong>Foco</strong> é o subcampo cognitivo (≠ área da aba 1); <strong>Epistemologia</strong> e <strong>Teoria</strong> usam o vocabulário controlado para que as análises se agreguem.</p>
       </div>
       {% include "acervo/_campos_analise.html" with form=estrutura_form %}
     </section>
@@ -227,6 +236,12 @@
     background: #ffe9a8; color: var(--color-ink); border-radius: 3px;
     padding: 0 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone;
   }
+  .grupo-tutorial { font-family: var(--font-serif); font-style: italic; font-weight: 600;
+    font-size: 17px; color: var(--color-ink-2); margin: 26px 0 14px;
+    padding-top: 18px; border-top: 1px solid var(--color-paper-3); }
+  .grupo-tutorial:first-of-type { margin-top: 4px; padding-top: 0; border-top: 0; }
+  .grupo-ref { font-family: var(--font-sans); font-style: normal; font-weight: 400;
+    font-size: 11px; color: var(--color-ink-4); letter-spacing: .05em; margin-left: 6px; }
   .ajuda-aba { margin: -6px 0 18px; padding: 12px 14px; border-radius: 8px;
     background: var(--color-review-bg); border: 1px solid var(--color-review-rule);
     font-family: var(--font-sans); font-size: 13px; line-height: 1.55; color: var(--color-ink-2); }

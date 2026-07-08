@@ -1,6 +1,10 @@
-{% comment %}Campos de um form de análise (radio Sim/Não em pílula, help, erros). Param: form.{% endcomment %}
+{% comment %}Campos de um form de análise (radio Sim/Não em pílula, help, erros).
+Params: form; apenas (opcional) = nomes de campos separados por espaço — renderiza
+só esses (o form inteiro continua um só no POST/autosave; nomes são distintos
+entre si, então a checagem por substring é segura).{% endcomment %}
 <div style="display: grid; gap: 16px;">
 {% for field in form %}
+  {% if not apenas or field.name in apenas %}
   <div>
     <label class="field-label" {% if field.field.widget.input_type != "radio" %}for="{{ field.id_for_label }}"{% endif %}>{{ field.label }}</label>
     {% if field.field.widget.input_type == "radio" %}
@@ -13,7 +17,9 @@
     {{ field }}
     {% endif %}
     {% if field.help_text %}<p class="t-meta" style="color: var(--color-ink-4); margin-top: 4px;">{{ field.help_text }}</p>{% endif %}
+    {% if field.name == "contexto_producao" %}{% include "acervo/_aspectos_contexto.html" %}{% endif %}
     {% if field.errors %}<p class="t-meta" style="color: var(--color-danger); margin-top: 4px;">{{ field.errors|join:" / " }}</p>{% endif %}
   </div>
+  {% endif %}
 {% endfor %}
 </div>
