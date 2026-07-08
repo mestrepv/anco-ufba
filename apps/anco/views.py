@@ -562,10 +562,19 @@ def analisar_view(request: HttpRequest, projeto: ProjetoANCO) -> HttpResponse:
     prioridade = {"falta": 0, "andamento": 1, "submetida": 2, "publicada": 3}
     contagem = {"falta": 0, "andamento": 0, "submetida": 0, "publicada": 0}
     for it in itens:
-        est = _estado_analise(minhas.get(it.artigo_id))
+        analise = minhas.get(it.artigo_id)
+        est = _estado_analise(analise)
         contagem[est] += 1
         it.estado = est
         it.estado_info = _ESTADOS_ANALISE[est]
+        # "Ver análise" leva à página pública (a publicada não é mais editável;
+        # mandar ao editor devolvia o analista ao painel com aviso de janela).
+        it.analise_publica_pk = (
+            analise.pk
+            if analise
+            and analise.status in (Analise.Status.PUBLICADA, Analise.Status.LEGADO)
+            else None
+        )
     itens.sort(key=lambda it: prioridade[it.estado])
 
     total = len(itens)

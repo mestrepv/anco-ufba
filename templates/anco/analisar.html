@@ -60,7 +60,7 @@
           </div>
         </div>
         <div style="flex-shrink:0;">
-          <a href="{% url 'iniciar_analise' it.artigo_id %}"
+          <a href="{% if it.analise_publica_pk %}{% url 'pagina_analise' it.analise_publica_pk %}{% else %}{% url 'iniciar_analise' it.artigo_id %}{% endif %}"
              class="btn btn-sm {% if it.estado_info.primario %}btn-primary{% else %}btn-secondary{% endif %}">
             {{ it.estado_info.cta }}
           </a>
