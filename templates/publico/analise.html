@@ -149,7 +149,9 @@
     {# Selos #}
     <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px;">
       {% if analise.tem_resenha_publica %}{% include "partials/_selo.html" with kind="resenha" %}{% endif %}
-      {% if analise.artigo.acesso_aberto %}{% include "partials/_selo.html" with kind="aberto" %}{% endif %}
+      {% if analise.artigo.acesso_aberto %}{% include "partials/_selo.html" with kind="aberto" %}
+      {% elif analise.artigo.pago_sem_capes %}<span class="selo selo-historico">acesso pago</span>
+      {% elif analise.artigo.artigo_pago %}<span class="selo selo-historico">Portal CAPES</span>{% endif %}
       {% if analise.status == 'legado' %}{% include "partials/_selo.html" with kind="historico" %}{% endif %}
       {% if proveniencia_triagem %}{% include "partials/_selo.html" with kind="triagem" %}{% endif %}
     </div>
@@ -368,6 +370,12 @@
           <div>
             <dt style="color:var(--color-ink-3);">Define o conceito</dt>
             <dd style="margin:0; color:var(--color-ink); font-weight:500;">{% if analise.define_conceito %}sim{% else %}não{% endif %}</dd>
+          </div>
+          {% endif %}
+          {% if analise.artigo.tipo_acesso %}
+          <div>
+            <dt style="color:var(--color-ink-3);">Tipo de acesso</dt>
+            <dd style="margin:0; color:var(--color-ink);">{{ analise.artigo.tipo_acesso }}</dd>
           </div>
           {% endif %}
           {% if analise.artigo.base_consulta %}
