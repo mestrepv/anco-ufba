@@ -1,6 +1,7 @@
 {
   "upload_type": "software",
   "title": "AnCo — Plataforma de Análise Cognitiva",
+  "version": "1.0.1",
   "description": "<p>Plataforma colaborativa de pesquisa para catalogação, triagem e análise estruturada de literatura científica sobre <strong>Análise Cognitiva (AnCo)</strong>, no âmbito do Programa de Pós-Graduação em Difusão do Conhecimento (PPGDC).</p><p>Reúne dois módulos com objetivos distintos: <strong>Triagem PRISMA-ScR</strong>, para revisões de escopo com dois revisores independentes, mascaramento, cálculo de concordância (κ de Fleiss), checklist de 22 itens e protocolo <em>a priori</em> versionado; e <strong>Revisão ANCO</strong>, fluxo simplificado de análise pela matriz de Fróes Burnham. As análises publicadas passam por aprovação editorial da curadoria, recebem URL estável e citação em ABNT 6023:2018 e APA 7ª ed.; as resenhas críticas passam por revisão cega por pares.</p><p>O repositório inclui a documentação completa do processo — protocolo científico, especificação técnica, planos escritos antes de cada frente de trabalho e relatórios escritos depois de cada fase entregue — além do dataset de fundação auditado, com os endereços de e-mail removidos.</p><p><strong>Licenciamento:</strong> o código é distribuído sob AGPL-3.0-or-later; o conteúdo (documentação e acervo) sob CC BY-NC 4.0.</p>",
   "creators": [
     {

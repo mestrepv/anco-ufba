@@ -28,6 +28,9 @@ identifiers:
     value: "10.5281/zenodo.22305444"
     description: "DOI de conceito — resolve sempre para a versão mais recente"
   - type: doi
+    value: "10.5281/zenodo.22306556"
+    description: "DOI da versão 1.0.1"
+  - type: doi
     value: "10.5281/zenodo.22305445"
     description: "DOI da versão 1.0.0"
 repository-code: "https://github.com/mestrepv/anco-ufba"
