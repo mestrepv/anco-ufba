@@ -504,7 +504,8 @@ ed.** geradas automaticamente ([apps/publico/services.py](apps/publico/services.
 
 - **Paulo Vicente Moreira dos Santos** (nome de citação: **SANTOS, P. V. M. dos**) ·
   <paulovicente.ifba@gmail.com> — concepção e desenvolvimento da plataforma.
-- **Eneida Santana** — bibliotecária e **Doutora em Difusão do Conhecimento**;
+- **Eneida Santana de Avila Goular** (nome de citação: **SANTANA, Eneida**) —
+  bibliotecária e **Doutora em Difusão do Conhecimento**;
   equipe fundadora. Responsável pela **curadoria bibliográfica do acervo de
   fundação** (`base-anco-revisada.json`). Pesquisadora
   de formação docente, tecnologias educacionais e práticas extensionistas; membra
