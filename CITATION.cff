@@ -33,7 +33,7 @@ identifiers:
 repository-code: "https://github.com/mestrepv/anco-ufba"
 url: "https://analisecognitiva.ia.br"
 license: AGPL-3.0-or-later
-version: "1.0.0"
+version: "1.0.1"
 date-released: "2026-09-04"
 keywords:
   - análise cognitiva

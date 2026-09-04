@@ -489,7 +489,7 @@ Convenções de desenvolvimento em [CLAUDE.md](CLAUDE.md).
   author    = {Santos, Paulo Vicente Moreira dos and Santana, Eneida and {Grupo de Pesquisa do PPGDC}},
   title     = {{AnCo} --- Plataforma de Análise Cognitiva},
   year      = {2026},
-  version   = {1.0.0},
+  version   = {1.0.1},
   publisher = {Zenodo},
   doi       = {10.5281/zenodo.22305444},
   url       = {https://doi.org/10.5281/zenodo.22305444},
