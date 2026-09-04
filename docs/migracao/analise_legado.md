@@ -1,6 +1,6 @@
 # Análise exploratória da base legada
 
-**Arquivo**: `docs/base_referencial_analise_cognitiva (1).json`
+**Arquivo**: `dados/legado/base-referencial-original.json`
 **Geração**: 2026-04-29 (Fase 1)
 **Origem**: dump do Google Forms + Sheets que vinha alimentando o catálogo
 desde 2018 (estimativa).

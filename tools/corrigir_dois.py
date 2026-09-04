@@ -22,7 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from verificar_dois import classificar
 
-ARQUIVO_PADRAO = "docs/base_referencial_analise_cognitiva (1).json"
+ARQUIVO_PADRAO = "dados/legado/base-referencial-original.json"
 
 
 def main() -> None:

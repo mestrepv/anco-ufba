@@ -19,7 +19,7 @@ com base em estatísticas reais.
 | Registros úteis | 653 (linhas 3–655 do xlsx; linha 1 = botão "VOLTAR", linha 2 = cabeçalho) |
 | Colunas nomeadas | 26 (A–Z); colunas AA–AM existem mas estão vazias |
 | Range de anos | 2001–2023 (sem nulos) |
-| Sobreposição com legado (`base_referencial_corrigida.json`) | **523 de 650 títulos = 80,5%** |
+| Sobreposição com legado (`base-referencial-corrigida.json`) | **523 de 650 títulos = 80,5%** |
 | Registros novos (não presentes no legado) | **127** |
 
 ---

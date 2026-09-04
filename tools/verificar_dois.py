@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Verifica e classifica os DOIs do arquivo base_referencial_analise_cognitiva.
+Verifica e classifica os DOIs do arquivo base-referencial-original.json.
 
 Uso:
     python tools/verificar_dois.py                          # só classificação local
@@ -212,7 +212,7 @@ def main() -> None:
     parser.add_argument(
         "arquivo",
         nargs="?",
-        default="docs/base_referencial_analise_cognitiva (1).json",
+        default="dados/legado/base-referencial-original.json",
         help="Caminho para o JSON da base (padrão: %(default)s)",
     )
     parser.add_argument(

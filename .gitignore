@@ -50,20 +50,10 @@ pgdata/
 # CSS gerado pelo Tailwind (reconstruído no Docker build e em dev com --watch)
 static/css/output.css
 
-# Artefatos gerados pelas ferramentas de recuperação de DOI / migração (tools/)
-/dois_recuperados.json
-/dois_verificados.json
-/dois_verificados_test.json
-/conflitos_doi.csv
+# Dados locais: exports, backups e artefatos de auditoria de DOI.
+# Nao versionar — contem dados de usuarios da plataforma e dumps do banco.
+# Convencao: tudo que e' artefato de execucao mora em var/.
+/var/
 
-# Exports da base (dump de dados, padrão base-anco-revisada.json)
+# Exports da base gerados ad-hoc na raiz (dump de dados)
 /base-anco-export-*.json
-
-# Auditorias/correções de DOI em produção e backups (dados, não versionar)
-/prod_doi_*.csv
-/backup_triagem_pre_delete.json
-
-# Backups e dumps de dados (nunca versionar: contêm dados de usuários da plataforma)
-/backups/
-/docs_backup_*.tar.gz
-/proposta_resumos_legado.csv

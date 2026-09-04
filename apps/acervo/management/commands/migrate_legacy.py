@@ -4,7 +4,7 @@ Comando para importar a base referencial legada (1.443 registros).
 Idempotente: rodar duas vezes nao duplica. Loga normalizacoes.
 
 Uso:
-    python manage.py migrate_legacy --path docs/base_referencial_analise_cognitiva\\ \\(1\\).json
+    python manage.py migrate_legacy --path dados/legado/base-referencial-original.json
     python manage.py migrate_legacy --dry-run    # nao grava nada
 """
 
@@ -197,7 +197,7 @@ def resolver_ou_criar_termo(
 class Command(BaseCommand):
     help = "Importa a base referencial legada (JSON) para Artigo + Analise."
 
-    DEFAULT_PATH = "docs/base_referencial_analise_cognitiva (1).json"
+    DEFAULT_PATH = "dados/legado/base-referencial-original.json"
     USERNAME_ANONIMO = "legado-anonimo"
 
     def add_arguments(self, parser):

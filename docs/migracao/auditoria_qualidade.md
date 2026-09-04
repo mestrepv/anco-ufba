@@ -1,11 +1,11 @@
 # Auditoria de qualidade — base referencial AnCo
 
-**Arquivo analisado**: `docs/base_referencial_analise_cognitiva (1).json`
+**Arquivo analisado**: `dados/legado/base-referencial-original.json`
 **Total de registros**: 1.443
 **Total de campos por registro**: 40
 **Geração**: 2026-04-30
 **Origem**: dump do Google Forms preenchido por estudantes de doutorado
-seguindo as orientações de `docs/tutorial_base_anco.md`.
+seguindo as orientações de `docs/metodo/tutorial-base-anco.md`.
 
 Este relatório complementa `docs/migracao/analise_legado.md` (focado em
 estratégia do migrador). Aqui o foco é a **qualidade do dado bruto** do
