@@ -2,8 +2,8 @@
 {% load static %}
 
 {% block title %}{{ analise.artigo.titulo|truncatechars:70 }} — AnCo{% endblock %}
-{% block meta_description %}{{ analise.artigo.titulo|truncatechars:120 }}. Análise por {{ analise.analista.get_full_name|default:analise.analista.email }}, publicada no acervo AnCo.{% endblock %}
-{% block og_description %}{{ analise.artigo.titulo|truncatechars:120 }}. Análise por {{ analise.analista.get_full_name|default:analise.analista.email }}.{% endblock %}
+{% block meta_description %}{{ analise.artigo.titulo|truncatechars:120 }}. Análise por {{ analise.analista.nome_exibicao|default:analise.analista.get_full_name|default:"analista do acervo" }}, publicada no acervo AnCo.{% endblock %}
+{% block og_description %}{{ analise.artigo.titulo|truncatechars:120 }}. Análise por {{ analise.analista.nome_exibicao|default:analise.analista.get_full_name|default:"analista do acervo" }}.{% endblock %}
 
 {% block extra_head %}
 <script type="application/ld+json">{{ jsonld|safe }}</script>

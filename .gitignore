@@ -62,3 +62,8 @@ static/css/output.css
 # Auditorias/correções de DOI em produção e backups (dados, não versionar)
 /prod_doi_*.csv
 /backup_triagem_pre_delete.json
+
+# Backups e dumps de dados (nunca versionar: contêm dados de usuários da plataforma)
+/backups/
+/docs_backup_*.tar.gz
+/proposta_resumos_legado.csv
