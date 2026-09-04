@@ -471,8 +471,8 @@ Convenções de desenvolvimento em [CLAUDE.md](CLAUDE.md).
 ## 10. Como citar, autoria e licença
 
 ```bibtex
-@inproceedings{moreira_anco_2026,
-  author    = {Moreira, Paulo Vicente and Santana, Eneida and {Grupo de Pesquisa do PPGDC}},
+@inproceedings{santos_anco_2026,
+  author    = {Santos, Paulo Vicente Moreira dos and Santana, Eneida and {Grupo de Pesquisa do PPGDC}},
   title     = {De planilha a plataforma: catalogação colaborativa, curadoria
                editorial e revisão por pares para análise cognitiva da
                literatura científica},
@@ -482,7 +482,7 @@ Convenções de desenvolvimento em [CLAUDE.md](CLAUDE.md).
 }
 
 @software{anco_plataforma_2026,
-  author  = {Moreira, Paulo Vicente and Santana, Eneida and {Grupo de Pesquisa do PPGDC}},
+  author  = {Santos, Paulo Vicente Moreira dos and Santana, Eneida and {Grupo de Pesquisa do PPGDC}},
   title   = {{AnCo} --- Plataforma de Análise Cognitiva},
   year    = {2026},
   url     = {https://github.com/mestrepv/anco-ufba},
@@ -495,7 +495,7 @@ ed.** geradas automaticamente ([apps/publico/services.py](apps/publico/services.
 
 **Autoria e equipe**
 
-- **Paulo Vicente Moreira** (nome de citação: **MOREIRA, P. V.**) ·
+- **Paulo Vicente Moreira dos Santos** (nome de citação: **SANTOS, P. V. M. dos**) ·
   <paulovicente.ifba@gmail.com> — concepção e desenvolvimento da plataforma.
 - **Eneida Santana** — bibliotecária e **Doutora em Difusão do Conhecimento**;
   equipe fundadora. Responsável pela **curadoria bibliográfica do acervo de

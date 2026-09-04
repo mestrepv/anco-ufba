@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "AGPL-3.0-or-later" }
 authors = [
-    { name = "Paulo Vicente", email = "paulovicente.ifba@gmail.com" },
+    { name = "Paulo Vicente Moreira dos Santos", email = "paulovicente.ifba@gmail.com" },
 ]
 
 dependencies = [
