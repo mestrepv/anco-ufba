@@ -848,9 +848,9 @@ Documentar em `RESTORE.md`. Testar em staging trimestralmente.
 1. Revisar este documento e marcar ajustes.
 2. Definir **nome próprio** para a plataforma.
 3. Criar repositório Git.
-4. Colar este documento como `docs/ESPECIFICACAO.md`.
+4. Colar este documento como `docs/especificacao/ESPECIFICACAO.md`.
 5. Colar `CLAUDE.md` na raiz.
-6. Abrir Claude Code: *"Leia `docs/ESPECIFICACAO.md` e `CLAUDE.md`,
+6. Abrir Claude Code: *"Leia `docs/especificacao/ESPECIFICACAO.md` e `CLAUDE.md`,
    implemente a Fase 0, pare ao final aguardando minha aprovação."*
 
 ---
@@ -865,7 +865,7 @@ Documentar em `RESTORE.md`. Testar em staging trimestralmente.
   opcional. Modelo de embeddings local (`bge-m3` ou equivalente),
   `pgvector` como armazenamento, toggle explícito textual/semântico,
   escopo de indexação cobrindo Artigos, Análises e Resenhas Críticas.
-  Adendo de origem em `docs/fase8_adendo.md` (mantido como artefato
+  Adendo de origem em `docs/especificacao/adendo-busca-semantica.md` (mantido como artefato
   histórico).
 - **v2.2** — Reescopagem da Fase 6. API REST dedicada (`/api/v1/`) e
   Swagger (`drf-spectacular`) movidos para v2 (§14): sem cliente real

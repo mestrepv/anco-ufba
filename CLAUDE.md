@@ -45,7 +45,7 @@ como leitor; promoção a analista por aprovação da curadoria); **publicação
 análises por aprovação de curador**; **revisão cega por pares apenas para as
 resenhas críticas**; acervo público citável.
 
-**Documento canônico de especificação**: `docs/ESPECIFICACAO.md`.
+**Documento canônico de especificação**: `docs/especificacao/ESPECIFICACAO.md`.
 Em caso de conflito entre este `CLAUDE.md` e a especificação, a
 especificação prevalece para decisões de produto. Este arquivo prevalece
 para decisões de processo.
@@ -80,31 +80,50 @@ Ao terminar uma fase, produza um **Relatório de Fim de Fase** (ver §7).
 - Type hints onde melhorar legibilidade; **não** force tipagem em todo
   lugar.
 
-### 3.1. Estrutura de diretórios esperada
+### 3.1. Estrutura de diretórios
 ```
 .
 ├── apps/
-│   ├── core/          # User estendido, mixins, utils
-│   ├── acervo/        # Artigo, Análise, Revisão
-│   ├── vocabulario/   # Vocabulários controlados
-│   └── publico/       # Views do acervo público
+│   ├── core/            # User estendido, papéis, mixins, utils
+│   ├── acervo/          # Artigo, Análise, Resenha, Revisão, curadoria
+│   ├── anco/            # Revisão ANCO: import → corpus → sorteio (sem triagem)
+│   ├── triagem/         # Triagem PRISMA-ScR (rigoroso): projetos, dedup, κ
+│   ├── busca_semantica/ # Embeddings e busca por similaridade
+│   ├── vocabulario/     # Vocabulários controlados
+│   └── publico/         # Views do acervo público
 ├── config/
-│   ├── settings/      # base.py, dev.py, prod.py
+│   ├── settings/        # base.py, dev.py, prod.py
 │   ├── urls.py
 │   └── wsgi.py
 ├── templates/
 ├── static/
-├── docs/
+├── dados/
+│   └── legado/          # Dataset de fundação (versionado, sem dados pessoais)
+├── docs/                # Documentação — ver docs/README.md para o mapa
+│   ├── metodo/          # Protocolo científico da Análise Cognitiva
+│   ├── especificacao/   # Especificação técnica (documento canônico)
+│   ├── planos/          # Escritos ANTES de cada frente de trabalho
+│   ├── relatorios/      # Escritos DEPOIS de cada fase entregue
+│   ├── migracao/        # Auditoria da procedência dos dados
+│   ├── busca_semantica/
+│   ├── operacao/        # DEPLOY.md, RESTORE.md
+│   └── artigo/          # Relato de experiência (produção acadêmica)
 ├── infra/
 │   ├── docker-compose.yml
 │   ├── Caddyfile
 │   └── backup/
+├── tools/               # Scripts one-off de migração e auditoria de DOI
 ├── tests/
+├── var/                 # Artefatos locais de execução — IGNORADO pelo git
 ├── manage.py
 ├── pyproject.toml
 ├── README.md
 └── CLAUDE.md
 ```
+
+**Convenção**: `docs/` é documentação (`.md`); `dados/` é dataset versionado;
+`var/` é artefato de execução (backups, exports, auditorias) e **nunca** vai
+para o git — contém dados de usuários da plataforma.
 
 ### 3.2. Settings
 Sempre use `django-environ` para ler `.env`. Nunca *hardcode* segredos.
@@ -268,7 +287,7 @@ especificação. Antes de importar:
 > **Mudança (2026-06):** o fluxo original (revisão por pares das análises +
 > publicação automática) foi **substituído**. As seções 5.3–5.6 da
 > especificação descrevem o fluxo antigo; ver o **addendum no fim de
-> `docs/ESPECIFICACAO.md`**. Implementação em `apps/acervo/{models,sorteio,
+> `docs/especificacao/ESPECIFICACAO.md`**. Implementação em `apps/acervo/{models,sorteio,
 > aprovacao,signals,tasks,views}.py`.
 
 Fluxo atual:

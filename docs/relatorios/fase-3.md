@@ -16,7 +16,7 @@
   fase. Pipeline com purge fica para Fase 7 se a performance pedir.
 - HTMX 2.0.4 e Alpine.js 3.14.7 via `unpkg`.
 
-### Serviços de link e Wayback Machine ([apps/acervo/services.py](apps/acervo/services.py))
+### Serviços de link e Wayback Machine ([apps/acervo/services/links.py](apps/acervo/services/links.py))
 
 - `LinkCheckResultado` (dataclass): status, código HTTP, URL final, mensagem.
 - `_eh_url_publica`: anti-SSRF rejeitando IPs privados, loopback,

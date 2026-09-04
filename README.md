@@ -15,9 +15,9 @@ facetada e busca semântica.
 
 > Documento de apoio a **resumo expandido / artigo** submetido a congresso de
 > difusão do conhecimento. Contrato técnico canônico em
-> [docs/ESPECIFICACAO.md](docs/ESPECIFICACAO.md) (ver o *addendum* ao final, que
+> [docs/especificacao/ESPECIFICACAO.md](docs/especificacao/ESPECIFICACAO.md) (ver o *addendum* ao final, que
 > registra a mudança do fluxo de revisão). Fundamentação conceitual em
-> [docs/tutorial_base_anco.md](docs/tutorial_base_anco.md).
+> [docs/metodo/tutorial-base-anco.md](docs/metodo/tutorial-base-anco.md).
 
 ---
 
@@ -81,7 +81,7 @@ conflitos de edição. A plataforma é a resposta a esse diagnóstico.
 **Decisão sobre o acervo de fundação:** a importação direta dos 1.443 registros
 brutos foi **descartada**. Em vez de carregar a plataforma com dados não
 confiáveis, a equipe partiu de uma **base revisada e curada bibliograficamente**
-— [`base-anco-revisada.json`](base-anco-revisada.json), **653 registros** —,
+— `base-anco-revisada.json`, **653 registros** —,
 submetida à **curadoria da bibliotecária e Doutora em Difusão do Conhecimento
 Eneida Santana** (equipe fundadora). Essa base curada constitui o **acervo de
 fundação** (status `legado`), sobre o qual o fluxo novo (cadastro aberto +
@@ -499,7 +499,7 @@ ed.** geradas automaticamente ([apps/publico/services.py](apps/publico/services.
   <paulovicente.ifba@gmail.com> — concepção e desenvolvimento da plataforma.
 - **Eneida Santana** — bibliotecária e **Doutora em Difusão do Conhecimento**;
   equipe fundadora. Responsável pela **curadoria bibliográfica do acervo de
-  fundação** ([`base-anco-revisada.json`](base-anco-revisada.json)). Pesquisadora
+  fundação** (`base-anco-revisada.json`). Pesquisadora
   de formação docente, tecnologias educacionais e práticas extensionistas; membra
   do Grupo de Pesquisa **TICASE** (Tecnologia da Informação e Comunicação
   Aplicadas à Educação e Saúde). Especialista em Educação a Distância: Tecnologias

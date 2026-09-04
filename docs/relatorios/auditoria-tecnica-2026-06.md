@@ -137,7 +137,7 @@ Na raiz há `backup_triagem_pre_delete.json` (9 MB), `base-anco-export-2026-06-0
 deploy como exportações ad-hoc de produção. Risco de backup acidental num tar, de
 serem servidos por engano, e de poluir o working tree.
 - **Ação:** mover para um diretório fora do repo (`var/` ou `~/exports/`) ou um
-  `scratch/` ignorado; o JSON de 5.1 MB em [docs/base_referencial_corrigida.json](docs/base_referencial_corrigida.json)
+  `scratch/` ignorado; o JSON de 5.1 MB em [dados/legado/base-referencial-corrigida.json](dados/legado/base-referencial-corrigida.json)
   **está** versionado e infla o `.git` — avaliar se precisa estar no histórico.
 
 **M5. CI verde ≠ produção saudável (extensões à parte).**

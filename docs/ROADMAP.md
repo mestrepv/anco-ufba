@@ -1,7 +1,7 @@
 # Roadmap — Plataforma AnCo
 
 > **Status vivo do roadmap**. Cada item dos critérios de aceite aqui é
-> um espelho do escopo definido em [`ESPECIFICACAO.md` §10](ESPECIFICACAO.md);
+> um espelho do escopo definido em [`ESPECIFICACAO.md` §10](especificacao/ESPECIFICACAO.md);
 > em conflito, a especificação prevalece.
 >
 > Cada fase concluída tem relatório detalhado em [`relatorios/`](relatorios/).
@@ -130,15 +130,15 @@ Concluída em 2026-04-29. Relatório: [fase-7.md](relatorios/fase-7.md).
 
 - [x] Caddy 2 no compose com Let's Encrypt automático (profile `prod`)
 - [x] Backup `pg_dump` diário (`manage.py backup_db` + `infra/backup/run.sh`)
-- [x] [`RESTORE.md`](RESTORE.md) com procedimento e teste trimestral
+- [x] [`RESTORE.md`](operacao/RESTORE.md) com procedimento e teste trimestral
 - [x] Logs JSON estruturados em prod (sem dependência externa)
 - [x] Sentry SDK integrado (DSN opcional)
 - [x] Páginas estáticas: Sobre, Equipe, Termos, Privacidade
 - [x] Rate limiting (allauth `ACCOUNT_RATE_LIMITS` + `django-ratelimit`
   na busca pública)
 - [x] CSP restritiva via `django-csp` em prod
-- [x] [`DEPLOY.md`](DEPLOY.md) com procedimento completo
-- [x] Plano de redirecionamento permanente (DEPLOY.md §7)
+- [x] [`DEPLOY.md`](operacao/DEPLOY.md) com procedimento completo
+- [x] Plano de redirecionamento permanente (operacao/DEPLOY.md §7)
 - [⏳] **Deploy em produção real**: documentado e pronto, depende de
   recursos externos (DNS, OAuth credentials, S3) — fora do escopo do
   agente
@@ -148,8 +148,8 @@ Concluída em 2026-04-29. Relatório: [fase-7.md](relatorios/fase-7.md).
 > Pré-requisito explícito: plataforma em produção (Fase 7 concluída) com
 > acervo legado importado e algumas análises feitas no fluxo novo.
 >
-> Especificação canônica em [`ESPECIFICACAO.md` §10 Fase 8](ESPECIFICACAO.md).
-> Adendo de origem (v2.1) preservado em [`fase8_adendo.md`](fase8_adendo.md)
+> Especificação canônica em [`ESPECIFICACAO.md` §10 Fase 8](especificacao/ESPECIFICACAO.md).
+> Adendo de origem (v2.1) preservado em [`fase8_adendo.md`](especificacao/adendo-busca-semantica.md)
 > como artefato histórico.
 
 - [ ] Container `embeddings` no compose (modelo local, sem API externa)

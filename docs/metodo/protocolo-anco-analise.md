@@ -214,7 +214,7 @@ epistemológico-estrutural, mas **vários conceitos centrais de Fróes não têm
 próprio** — por ora cabem em *Aspectos relevantes*, *Observações* ou no
 vocabulário de *epistemologia/teoria*. Estes limites já foram desdobrados em
 **proposta formal de evolução aditiva da Matriz** — ver
-`docs/proposta-evolucao-matriz-froes.md` (5 eixos: espiral, tradução,
+`docs/metodo/proposta-evolucao-matriz-froes.md` (5 eixos: espiral, tradução,
 comunidades, dimensões, compromisso sociopolítico), aguardando apreciação das
 coordenadoras (cf. também `PARECER_plataforma_x_proposta_Froes.md`, §6):
 

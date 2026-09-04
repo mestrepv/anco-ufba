@@ -2,7 +2,7 @@
 
 **Branch**: `feat/analista-ux-crossref`
 **Concluída em**: 2026-05-01
-**Roadmap**: [`docs/feat-analista-ux-crossref.md`](../feat-analista-ux-crossref.md)
+**Roadmap**: [`docs/planos/feat-analista-ux-crossref.md`](../planos/feat-analista-ux-crossref.md)
 
 ## O que foi entregue
 
@@ -111,7 +111,7 @@
 
 ## Desvios da especificação
 
-- **Cadastro sem DOI nem ISBN**: a especificação original (`docs/ESPECIFICACAO.md`
+- **Cadastro sem DOI nem ISBN**: a especificação original (`docs/especificacao/ESPECIFICACAO.md`
   §4.1) tratava DOI como obrigatório. O modelo agora aceita 3 caminhos
   (DOI, ISBN ou identificador interno) — desvio motivado pela
   auditoria do legado, que mostrou ~150 entradas (livros, capítulos,

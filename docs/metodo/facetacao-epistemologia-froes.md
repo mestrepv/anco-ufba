@@ -3,7 +3,7 @@
 > **Status:** aplicado em produção (reversível). Para apreciação das
 > coordenadoras (Profa. Terezinha Fróes / Profa. Leliana). Se não for aprovado,
 > desfaz-se com um comando (ver §5). Complementa
-> `docs/proposta-evolucao-matriz-froes.md`.
+> `docs/metodo/proposta-evolucao-matriz-froes.md`.
 
 ## 1. Motivação
 

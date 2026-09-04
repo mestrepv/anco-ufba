@@ -2,7 +2,7 @@
 
 > **Status:** proposta para apreciação das coordenadoras (Profa. Teresinha Fróes /
 > Profa. Leliana). Nada aqui foi implementado. Complementa o
-> `docs/protocolo-anco-analise.md` (§7, "o que a Matriz ainda não captura") e o
+> `docs/metodo/protocolo-anco-analise.md` (§7, "o que a Matriz ainda não captura") e o
 > `PARECER_plataforma_x_proposta_Froes.md` (§6).
 >
 > **Fontes primárias cotejadas:** os dois capítulos de Fróes Burnham —

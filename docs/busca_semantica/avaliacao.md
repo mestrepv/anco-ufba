@@ -21,7 +21,7 @@ Dois objetivos, não um:
    geral, não na obra de Teresinha Fróes. Há o risco de ele representar bem o
    *cânone* e **sub-ranquear justamente as obras de fronteira** — emergentes, de
    terminologia incomum — que o protocolo da AnCo quer **reconhecer** (cf.
-   `docs/protocolo-anco-analise.md` §7). O **bloco C** testa exatamente isso.
+   `docs/metodo/protocolo-anco-analise.md` §7). O **bloco C** testa exatamente isso.
 
 > Esta avaliação é o **gate de decisão** para a pergunta "vale a pena ajustar
 > (fine-tuning) o modelo à AnCo?". Sem medir antes, qualquer ajuste é fé, não

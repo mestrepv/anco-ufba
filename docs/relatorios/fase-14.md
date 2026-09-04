@@ -81,4 +81,4 @@ de produto registrada — o rigoroso permanece como na especificação.
 - Validar o painel/estatística pelo HTTP real (Caddy→gunicorn) com
   `docker compose -f infra/docker-compose.yml up -d --force-recreate web`.
 - Revisão das professoras (Fróes/Leliana) ao texto do protocolo atualizado
-  (`docs/protocolo-anco-analise.md`).
+  (`docs/metodo/protocolo-anco-analise.md`).

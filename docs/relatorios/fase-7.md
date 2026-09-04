@@ -8,7 +8,7 @@
 documenta o procedimento de deploy/restore. **A entrega não inclui o
 deploy real** (depende do domínio, credenciais Google OAuth,
 infraestrutura S3) — apenas tudo que é necessário para que o deploy
-seja executável conforme o `docs/DEPLOY.md`.
+seja executável conforme o `docs/operacao/DEPLOY.md`.
 
 ## O que foi entregue
 
@@ -79,13 +79,13 @@ Footer do `_base.html` linka para as 4. Todos os textos marcados como
 
 ### Documentação
 
-- **[docs/DEPLOY.md](docs/DEPLOY.md)**: 9 seções cobrindo pré-requisitos
+- **[docs/operacao/DEPLOY.md](docs/operacao/DEPLOY.md)**: 9 seções cobrindo pré-requisitos
   do servidor, configuração inicial completa (env, profiles, migrate,
   collectstatic, fixtures, schedules, OAuth, Site, migrate_legacy),
   atualização contínua, backup automatizado via cron do host, logs e
   observabilidade, healthcheck, plano de redirecionamento (spec §9.3),
   modo manutenção, rollback.
-- **[docs/RESTORE.md](docs/RESTORE.md)**: procedimento staging e prod,
+- **[docs/operacao/RESTORE.md](docs/operacao/RESTORE.md)**: procedimento staging e prod,
   checklist pós-restore, **roteiro de teste trimestral** (sem o qual
   o backup é "wishful thinking"), troubleshooting.
 

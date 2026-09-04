@@ -38,7 +38,7 @@ reprodutível e reportável segundo o **PRISMA-ScR**. App nativo `apps/triagem`,
 - URL montada em `/triagem/` (`config/urls.py`).
 - Painel placeholder `triagem_painel` (`views.painel_view` + `templates/triagem/painel.html`),
   gated a analistas/curadores (reusa `User.eh_analista`).
-- Addendum da Fase 9 em `docs/ESPECIFICACAO.md`.
+- Addendum da Fase 9 em `docs/especificacao/ESPECIFICACAO.md`.
 - Testes de wiring/acesso (`apps/triagem/tests/test_scaffolding.py`): anônimo→302,
   leitor→403, analista→200.
 

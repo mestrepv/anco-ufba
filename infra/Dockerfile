@@ -20,7 +20,7 @@ COPY pyproject.toml requirements.lock ./
 # Instala dependencias a partir do lockfile (versoes fixas, build reproduzivel)
 # e o proprio pacote em modo editavel sem re-resolver as deps. O stub de
 # `config` deixa o setuptools achar o pacote; o codigo real entra via COPY
-# abaixo (e via bind-mount em dev). Regenerar o lock: ver docs/DEPLOY.md.
+# abaixo (e via bind-mount em dev). Regenerar o lock: ver docs/operacao/DEPLOY.md.
 RUN mkdir -p config && touch config/__init__.py \
     && pip install --upgrade pip \
     && pip install -r requirements.lock \
