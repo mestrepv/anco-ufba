@@ -29,12 +29,14 @@ class UserAdmin(DjangoUserAdmin, UnfoldModelAdmin):
         "vinculo_institucional",
         "aceita_revisoes",
         "eh_legado",
+        "eh_conta_servico",
         "is_active",
     )
     list_filter = (
         "papel",
         "aceita_revisoes",
         "eh_legado",
+        "eh_conta_servico",
         "is_active",
         "is_staff",
     )
@@ -123,6 +125,7 @@ class UserAdmin(DjangoUserAdmin, UnfoldModelAdmin):
                     "aceita_revisoes",
                     "limite_revisoes_simultaneas",
                     "eh_legado",
+                    "eh_conta_servico",
                 )
             },
         ),

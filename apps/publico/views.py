@@ -73,19 +73,9 @@ def vitrine_view(request: HttpRequest) -> HttpResponse:
     pesquisadores_count = (
         User.objects.filter(analises__status__in=STATUS_PUBLICOS).distinct().count()
     )
-    # Analistas cadastrados na equipe — mesma definicao do diretorio /equipe
-    # (pagina_equipe_view): papel analista/curador, ativos, nao-legado e com
-    # perfil minimo preenchido. Cresce a cada cadastro, independente de publicacao.
-    analistas_count = (
-        User.objects.filter(
-            papel__in=[User.Papel.ANALISTA, User.Papel.CURADOR],
-            is_active=True,
-            eh_legado=False,
-        )
-        .exclude(nome_exibicao="")
-        .exclude(vinculo_institucional="")
-        .count()
-    )
+    # Analistas cadastrados na equipe — mesma definicao do diretorio /equipe.
+    # Cresce a cada cadastro, independente de publicacao.
+    analistas_count = User.objects.equipe_publica().count()
     bases_count = (
         Artigo.objects.filter(
             analises__status__in=STATUS_PUBLICOS,
@@ -570,19 +560,13 @@ def pagina_equipe_view(request: HttpRequest) -> HttpResponse:
     Diretório dinâmico de analistas.
 
     Aparece quem tem `papel ∈ {analista, curador}` e perfil mínimo preenchido
-    (titulação + bio + áreas). Curador é cargo interno — o publico ve todos
-    como analistas. Contas legado (sintéticas) ficam fora.
+    (nome + vínculo). Curador é cargo interno — o publico ve todos como
+    analistas. Contas do legado (sintéticas) e contas de serviço ficam fora.
+
+    A definicao de quem entra vive em `User.objects.equipe_publica()`, para
+    nao divergir da contagem exibida na home.
     """
-    analistas = (
-        User.objects.filter(
-            papel__in=[User.Papel.ANALISTA, User.Papel.CURADOR],
-            is_active=True,
-            eh_legado=False,
-        )
-        .exclude(nome_exibicao="")
-        .exclude(vinculo_institucional="")
-        .order_by("papel", "nome_exibicao", "username")
-    )
+    analistas = User.objects.equipe_publica().order_by("papel", "nome_exibicao", "username")
     return render(
         request,
         "publico/equipe.html",

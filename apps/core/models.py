@@ -3,7 +3,33 @@
 from __future__ import annotations
 
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.db import models
+
+
+class UserQuerySet(models.QuerySet["User"]):
+    def equipe_publica(self) -> models.QuerySet[User]:
+        """
+        Quem aparece no diretorio publico `/equipe` e nas contagens da home.
+
+        Definicao unica: e' preciso ter papel de analista ou curador, estar
+        ativo, ter perfil minimo preenchido (nome e vinculo) e ser uma pessoa
+        real da equipe — contas do legado e contas de servico ficam fora.
+        """
+        return (
+            self.filter(
+                papel__in=[User.Papel.ANALISTA, User.Papel.CURADOR],
+                is_active=True,
+                eh_legado=False,
+                eh_conta_servico=False,
+            )
+            .exclude(nome_exibicao="")
+            .exclude(vinculo_institucional="")
+        )
+
+
+class UserManager(DjangoUserManager["User"].from_queryset(UserQuerySet)):  # type: ignore[misc]
+    """Manager do User com o queryset da equipe publica."""
 
 
 class User(AbstractUser):
@@ -105,6 +131,15 @@ class User(AbstractUser):
         db_index=True,
         help_text="Marca contas placeholder criadas pela migracao do legado.",
     )
+    eh_conta_servico = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="conta de serviço",
+        help_text=(
+            "Conta administrativa ou de teste, nao pertencente a equipe de "
+            "pesquisa. Fica fora do diretorio publico e das contagens."
+        ),
+    )
 
     # Acesso por módulo (separação ANCO × PRISMA). Camada global: settings
     # PRISMA_ATIVO / ANCO_ATIVO; camada por usuário: estes campos (UserAdmin).
@@ -114,6 +149,8 @@ class User(AbstractUser):
     pode_anco = models.BooleanField(
         default=False, help_text="Acessa o módulo de Revisão ANCO (Análise Cognitiva)."
     )
+
+    objects = UserManager()
 
     class Meta:
         verbose_name = "usuário"
