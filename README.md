@@ -1,5 +1,8 @@
 # AnCo — Plataforma de Análise Cognitiva
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22305444.svg)](https://doi.org/10.5281/zenodo.22305444)
+[![Licença: AGPL v3](https://img.shields.io/badge/licença-AGPL--3.0--or--later-blue.svg)](LICENSE)
+
 Plataforma colaborativa de pesquisa para **catalogar, analisar criticamente e
 difundir** literatura científica sobre **Análise Cognitiva (AnCo)**. Substitui um
 fluxo legado baseado em Google Forms + Sheets + Sites por um sistema com cadastro
@@ -7,7 +10,8 @@ aberto, vocabulário controlado, **aprovação editorial por curadoria**, **revi
 cega por pares das resenhas críticas** e acervo público citável, com busca textual
 facetada e busca semântica.
 
-- **URL pública:** <https://anco.paulovicente.pro.br/>
+- **URL pública:** <https://analisecognitiva.ia.br>
+- **DOI:** [10.5281/zenodo.22305444](https://doi.org/10.5281/zenodo.22305444) (todas as versões)
 - **Stack:** Python 3.12 · Django 5.x · PostgreSQL 16 + pgvector · Redis 7 ·
   django-q2 · Caddy 2 · Docker Compose · HTMX/Alpine/Tailwind
 - **Licença:** código em **AGPL-3.0-or-later**; conteúdo autoral em **CC BY-NC 4.0**
@@ -482,11 +486,14 @@ Convenções de desenvolvimento em [CLAUDE.md](CLAUDE.md).
 }
 
 @software{anco_plataforma_2026,
-  author  = {Santos, Paulo Vicente Moreira dos and Santana, Eneida and {Grupo de Pesquisa do PPGDC}},
-  title   = {{AnCo} --- Plataforma de Análise Cognitiva},
-  year    = {2026},
-  url     = {https://github.com/mestrepv/anco-ufba},
-  license = {AGPL-3.0-or-later (código); CC BY-NC 4.0 (conteúdo)}
+  author    = {Santos, Paulo Vicente Moreira dos and Santana, Eneida and {Grupo de Pesquisa do PPGDC}},
+  title     = {{AnCo} --- Plataforma de Análise Cognitiva},
+  year      = {2026},
+  version   = {1.0.0},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.22305444},
+  url       = {https://doi.org/10.5281/zenodo.22305444},
+  license   = {AGPL-3.0-or-later (código); CC BY-NC 4.0 (conteúdo)}
 }
 ```
 

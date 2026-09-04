@@ -21,6 +21,14 @@ authors:
     given-names: "Eneida"
     affiliation: "Instituto Federal da Bahia (IFBA)"
   - name: "Grupo de Pesquisa do PPGDC — Programa de Pós-Graduação em Difusão do Conhecimento"
+doi: "10.5281/zenodo.22305444"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.22305444"
+    description: "DOI de conceito — resolve sempre para a versão mais recente"
+  - type: doi
+    value: "10.5281/zenodo.22305445"
+    description: "DOI da versão 1.0.0"
 repository-code: "https://github.com/mestrepv/anco-ufba"
 url: "https://analisecognitiva.ia.br"
 license: AGPL-3.0-or-later
