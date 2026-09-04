@@ -508,7 +508,21 @@ ed.** geradas automaticamente ([apps/publico/services.py](apps/publico/services.
 - **Grupo de pesquisa do PPGDC** — linha, orientação e demais pesquisadores
   (a preencher antes da submissão).
 
-**Licenciamento** — Código: **AGPL-3.0-or-later** ([pyproject.toml](pyproject.toml)).
-Conteúdo autoral hospedado (análises, resenhas): **CC BY-NC 4.0**. Obras
-referenciadas: a plataforma cataloga metadados e link, **nunca hospeda a obra** —
-direitos permanecem com os detentores.
+**Licenciamento** — este repositório é licenciado em duas partes:
+
+| O quê | Licença | Arquivo |
+|---|---|---|
+| Código-fonte | **AGPL-3.0-or-later** | [LICENSE](LICENSE) |
+| Conteúdo (documentação, análises, resenhas, dataset) | **CC BY-NC 4.0** | [LICENSE-CONTENT](LICENSE-CONTENT) |
+
+A AGPL é deliberada: quem rodar uma instância modificada desta plataforma como
+serviço em rede deve disponibilizar o código correspondente. Vale para a
+plataforma de pesquisa pública que ela é.
+
+**Obras referenciadas** ficam de fora de ambas: a plataforma cataloga metadados
+e link, **nunca hospeda a obra** — os direitos permanecem com os detentores.
+
+**Metadados de citação** — [CITATION.cff](CITATION.cff) alimenta o botão *Cite
+this repository* do GitHub; [.zenodo.json](.zenodo.json) alimenta os metadados
+do depósito no Zenodo. Ao mudar autoria, versão ou licença, atualize os dois
+junto com as entradas BibTeX acima — são quatro lugares que precisam concordar.

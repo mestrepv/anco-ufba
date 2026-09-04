@@ -1,0 +1,39 @@
+{
+  "upload_type": "software",
+  "title": "AnCo — Plataforma de Análise Cognitiva",
+  "description": "<p>Plataforma colaborativa de pesquisa para catalogação, triagem e análise estruturada de literatura científica sobre <strong>Análise Cognitiva (AnCo)</strong>, no âmbito do Programa de Pós-Graduação em Difusão do Conhecimento (PPGDC).</p><p>Reúne dois módulos com objetivos distintos: <strong>Triagem PRISMA-ScR</strong>, para revisões de escopo com dois revisores independentes, mascaramento, cálculo de concordância (κ de Fleiss), checklist de 22 itens e protocolo <em>a priori</em> versionado; e <strong>Revisão ANCO</strong>, fluxo simplificado de análise pela matriz de Fróes Burnham. As análises publicadas passam por aprovação editorial da curadoria, recebem URL estável e citação em ABNT 6023:2018 e APA 7ª ed.; as resenhas críticas passam por revisão cega por pares.</p><p>O repositório inclui a documentação completa do processo — protocolo científico, especificação técnica, planos escritos antes de cada frente de trabalho e relatórios escritos depois de cada fase entregue — além do dataset de fundação auditado, com os endereços de e-mail removidos.</p><p><strong>Licenciamento:</strong> o código é distribuído sob AGPL-3.0-or-later; o conteúdo (documentação e acervo) sob CC BY-NC 4.0.</p>",
+  "creators": [
+    {
+      "name": "Santos, Paulo Vicente Moreira dos",
+      "affiliation": "Instituto Federal da Bahia (IFBA)",
+      "orcid": "0009-0002-1342-8885"
+    },
+    {
+      "name": "Santana, Eneida",
+      "affiliation": "Instituto Federal da Bahia (IFBA)"
+    },
+    {
+      "name": "Grupo de Pesquisa do PPGDC — Programa de Pós-Graduação em Difusão do Conhecimento"
+    }
+  ],
+  "license": "AGPL-3.0-or-later",
+  "access_right": "open",
+  "language": "por",
+  "keywords": [
+    "análise cognitiva",
+    "difusão do conhecimento",
+    "revisão de escopo",
+    "PRISMA-ScR",
+    "curadoria editorial",
+    "revisão por pares",
+    "ciência aberta",
+    "Django"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://analisecognitiva.ia.br",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}

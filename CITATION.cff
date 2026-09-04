@@ -1,0 +1,54 @@
+cff-version: 1.2.0
+message: "Se você usa a Plataforma AnCo em pesquisa, por favor cite conforme abaixo."
+title: "AnCo — Plataforma de Análise Cognitiva"
+abstract: >-
+  Plataforma colaborativa de pesquisa para catalogação, triagem e análise
+  estruturada de literatura científica sobre Análise Cognitiva (AnCo), no
+  âmbito do Programa de Pós-Graduação em Difusão do Conhecimento (PPGDC).
+  Reúne dois módulos: Triagem PRISMA-ScR, para revisões de escopo com dois
+  revisores independentes, cálculo de concordância (κ de Fleiss) e checklist
+  de 22 itens; e Revisão ANCO, fluxo simplificado de análise pela matriz de
+  Fróes Burnham. As análises publicadas passam por aprovação editorial da
+  curadoria, recebem URL estável e citação em ABNT e APA; as resenhas críticas
+  passam por revisão cega por pares.
+type: software
+authors:
+  - family-names: "Santos"
+    given-names: "Paulo Vicente Moreira dos"
+    orcid: "https://orcid.org/0009-0002-1342-8885"
+    affiliation: "Instituto Federal da Bahia (IFBA)"
+  - family-names: "Santana"
+    given-names: "Eneida"
+    affiliation: "Instituto Federal da Bahia (IFBA)"
+  - name: "Grupo de Pesquisa do PPGDC — Programa de Pós-Graduação em Difusão do Conhecimento"
+repository-code: "https://github.com/mestrepv/anco-ufba"
+url: "https://analisecognitiva.ia.br"
+license: AGPL-3.0-or-later
+version: "1.0.0"
+date-released: "2026-09-04"
+keywords:
+  - análise cognitiva
+  - difusão do conhecimento
+  - revisão de escopo
+  - PRISMA-ScR
+  - curadoria editorial
+  - revisão por pares
+  - ciência aberta
+  - Django
+preferred-citation:
+  type: conference-paper
+  title: >-
+    De planilha a plataforma: catalogação colaborativa, curadoria editorial e
+    revisão por pares para análise cognitiva da literatura científica
+  authors:
+    - family-names: "Santos"
+      given-names: "Paulo Vicente Moreira dos"
+      orcid: "https://orcid.org/0009-0002-1342-8885"
+      affiliation: "Instituto Federal da Bahia (IFBA)"
+    - family-names: "Santana"
+      given-names: "Eneida"
+      affiliation: "Instituto Federal da Bahia (IFBA)"
+    - name: "Grupo de Pesquisa do PPGDC — Programa de Pós-Graduação em Difusão do Conhecimento"
+  collection-title: "Anais do Congresso de Difusão do Conhecimento"
+  year: 2026
+  notes: "No prelo."
