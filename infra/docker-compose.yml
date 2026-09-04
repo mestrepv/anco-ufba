@@ -46,7 +46,7 @@ services:
       - ../.env
     ports:
       # Bind apenas no loopback do host: nginx faz reverse proxy
-      - "127.0.0.1:9090:8000"
+      - "127.0.0.1:${ANCO_WEB_PORT:-9090}:8000"
     volumes:
       - ..:/app
     depends_on:
@@ -131,7 +131,7 @@ services:
     restart: unless-stopped
     command: lab --host 0.0.0.0 --port 5000
     ports:
-      - "127.0.0.1:9091:5000"
+      - "127.0.0.1:${ANCO_ASREVIEW_PORT:-9091}:5000"
     volumes:
       - asreview_projects:/project_folder
     profiles:
