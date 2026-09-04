@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light only">
+<link rel="stylesheet" href="/static/css/fonts.css">
+<title>Editar análise — mockup da proposta</title>
+<style>
+  /* ── Tokens do site AnCo (input.css) + tema escuro derivado ───────── */
+  :root {
+    --paper: #FBF9F4; --paper-2: #F5F1E8; --paper-3: #EDE7DA;
+    --ink: #1A1816; --ink-2: #3A352E; --ink-3: #6B655B; --ink-4: #948D80;
+    --rule: #E5DFCF; --rule-strong: #D4CCB8;
+    --gold: #B8862C; --gold-deep: #8C6520;
+    --review-bg: #FBF7E8; --review-rule: #E8DCA8;
+    --danger: #A03A2A;
+    --campo-bg: #FFFFFF;
+    --marca: #ffe9a8;
+    /* anotações da proposta (fora da paleta do produto, p/ não confundir) */
+    --prop: #3E5F8A; --prop-bg: #EEF2F8; --prop-rule: #C6D2E4;
+    --dec: #A03A2A; --dec-bg: #FBEFEC; --dec-rule: #E8C7BF;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+    --sans: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  /* A aplicação AnCo é só tema claro — mockup fixo na mesma paleta. */
+  html { background: var(--paper); color-scheme: light only; } input, select, textarea, button { color-scheme: light; }
+  body { font-family: var(--sans); color: var(--ink); line-height: 1.55; }
+  main { max-width: 880px; margin: 0 auto 90px; padding: 0 24px; }
+  h1, h2 { font-family: var(--serif); font-weight: 600; text-wrap: balance; }
+  mark { background: var(--marca); color: var(--ink); border-radius: 3px; padding: 0 3px; }
+  button { font: inherit; }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  /* ── Faixa do mockup ──────────────────────────────────────────────── */
+  .banner {
+    background: var(--prop-bg); border-bottom: 1px solid var(--prop-rule);
+    padding: 14px 24px; margin-bottom: 34px; font-size: 13px; color: var(--ink-2);
+  }
+  .banner-in { max-width: 832px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; }
+  .banner strong { color: var(--prop); letter-spacing: .04em; text-transform: uppercase; font-size: 12px; }
+  .legenda { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+  /* etiquetas de anotação */
+  .tag {
+    display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; border-radius: 999px; padding: 2px 9px; vertical-align: 2px;
+    white-space: nowrap;
+  }
+  .tag-alt { background: var(--prop-bg); color: var(--prop); border: 1px solid var(--prop-rule); }
+  .tag-mov { background: transparent; color: var(--prop); border: 1px dashed var(--prop); }
+  .tag-dec { background: var(--dec-bg); color: var(--dec); border: 1px solid var(--dec-rule); }
+  .tag-igual { background: var(--paper-2); color: var(--ink-4); border: 1px solid var(--rule); }
+
+  .nota-antes {
+    margin-top: 6px; padding: 8px 12px; border-left: 3px solid var(--prop-rule);
+    background: var(--prop-bg); font-size: 12px; color: var(--ink-3); border-radius: 0 6px 6px 0;
+  }
+  .nota-antes b { color: var(--prop); font-weight: 700; }
+  .nota-dec { border-left-color: var(--dec-rule); background: var(--dec-bg); }
+  .nota-dec b { color: var(--dec); }
+
+  /* ── Cabeçalho da tela ────────────────────────────────────────────── */
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+  h1.titulo { font-size: 26px; line-height: 1.25; margin-top: 4px; }
+  .sub { font-size: 13px; color: var(--ink-3); margin-top: 6px; }
+  .linkbar { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; font-size: 14px; }
+  a.link { color: var(--gold-deep); text-decoration: underline; text-underline-offset: 2px; }
+  .selo { font-size: 11px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--review-rule); background: var(--review-bg); color: var(--gold-deep); }
+
+  /* ── Abas ─────────────────────────────────────────────────────────── */
+  nav.abas { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--rule); margin: 28px 0 6px; }
+  .aba-btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px;
+    background: none; border: none; border-bottom: 2px solid transparent;
+    font-size: 13px; color: var(--ink-3); cursor: pointer;
+  }
+  .aba-btn[aria-selected="true"] { border-bottom-color: var(--gold); color: var(--ink); font-weight: 600; }
+  .passo {
+    width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center;
+    justify-content: center; font-size: 11px; font-weight: 700;
+    background: var(--paper-2); color: var(--ink-3);
+  }
+  .aba-btn[aria-selected="true"] .passo { background: var(--gold); color: var(--paper); }
+  .autosave { display: flex; justify-content: flex-end; min-height: 20px; margin-bottom: 18px; font-size: 12px; color: var(--ink-4); }
+
+  /* ── Cartão / campos ──────────────────────────────────────────────── */
+  .meta-card { background: var(--paper-2); border: 1px solid var(--rule); padding: 26px 28px; border-radius: 2px; }
+  section[hidden] { display: none; }
+  h2.secao { font-size: 21px; margin-bottom: 8px; }
+  h3.grupo {
+    font-family: var(--serif); font-size: 17px; font-style: italic; font-weight: 600;
+    color: var(--ink-2); margin: 26px 0 4px; padding-top: 18px; border-top: 1px solid var(--paper-3);
+  }
+  h3.grupo:first-of-type { margin-top: 10px; padding-top: 0; border-top: 0; }
+  .grupo-ref { font-size: 11px; color: var(--ink-4); font-style: normal; font-family: var(--sans); letter-spacing: .05em; }
+  .intro { font-size: 13px; color: var(--ink-3); margin-bottom: 16px; }
+  .ajuda-aba {
+    margin: 0 0 18px; padding: 12px 14px; border-radius: 8px;
+    background: var(--review-bg); border: 1px solid var(--review-rule);
+    font-size: 13px; color: var(--ink-2);
+  }
+  .campos { display: grid; gap: 18px; }
+  .field-label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
+  .help { font-size: 12px; color: var(--ink-4); margin-top: 4px; }
+  .field-input, .field-textarea {
+    width: 100%; box-sizing: border-box; font-family: var(--sans); font-size: 14px;
+    padding: 8px 10px; border: 1px solid var(--rule-strong); border-radius: 6px;
+    background: var(--campo-bg); color: var(--ink);
+  }
+  .field-textarea { resize: vertical; }
+  .sim-nao { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+  .sim-nao-opt {
+    display: inline-flex; align-items: center; gap: 8px; padding: 7px 16px;
+    border: 1px solid var(--rule-strong); border-radius: 999px; cursor: pointer; user-select: none;
+    font-size: 14px; color: var(--ink-2); background: var(--campo-bg);
+  }
+  .sim-nao-opt input { accent-color: var(--gold-deep); margin: 0; }
+  .sim-nao-opt:has(input:checked) { border-color: var(--gold-deep); background: var(--review-bg); color: var(--ink); font-weight: 600; }
+
+  /* ficha do artigo */
+  .ficha { border: 1px solid var(--rule); background: var(--campo-bg); border-radius: 2px; padding: 16px 18px; display: grid; gap: 10px; }
+  .meta-row { display: grid; grid-template-columns: 150px 1fr; gap: 4px 14px; font-size: 13.5px; }
+  .meta-row dt { color: var(--ink-4); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; padding-top: 1px; }
+  .meta-row dd { color: var(--ink-2); }
+  @media (max-width: 560px) { .meta-row { grid-template-columns: 1fr; } .meta-card { padding: 18px 16px; } }
+
+  /* chips do tom-select (mock) */
+  .ts-mock { display: flex; flex-wrap: wrap; gap: 6px; padding: 7px 10px; border: 1px solid var(--rule-strong); border-radius: 6px; background: var(--campo-bg); font-size: 13px; }
+  .ts-mock .item { background: var(--review-bg); border: 1px solid var(--review-rule); border-radius: 4px; padding: 1px 8px; color: var(--ink); }
+  .ts-mock .ph { color: var(--ink-4); }
+
+  details.aspectos { margin-top: 6px; font-size: 12.5px; color: var(--ink-3); }
+  details.aspectos summary { cursor: pointer; color: var(--gold-deep); font-weight: 600; font-size: 12px; }
+  details.aspectos ul { margin: 6px 0 0 18px; columns: 2; column-gap: 28px; }
+  details.aspectos li { margin-bottom: 2px; break-inside: avoid; }
+  @media (max-width: 560px) { details.aspectos ul { columns: 1; } }
+
+  /* rodapé de navegação */
+  .navform { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 18px; margin-top: 22px; border-top: 1px solid var(--paper-3); }
+  .btn { font-size: 13px; padding: 7px 16px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+  .btn-primary { background: var(--gold-deep); color: #FBF9F4; }
+  .btn-ghost { background: transparent; color: var(--ink-2); border-color: var(--rule-strong); }
+</style>
+</head>
+<body>
+
+<div class="banner">
+  <div class="banner-in">
+    <strong>Mockup · proposta de ajuste ao tutorial das professoras</strong>
+    <span class="legenda">
+      <span class="tag tag-alt">texto alterado</span>
+      <span class="tag tag-mov">reordenado / movido</span>
+      <span class="tag tag-dec">⚠ decisão das professoras</span>
+      <span class="tag tag-igual">sem mudança</span>
+    </span>
+    <span style="flex-basis:100%; font-size:12px; color: var(--ink-3);">Navegue pelas 3 abas abaixo. As caixas azuis mostram o texto <b>atual</b> que seria substituído; as vermelhas, pontos que dependem de decisão. Nada foi aplicado ao sistema.</span>
+  </div>
+</div>
+
+<main>
+  <header>
+    <span class="eyebrow">An·Co · análise em rascunho</span>
+    <h1 class="titulo">Análise cognitiva e a construção colaborativa do conhecimento em ambientes virtuais de aprendizagem</h1>
+    <p class="sub">2019 · <em>Revista Brasileira de Pós-Graduação em Difusão do Conhecimento</em></p>
+    <div class="linkbar">
+      <a class="link" href="#" onclick="return false">Acessar obra ↗</a>
+      <span class="selo">acesso aberto</span>
+    </div>
+  </header>
+
+  <nav class="abas" aria-label="Passos da análise">
+    <button class="aba-btn" aria-selected="true" data-aba="a1"><span class="passo">1</span><span>Identificação</span></button>
+    <button class="aba-btn" aria-selected="false" data-aba="a2"><span class="passo">2</span><span>Presença e pertinência</span></button>
+    <button class="aba-btn" aria-selected="false" data-aba="a3"><span class="passo">3</span><span>Estrutura do artigo</span> <span class="tag tag-alt">renomeada</span></button>
+    <button class="aba-btn" aria-selected="false" data-aba="a0" style="color: var(--ink-3);"><span>Resenha crítica (opcional)</span></button>
+  </nav>
+  <div class="autosave">salvo automaticamente há instantes ✓</div>
+
+  <div class="meta-card">
+
+    <!-- ═══ ABA 1 · IDENTIFICAÇÃO ═══════════════════════════════════ -->
+    <section id="a1">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap;">
+        <h2 class="secao">Identificação</h2>
+        <button class="btn btn-ghost" type="button">✎ Editar dados do artigo</button>
+      </div>
+      <p class="intro">
+        Confirme os metadados do artigo — eles chegam automaticamente da base de consulta.
+        Para completar ou corrigir campos (resumo, palavras-chave, autores, link…), use <strong>Editar dados do artigo</strong>.
+      </p>
+      <p class="intro" style="color: var(--ink-4);">
+        <mark>Termos da Análise Cognitiva</mark> aparecem destacados — ajuda a julgar presença e pertinência na próxima aba.
+        <span class="tag tag-igual">substitui “termos mais frequentes” (4.5)</span>
+      </p>
+
+      <div class="ficha">
+        <dl class="meta-row"><dt>Título</dt><dd>Análise cognitiva e a construção colaborativa do conhecimento em ambientes virtuais de aprendizagem</dd></dl>
+        <dl class="meta-row"><dt>Autores</dt><dd>Silva, M. R.; Nascimento, A. P.</dd></dl>
+        <dl class="meta-row"><dt>Periódico</dt><dd><em>Revista Brasileira de Pós-Graduação em Difusão do Conhecimento</em>, 2019, v. 12, n. 3, p. 45–62</dd></dl>
+        <dl class="meta-row"><dt>Base de consulta</dt><dd>SciELO <span class="tag tag-igual">registrada na importação (item 2)</span></dd></dl>
+        <dl class="meta-row"><dt>Palavras-chave</dt><dd><mark>análise cognitiva</mark>; construção do conhecimento; AVA; colaboração</dd></dl>
+        <dl class="meta-row"><dt>Resumo</dt><dd>Este trabalho discute como a <mark>análise cognitiva</mark> pode fundamentar o estudo dos processos de construção colaborativa do conhecimento em ambientes virtuais, articulando <mark>cognição</mark> distribuída e mediação tecnológica…</dd></dl>
+      </div>
+
+      <div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--paper-3);">
+        <label class="field-label">Área (conforme o periódico) <span class="tag tag-dec">⚠ decisão B1</span></label>
+        <select class="field-input" style="max-width:340px;">
+          <option>Educação</option><option>Computação</option><option>Psicologia</option><option>Linguística</option><option>Outros</option>
+        </select>
+        <p class="help">Verifique a área constante no periódico — ela vem explícita na publicação, não é atribuída por você. Se o periódico não a explicitar, registre a mais próxima.</p>
+        <div class="nota-antes nota-dec"><b>atual:</b> rótulo “Grande área (você define)”. O tutorial (4.2) diz o contrário: a área vem do periódico. Texto acima é a versão fiel + frase de contingência — validar com as professoras.</div>
+      </div>
+    </section>
+
+    <!-- ═══ ABA 2 · PRESENÇA E PERTINÊNCIA ══════════════════════════ -->
+    <section id="a2" hidden>
+      <h2 class="secao">Presença e pertinência</h2>
+      <div class="ajuda-aba">
+        <p style="margin:0 0 4px;"><strong>Como preencher.</strong> As perguntas de <em>presença</em> só localizam o termo <strong>Análise Cognitiva</strong> na obra — não decidem nada sozinhas. <span class="tag tag-alt">antes: “as 5 primeiras perguntas”</span></p>
+        <p style="margin:0;">A decisão-chave é a <strong>pertinência</strong>. Campos em branco contam como não respondidos.</p>
+      </div>
+
+      <h3 class="grupo">Presença do termo <em>análise cognitiva</em> <span class="grupo-ref">· item 5 do tutorial</span> <span class="tag tag-alt">novo subtítulo</span></h3>
+      <div class="campos" style="margin-top:12px;">
+        <div>
+          <span class="field-label">Aparece no título? <span style="color:var(--ink-4); font-weight:400;">(5.1)</span></span>
+          <div class="sim-nao">
+            <label class="sim-nao-opt"><input type="radio" name="p1" checked><span>Sim</span></label>
+            <label class="sim-nao-opt"><input type="radio" name="p1"><span>Não</span></label>
+          </div>
+        </div>
+        <div>
+          <span class="field-label">Aparece no resumo? <span style="color:var(--ink-4); font-weight:400;">(5.2)</span></span>
+          <div class="sim-nao">
+            <label class="sim-nao-opt"><input type="radio" name="p2" checked><span>Sim</span></label>
+            <label class="sim-nao-opt"><input type="radio" name="p2"><span>Não</span></label>
+          </div>
+        </div>
+        <div>
+          <span class="field-label">Aparece nas palavras-chave? <span style="color:var(--ink-4); font-weight:400;">(5.3)</span></span>
+          <div class="sim-nao">
+            <label class="sim-nao-opt"><input type="radio" name="p3" checked><span>Sim</span></label>
+            <label class="sim-nao-opt"><input type="radio" name="p3"><span>Não</span></label>
+          </div>
+        </div>
+        <div>
+          <span class="field-label">Aparece no corpo do texto? <span style="color:var(--ink-4); font-weight:400;">(5.4)</span></span>
+          <div class="sim-nao">
+            <label class="sim-nao-opt"><input type="radio" name="p4" checked><span>Sim</span></label>
+            <label class="sim-nao-opt"><input type="radio" name="p4"><span>Não</span></label>
+          </div>
+        </div>
+        <div>
+          <span class="field-label">Aparece nas referências? <span class="tag tag-mov">movida p/ o fim · não consta no tutorial</span></span>
+          <div class="sim-nao">
+            <label class="sim-nao-opt"><input type="radio" name="p5"><span>Sim</span></label>
+            <label class="sim-nao-opt"><input type="radio" name="p5" checked><span>Não</span></label>
+          </div>
+          <p class="help">Pergunta complementar do sistema — mantida por já ter dados coletados (opção B2 recomendada).</p>
+        </div>
+      </div>
+
+      <h3 class="grupo">Pertinência <span class="grupo-ref">· item 6 do tutorial</span> <span class="tag tag-alt">novo subtítulo</span></h3>
+      <div class="campos" style="margin-top:12px;">
+        <div>
+          <span class="field-label">A obra é pertinente à Análise Cognitiva? <span style="color:var(--ink-4); font-weight:400;">(6.1)</span> <span class="tag tag-dec">⚠ decisão B3</span></span>
+          <div class="sim-nao">
+            <label class="sim-nao-opt"><input type="radio" name="p6" checked><span>Sim</span></label>
+            <label class="sim-nao-opt"><input type="radio" name="p6"><span>Não</span></label>
+          </div>
+          <p class="help">Diga se o artigo trata do nosso objeto, a Análise Cognitiva, ou se apenas usa o termo sem o definir e sem mostrar a sua relevância.</p>
+          <div class="nota-antes nota-dec"><b>atual (mais inclusivo):</b> “Responda SIM quando a obra trabalha com/sobre o conhecimento de modo que dialoga com a AnCo — mesmo que não use o termo… na dúvida, RECONHEÇA e justifique.” É a regra de inclusão da pesquisa — as professoras escolhem entre as duas versões.</div>
+        </div>
+        <div>
+          <label class="field-label">Aspectos relevantes <span style="color:var(--ink-4); font-weight:400;">(6.2)</span> <span class="tag tag-alt">texto alterado</span></label>
+          <textarea class="field-textarea" rows="3">“A análise cognitiva permite mapear as operações de construção conjunta de significado…” (p. 48)</textarea>
+          <p class="help">Copie e cole trechos da obra que demonstram a pertinência do texto ao nosso objeto, a Análise Cognitiva.</p>
+          <div class="nota-antes"><b>atual:</b> “Em QUE e COMO a obra dialoga com a Análise Cognitiva — que dimensões e processos… ela mobiliza.” (descrição autoral → tutorial pede copiar e colar)</div>
+        </div>
+        <div>
+          <span class="field-label">A obra define o conceito de Análise Cognitiva? <span style="color:var(--ink-4); font-weight:400;">(6.3)</span> <span class="tag tag-igual">desdobrado em 2 campos (manter)</span></span>
+          <div class="sim-nao">
+            <label class="sim-nao-opt"><input type="radio" name="p7" checked><span>Sim</span></label>
+            <label class="sim-nao-opt"><input type="radio" name="p7"><span>Não</span></label>
+          </div>
+        </div>
+        <div>
+          <label class="field-label">Definição extraída <span class="tag tag-alt">texto alterado</span></label>
+          <textarea class="field-textarea" rows="3">“Entendemos análise cognitiva como o campo que investiga os processos de difusão e construção do conhecimento…” (p. 47)</textarea>
+          <p class="help">Copie e cole a definição do termo (se houver) apresentada no corpo do texto.</p>
+          <div class="nota-antes"><b>atual:</b> “Se a obra define o conceito, transcreva a definição tal como ela a enuncia.”</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ ABA 3 · ESTRUTURA DO ARTIGO ═════════════════════════════ -->
+    <section id="a3" hidden>
+      <h2 class="secao">Estrutura do artigo <span class="tag tag-alt">antes: “Análise do artigo”</span></h2>
+      <div class="ajuda-aba">
+        <p style="margin:0;">Descreva a estrutura analítica da obra segundo a grade AnCo (item 7 do tutorial). <strong>As dicas abaixo de cada campo</strong> trazem o que registrar. Lembre: <strong>Foco</strong> é o subcampo cognitivo (≠ área da aba 1); <strong>Epistemologia</strong> e <strong>Teoria</strong> usam o vocabulário controlado.</p>
+      </div>
+
+      <div class="campos">
+        <div>
+          <label class="field-label">Objeto <span style="color:var(--ink-4); font-weight:400;">(7.1)</span> <span class="tag tag-alt">help ajustado</span></label>
+          <textarea class="field-textarea" rows="2">Processos de construção colaborativa do conhecimento em AVAs.</textarea>
+          <p class="help">O que a obra investiga.</p>
+          <div class="nota-antes"><b>atual:</b> “O que (ou quem) a obra investiga.”</div>
+        </div>
+        <div>
+          <label class="field-label">Objetivo <span style="color:var(--ink-4); font-weight:400;">(7.2)</span> <span class="tag tag-igual">igual</span></label>
+          <textarea class="field-textarea" rows="2">Propor um quadro analítico para observar a co-construção de significado em fóruns.</textarea>
+          <p class="help">O que a obra se propõe a alcançar.</p>
+        </div>
+        <div>
+          <label class="field-label">Foco <span style="color:var(--ink-4); font-weight:400;">(7.3)</span> <span class="tag tag-igual">igual</span></label>
+          <textarea class="field-textarea" rows="2">Cognição distribuída / aprendizagem colaborativa mediada.</textarea>
+          <p class="help">Recorte ou ângulo central — o SUBCAMPO cognitivo da obra (ex.: Linguística Cognitiva, Neurociência Cognitiva, Engenharia Cognitiva). NÃO confunda com a área da aba 1.</p>
+        </div>
+        <div>
+          <label class="field-label">Metodologia <span style="color:var(--ink-4); font-weight:400;">(7.4)</span> <span class="tag tag-igual">igual</span></label>
+          <textarea class="field-textarea" rows="3">Estudo de caso qualitativo; análise de interações em fórum (n = 120 mensagens).</textarea>
+          <p class="help">Métodos e procedimentos de pesquisa.</p>
+        </div>
+        <div>
+          <span class="field-label">Epistemologia <span style="color:var(--ink-4); font-weight:400;">(7.5)</span> <span class="tag tag-igual">igual</span></span>
+          <div class="ts-mock"><span class="item">Sociointeracionismo ×</span><span class="item">Construtivismo ×</span><span class="ph">digite para buscar…</span></div>
+          <p class="help">Posições epistemológicas — digite para buscar e selecione termos do vocabulário. Use os termos existentes para que as análises sejam agregáveis; glosas longas vão em Observações.</p>
+        </div>
+        <div>
+          <span class="field-label">Teoria <span style="color:var(--ink-4); font-weight:400;">(7.6)</span> <span class="tag tag-alt">antes: “Teoria de referência”</span></span>
+          <div class="ts-mock"><span class="item">Cognição distribuída ×</span><span class="ph">digite para buscar…</span></div>
+          <p class="help">Teorias mobilizadas — digite para buscar e selecione termos do vocabulário.</p>
+        </div>
+        <div>
+          <label class="field-label">Resultados <span style="color:var(--ink-4); font-weight:400;">(7.7)</span> <span class="tag tag-mov">subiu — antes vinha depois de Referenciais</span></label>
+          <textarea class="field-textarea" rows="3">O quadro proposto identificou três padrões de co-construção; a análise cognitiva mostrou-se produtiva para descrever a negociação de sentido.</textarea>
+          <p class="help">Principais achados ou conclusões.</p>
+        </div>
+        <div>
+          <label class="field-label">Referenciais <span style="color:var(--ink-4); font-weight:400;">(7.8)</span> <span class="tag tag-mov">desceu p/ depois de Resultados</span></label>
+          <textarea class="field-textarea" rows="3">Vygotsky; Hutchins (cognição distribuída); Fróes Burnham (análise cognitiva e difusão do conhecimento).</textarea>
+          <p class="help">Principais autores e obras de referência.</p>
+        </div>
+        <div>
+          <label class="field-label">Contexto de produção (opcional) <span style="color:var(--ink-4); font-weight:400;">(4.3.2)</span> <span class="tag tag-alt">ganhou a lista de aspectos</span></label>
+          <textarea class="field-textarea" rows="2">Brasil; grupo de pesquisa em EAD de universidade federal; projeto financiado (CAPES).</textarea>
+          <p class="help">Onde/como a obra foi produzida (país, área, projeto). Opcional.</p>
+          <details class="aspectos">
+            <summary>▸ Aspectos sugeridos pelo tutorial</summary>
+            <ul>
+              <li>Autor</li>
+              <li>Papel social do autor</li>
+              <li>Imagem que o autor passa de si mesmo</li>
+              <li>Destinatários possíveis do texto</li>
+              <li>Papel social dos destinatários</li>
+              <li>Locais onde o texto circula</li>
+              <li>Momento da publicação</li>
+              <li>Objetivo do autor do texto</li>
+              <li>Conteúdos temáticos</li>
+              <li>Gênero do texto</li>
+            </ul>
+          </details>
+          <div class="nota-antes"><b>nota:</b> o tutorial o coloca na Identificação (4.3.2), mas ele é julgamento do analista, não metadado — permanece nesta aba (item C2 da proposta).</div>
+        </div>
+        <div>
+          <label class="field-label">Outras observações (opcional) <span style="color:var(--ink-4); font-weight:400;">(9)</span> <span class="tag tag-alt">antes: “Observações”</span></label>
+          <textarea class="field-textarea" rows="2"></textarea>
+          <p class="help">Quaisquer comentários e anotações que o analista deseje acrescentar.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ RESENHA (só referência) ═════════════════════════════════ -->
+    <section id="a0" hidden>
+      <h2 class="secao">Resenha crítica (opcional)</h2>
+      <p class="intro">Sem mudanças propostas — fica fora do escopo do tutorial (a resenha segue o fluxo próprio de revisão cega por pares). No sistema real este link leva à tela da resenha.</p>
+    </section>
+
+    <div class="navform">
+      <button class="btn btn-ghost" type="button" id="ant">← Anterior</button>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-ghost" type="button">Salvar agora</button>
+        <button class="btn btn-primary" type="button" id="prox">Próximo →</button>
+      </div>
+    </div>
+  </div>
+
+  <p style="font-size:12px; color: var(--ink-4); margin-top:26px;">
+    Itens do tutorial que <strong>não viram campo</strong> por serem automáticos: 1 Item (ID do sistema) · 2 Base de consulta (importação) ·
+    3 Periódico/ano (importação; vol./nº/pág. em “Editar dados do artigo”) · 4.1/4.3.1/4.4/4.6 título, autores, palavras-chave e resumo (importação) ·
+    4.5 Termos mais frequentes (substituído pelo realce automático — confirmar) · 8 Analista (login, com histórico de versões).
+  </p>
+</main>
+
+<script>
+  const abas = document.querySelectorAll('.aba-btn');
+  const ordem = ['a1', 'a2', 'a3', 'a0'];
+  function mostrar(id) {
+    ordem.forEach(s => document.getElementById(s).hidden = (s !== id));
+    abas.forEach(b => b.setAttribute('aria-selected', String(b.dataset.aba === id)));
+    document.getElementById('ant').style.visibility = (id === 'a1') ? 'hidden' : 'visible';
+    document.getElementById('prox').style.visibility = (id === 'a0') ? 'hidden' : 'visible';
+  }
+  abas.forEach(b => b.addEventListener('click', () => mostrar(b.dataset.aba)));
+  document.getElementById('prox').addEventListener('click', () => {
+    const atual = ordem.findIndex(s => !document.getElementById(s).hidden);
+    if (atual < ordem.length - 1) mostrar(ordem[atual + 1]);
+  });
+  document.getElementById('ant').addEventListener('click', () => {
+    const atual = ordem.findIndex(s => !document.getElementById(s).hidden);
+    if (atual > 0) mostrar(ordem[atual - 1]);
+  });
+  mostrar('a1');
+</script>
+</body>
+</html>
