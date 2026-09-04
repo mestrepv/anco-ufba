@@ -503,8 +503,10 @@ ed.** geradas automaticamente ([apps/publico/services.py](apps/publico/services.
 **Autoria e equipe**
 
 - **Paulo Vicente Moreira dos Santos** (nome de citação: **SANTOS, P. V. M. dos**) ·
+  [ORCID 0009-0002-1342-8885](https://orcid.org/0009-0002-1342-8885) ·
   <paulovicente.ifba@gmail.com> — concepção e desenvolvimento da plataforma.
-- **Eneida Santana de Avila Goular** (nome de citação: **SANTANA, Eneida**) —
+- **Eneida Santana de Ávila Goulart** (nome de citação: **SANTANA, Eneida**) ·
+  [ORCID 0000-0002-0884-4756](https://orcid.org/0000-0002-0884-4756) —
   bibliotecária e **Doutora em Difusão do Conhecimento**;
   equipe fundadora. Responsável pela **curadoria bibliográfica do acervo de
   fundação** (`base-anco-revisada.json`). Pesquisadora
